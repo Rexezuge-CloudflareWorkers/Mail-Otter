@@ -129,6 +129,20 @@ class GmailProviderUtil {
     if (!response.ok) {
       throw new InternalServerError(`Gmail send summary failed: ${await response.text()}`);
     }
+    const sentMessage = (await response.json()) as { id: string };
+    await GmailProviderUtil.trashGmailMessage(sentMessage.id, accessToken);
+  }
+
+  private static async trashGmailMessage(messageId: string, accessToken: string): Promise<void> {
+    const response: Response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) {
+      console.error(`Failed to trash Gmail message ${messageId}: ${await response.text()}`);
+    }
   }
 
   private static async fetchJson<T>(url: string, accessToken: string): Promise<T> {

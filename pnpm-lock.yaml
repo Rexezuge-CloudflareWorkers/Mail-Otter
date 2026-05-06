@@ -75,8 +75,8 @@ importers:
         specifier: ^3.3.0
         version: 3.3.0
       hono:
-        specifier: ^4.12.15
-        version: 4.12.16
+        specifier: ^4.12.17
+        version: 4.12.17
       jose:
         specifier: ^6.2.0
         version: 6.2.3
@@ -1312,8 +1312,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  hono@4.12.16:
-    resolution: {integrity: sha512-jN0ZewiNAWSe5khM3EyCmBb250+b40wWbwNILNfEvq84VREWwOIkuUsFONk/3i3nqkz7Oe1PcpM2mwQEK2L9Kg==}
+  hono@4.12.17:
+    resolution: {integrity: sha512-FbJJNb/XgX7YW0hX/V8w5oYLztKEsRLykCMZWt1WdLtsfjzMvmoqWBA4H4t5norinq8/rh20oiZYr+WSl4UzAQ==}
     engines: {node: '>=16.9.0'}
 
   ignore@5.3.2:
@@ -2774,7 +2774,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  hono@4.12.16: {}
+  hono@4.12.17: {}
 
   ignore@5.3.2: {}
 

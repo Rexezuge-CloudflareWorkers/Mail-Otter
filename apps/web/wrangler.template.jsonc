@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mail-otter-web",
+  "compatibility_date": "2025-12-31",
+  "pages_build_output_dir": "apps/web/dist/",
+  "services": [
+    {
+      "binding": "API_WORKER",
+      "service": "mail-otter",
+    },
+  ],
+}

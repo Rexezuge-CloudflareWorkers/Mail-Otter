@@ -1,0 +1,21 @@
+{
+  "name": "@mail-otter/api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mail-otter/shared": "workspace:*",
+    "chanfana": "^3.3.0",
+    "hono": "^4.12.15",
+    "jose": "^6.2.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260501.1",
+    "@types/node": "25.6.x",
+    "typescript": "^6.0.3"
+  }
+}

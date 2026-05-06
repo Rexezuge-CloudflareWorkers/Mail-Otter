@@ -1,0 +1,79 @@
+{
+  // "$version": 1777680298,
+  // "$minimumVersion": 1777680298,
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mail-otter",
+  "main": "apps/api/src/index.ts",
+  "compatibility_date": "2025-11-29",
+  "compatibility_flags": [],
+  "preview_urls": false,
+  "workers_dev": false,
+  "minify": true,
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1,
+    },
+  },
+  "routes": [],
+  "placement": {
+    "mode": "off",
+  },
+  "assets": {
+    "directory": "./apps/web/dist/",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "mail-otter-db",
+    },
+  ],
+  "ai": {
+    "binding": "AI",
+  },
+  "queues": {
+    "producers": [
+      {
+        "queue": "mail-otter-email-events",
+        "binding": "EMAIL_EVENTS_QUEUE",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "mail-otter-email-events",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+      },
+    ],
+  },
+  "triggers": {
+    "crons": ["0 * * * *"],
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "AES_ENCRYPTION_KEY_SECRET",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "mail-otter-aes-encryption-key",
+    },
+  ],
+  "vars": {
+    "SERVE_SPA_FROM_WORKER": "false",
+    "PUBLIC_BASE_URL": "https://mail.example.com",
+    "MAX_APPLICATIONS_PER_USER": "99",
+    "OAUTH2_STATE_EXPIRY_MINUTES": "15",
+    "AI_SUMMARY_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "MAX_EMAIL_BODY_CHARS": "12000",
+    "GMAIL_WATCH_RENEWAL_WINDOW_HOURS": "48",
+    "OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS": "24",
+    "OUTLOOK_SUBSCRIPTION_TTL_DAYS": "6",
+  },
+}

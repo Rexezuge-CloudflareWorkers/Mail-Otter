@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/", "/docs", "/openapi.json", "/user", "/user/*", "/api/*"],
+  "exclude": ["/assets/*"]
+}

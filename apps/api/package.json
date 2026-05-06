@@ -9,7 +9,7 @@
   "dependencies": {
     "@mail-otter/shared": "workspace:*",
     "chanfana": "^3.3.0",
-    "hono": "^4.12.17",
+    "hono": "^4.12.18",
     "jose": "^6.2.0",
     "zod": "^4.4.3"
   },

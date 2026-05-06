@@ -8,6 +8,7 @@ import type { ConnectedApplication, EmailQueueMessage, OAuth2Credentials, Provid
 import { BadRequestError } from '@/error';
 import { ConfigurationUtil } from '@mail-otter/shared/utils';
 import { EmailContentUtil } from './EmailContentUtil';
+import { EmailContextUtil } from './EmailContextUtil';
 import { EmailSummaryUtil } from './EmailSummaryUtil';
 import { GmailProviderUtil } from './GmailProviderUtil';
 import { OAuth2ProviderUtil } from './OAuth2ProviderUtil';
@@ -28,11 +29,12 @@ class EmailProcessingUtil {
     }
 
     const accessToken: string = await EmailProcessingUtil.refreshAccessToken(application, env, applicationDAO);
+    const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
     if (message.type === 'gmail-notification') {
-      await EmailProcessingUtil.processGmailNotification(application, accessToken, message.notificationHistoryId, env);
+      await EmailProcessingUtil.processGmailNotification(application, accessToken, message.notificationHistoryId, env, enabledApplicationIds);
       return;
     }
-    await EmailProcessingUtil.processOutlookMessage(application, accessToken, message.messageId, env);
+    await EmailProcessingUtil.processOutlookMessage(application, accessToken, message.messageId, env, enabledApplicationIds);
   }
 
   private static async processGmailNotification(
@@ -40,6 +42,7 @@ class EmailProcessingUtil {
     accessToken: string,
     notificationHistoryId: string,
     env: EmailProcessingEnv,
+    enabledApplicationIds: string[],
   ): Promise<void> {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
@@ -47,7 +50,7 @@ class EmailProcessingUtil {
     const startHistoryId: string | undefined = subscription.gmailHistoryId || notificationHistoryId;
     const history = await GmailProviderUtil.listMessageIdsSince(accessToken, startHistoryId);
     for (const messageId of history.messageIds) {
-      await EmailProcessingUtil.processGmailMessage(application, accessToken, messageId, env);
+      await EmailProcessingUtil.processGmailMessage(application, accessToken, messageId, env, enabledApplicationIds);
     }
     await subscriptionDAO.updateGmailHistory(subscription.subscriptionId, history.historyId || notificationHistoryId);
   }
@@ -57,6 +60,7 @@ class EmailProcessingUtil {
     accessToken: string,
     messageId: string,
     env: EmailProcessingEnv,
+    enabledApplicationIds: string[],
   ): Promise<void> {
     const message: GmailMessage = await GmailProviderUtil.getMessage(accessToken, messageId);
     const headers = message.payload?.headers;
@@ -78,7 +82,17 @@ class EmailProcessingUtil {
         return;
       }
       const extracted = EmailContentUtil.extractGmailText(message.payload);
-      const summary: string = await EmailProcessingUtil.summarize(env, subject, from, extracted.text);
+      const ragContext: string | undefined = await EmailContextUtil.prepareEmailRagContext({
+        env,
+        application,
+        enabledApplicationIds,
+        subject,
+        from,
+        body: extracted.text,
+        sourceDocumentId: message.id,
+        sourceThreadId: message.threadId,
+      });
+      const summary: string = await EmailProcessingUtil.summarize(env, subject, from, extracted.text, ragContext);
       await GmailProviderUtil.sendSummaryReply(accessToken, application.providerEmail!, message, summary);
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
@@ -92,6 +106,7 @@ class EmailProcessingUtil {
     accessToken: string,
     messageId: string,
     env: EmailProcessingEnv,
+    enabledApplicationIds: string[],
   ): Promise<void> {
     const message: OutlookMessage = await OutlookProviderUtil.getMessage(accessToken, messageId);
     const from: string = message.from?.emailAddress?.address || message.sender?.emailAddress?.address || '';
@@ -116,7 +131,17 @@ class EmailProcessingUtil {
         return;
       }
       const body: string = OutlookProviderUtil.getMessageText(message);
-      const summary: string = await EmailProcessingUtil.summarize(env, subject, from, body);
+      const ragContext: string | undefined = await EmailContextUtil.prepareEmailRagContext({
+        env,
+        application,
+        enabledApplicationIds,
+        subject,
+        from,
+        body,
+        sourceDocumentId: message.id,
+        sourceThreadId: message.conversationId || null,
+      });
+      const summary: string = await EmailProcessingUtil.summarize(env, subject, from, body, ragContext);
       await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message.id, application.providerEmail!, summary);
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
@@ -141,10 +166,16 @@ class EmailProcessingUtil {
     return tokenResult.accessToken;
   }
 
-  private static async summarize(env: EmailProcessingEnv, subject: string, from: string, body: string): Promise<string> {
+  private static async summarize(
+    env: EmailProcessingEnv,
+    subject: string,
+    from: string,
+    body: string,
+    ragContext?: string | undefined,
+  ): Promise<string> {
     const maxChars: number = ConfigurationUtil.getPositiveInteger(env.MAX_EMAIL_BODY_CHARS, DEFAULT_MAX_EMAIL_BODY_CHARS);
     const input: string = EmailContentUtil.truncate(body || '(empty message body)', maxChars);
-    return EmailSummaryUtil.summarizeEmail(env.AI, env.AI_SUMMARY_MODEL || DEFAULT_EMAIL_SUMMARY_MODEL, subject, from, input);
+    return EmailSummaryUtil.summarizeEmail(env.AI, env.AI_SUMMARY_MODEL || DEFAULT_EMAIL_SUMMARY_MODEL, subject, from, input, ragContext);
   }
 
   private static formatError(error: unknown): string {
@@ -156,8 +187,14 @@ interface EmailProcessingEnv {
   DB: D1Database;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
+  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
   AI_SUMMARY_MODEL?: string | undefined;
+  AI_EMBEDDING_MODEL?: string | undefined;
   MAX_EMAIL_BODY_CHARS?: string | undefined;
+  MAX_CONTEXT_MEMORY_CHARS?: string | undefined;
+  MAX_RAG_CONTEXT_CHARS?: string | undefined;
+  RAG_TOP_K?: string | undefined;
+  RAG_VECTOR_QUERY_TOP_K?: string | undefined;
 }
 
 export { EmailProcessingUtil };

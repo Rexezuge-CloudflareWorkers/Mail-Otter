@@ -5,14 +5,18 @@ import {
   CreateApplicationRoute,
   CreateOAuth2AuthorizationRoute,
   DeleteApplicationRoute,
+  DeleteApplicationContextDocumentsRoute,
   GetCurrentUserRoute,
   GmailWebhookRoute,
+  ListApplicationContextDeletionRunsRoute,
+  ListApplicationContextDocumentsRoute,
   ListApplicationsRoute,
   OAuth2CallbackRoute,
   OutlookLifecycleWebhookRoute,
   OutlookWebhookRoute,
   StartApplicationWatchRoute,
   StopApplicationWatchRoute,
+  UpdateApplicationContextRoute,
   UpdateApplicationRoute,
 } from '@/endpoints';
 import { MiddlewareHandlers } from '@/middleware';
@@ -65,6 +69,10 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.post('/user/application', CreateApplicationRoute);
     openapi.put('/user/application', UpdateApplicationRoute);
     openapi.delete('/user/application', DeleteApplicationRoute);
+    openapi.put('/user/application/context', UpdateApplicationContextRoute);
+    openapi.post('/user/application/context/delete-documents', DeleteApplicationContextDocumentsRoute);
+    openapi.get('/user/application/context/documents', ListApplicationContextDocumentsRoute);
+    openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);
     openapi.post('/user/application/oauth2/authorize', CreateOAuth2AuthorizationRoute);
     openapi.post('/user/application/watch', StartApplicationWatchRoute);
     openapi.post('/user/application/stop', StopApplicationWatchRoute);

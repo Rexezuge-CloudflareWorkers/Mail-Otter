@@ -1,5 +1,5 @@
 import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@/dao';
+import { ConnectedApplicationDAO } from '@/dao';
 import { BadRequestError } from '@/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
@@ -7,10 +7,9 @@ import type {
   ConnectedApplicationCredentials,
   ConnectedApplicationMetadata,
   OAuth2Credentials,
-  ProcessedMessage,
-  ProviderSubscription,
 } from '@mail-otter/shared/model';
-import { BaseUrlUtil } from '@/utils';
+import { ApplicationResponseUtil } from '@/utils';
+import type { ApplicationResponse } from '@/utils';
 
 class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, UpdateApplicationResponse, UpdateApplicationEnv> {
   schema = {
@@ -56,28 +55,7 @@ class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, Update
       throw new BadRequestError('Connected application was not found.');
     }
     return {
-      application: await this.decorateApplication(application, env, request.raw),
-    };
-  }
-
-  private async decorateApplication(
-    application: ConnectedApplicationMetadata,
-    env: UpdateApplicationEnv,
-    raw: Request,
-  ): Promise<ApplicationResponse> {
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const processedMessageDAO = new ProcessedMessageDAO(env.DB);
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-    const latestMessage: ProcessedMessage | undefined = await processedMessageDAO.getLatestForApplication(application.applicationId);
-    const baseUrl: string = BaseUrlUtil.getBaseUrl(raw);
-    return {
-      ...application,
-      oauth2RedirectUri: `${baseUrl}/api/oauth2/callback/${application.applicationId}`,
-      webhookUrl: `${baseUrl}/api/webhooks/${application.providerId === 'google-gmail' ? 'gmail' : 'outlook'}/${application.applicationId}`,
-      watchStatus: subscription?.status,
-      watchExpiresAt: subscription?.expiresAt,
-      lastSummaryAt: latestMessage?.summarySentAt,
-      lastError: subscription?.lastError || latestMessage?.errorMessage,
+      application: await ApplicationResponseUtil.decorateApplication(application, env, request.raw),
     };
   }
 }
@@ -90,10 +68,6 @@ interface UpdateApplicationRequest extends IRequest {
   clientId: string;
   clientSecret: string;
   gmailPubsubTopicName?: string | undefined;
-}
-
-interface ApplicationResponse extends ConnectedApplicationMetadata {
-  oauth2RedirectUri: string;
 }
 
 interface UpdateApplicationResponse extends IResponse {

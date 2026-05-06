@@ -1,18 +1,17 @@
-import { EmailEventsQueueWorker } from '@/workers';
-import { EmailProcessingUtil } from '@/utils';
+import { EmailEventsDispatcherWorker } from '@/workers';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 
-describe('EmailEventsQueueWorker', () => {
+describe('EmailEventsDispatcherWorker', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('acks processed messages', async () => {
-    const worker = new EmailEventsQueueWorker();
+  it('acks dispatched workflow messages', async () => {
+    const worker = new EmailEventsDispatcherWorker();
     const ack = vi.fn();
     const retry = vi.fn();
-    const processQueueMessage = vi.spyOn(EmailProcessingUtil, 'processQueueMessage').mockResolvedValue(undefined);
+    const createBatch = vi.fn().mockResolvedValue([]);
 
     await worker.queue(
       {
@@ -30,11 +29,11 @@ describe('EmailEventsQueueWorker', () => {
         retryAll: vi.fn(),
         ackAll: vi.fn(),
       } as unknown as MessageBatch<unknown>,
-      {} as Env,
+      { EMAIL_PROCESSING_WORKFLOW: { createBatch } } as unknown as Env,
       {} as ExecutionContext,
     );
 
-    expect(processQueueMessage).toHaveBeenCalledOnce();
+    expect(createBatch).toHaveBeenCalledOnce();
     expect(ack).toHaveBeenCalledOnce();
     expect(retry).not.toHaveBeenCalled();
   });

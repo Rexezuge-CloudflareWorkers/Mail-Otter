@@ -40,8 +40,8 @@ class ConnectedApplicationDAO {
       .prepare(
         `
           INSERT INTO connected_applications
-            (application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, gmail_pubsub_topic_name, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, gmail_pubsub_topic_name, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
       )
       .bind(
@@ -54,6 +54,7 @@ class ConnectedApplicationDAO {
         encrypted.encrypted,
         encrypted.iv,
         status,
+        1,
         gmailPubsubTopicName || null,
         now,
         now,
@@ -73,7 +74,7 @@ class ConnectedApplicationDAO {
     const rows: ConnectedApplicationInternal[] = await this.database
       .prepare(
         `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, gmail_pubsub_topic_name, created_at, updated_at
+          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, gmail_pubsub_topic_name, created_at, updated_at
           FROM connected_applications
           WHERE user_email = ?
           ORDER BY updated_at DESC, created_at DESC
@@ -91,6 +92,21 @@ class ConnectedApplicationDAO {
       .bind(userEmail)
       .first<{ count: number }>();
     return row?.count ?? 0;
+  }
+
+  public async listContextEnabledApplicationIdsByUserEmail(userEmail: string): Promise<string[]> {
+    const rows: Array<{ application_id: string }> = await this.database
+      .prepare(
+        `
+          SELECT application_id
+          FROM connected_applications
+          WHERE user_email = ? AND context_indexing_enabled = 1
+        `,
+      )
+      .bind(userEmail)
+      .all<{ application_id: string }>()
+      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
+    return rows.map((row: { application_id: string }): string => row.application_id);
   }
 
   public async getMetadataByIdForUser(applicationId: string, userEmail: string): Promise<ConnectedApplicationMetadata | undefined> {
@@ -189,6 +205,28 @@ class ConnectedApplicationDAO {
     }
   }
 
+  public async updateContextIndexingForUser(
+    applicationId: string,
+    userEmail: string,
+    contextIndexingEnabled: boolean,
+  ): Promise<ConnectedApplicationMetadata | undefined> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          UPDATE connected_applications
+          SET context_indexing_enabled = ?, updated_at = ?
+          WHERE application_id = ? AND user_email = ?
+        `,
+      )
+      .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, userEmail)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to update context indexing setting: ${result.error}`);
+    }
+    return this.getMetadataByIdForUser(applicationId, userEmail);
+  }
+
   public async deleteForUser(applicationId: string, userEmail: string): Promise<void> {
     const result: D1Result = await this.database
       .prepare('DELETE FROM connected_applications WHERE application_id = ? AND user_email = ?')
@@ -205,7 +243,7 @@ class ConnectedApplicationDAO {
     const row: ConnectedApplicationInternal | null = await this.database
       .prepare(
         `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, gmail_pubsub_topic_name, created_at, updated_at
+          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, gmail_pubsub_topic_name, created_at, updated_at
           FROM connected_applications
           WHERE application_id = ?${whereUser}
           LIMIT 1
@@ -239,6 +277,7 @@ class ConnectedApplicationDAO {
       providerId: row.provider_id,
       connectionMethod: row.connection_method,
       status,
+      contextIndexingEnabled: row.context_indexing_enabled !== 0,
       gmailPubsubTopicName: row.gmail_pubsub_topic_name,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

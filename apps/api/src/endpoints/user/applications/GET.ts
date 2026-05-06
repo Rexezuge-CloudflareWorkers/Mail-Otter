@@ -1,8 +1,9 @@
-import { ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@/dao';
+import { ConnectedApplicationDAO } from '@/dao';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplicationMetadata, ProcessedMessage, ProviderSubscription } from '@mail-otter/shared/model';
-import { BaseUrlUtil } from '@/utils';
+import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
+import { ApplicationResponseUtil } from '@/utils';
+import type { ApplicationResponse } from '@/utils';
 
 class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListApplicationsResponse, ListApplicationsEnv> {
   schema = {
@@ -22,24 +23,11 @@ class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListAppl
   ): Promise<ListApplicationsResponse> {
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const processedMessageDAO = new ProcessedMessageDAO(env.DB);
     const applications: ConnectedApplicationMetadata[] = await dao.listMetadataByUserEmail(this.getAuthenticatedUserEmailAddress(cxt));
-    const baseUrl: string = BaseUrlUtil.getBaseUrl(request.raw);
     return {
       applications: await Promise.all(
         applications.map(async (application: ConnectedApplicationMetadata): Promise<ApplicationResponse> => {
-          const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-          const latestMessage: ProcessedMessage | undefined = await processedMessageDAO.getLatestForApplication(application.applicationId);
-          return {
-            ...application,
-            oauth2RedirectUri: `${baseUrl}/api/oauth2/callback/${application.applicationId}`,
-            webhookUrl: `${baseUrl}/api/webhooks/${application.providerId === 'google-gmail' ? 'gmail' : 'outlook'}/${application.applicationId}`,
-            watchStatus: subscription?.status,
-            watchExpiresAt: subscription?.expiresAt,
-            lastSummaryAt: latestMessage?.summarySentAt,
-            lastError: subscription?.lastError || latestMessage?.errorMessage,
-          };
+          return ApplicationResponseUtil.decorateApplication(application, env, request.raw);
         }),
       ),
     };
@@ -47,10 +35,6 @@ class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListAppl
 }
 
 type ListApplicationsRequest = IRequest;
-
-interface ApplicationResponse extends ConnectedApplicationMetadata {
-  oauth2RedirectUri: string;
-}
 
 interface ListApplicationsResponse extends IResponse {
   applications: ApplicationResponse[];

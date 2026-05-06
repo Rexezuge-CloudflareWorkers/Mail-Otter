@@ -16,6 +16,7 @@ interface ConnectedApplicationMetadata {
   providerId: ProviderId;
   connectionMethod: ConnectionMethod;
   status: ConnectedApplicationStatus;
+  contextIndexingEnabled: boolean;
   gmailPubsubTopicName?: string | null | undefined;
   oauth2RedirectUri?: string | undefined;
   webhookUrl?: string | undefined;
@@ -23,6 +24,10 @@ interface ConnectedApplicationMetadata {
   watchExpiresAt?: number | null | undefined;
   lastSummaryAt?: number | null | undefined;
   lastError?: string | null | undefined;
+  contextDocumentCount?: number | undefined;
+  contextLastIndexedAt?: number | null | undefined;
+  contextLastDeleteAcceptedAt?: number | null | undefined;
+  contextLastError?: string | null | undefined;
   createdAt: number;
   updatedAt: number;
 }
@@ -41,6 +46,7 @@ interface ConnectedApplicationInternal {
   encrypted_credentials: string;
   credentials_iv: string;
   status: ConnectedApplicationStatus;
+  context_indexing_enabled: number;
   gmail_pubsub_topic_name: string | null;
   created_at: number;
   updated_at: number;

@@ -1,15 +1,24 @@
 import { InternalServerError } from '@/error';
 
 class EmailSummaryUtil {
-  public static async summarizeEmail(ai: Ai, model: string, subject: string, from: string, body: string): Promise<string> {
+  public static async summarizeEmail(
+    ai: Ai,
+    model: string,
+    subject: string,
+    from: string,
+    body: string,
+    ragContext?: string | undefined,
+  ): Promise<string> {
     const prompt: string = [
       'Summarize this email for the mailbox owner.',
+      'Use prior relevant documents only as background context when they are directly relevant.',
       'Return JSON that exactly matches the requested schema.',
       'Keep the gist to one sentence.',
       'Key details must be short factual bullets copied from the email when possible.',
       'Action items must include deadlines or owners when present.',
       'If there are no action items, return an empty array.',
       'Do not invent facts. Do not include a greeting.',
+      ...(ragContext ? ['', ragContext] : []),
       '',
       `Subject: ${subject || '(no subject)'}`,
       `From: ${from || '(unknown)'}`,

@@ -1,10 +1,11 @@
 import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2, DEFAULT_MAX_APPLICATIONS_PER_USER } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@/dao';
+import { ConnectedApplicationDAO } from '@/dao';
 import { BadRequestError } from '@/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata, ProcessedMessage, ProviderSubscription } from '@mail-otter/shared/model';
-import { BaseUrlUtil, ConfigurationUtil } from '@/utils';
+import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata } from '@mail-otter/shared/model';
+import { ApplicationResponseUtil, ConfigurationUtil } from '@/utils';
+import type { ApplicationResponse } from '@/utils';
 
 class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, CreateApplicationResponse, CreateApplicationEnv> {
   schema = {
@@ -44,30 +45,7 @@ class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, Create
       request.gmailPubsubTopicName || null,
     );
     return {
-      application: await this.decorateApplication(application, env, request.raw),
-    };
-  }
-
-  private async decorateApplication(
-    application: ConnectedApplicationMetadata,
-    env: CreateApplicationEnv,
-    raw: Request,
-  ): Promise<ApplicationResponse> {
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const processedMessageDAO = new ProcessedMessageDAO(env.DB);
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-    const latestMessage: ProcessedMessage | undefined = await processedMessageDAO.getLatestForApplication(application.applicationId);
-    const baseUrl: string = BaseUrlUtil.getBaseUrl(raw);
-    return {
-      ...application,
-      oauth2RedirectUri: `${baseUrl}/api/oauth2/callback/${application.applicationId}`,
-      webhookUrl: `${baseUrl}/api/webhooks/${application.providerId === 'google-gmail' ? 'gmail' : 'outlook'}/${application.applicationId}${
-        subscription?.webhookSecretHash ? '?token=shown-on-watch-start' : ''
-      }`,
-      watchStatus: subscription?.status,
-      watchExpiresAt: subscription?.expiresAt,
-      lastSummaryAt: latestMessage?.summarySentAt,
-      lastError: subscription?.lastError || latestMessage?.errorMessage,
+      application: await ApplicationResponseUtil.decorateApplication(application, env, request.raw),
     };
   }
 }
@@ -79,10 +57,6 @@ interface CreateApplicationRequest extends IRequest {
   clientId: string;
   clientSecret: string;
   gmailPubsubTopicName?: string | undefined;
-}
-
-interface ApplicationResponse extends ConnectedApplicationMetadata {
-  oauth2RedirectUri: string;
 }
 
 interface CreateApplicationResponse extends IResponse {

@@ -39,6 +39,19 @@
   "ai": {
     "binding": "AI",
   },
+  "vectorize": [
+    {
+      "binding": "EMAIL_CONTEXT_INDEX",
+      "index_name": "mail-otter-email-context",
+    },
+  ],
+  "workflows": [
+    {
+      "binding": "EMAIL_PROCESSING_WORKFLOW",
+      "name": "mail-otter-email-processing",
+      "class_name": "EmailProcessingWorkflow",
+    },
+  ],
   "queues": {
     "producers": [
       {
@@ -71,7 +84,12 @@
     "MAX_APPLICATIONS_PER_USER": "99",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",
     "AI_SUMMARY_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "AI_EMBEDDING_MODEL": "@cf/baai/bge-base-en-v1.5",
     "MAX_EMAIL_BODY_CHARS": "12000",
+    "MAX_CONTEXT_MEMORY_CHARS": "1800",
+    "MAX_RAG_CONTEXT_CHARS": "6000",
+    "RAG_TOP_K": "5",
+    "RAG_VECTOR_QUERY_TOP_K": "50",
     "GMAIL_WATCH_RENEWAL_WINDOW_HOURS": "48",
     "OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS": "24",
     "OUTLOOK_SUBSCRIPTION_TTL_DAYS": "6",

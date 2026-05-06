@@ -14,10 +14,21 @@ Users bring their own OAuth app credentials. Gmail also requires a Google Pub/Su
 - D1 database binding: `DB`
 - Secrets Store secret: `AES_ENCRYPTION_KEY_SECRET`
 - Workers AI binding: `AI`
+- Vectorize index binding: `EMAIL_CONTEXT_INDEX`
+- Workflow binding: `EMAIL_PROCESSING_WORKFLOW`
 - Queue producer and consumer: `EMAIL_EVENTS_QUEUE`
 - Cron trigger: hourly, for subscription renewal
 
 Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, secret store id, routes, and `PUBLIC_BASE_URL`.
+
+Create the Vectorize index before deploy:
+
+```bash
+source ~/.customrc
+volta run npx wrangler vectorize create mail-otter-email-context --dimensions=768 --metric=cosine
+```
+
+The management UI lets users enable or disable context indexing per connected application, inspect indexed documents, and delete all indexed documents for one application.
 
 ## OAuth Setup
 

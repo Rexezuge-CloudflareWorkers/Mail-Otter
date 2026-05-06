@@ -1,7 +1,8 @@
-import { EmailEventsQueueWorker, MailOtterWorker } from '@/workers';
+import { EmailEventsDispatcherWorker, MailOtterWorker } from '@/workers';
+export { EmailProcessingWorkflow } from './workers/EmailProcessingWorkflow';
 
 const mailOtterWorker: MailOtterWorker = new MailOtterWorker();
-const emailEventsQueueWorker: EmailEventsQueueWorker = new EmailEventsQueueWorker();
+const emailEventsDispatcherWorker: EmailEventsDispatcherWorker = new EmailEventsDispatcherWorker();
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -11,6 +12,6 @@ export default {
     return mailOtterWorker.scheduled(controller, env, ctx);
   },
   queue(batch: MessageBatch<unknown>, env: Env, ctx: ExecutionContext): Promise<void> {
-    return emailEventsQueueWorker.queue(batch, env, ctx);
+    return emailEventsDispatcherWorker.queue(batch, env, ctx);
   },
 };

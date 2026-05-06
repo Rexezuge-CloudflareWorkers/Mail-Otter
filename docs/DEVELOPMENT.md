@@ -31,6 +31,10 @@ Protected user routes:
 - `POST /user/application`
 - `PUT /user/application`
 - `DELETE /user/application`
+- `PUT /user/application/context`
+- `POST /user/application/context/delete-documents`
+- `GET /user/application/context/documents`
+- `GET /user/application/context/deletions`
 - `POST /user/application/oauth2/authorize`
 - `POST /user/application/watch`
 - `POST /user/application/stop`
@@ -44,7 +48,7 @@ Public routes:
 
 ## Processing
 
-Webhook routes validate provider secrets or client state, enqueue lightweight jobs, and acknowledge quickly. Queue processing refreshes provider access tokens, fetches the new message, deduplicates by provider message id, calls Workers AI, and sends a self-addressed summary reply in the original thread.
+Webhook routes validate provider secrets or client state, enqueue lightweight jobs, and acknowledge quickly. The queue consumer dispatches an `EmailProcessingWorkflow` instance for each job. The workflow refreshes provider access tokens, fetches the new message, deduplicates by provider message id, retrieves per-user Vectorize context from enabled applications, calls Workers AI, sends a self-addressed summary reply in the original thread, and stores the new document in Vectorize when that application has indexing enabled.
 
 ## Configuration
 
@@ -53,8 +57,15 @@ Webhook routes validate provider secrets or client state, enqueue lightweight jo
 - `DB`
 - `AES_ENCRYPTION_KEY_SECRET`
 - `AI`
+- `EMAIL_CONTEXT_INDEX`
+- `EMAIL_PROCESSING_WORKFLOW`
 - `EMAIL_EVENTS_QUEUE`
 - hourly cron
 - `PUBLIC_BASE_URL`
 - `AI_SUMMARY_MODEL`
+- `AI_EMBEDDING_MODEL`
+- `MAX_CONTEXT_MEMORY_CHARS`
+- `MAX_RAG_CONTEXT_CHARS`
+- `RAG_TOP_K`
+- `RAG_VECTOR_QUERY_TOP_K`
 - provider renewal windows

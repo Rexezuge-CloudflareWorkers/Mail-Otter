@@ -22,5 +22,48 @@ export interface ConnectedApplication {
   watchExpiresAt?: number | null;
   lastSummaryAt?: number | null;
   lastError?: string | null;
+  contextIndexingEnabled: boolean;
+  contextDocumentCount?: number;
+  contextLastIndexedAt?: number | null;
+  contextLastDeleteAcceptedAt?: number | null;
+  contextLastError?: string | null;
+  updatedAt: number;
+}
+
+export type ApplicationContextDocumentStatus = 'active' | 'deleted' | 'error';
+export type ApplicationContextDeletionStatus = 'accepted' | 'error';
+
+export interface ApplicationContextDocument {
+  contextDocumentId: string;
+  applicationId: string;
+  userEmail: string;
+  sourceType: string;
+  sourceProviderId: ProviderId;
+  sourceDocumentId: string;
+  sourceThreadId?: string | null;
+  vectorNamespace: string;
+  vectorId: string;
+  title?: string | null;
+  sender?: string | null;
+  indexedText?: string | null;
+  status: ApplicationContextDocumentStatus;
+  indexedAt?: number | null;
+  deletedAt?: number | null;
+  lastError?: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ApplicationContextDeletionRun {
+  deletionRunId: string;
+  applicationId: string;
+  userEmail: string;
+  vectorNamespace: string;
+  requestedVectorCount: number;
+  deletedVectorCount: number;
+  mutationIds: string[];
+  status: ApplicationContextDeletionStatus;
+  errorMessage?: string | null;
+  createdAt: number;
   updatedAt: number;
 }

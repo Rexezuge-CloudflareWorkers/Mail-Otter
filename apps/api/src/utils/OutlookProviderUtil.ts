@@ -132,7 +132,7 @@ class OutlookProviderUtil {
       body: JSON.stringify({
         body: {
           contentType: 'Text',
-          content: ['Mail-Otter summary', '', summary].join('\n'),
+          content: summary,
         },
         toRecipients: [{ emailAddress: { address: mailboxAddress } }],
         ccRecipients: [],

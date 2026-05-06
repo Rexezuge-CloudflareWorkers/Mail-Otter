@@ -86,6 +86,8 @@ class EmailSummaryUtil {
       '',
       'Action items:',
       ...EmailSummaryUtil.renderList(actionItems, 'None.'),
+      '',
+      '<Mail-Otter Summary>',
     ].join('\n');
   }
 

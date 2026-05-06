@@ -113,8 +113,6 @@ class GmailProviderUtil {
       'MIME-Version: 1.0',
       'Content-Type: text/plain; charset=utf-8',
       '',
-      'Mail-Otter summary',
-      '',
       summary,
     ].join('\r\n');
     const response: Response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {

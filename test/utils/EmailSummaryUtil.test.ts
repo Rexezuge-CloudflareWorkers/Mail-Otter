@@ -21,7 +21,9 @@ Key details:
 - Launch is planned for May 20.
 
 Action items:
-- Approve or reject the budget by Friday.`);
+- Approve or reject the budget by Friday.
+
+<Mail-Otter Summary>`);
   });
 
   it('fills empty sections with stable fallback text', async () => {
@@ -41,7 +43,9 @@ Key details:
 - No key details noted.
 
 Action items:
-- None.`);
+- None.
+
+<Mail-Otter Summary>`);
   });
 
   it('throws when the AI response cannot be parsed into the summary schema', async () => {

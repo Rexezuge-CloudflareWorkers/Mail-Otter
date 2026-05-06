@@ -1,6 +1,6 @@
 {
-  // "$version": 1777680298,
-  // "$minimumVersion": 1777680298,
+  // "$version": 1778100466,
+  // "$minimumVersion": 1778100466,
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mail-otter",
   "main": "apps/api/src/index.ts",

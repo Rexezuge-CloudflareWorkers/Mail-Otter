@@ -57,6 +57,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Initialize Vectorize Indexes
+        if: ${{ github.event_name != 'pull_request' }}
+        run: npx tsx scripts/init-vectorize.ts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Apply Database Migration
         if: ${{ github.event_name != 'pull_request' }}
         run: yes | npx wrangler d1 migrations apply --remote mail-otter-db

@@ -13,7 +13,7 @@
     "react-dom": "^19.2.x"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260505.1",
+    "@cloudflare/workers-types": "^4.20260506.1",
     "@tailwindcss/postcss": "^4.2.0",
     "@tailwindcss/vite": "^4.2.x",
     "@types/react": "^19.2.x",

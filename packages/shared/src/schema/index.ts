@@ -17,6 +17,9 @@ const normalizePathname = (pathname: string): string => {
   if (/^\/api\/webhooks\/outlook\/[^/]+$/.test(path)) {
     return '/api/webhooks/outlook/:applicationId';
   }
+  if (/^\/user\/application\/context\/document\/[^/]+\/provider-link$/.test(path)) {
+    return '/user/application/context/document/:contextDocumentId/provider-link';
+  }
   return path;
 };
 

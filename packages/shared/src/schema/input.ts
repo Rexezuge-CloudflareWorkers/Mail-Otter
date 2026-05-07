@@ -110,6 +110,7 @@ const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'POST /user/application/context/delete-documents': { body: DeleteApplicationContextDocumentsBodySchema },
   'GET /user/application/context/documents': { query: ApplicationContextListQuerySchema },
   'GET /user/application/context/deletions': { query: ApplicationContextDeletionRunsQuerySchema },
+  'GET /user/application/context/document/:contextDocumentId/provider-link': {},
   'POST /user/application/oauth2/authorize': { body: OAuth2AuthorizeBodySchema },
   'POST /user/application/watch': { body: WatchApplicationBodySchema },
   'POST /user/application/stop': { body: StopApplicationBodySchema },

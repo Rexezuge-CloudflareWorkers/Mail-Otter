@@ -13,6 +13,7 @@ import type {
   ApplicationContextDocument,
   ApplicationContextDocumentInternal,
   ApplicationContextDocumentList,
+  ApplicationContextDocumentSource,
   ApplicationContextSummary,
 } from '@mail-otter/shared/model';
 import type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus, ProviderId } from '@mail-otter/shared/constants';
@@ -44,8 +45,10 @@ class ApplicationContextDAO {
         .prepare(
           `
             UPDATE application_context_documents
-            SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?, title = ?, sender = ?,
-                indexed_text = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
+            SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
+                source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
+                content_fingerprint = ?, indexed_text_chars = ?, title = NULL, sender = NULL, indexed_text = NULL,
+                status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
             WHERE context_document_id = ?
           `,
         )
@@ -54,9 +57,12 @@ class ApplicationContextDAO {
           input.sourceProviderId,
           input.sourceThreadId || null,
           input.vectorNamespace,
-          input.title || null,
-          input.sender || null,
-          input.indexedText,
+          input.sourceDocumentFingerprint,
+          input.sourceThreadFingerprint || null,
+          input.titleFingerprint || null,
+          input.senderFingerprint || null,
+          input.contentFingerprint,
+          input.indexedTextChars,
           APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
           now,
           existing.context_document_id,
@@ -77,8 +83,9 @@ class ApplicationContextDAO {
         `
           INSERT INTO application_context_documents
             (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
-             vector_namespace, vector_id, title, sender, indexed_text, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+             vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
+             content_fingerprint, indexed_text_chars, title, sender, indexed_text, status, indexed_at, deleted_at, last_error, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, NULL, NULL, NULL, ?, ?)
         `,
       )
       .bind(
@@ -91,9 +98,12 @@ class ApplicationContextDAO {
         input.sourceThreadId || null,
         input.vectorNamespace,
         vectorId,
-        input.title || null,
-        input.sender || null,
-        input.indexedText,
+        input.sourceDocumentFingerprint,
+        input.sourceThreadFingerprint || null,
+        input.titleFingerprint || null,
+        input.senderFingerprint || null,
+        input.contentFingerprint,
+        input.indexedTextChars,
         APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
         now,
         now,
@@ -264,6 +274,50 @@ class ApplicationContextDAO {
     };
   }
 
+  public async getDocumentSourceForUser(contextDocumentId: string, userEmail: string): Promise<ApplicationContextDocumentSource | undefined> {
+    const row: Pick<
+      ApplicationContextDocumentInternal,
+      | 'context_document_id'
+      | 'application_id'
+      | 'user_email'
+      | 'source_provider_id'
+      | 'source_document_id'
+      | 'source_thread_id'
+      | 'status'
+    > | null = await this.database
+      .prepare(
+        `
+          SELECT context_document_id, application_id, user_email, source_provider_id, source_document_id, source_thread_id, status
+          FROM application_context_documents
+          WHERE context_document_id = ? AND user_email = ?
+          LIMIT 1
+        `,
+      )
+      .bind(contextDocumentId, userEmail)
+      .first<
+        Pick<
+          ApplicationContextDocumentInternal,
+          | 'context_document_id'
+          | 'application_id'
+          | 'user_email'
+          | 'source_provider_id'
+          | 'source_document_id'
+          | 'source_thread_id'
+          | 'status'
+        >
+      >();
+    if (!row) return undefined;
+    return {
+      contextDocumentId: row.context_document_id,
+      applicationId: row.application_id,
+      userEmail: row.user_email,
+      sourceProviderId: row.source_provider_id,
+      sourceDocumentId: row.source_document_id,
+      sourceThreadId: row.source_thread_id,
+      status: row.status,
+    };
+  }
+
   public async listActiveVectorIdsForApplication(applicationId: string, userEmail: string): Promise<string[]> {
     const rows: Array<{ vector_id: string }> = await this.database
       .prepare(
@@ -322,7 +376,7 @@ class ApplicationContextDAO {
         .prepare(
           `
             UPDATE application_context_documents
-            SET status = ?, indexed_text = NULL, deleted_at = ?, updated_at = ?
+            SET status = ?, title = NULL, sender = NULL, indexed_text = NULL, deleted_at = ?, updated_at = ?
             WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
           `,
         )
@@ -372,13 +426,14 @@ class ApplicationContextDAO {
       userEmail: row.user_email,
       sourceType: row.source_type,
       sourceProviderId: row.source_provider_id,
-      sourceDocumentId: row.source_document_id,
-      sourceThreadId: row.source_thread_id,
       vectorNamespace: row.vector_namespace,
       vectorId: row.vector_id,
-      title: row.title,
-      sender: row.sender,
-      indexedText: row.status === APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE ? row.indexed_text : null,
+      sourceDocumentFingerprint: row.source_document_fingerprint,
+      sourceThreadFingerprint: row.source_thread_fingerprint,
+      titleFingerprint: row.title_fingerprint,
+      senderFingerprint: row.sender_fingerprint,
+      contentFingerprint: row.content_fingerprint,
+      indexedTextChars: row.indexed_text_chars,
       status: row.status,
       indexedAt: row.indexed_at,
       deletedAt: row.deleted_at,
@@ -438,9 +493,12 @@ class ApplicationContextDAO {
     'source_thread_id',
     'vector_namespace',
     'vector_id',
-    'title',
-    'sender',
-    'indexed_text',
+    'source_document_fingerprint',
+    'source_thread_fingerprint',
+    'title_fingerprint',
+    'sender_fingerprint',
+    'content_fingerprint',
+    'indexed_text_chars',
     'status',
     'indexed_at',
     'deleted_at',
@@ -457,9 +515,12 @@ interface UpsertEmailDocumentInput {
   sourceDocumentId: string;
   sourceThreadId?: string | null | undefined;
   vectorNamespace: string;
-  title: string;
-  sender: string;
-  indexedText: string;
+  sourceDocumentFingerprint: string;
+  sourceThreadFingerprint?: string | null | undefined;
+  titleFingerprint?: string | null | undefined;
+  senderFingerprint?: string | null | undefined;
+  contentFingerprint: string;
+  indexedTextChars: number;
 }
 
 interface ListContextDocumentsInput {

@@ -1,7 +1,23 @@
 class CryptoUtil {
   public static async sha256Hex(value: string): Promise<string> {
     const digest: ArrayBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-    return Array.from(new Uint8Array(digest))
+    return CryptoUtil.toHex(new Uint8Array(digest));
+  }
+
+  public static async hmacSha256Hex(value: string, secret: string): Promise<string> {
+    const key: CryptoKey = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const signature: ArrayBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value));
+    return CryptoUtil.toHex(new Uint8Array(signature));
+  }
+
+  private static toHex(bytes: Uint8Array): string {
+    return Array.from(bytes)
       .map((byte: number): string => byte.toString(16).padStart(2, '0'))
       .join('');
   }

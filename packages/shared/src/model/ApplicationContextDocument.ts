@@ -6,13 +6,14 @@ interface ApplicationContextDocument {
   userEmail: string;
   sourceType: string;
   sourceProviderId: ProviderId;
-  sourceDocumentId: string;
-  sourceThreadId?: string | null | undefined;
   vectorNamespace: string;
   vectorId: string;
-  title?: string | null | undefined;
-  sender?: string | null | undefined;
-  indexedText?: string | null | undefined;
+  sourceDocumentFingerprint?: string | null | undefined;
+  sourceThreadFingerprint?: string | null | undefined;
+  titleFingerprint?: string | null | undefined;
+  senderFingerprint?: string | null | undefined;
+  contentFingerprint?: string | null | undefined;
+  indexedTextChars: number;
   status: ApplicationContextDocumentStatus;
   indexedAt?: number | null | undefined;
   deletedAt?: number | null | undefined;
@@ -31,9 +32,12 @@ interface ApplicationContextDocumentInternal {
   source_thread_id: string | null;
   vector_namespace: string;
   vector_id: string;
-  title: string | null;
-  sender: string | null;
-  indexed_text: string | null;
+  source_document_fingerprint: string | null;
+  source_thread_fingerprint: string | null;
+  title_fingerprint: string | null;
+  sender_fingerprint: string | null;
+  content_fingerprint: string | null;
+  indexed_text_chars: number;
   status: ApplicationContextDocumentStatus;
   indexed_at: number | null;
   deleted_at: number | null;
@@ -55,9 +59,20 @@ interface ApplicationContextDocumentList {
   nextCursor?: string | undefined;
 }
 
+interface ApplicationContextDocumentSource {
+  contextDocumentId: string;
+  applicationId: string;
+  userEmail: string;
+  sourceProviderId: ProviderId;
+  sourceDocumentId: string;
+  sourceThreadId?: string | null | undefined;
+  status: ApplicationContextDocumentStatus;
+}
+
 export type {
   ApplicationContextDocument,
   ApplicationContextDocumentInternal,
   ApplicationContextDocumentList,
+  ApplicationContextDocumentSource,
   ApplicationContextSummary,
 };

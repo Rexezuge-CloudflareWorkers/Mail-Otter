@@ -14,6 +14,15 @@ describe('Request input schemas', () => {
     expect(getRequestInputSchema(outlookRequest)).toBeDefined();
   });
 
+  it('finds schema for context document provider-link routes', () => {
+    const request = new Request(
+      'https://mail.example.com/user/application/context/document/11111111-1111-4111-8111-111111111111/provider-link',
+      { method: 'GET' },
+    );
+
+    expect(getRequestInputSchema(request)).toBeDefined();
+  });
+
   it('sanitizes valid Gmail application input', async () => {
     const request = new Request('https://mail.example.com/user/application', { method: 'POST' });
 

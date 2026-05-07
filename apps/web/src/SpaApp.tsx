@@ -313,6 +313,17 @@ export default function SpaApp() {
     setContextDeletionRunsCursor(data.nextCursor);
   };
 
+  const openContextDocumentInProvider = async (contextDocumentId: string) => {
+    try {
+      const data = await readJson<{ url: string }>(
+        await fetch(`/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`),
+      );
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to open provider document.');
+    }
+  };
+
   if (authorized === null) {
     return (
       <div className="min-h-screen bg-[#101319] text-white flex items-center justify-center">
@@ -551,6 +562,7 @@ export default function SpaApp() {
           onRefresh={() => loadContextAudit()}
           onLoadMoreDocuments={loadMoreContextDocuments}
           onLoadMoreDeletions={loadMoreContextDeletions}
+          onOpenProviderDocument={openContextDocumentInProvider}
           onToggleIndexing={updateContextIndexing}
           onDeleteDocuments={deleteContextDocuments}
           busy={isBusy}
@@ -597,6 +609,7 @@ function ContextAuditView({
   onRefresh,
   onLoadMoreDocuments,
   onLoadMoreDeletions,
+  onOpenProviderDocument,
   onToggleIndexing,
   onDeleteDocuments,
   busy,
@@ -613,6 +626,7 @@ function ContextAuditView({
   onRefresh: () => void;
   onLoadMoreDocuments: () => void;
   onLoadMoreDeletions: () => void;
+  onOpenProviderDocument: (contextDocumentId: string) => void;
   onToggleIndexing: (applicationId: string, contextIndexingEnabled: boolean) => void;
   onDeleteDocuments: (applicationId: string) => void;
   busy: boolean;
@@ -698,6 +712,7 @@ function ContextAuditView({
                 key={document.contextDocumentId}
                 document={document}
                 application={applications.find((item) => item.applicationId === document.applicationId)}
+                onOpenProviderDocument={onOpenProviderDocument}
               />
             ))}
             {documents.length === 0 && <div className="p-5 rounded-md bg-[#11161f] text-[#aab4c2]">No context documents found.</div>}
@@ -735,9 +750,11 @@ function ContextAuditView({
 function ContextDocumentRow({
   document,
   application,
+  onOpenProviderDocument,
 }: {
   document: ApplicationContextDocument;
   application: ConnectedApplication | undefined;
+  onOpenProviderDocument: (contextDocumentId: string) => void;
 }) {
   const statusClass =
     document.status === 'active'
@@ -749,27 +766,47 @@ function ContextDocumentRow({
     <article className="rounded-md border border-[#2d3745] bg-[#11161f] p-4 min-w-0">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-medium truncate">{document.title || '(untitled)'}</div>
+          <div className="font-medium truncate">Document {formatFingerprint(document.sourceDocumentFingerprint)}</div>
           <div className="text-sm text-[#aab4c2] truncate">
-            {application?.displayName || document.applicationId} / {providerLabels[document.sourceProviderId]} / {document.sender || 'unknown sender'}
+            {application?.displayName || document.applicationId} / {providerLabels[document.sourceProviderId]} / {document.indexedTextChars} chars indexed
           </div>
           <div className="text-xs text-[#7d8896] mt-1">
             Indexed {formatTimestamp(document.indexedAt)} / Updated {formatTimestamp(document.updatedAt)}
           </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass}`}>{document.status}</span>
-      </div>
-      {document.indexedText ? (
-        <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-[#0d1118] border border-[#2d3745] p-3 text-sm text-[#d1d5db]">
-          {document.indexedText}
-        </pre>
-      ) : (
-        <div className="mt-4 rounded-md bg-[#0d1118] border border-[#2d3745] p-3 text-sm text-[#7d8896]">
-          {document.lastError || 'Document text is not retained for this status.'}
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50 text-sm"
+            onClick={() => onOpenProviderDocument(document.contextDocumentId)}
+            disabled={document.status === 'deleted'}
+          >
+            Open Provider
+          </button>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass}`}>{document.status}</span>
         </div>
-      )}
+      </div>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <AuditValue label="Content" value={formatFingerprint(document.contentFingerprint)} />
+        <AuditValue label="Thread" value={formatFingerprint(document.sourceThreadFingerprint)} />
+        <AuditValue label="Title" value={formatFingerprint(document.titleFingerprint)} />
+        <AuditValue label="Sender" value={formatFingerprint(document.senderFingerprint)} />
+      </div>
+      {document.lastError && <div className="mt-3 text-sm text-[#fca5a5] break-words">{document.lastError}</div>}
     </article>
   );
+}
+
+function AuditValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-[#0d1118] border border-[#2d3745] p-3 min-w-0">
+      <div className="text-xs uppercase tracking-normal text-[#7d8896]">{label}</div>
+      <div className="mt-1 font-mono text-xs text-[#d1d5db] break-all">{value}</div>
+    </div>
+  );
+}
+
+function formatFingerprint(value?: string | null): string {
+  return value ? value.slice(0, 16) : 'not available';
 }
 
 function ContextDeletionRunRow({

@@ -29,6 +29,7 @@ class EmailContextUtil {
     const indexedText: string = EmailContextUtil.buildIndexedText(input);
     let document: ApplicationContextDocument | undefined;
     if (shouldStore) {
+      const auditMetadata: EmailDocumentAuditMetadata = await EmailContextUtil.buildAuditMetadata(input, indexedText);
       document = await contextDAO.upsertEmailDocument({
         applicationId: input.application.applicationId,
         userEmail: input.application.userEmail,
@@ -36,9 +37,7 @@ class EmailContextUtil {
         sourceDocumentId: input.sourceDocumentId,
         sourceThreadId: input.sourceThreadId,
         vectorNamespace,
-        title: input.subject,
-        sender: input.from,
-        indexedText,
+        ...auditMetadata,
       });
     }
 
@@ -96,6 +95,27 @@ class EmailContextUtil {
       input.body || '(empty message body)',
     ].join('\n');
     return EmailContentUtil.truncate(text, maxChars);
+  }
+
+  private static async buildAuditMetadata(
+    input: PrepareEmailRagContextInput,
+    indexedText: string,
+  ): Promise<EmailDocumentAuditMetadata> {
+    const secret: string = await input.env.AES_ENCRYPTION_KEY_SECRET.get();
+    return {
+      sourceDocumentFingerprint: await EmailContextUtil.fingerprint(secret, 'source-document', input.sourceDocumentId),
+      sourceThreadFingerprint: input.sourceThreadId
+        ? await EmailContextUtil.fingerprint(secret, 'source-thread', input.sourceThreadId)
+        : null,
+      titleFingerprint: input.subject ? await EmailContextUtil.fingerprint(secret, 'title', input.subject) : null,
+      senderFingerprint: input.from ? await EmailContextUtil.fingerprint(secret, 'sender', input.from) : null,
+      contentFingerprint: await EmailContextUtil.fingerprint(secret, 'indexed-text', indexedText),
+      indexedTextChars: indexedText.length,
+    };
+  }
+
+  private static async fingerprint(secret: string, label: string, value: string): Promise<string> {
+    return CryptoUtil.hmacSha256Hex(`${label}\n${value}`, secret);
   }
 
   private static async embed(ai: Ai, model: string, text: string): Promise<number[]> {
@@ -166,6 +186,7 @@ interface PrepareEmailRagContextInput {
 
 interface EmailContextEnv {
   DB: D1Database;
+  AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
   AI_EMBEDDING_MODEL?: string | undefined;
@@ -179,5 +200,14 @@ interface WorkersAiEmbeddingResult {
   data?: number[] | number[][] | undefined;
 }
 
+interface EmailDocumentAuditMetadata {
+  sourceDocumentFingerprint: string;
+  sourceThreadFingerprint?: string | null | undefined;
+  titleFingerprint?: string | null | undefined;
+  senderFingerprint?: string | null | undefined;
+  contentFingerprint: string;
+  indexedTextChars: number;
+}
+
 export { EmailContextUtil };
-export type { EmailContextEnv, PrepareEmailRagContextInput, WorkersAiEmbeddingResult };
+export type { EmailContextEnv, EmailDocumentAuditMetadata, PrepareEmailRagContextInput, WorkersAiEmbeddingResult };

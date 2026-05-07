@@ -73,7 +73,6 @@ class EmailProcessingUtil {
       application.providerId,
       message.id,
       message.threadId,
-      subject,
     );
     if (!started) return;
     try {
@@ -122,7 +121,6 @@ class EmailProcessingUtil {
       application.providerId,
       message.id,
       message.conversationId || null,
-      subject,
     );
     if (!started) return;
     try {

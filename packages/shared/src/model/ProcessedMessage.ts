@@ -6,7 +6,6 @@ interface ProcessedMessage {
   providerId: ProviderId;
   providerMessageId: string;
   providerThreadId?: string | null | undefined;
-  subject?: string | null | undefined;
   status: ProcessedMessageStatus;
   summarySentAt?: number | null | undefined;
   errorMessage?: string | null | undefined;
@@ -20,7 +19,6 @@ interface ProcessedMessageInternal {
   provider_id: ProviderId;
   provider_message_id: string;
   provider_thread_id: string | null;
-  subject: string | null;
   status: ProcessedMessageStatus;
   summary_sent_at: number | null;
   error_message: string | null;

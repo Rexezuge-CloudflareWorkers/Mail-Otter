@@ -9,6 +9,7 @@ import { UpdateApplicationContextRoute as OriginalUpdateApplicationContextRoute 
 import { DeleteApplicationContextDocumentsRoute as OriginalDeleteApplicationContextDocumentsRoute } from './user/application/context/delete-documents/POST';
 import { ListApplicationContextDocumentsRoute as OriginalListApplicationContextDocumentsRoute } from './user/application/context/documents/GET';
 import { ListApplicationContextDeletionRunsRoute as OriginalListApplicationContextDeletionRunsRoute } from './user/application/context/deletions/GET';
+import { GetApplicationContextDocumentProviderLinkRoute as OriginalGetApplicationContextDocumentProviderLinkRoute } from './user/application/context/document/provider-link/GET';
 import { CreateOAuth2AuthorizationRoute as OriginalCreateOAuth2AuthorizationRoute } from './user/application/oauth2/authorize/POST';
 import { StartApplicationWatchRoute as OriginalStartApplicationWatchRoute } from './user/application/watch/POST';
 import { StopApplicationWatchRoute as OriginalStopApplicationWatchRoute } from './user/application/stop/POST';
@@ -26,6 +27,7 @@ export const UpdateApplicationContextRoute: any = OriginalUpdateApplicationConte
 export const DeleteApplicationContextDocumentsRoute: any = OriginalDeleteApplicationContextDocumentsRoute;
 export const ListApplicationContextDocumentsRoute: any = OriginalListApplicationContextDocumentsRoute;
 export const ListApplicationContextDeletionRunsRoute: any = OriginalListApplicationContextDeletionRunsRoute;
+export const GetApplicationContextDocumentProviderLinkRoute: any = OriginalGetApplicationContextDocumentProviderLinkRoute;
 export const CreateOAuth2AuthorizationRoute: any = OriginalCreateOAuth2AuthorizationRoute;
 export const StartApplicationWatchRoute: any = OriginalStartApplicationWatchRoute;
 export const StopApplicationWatchRoute: any = OriginalStopApplicationWatchRoute;

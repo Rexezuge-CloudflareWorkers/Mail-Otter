@@ -21,7 +21,6 @@ class ProcessedMessageDAO {
     providerId: ProviderId,
     providerMessageId: string,
     providerThreadId?: string | null,
-    subject?: string | null,
   ): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const processedMessageId: string = UUIDUtil.getRandomUUID();
@@ -30,7 +29,7 @@ class ProcessedMessageDAO {
         `
           INSERT OR IGNORE INTO processed_messages
             (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, subject, status, summary_sent_at, error_message, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+          VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, ?)
         `,
       )
       .bind(
@@ -39,7 +38,6 @@ class ProcessedMessageDAO {
         providerId,
         providerMessageId,
         providerThreadId || null,
-        subject || null,
         PROCESSED_MESSAGE_STATUS_PROCESSING,
         now,
         now,
@@ -67,7 +65,7 @@ class ProcessedMessageDAO {
     const row: ProcessedMessageInternal | null = await this.database
       .prepare(
         `
-          SELECT processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, subject, status, summary_sent_at, error_message, created_at, updated_at
+          SELECT processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at
           FROM processed_messages
           WHERE application_id = ?
           ORDER BY updated_at DESC
@@ -109,7 +107,6 @@ class ProcessedMessageDAO {
       providerId: row.provider_id,
       providerMessageId: row.provider_message_id,
       providerThreadId: row.provider_thread_id,
-      subject: row.subject,
       status: row.status,
       summarySentAt: row.summary_sent_at,
       errorMessage: row.error_message,

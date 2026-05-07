@@ -1,3 +1,5 @@
+import { convert } from 'html-to-text';
+
 interface ExtractedEmailContent {
   text: string;
   usedHtmlFallback: boolean;
@@ -30,18 +32,15 @@ class EmailContentUtil {
   }
 
   public static stripHtml(value: string): string {
-    return value
-      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, '&');
+    return convert(value, {
+      wordwrap: false,
+      selectors: [
+        { selector: 'script', format: 'skip' },
+        { selector: 'style', format: 'skip' },
+        { selector: 'br', format: 'lineBreak' },
+        { selector: 'p', options: { leadingLineBreaks: 0, trailingLineBreaks: 1 } },
+      ],
+    });
   }
 
   public static normalizeText(value: string): string {

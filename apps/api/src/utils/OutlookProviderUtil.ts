@@ -143,12 +143,17 @@ class OutlookProviderUtil {
         toRecipients: [{ emailAddress: { address: mailboxAddress } }],
         ccRecipients: [],
         bccRecipients: [],
-        saveToSentItems: false,
       }),
     });
     const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        saveToSentItems: false,
+      }),
     });
     if (!response.ok) {
       throw new InternalServerError(`Microsoft Graph send summary failed: ${await response.text()}`);

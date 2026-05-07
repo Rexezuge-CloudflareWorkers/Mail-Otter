@@ -7,7 +7,7 @@ describe('OutlookProviderUtil', () => {
   });
 
   describe('sendSelfSummaryReply', () => {
-    it('sets saveToSentItems to false when sending the reply', async () => {
+    it('sets saveToSentItems to false on the send request', async () => {
       const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
       const mockPatchResponse = new Response('', { status: 200 });
       const mockSendResponse = new Response('', { status: 202 });
@@ -27,7 +27,11 @@ describe('OutlookProviderUtil', () => {
 
       const patchCall = fetchMock.mock.calls[1];
       const patchBody = JSON.parse(patchCall[1].body as string);
-      expect(patchBody.saveToSentItems).toBe(false);
+      expect(patchBody.saveToSentItems).toBeUndefined();
+
+      const sendCall = fetchMock.mock.calls[2];
+      const sendBody = JSON.parse(sendCall[1].body as string);
+      expect(sendBody.saveToSentItems).toBe(false);
     });
 
     it('throws when createReply fails', async () => {

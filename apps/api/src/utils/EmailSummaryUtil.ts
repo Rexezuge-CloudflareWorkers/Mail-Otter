@@ -11,19 +11,19 @@ class EmailSummaryUtil {
   ): Promise<string> {
     const prompt: string = [
       'Summarize this email for the mailbox owner.',
-      'Use prior relevant documents only as background context when they are directly relevant.',
+      'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
       'Return JSON that exactly matches the requested schema.',
       'Keep the gist to one sentence.',
       'Key details must be short factual bullets copied from the email when possible.',
       'Action items must include deadlines or owners when present.',
       'If there are no action items, return an empty array.',
       'Do not invent facts. Do not include a greeting.',
-      ...(ragContext ? ['', ragContext] : []),
       '',
       `Subject: ${subject || '(no subject)'}`,
       `From: ${from || '(unknown)'}`,
       '',
       body,
+      ...(ragContext ? ['', '--- PRIOR CONTEXT (for background only, do not summarize) ---', ragContext] : []),
     ].join('\n');
 
     const result = (await ai.run(model, {

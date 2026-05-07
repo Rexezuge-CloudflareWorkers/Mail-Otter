@@ -12,7 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      { find: '@/constants', replacement: `${sharedSrcPath}/constants` },
+      { find: '@/constants', replacement: `${apiSrcPath}/constants` },
       { find: '@/schema', replacement: `${apiSrcPath}/schema` },
       { find: '@/error', replacement: `${apiSrcPath}/error` },
       { find: '@/utils', replacement: `${apiSrcPath}/utils` },

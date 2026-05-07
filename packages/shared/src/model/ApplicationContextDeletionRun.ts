@@ -33,8 +33,4 @@ interface ApplicationContextDeletionRunList {
   nextCursor?: string | undefined;
 }
 
-export type {
-  ApplicationContextDeletionRun,
-  ApplicationContextDeletionRunInternal,
-  ApplicationContextDeletionRunList,
-};
+export type { ApplicationContextDeletionRun, ApplicationContextDeletionRunInternal, ApplicationContextDeletionRunList };

@@ -39,7 +39,10 @@ class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<
 
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(document.applicationId, userEmail);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(
+      document.applicationId,
+      userEmail,
+    );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
     }

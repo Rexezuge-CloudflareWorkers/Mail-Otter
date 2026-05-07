@@ -1,7 +1,4 @@
-import {
-  APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED,
-  APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
-} from '@mail-otter/shared/constants';
+import { APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED, APPLICATION_CONTEXT_DELETION_STATUS_ERROR } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@/dao';
 import { BadRequestError } from '@/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
@@ -32,7 +29,10 @@ class DeleteApplicationContextDocumentsRoute extends IUserRoute<
     const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(request.applicationId, userEmail);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(
+      request.applicationId,
+      userEmail,
+    );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
     }

@@ -279,7 +279,9 @@ export default function SpaApp() {
       if (activeView === 'context') await loadContextAudit();
       showNotice(
         data.deletionRun.status === 'accepted' ? 'success' : 'error',
-        data.deletionRun.status === 'accepted' ? 'Context documents deletion accepted.' : data.deletionRun.errorMessage || 'Context deletion failed.',
+        data.deletionRun.status === 'accepted'
+          ? 'Context documents deletion accepted.'
+          : data.deletionRun.errorMessage || 'Context deletion failed.',
       );
     } catch (error) {
       showNotice('error', error instanceof Error ? error.message : 'Unable to delete context documents.');
@@ -370,184 +372,188 @@ export default function SpaApp() {
       )}
 
       {activeView === 'mailboxes' ? (
-      <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-6">
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">Connected Mailboxes</h1>
-            <span className="text-sm text-[#aab4c2]">
-              {applications.length}/{user.limits.maxApplicationsPerUser}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {applications.map((application) => (
-              <button
-                key={application.applicationId}
-                onClick={() => setSelectedApplicationId(application.applicationId)}
-                className={`w-full text-left p-4 rounded-md border transition ${
-                  selectedApplicationId === application.applicationId
-                    ? 'border-[#6ee7b7] bg-[#17221f]'
-                    : 'border-[#2d3745] bg-[#171c25] hover:border-[#526073]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium text-white truncate">{application.displayName}</div>
-                    <div className="text-sm text-[#aab4c2]">
-                      {providerLabels[application.providerId]} / {methodLabels[application.connectionMethod]}
-                    </div>
-                    <div className="text-xs text-[#7d8896] truncate">{application.providerEmail || 'OAuth not connected'}</div>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-[#7d8896]">
-                      <ContextBadge enabled={application.contextIndexingEnabled} />
-                      <span>{application.contextDocumentCount || 0} docs</span>
-                    </div>
-                  </div>
-                  <StatusBadge status={application.status} />
-                </div>
-              </button>
-            ))}
-            {applications.length === 0 && (
-              <div className="p-5 rounded-md border border-[#2d3745] bg-[#171c25] text-[#aab4c2]">No mailboxes connected.</div>
-            )}
-          </div>
-
-          <ApplicationForm
-            form={applicationForm}
-            setForm={setApplicationForm}
-            onSave={saveApplication}
-            onCancel={resetForm}
-            busy={isBusy}
-          />
-        </section>
-
-        <section className="space-y-6">
-          {selectedApplication ? (
-            <>
-              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-xl font-semibold truncate">{selectedApplication.displayName}</h2>
-                      <StatusBadge status={selectedApplication.status} />
-                      {selectedApplication.watchStatus && <WatchBadge status={selectedApplication.watchStatus} />}
-                    </div>
-                    <div className="text-sm text-[#aab4c2]">
-                      {providerLabels[selectedApplication.providerId]} / {selectedApplication.providerEmail || 'not authorized'}
-                    </div>
-                    <div className="text-xs text-[#7d8896] mt-2">Updated {formatTimestamp(selectedApplication.updatedAt)}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]"
-                      onClick={() => editApplication(selectedApplication)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="px-3 py-2 rounded-md bg-[#3a1f23] text-[#fecaca] hover:bg-[#4d272d]"
-                      onClick={() => deleteApplication(selectedApplication.applicationId)}
-                      disabled={isBusy}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid grid-cols-1 gap-4">
-                  <ReadOnlyField label="OAuth2 redirect URI" value={selectedApplication.oauth2RedirectUri || ''} />
-                  {selectedApplication.providerId === 'google-gmail' && (
-                    <ReadOnlyField label="Gmail Pub/Sub topic" value={selectedApplication.gmailPubsubTopicName || ''} />
-                  )}
-                  <ReadOnlyField label="Webhook endpoint" value={watchWebhookUrl || selectedApplication.webhookUrl || ''} />
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button
-                    className="px-4 py-2 rounded-md bg-[#0f766e] hover:bg-[#0d9488] disabled:opacity-50"
-                    onClick={() => startOAuth2(selectedApplication.applicationId)}
-                    disabled={isBusy}
-                  >
-                    Start OAuth2
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded-md bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50"
-                    onClick={() => startWatch(selectedApplication.applicationId)}
-                    disabled={isBusy || selectedApplication.status !== 'connected'}
-                  >
-                    Start Watch
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50"
-                    onClick={() => stopWatch(selectedApplication.applicationId)}
-                    disabled={isBusy || selectedApplication.watchStatus !== 'active'}
-                  >
-                    Stop Watch
-                  </button>
-                </div>
-              </div>
-
-              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
-                <h2 className="text-xl font-semibold mb-4">Processing</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <Metric label="Watch expires" value={formatExpiryTimestamp(selectedApplication.watchExpiresAt)} />
-                  <Metric label="Last summary" value={formatTimestamp(selectedApplication.lastSummaryAt)} />
-                  <Metric label="Last error" value={selectedApplication.lastError || 'None'} tone={selectedApplication.lastError ? 'error' : 'muted'} />
-                </div>
-              </div>
-
-              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">Context</h2>
-                  </div>
-                  <label className="inline-flex items-center gap-3 text-sm text-[#d1d5db]">
-                    <input
-                      type="checkbox"
-                      checked={selectedApplication.contextIndexingEnabled}
-                      onChange={(event) => updateContextIndexing(selectedApplication.applicationId, event.target.checked)}
-                      disabled={isBusy}
-                      className="h-4 w-4 accent-[#0d9488]"
-                    />
-                    Store documents
-                  </label>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <Metric label="Indexed docs" value={String(selectedApplication.contextDocumentCount || 0)} />
-                  <Metric label="Last indexed" value={formatTimestamp(selectedApplication.contextLastIndexedAt)} />
-                  <Metric label="Last delete" value={formatTimestamp(selectedApplication.contextLastDeleteAcceptedAt)} />
-                  <Metric
-                    label="Context error"
-                    value={selectedApplication.contextLastError || 'None'}
-                    tone={selectedApplication.contextLastError ? 'error' : 'muted'}
-                  />
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button
-                    className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]"
-                    onClick={() => {
-                      setAuditApplicationId(selectedApplication.applicationId);
-                      setActiveView('context');
-                    }}
-                  >
-                    Open Audit
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded-md bg-[#3a1f23] text-[#fecaca] hover:bg-[#4d272d] disabled:opacity-50"
-                    onClick={() => deleteContextDocuments(selectedApplication.applicationId)}
-                    disabled={isBusy || (selectedApplication.contextDocumentCount || 0) === 0}
-                  >
-                    Delete Indexed Documents
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-8 text-center text-[#aab4c2]">
-              Select or create a mailbox.
+        <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-6">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">Connected Mailboxes</h1>
+              <span className="text-sm text-[#aab4c2]">
+                {applications.length}/{user.limits.maxApplicationsPerUser}
+              </span>
             </div>
-          )}
-        </section>
-      </main>
+
+            <div className="space-y-3">
+              {applications.map((application) => (
+                <button
+                  key={application.applicationId}
+                  onClick={() => setSelectedApplicationId(application.applicationId)}
+                  className={`w-full text-left p-4 rounded-md border transition ${
+                    selectedApplicationId === application.applicationId
+                      ? 'border-[#6ee7b7] bg-[#17221f]'
+                      : 'border-[#2d3745] bg-[#171c25] hover:border-[#526073]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-white truncate">{application.displayName}</div>
+                      <div className="text-sm text-[#aab4c2]">
+                        {providerLabels[application.providerId]} / {methodLabels[application.connectionMethod]}
+                      </div>
+                      <div className="text-xs text-[#7d8896] truncate">{application.providerEmail || 'OAuth not connected'}</div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-[#7d8896]">
+                        <ContextBadge enabled={application.contextIndexingEnabled} />
+                        <span>{application.contextDocumentCount || 0} docs</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={application.status} />
+                  </div>
+                </button>
+              ))}
+              {applications.length === 0 && (
+                <div className="p-5 rounded-md border border-[#2d3745] bg-[#171c25] text-[#aab4c2]">No mailboxes connected.</div>
+              )}
+            </div>
+
+            <ApplicationForm
+              form={applicationForm}
+              setForm={setApplicationForm}
+              onSave={saveApplication}
+              onCancel={resetForm}
+              busy={isBusy}
+            />
+          </section>
+
+          <section className="space-y-6">
+            {selectedApplication ? (
+              <>
+                <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-xl font-semibold truncate">{selectedApplication.displayName}</h2>
+                        <StatusBadge status={selectedApplication.status} />
+                        {selectedApplication.watchStatus && <WatchBadge status={selectedApplication.watchStatus} />}
+                      </div>
+                      <div className="text-sm text-[#aab4c2]">
+                        {providerLabels[selectedApplication.providerId]} / {selectedApplication.providerEmail || 'not authorized'}
+                      </div>
+                      <div className="text-xs text-[#7d8896] mt-2">Updated {formatTimestamp(selectedApplication.updatedAt)}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="px-3 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]"
+                        onClick={() => editApplication(selectedApplication)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="px-3 py-2 rounded-md bg-[#3a1f23] text-[#fecaca] hover:bg-[#4d272d]"
+                        onClick={() => deleteApplication(selectedApplication.applicationId)}
+                        disabled={isBusy}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-4">
+                    <ReadOnlyField label="OAuth2 redirect URI" value={selectedApplication.oauth2RedirectUri || ''} />
+                    {selectedApplication.providerId === 'google-gmail' && (
+                      <ReadOnlyField label="Gmail Pub/Sub topic" value={selectedApplication.gmailPubsubTopicName || ''} />
+                    )}
+                    <ReadOnlyField label="Webhook endpoint" value={watchWebhookUrl || selectedApplication.webhookUrl || ''} />
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      className="px-4 py-2 rounded-md bg-[#0f766e] hover:bg-[#0d9488] disabled:opacity-50"
+                      onClick={() => startOAuth2(selectedApplication.applicationId)}
+                      disabled={isBusy}
+                    >
+                      Start OAuth2
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-md bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50"
+                      onClick={() => startWatch(selectedApplication.applicationId)}
+                      disabled={isBusy || selectedApplication.status !== 'connected'}
+                    >
+                      Start Watch
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50"
+                      onClick={() => stopWatch(selectedApplication.applicationId)}
+                      disabled={isBusy || selectedApplication.watchStatus !== 'active'}
+                    >
+                      Stop Watch
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
+                  <h2 className="text-xl font-semibold mb-4">Processing</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <Metric label="Watch expires" value={formatExpiryTimestamp(selectedApplication.watchExpiresAt)} />
+                    <Metric label="Last summary" value={formatTimestamp(selectedApplication.lastSummaryAt)} />
+                    <Metric
+                      label="Last error"
+                      value={selectedApplication.lastError || 'None'}
+                      tone={selectedApplication.lastError ? 'error' : 'muted'}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">Context</h2>
+                    </div>
+                    <label className="inline-flex items-center gap-3 text-sm text-[#d1d5db]">
+                      <input
+                        type="checkbox"
+                        checked={selectedApplication.contextIndexingEnabled}
+                        onChange={(event) => updateContextIndexing(selectedApplication.applicationId, event.target.checked)}
+                        disabled={isBusy}
+                        className="h-4 w-4 accent-[#0d9488]"
+                      />
+                      Store documents
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <Metric label="Indexed docs" value={String(selectedApplication.contextDocumentCount || 0)} />
+                    <Metric label="Last indexed" value={formatTimestamp(selectedApplication.contextLastIndexedAt)} />
+                    <Metric label="Last delete" value={formatTimestamp(selectedApplication.contextLastDeleteAcceptedAt)} />
+                    <Metric
+                      label="Context error"
+                      value={selectedApplication.contextLastError || 'None'}
+                      tone={selectedApplication.contextLastError ? 'error' : 'muted'}
+                    />
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]"
+                      onClick={() => {
+                        setAuditApplicationId(selectedApplication.applicationId);
+                        setActiveView('context');
+                      }}
+                    >
+                      Open Audit
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-md bg-[#3a1f23] text-[#fecaca] hover:bg-[#4d272d] disabled:opacity-50"
+                      onClick={() => deleteContextDocuments(selectedApplication.applicationId)}
+                      disabled={isBusy || (selectedApplication.contextDocumentCount || 0) === 0}
+                    >
+                      Delete Indexed Documents
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-8 text-center text-[#aab4c2]">
+                Select or create a mailbox.
+              </div>
+            )}
+          </section>
+        </main>
       ) : (
         <ContextAuditView
           applications={applications}
@@ -584,7 +590,11 @@ function StatusBadge({ status }: { status: 'draft' | 'connected' | 'error' }) {
 
 function WatchBadge({ status }: { status: 'active' | 'stopped' | 'error' }) {
   const className =
-    status === 'active' ? 'bg-[#12362f] text-[#6ee7b7]' : status === 'error' ? 'bg-[#3a1f23] text-[#fecaca]' : 'bg-[#2d3745] text-[#cbd5e1]';
+    status === 'active'
+      ? 'bg-[#12362f] text-[#6ee7b7]'
+      : status === 'error'
+        ? 'bg-[#3a1f23] text-[#fecaca]'
+        : 'bg-[#2d3745] text-[#cbd5e1]';
   return <span className={`px-2 py-1 rounded text-xs font-medium ${className}`}>{status}</span>;
 }
 
@@ -768,7 +778,8 @@ function ContextDocumentRow({
         <div className="min-w-0">
           <div className="font-medium truncate">Document {formatFingerprint(document.sourceDocumentFingerprint)}</div>
           <div className="text-sm text-[#aab4c2] truncate">
-            {application?.displayName || document.applicationId} / {providerLabels[document.sourceProviderId]} / {document.indexedTextChars} chars indexed
+            {application?.displayName || document.applicationId} / {providerLabels[document.sourceProviderId]} / {document.indexedTextChars}{' '}
+            chars indexed
           </div>
           <div className="text-xs text-[#7d8896] mt-1">
             Indexed {formatTimestamp(document.indexedAt)} / Updated {formatTimestamp(document.updatedAt)}
@@ -839,11 +850,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <label className="block">
       <span className="block text-sm text-[#aab4c2] mb-2">{label}</span>
-      <input
-        readOnly
-        value={value}
-        className="w-full min-w-0 px-3 py-2 rounded-md bg-[#0d1118] border border-[#2d3745] text-[#d1d5db]"
-      />
+      <input readOnly value={value} className="w-full min-w-0 px-3 py-2 rounded-md bg-[#0d1118] border border-[#2d3745] text-[#d1d5db]" />
     </label>
   );
 }

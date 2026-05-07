@@ -6,7 +6,11 @@ import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
 import { ApplicationResponseUtil } from '@/utils';
 import type { ApplicationResponse } from '@/utils';
 
-class UpdateApplicationContextRoute extends IUserRoute<UpdateApplicationContextRequest, UpdateApplicationContextResponse, UpdateApplicationContextEnv> {
+class UpdateApplicationContextRoute extends IUserRoute<
+  UpdateApplicationContextRequest,
+  UpdateApplicationContextResponse,
+  UpdateApplicationContextEnv
+> {
   schema = {
     tags: ['Applications'],
     summary: 'Update connected application context indexing setting',

@@ -73,7 +73,11 @@ class OutlookProviderUtil {
     };
   }
 
-  public static async renewSubscription(accessToken: string, subscriptionId: string, expiresAt: number): Promise<OutlookSubscriptionResult> {
+  public static async renewSubscription(
+    accessToken: string,
+    subscriptionId: string,
+    expiresAt: number,
+  ): Promise<OutlookSubscriptionResult> {
     const data = await OutlookProviderUtil.fetchJson<{
       id?: string | undefined;
       expirationDateTime?: string | undefined;
@@ -137,20 +141,24 @@ class OutlookProviderUtil {
     if (!draft.id) {
       throw new InternalServerError('Microsoft Graph createReply did not return a draft id.');
     }
-    await OutlookProviderUtil.fetchJson<unknown>(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`, accessToken, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        body: {
-          contentType: 'Text',
-          content: summary,
-        },
-        toRecipients: [{ emailAddress: { address: mailboxAddress } }],
-        ccRecipients: [],
-        bccRecipients: [],
-        internetMessageHeaders: [{ name: 'X-Mail-Otter-Summary', value: 'true' }],
-      }),
-    });
+    await OutlookProviderUtil.fetchJson<unknown>(
+      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`,
+      accessToken,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          body: {
+            contentType: 'Text',
+            content: summary,
+          },
+          toRecipients: [{ emailAddress: { address: mailboxAddress } }],
+          ccRecipients: [],
+          bccRecipients: [],
+          internetMessageHeaders: [{ name: 'X-Mail-Otter-Summary', value: 'true' }],
+        }),
+      },
+    );
     const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
       method: 'POST',
       headers: {

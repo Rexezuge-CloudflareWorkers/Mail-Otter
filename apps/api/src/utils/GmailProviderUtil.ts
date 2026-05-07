@@ -91,12 +91,7 @@ class GmailProviderUtil {
     return GmailProviderUtil.fetchJson<GmailMessage>(url.toString(), accessToken);
   }
 
-  public static async sendSummaryReply(
-    accessToken: string,
-    from: string,
-    originalMessage: GmailMessage,
-    summary: string,
-  ): Promise<void> {
+  public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string): Promise<void> {
     const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
     const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const originalMessageId: string | undefined = EmailContentUtil.getHeader(headers, 'Message-ID');
@@ -159,11 +154,15 @@ class GmailProviderUtil {
 }
 
 interface GmailHistoryListResponse {
-  history?: Array<{
-    messagesAdded?: Array<{
-      message?: { id?: string | undefined; threadId?: string | undefined } | undefined;
-    }> | undefined;
-  }> | undefined;
+  history?:
+    | Array<{
+        messagesAdded?:
+          | Array<{
+              message?: { id?: string | undefined; threadId?: string | undefined } | undefined;
+            }>
+          | undefined;
+      }>
+    | undefined;
   nextPageToken?: string | undefined;
   historyId?: string | undefined;
 }

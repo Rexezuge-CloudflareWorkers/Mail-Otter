@@ -1,5 +1,10 @@
 import { ApplicationContextDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@/dao';
-import type { ApplicationContextSummary, ConnectedApplicationMetadata, ProcessedMessage, ProviderSubscription } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextSummary,
+  ConnectedApplicationMetadata,
+  ProcessedMessage,
+  ProviderSubscription,
+} from '@mail-otter/shared/model';
 import { BaseUrlUtil } from '@mail-otter/shared/utils';
 
 class ApplicationResponseUtil {

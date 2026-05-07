@@ -204,10 +204,7 @@ class ApplicationContextDAO {
     };
   }
 
-  public async listDocumentsForUser(
-    userEmail: string,
-    input: ListContextDocumentsInput = {},
-  ): Promise<ApplicationContextDocumentList> {
+  public async listDocumentsForUser(userEmail: string, input: ListContextDocumentsInput = {}): Promise<ApplicationContextDocumentList> {
     const limit: number = Math.min(Math.max(input.limit ?? 25, 1), 100);
     const offset: number = ApplicationContextDAO.parseCursor(input.cursor);
     const conditions: string[] = ['user_email = ?'];
@@ -240,10 +237,7 @@ class ApplicationContextDAO {
     };
   }
 
-  public async listDeletionRunsForUser(
-    userEmail: string,
-    input: ListDeletionRunsInput = {},
-  ): Promise<ApplicationContextDeletionRunList> {
+  public async listDeletionRunsForUser(userEmail: string, input: ListDeletionRunsInput = {}): Promise<ApplicationContextDeletionRunList> {
     const limit: number = Math.min(Math.max(input.limit ?? 25, 1), 100);
     const offset: number = ApplicationContextDAO.parseCursor(input.cursor);
     const conditions: string[] = ['user_email = ?'];
@@ -273,16 +267,13 @@ class ApplicationContextDAO {
     };
   }
 
-  public async getDocumentSourceForUser(contextDocumentId: string, userEmail: string): Promise<ApplicationContextDocumentSource | undefined> {
+  public async getDocumentSourceForUser(
+    contextDocumentId: string,
+    userEmail: string,
+  ): Promise<ApplicationContextDocumentSource | undefined> {
     const row: Pick<
       ApplicationContextDocumentInternal,
-      | 'context_document_id'
-      | 'application_id'
-      | 'user_email'
-      | 'source_provider_id'
-      | 'source_document_id'
-      | 'source_thread_id'
-      | 'status'
+      'context_document_id' | 'application_id' | 'user_email' | 'source_provider_id' | 'source_document_id' | 'source_thread_id' | 'status'
     > | null = await this.database
       .prepare(
         `

@@ -38,7 +38,8 @@ const ProviderConfig = {
   [PROVIDER_MICROSOFT_OUTLOOK]: {
     authorizationEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
     tokenEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
-    scope: 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access',
+    scope:
+      'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access',
   },
 } as const;
 

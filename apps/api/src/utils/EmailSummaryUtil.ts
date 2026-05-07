@@ -61,16 +61,9 @@ class EmailSummaryUtil {
   }
 
   static parseAiSummaryResult(result: WorkersAiTextGenerationResult | string): EmailSummary | undefined {
-    const response: unknown =
-      typeof result === 'string'
-        ? result
-        : result?.response !== undefined
-          ? result.response
-          : result?.result;
+    const response: unknown = typeof result === 'string' ? result : result?.response !== undefined ? result.response : result?.result;
     const parsed: unknown =
-      typeof response === 'string'
-        ? EmailSummaryUtil.tryParseJson(response) ?? EmailSummaryUtil.parseLooseText(response)
-        : response;
+      typeof response === 'string' ? (EmailSummaryUtil.tryParseJson(response) ?? EmailSummaryUtil.parseLooseText(response)) : response;
 
     if (!EmailSummaryUtil.isEmailSummary(parsed)) {
       return undefined;
@@ -123,9 +116,7 @@ class EmailSummaryUtil {
   }
 
   private static normalizeItems(items: string[]): string[] {
-    return items
-      .map((item: string): string => EmailSummaryUtil.normalizeSentence(item))
-      .filter(Boolean);
+    return items.map((item: string): string => EmailSummaryUtil.normalizeSentence(item)).filter(Boolean);
   }
 
   private static normalizeSentence(value: string): string {

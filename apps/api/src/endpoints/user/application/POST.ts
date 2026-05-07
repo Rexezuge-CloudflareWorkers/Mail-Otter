@@ -1,4 +1,8 @@
-import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2, DEFAULT_MAX_APPLICATIONS_PER_USER } from '@mail-otter/shared/constants';
+import {
+  CONNECTED_APPLICATION_STATUS_DRAFT,
+  CONNECTION_METHOD_OAUTH2,
+  DEFAULT_MAX_APPLICATIONS_PER_USER,
+} from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@/dao';
 import { BadRequestError } from '@/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';

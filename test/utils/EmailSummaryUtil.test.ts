@@ -13,8 +13,8 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/meta/llama-3.1-8b-instruct', 'Campaign budget', 'sam@example.com', 'body')).resolves
-      .toBe(`Gist: The sender wants approval for the May campaign budget.
+    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/meta/llama-3.1-8b-instruct', 'Campaign budget', 'sam@example.com', 'body'))
+      .resolves.toBe(`Gist: The sender wants approval for the May campaign budget.
 
 Key details:
 - Budget requested is $12,000.
@@ -37,7 +37,8 @@ Action items:
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).resolves.toBe(`Gist: The email shares a status update with no requests.
+    await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).resolves
+      .toBe(`Gist: The email shares a status update with no requests.
 
 Key details:
 - No key details noted.

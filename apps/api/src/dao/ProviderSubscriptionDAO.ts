@@ -142,7 +142,9 @@ class ProviderSubscriptionDAO {
   public async updateGmailHistory(subscriptionId: string, gmailHistoryId: string, lastNotificationAt?: number): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const result: D1Result = await this.database
-      .prepare('UPDATE provider_subscriptions SET gmail_history_id = ?, last_notification_at = COALESCE(?, last_notification_at), updated_at = ? WHERE subscription_id = ?')
+      .prepare(
+        'UPDATE provider_subscriptions SET gmail_history_id = ?, last_notification_at = COALESCE(?, last_notification_at), updated_at = ? WHERE subscription_id = ?',
+      )
       .bind(gmailHistoryId, lastNotificationAt ?? null, now, subscriptionId)
       .run();
     if (!result.success) {

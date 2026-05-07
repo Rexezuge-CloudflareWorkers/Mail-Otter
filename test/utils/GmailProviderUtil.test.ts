@@ -11,9 +11,7 @@ describe('GmailProviderUtil', () => {
       const mockSendResponse = new Response(JSON.stringify({ id: 'sent-message-id-123' }), { status: 200 });
       const mockTrashResponse = new Response('', { status: 200 });
 
-      const fetchMock = vi.fn()
-        .mockResolvedValueOnce(mockSendResponse)
-        .mockResolvedValueOnce(mockTrashResponse);
+      const fetchMock = vi.fn().mockResolvedValueOnce(mockSendResponse).mockResolvedValueOnce(mockTrashResponse);
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -46,9 +44,7 @@ describe('GmailProviderUtil', () => {
       const mockSendResponse = new Response(JSON.stringify({ id: 'sent-message-id-123' }), { status: 200 });
       const mockTrashResponse = new Response('Trash failed', { status: 500 });
 
-      const fetchMock = vi.fn()
-        .mockResolvedValueOnce(mockSendResponse)
-        .mockResolvedValueOnce(mockTrashResponse);
+      const fetchMock = vi.fn().mockResolvedValueOnce(mockSendResponse).mockResolvedValueOnce(mockTrashResponse);
 
       vi.stubGlobal('fetch', fetchMock);
 

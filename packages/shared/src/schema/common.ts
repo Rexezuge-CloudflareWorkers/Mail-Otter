@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import {
-  CONNECTION_METHOD_OAUTH2,
-  PROVIDER_GOOGLE_GMAIL,
-  PROVIDER_MICROSOFT_OUTLOOK,
-  SUPPORTED_PROVIDER_CONNECTIONS,
-} from '../constants';
+import { CONNECTION_METHOD_OAUTH2, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, SUPPORTED_PROVIDER_CONNECTIONS } from '../constants';
 
 const UUID_PATTERN: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const GMAIL_PUBSUB_TOPIC_PATTERN: RegExp = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/topics\/[A-Za-z][A-Za-z0-9_.~+%-]{2,254}$/;

@@ -13,7 +13,8 @@ describe('OutlookProviderUtil', () => {
       const mockSendResponse = new Response('', { status: 202 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
-      const fetchMock = vi.fn()
+      const fetchMock = vi
+        .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
         .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse)
@@ -48,9 +49,7 @@ describe('OutlookProviderUtil', () => {
         ccRecipients: [],
         bccRecipients: [],
       });
-      expect(patchBody.internetMessageHeaders).toEqual([
-        { name: 'X-Mail-Otter-Summary', value: 'true' },
-      ]);
+      expect(patchBody.internetMessageHeaders).toEqual([{ name: 'X-Mail-Otter-Summary', value: 'true' }]);
       expect(fetchMock).toHaveBeenNthCalledWith(
         3,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/send',
@@ -68,7 +67,8 @@ describe('OutlookProviderUtil', () => {
       const mockPatchResponse = new Response('', { status: 200 });
       const mockSendResponse = new Response('Send failed', { status: 500 });
 
-      const fetchMock = vi.fn()
+      const fetchMock = vi
+        .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
         .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse);
@@ -76,12 +76,7 @@ describe('OutlookProviderUtil', () => {
       vi.stubGlobal('fetch', fetchMock);
 
       await expect(
-        OutlookProviderUtil.sendSelfSummaryReply(
-          'test-access-token',
-          { id: 'original-msg-id' },
-          'sender@example.com',
-          'Summary text',
-        ),
+        OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
       ).rejects.toThrow('Microsoft Graph send summary failed: Send failed');
     });
 
@@ -91,12 +86,7 @@ describe('OutlookProviderUtil', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockCreateReplyResponse));
 
       await expect(
-        OutlookProviderUtil.sendSelfSummaryReply(
-          'test-access-token',
-          { id: 'original-msg-id' },
-          'sender@example.com',
-          'Summary text',
-        ),
+        OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
       ).rejects.toThrow('Microsoft Graph API error: createReply failed');
     });
 
@@ -106,12 +96,7 @@ describe('OutlookProviderUtil', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockCreateReplyResponse));
 
       await expect(
-        OutlookProviderUtil.sendSelfSummaryReply(
-          'test-access-token',
-          { id: 'original-msg-id' },
-          'sender@example.com',
-          'Summary text',
-        ),
+        OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
       ).rejects.toThrow('Microsoft Graph createReply did not return a draft id.');
     });
   });

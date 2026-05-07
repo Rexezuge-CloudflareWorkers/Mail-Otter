@@ -73,9 +73,11 @@ interface OutlookNotification {
   clientState?: string | undefined;
   changeType?: string | undefined;
   resource?: string | undefined;
-  resourceData?: {
-    id?: string | undefined;
-  } | undefined;
+  resourceData?:
+    | {
+        id?: string | undefined;
+      }
+    | undefined;
 }
 
 interface OutlookWebhookResponse extends IResponse {

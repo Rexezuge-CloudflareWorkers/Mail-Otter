@@ -42,7 +42,11 @@ class EmailContextUtil {
     }
 
     try {
-      const embedding: number[] = await EmailContextUtil.embed(input.env.AI, input.env.AI_EMBEDDING_MODEL || DEFAULT_AI_EMBEDDING_MODEL, indexedText);
+      const embedding: number[] = await EmailContextUtil.embed(
+        input.env.AI,
+        input.env.AI_EMBEDDING_MODEL || DEFAULT_AI_EMBEDDING_MODEL,
+        indexedText,
+      );
       const ragContext: string | undefined = shouldRetrieve
         ? await EmailContextUtil.queryRelevantContext(input.env, embedding, vectorNamespace, enabledApplicationIds, document?.vectorId)
         : undefined;
@@ -97,10 +101,7 @@ class EmailContextUtil {
     return EmailContentUtil.truncate(text, maxChars);
   }
 
-  private static async buildAuditMetadata(
-    input: PrepareEmailRagContextInput,
-    indexedText: string,
-  ): Promise<EmailDocumentAuditMetadata> {
+  private static async buildAuditMetadata(input: PrepareEmailRagContextInput, indexedText: string): Promise<EmailDocumentAuditMetadata> {
     const secret: string = await input.env.AES_ENCRYPTION_KEY_SECRET.get();
     return {
       sourceDocumentFingerprint: await EmailContextUtil.fingerprint(secret, 'source-document', input.sourceDocumentId),

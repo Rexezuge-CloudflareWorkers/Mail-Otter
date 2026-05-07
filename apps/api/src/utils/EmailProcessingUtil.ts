@@ -31,7 +31,13 @@ class EmailProcessingUtil {
     const accessToken: string = await EmailProcessingUtil.refreshAccessToken(application, env, applicationDAO);
     const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
     if (message.type === 'gmail-notification') {
-      await EmailProcessingUtil.processGmailNotification(application, accessToken, message.notificationHistoryId, env, enabledApplicationIds);
+      await EmailProcessingUtil.processGmailNotification(
+        application,
+        accessToken,
+        message.notificationHistoryId,
+        env,
+        enabledApplicationIds,
+      );
       return;
     }
     await EmailProcessingUtil.processOutlookMessage(application, accessToken, message.messageId, env, enabledApplicationIds);
@@ -68,12 +74,7 @@ class EmailProcessingUtil {
     const from: string = EmailContentUtil.getHeader(headers, 'From') || '';
     const isSummary: boolean = EmailContentUtil.getHeader(headers, 'X-Mail-Otter-Summary')?.toLowerCase() === 'true';
     const processedDAO = new ProcessedMessageDAO(env.DB);
-    const started: boolean = await processedDAO.tryStart(
-      application.applicationId,
-      application.providerId,
-      message.id,
-      message.threadId,
-    );
+    const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, message.id, message.threadId);
     if (!started) return;
     try {
       if (isSummary || EmailContentUtil.isFromMailbox(from, application.providerEmail)) {
@@ -108,12 +109,7 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
   ): Promise<void> {
     const processedDAO = new ProcessedMessageDAO(env.DB);
-    const started: boolean = await processedDAO.tryStart(
-      application.applicationId,
-      application.providerId,
-      messageId,
-      null,
-    );
+    const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null);
     if (!started) return;
 
     let message: OutlookMessage;
@@ -121,7 +117,11 @@ class EmailProcessingUtil {
       message = await OutlookProviderUtil.getMessage(accessToken, messageId);
     } catch (error: unknown) {
       if (OutlookProviderUtil.isMessageNotFoundError(error)) {
-        await processedDAO.markSkipped(application.applicationId, messageId, 'Outlook message was deleted before Mail-Otter could process it.');
+        await processedDAO.markSkipped(
+          application.applicationId,
+          messageId,
+          'Outlook message was deleted before Mail-Otter could process it.',
+        );
         return;
       }
       await processedDAO.markError(application.applicationId, messageId, EmailProcessingUtil.formatError(error));

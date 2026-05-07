@@ -26,7 +26,9 @@ describe('EmailProcessingUtil', () => {
     const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
     const markError = vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
     vi.spyOn(OutlookProviderUtil, 'getMessage').mockRejectedValue(
-      new Error('Microsoft Graph API error: The specified object was not found in the store., The process failed to get the correct properties.'),
+      new Error(
+        'Microsoft Graph API error: The specified object was not found in the store., The process failed to get the correct properties.',
+      ),
     );
 
     await expect(
@@ -48,11 +50,7 @@ describe('EmailProcessingUtil', () => {
     ).resolves.toBeUndefined();
 
     expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'message-1', null);
-    expect(markSkipped).toHaveBeenCalledWith(
-      'app-1',
-      'message-1',
-      'Outlook message was deleted before Mail-Otter could process it.',
-    );
+    expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Outlook message was deleted before Mail-Otter could process it.');
     expect(markError).not.toHaveBeenCalled();
   });
 });

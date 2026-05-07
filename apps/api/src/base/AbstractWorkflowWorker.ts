@@ -1,10 +1,10 @@
 import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 
-abstract class AbstractWorkflowWorker<TPayload extends Rpc.Serializable<TPayload>, TResult extends Rpc.Serializable<TResult>> extends WorkflowEntrypoint<
-  Env,
-  TPayload
-> {
+abstract class AbstractWorkflowWorker<
+  TPayload extends Rpc.Serializable<TPayload>,
+  TResult extends Rpc.Serializable<TResult>,
+> extends WorkflowEntrypoint<Env, TPayload> {
   protected printExecId(): string {
     const execId: string = crypto.randomUUID();
     console.log('Workflow Execution ID:', execId);

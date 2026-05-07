@@ -3,11 +3,7 @@ import { ConnectedApplicationDAO } from '@/dao';
 import { BadRequestError } from '@/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type {
-  ConnectedApplicationCredentials,
-  ConnectedApplicationMetadata,
-  OAuth2Credentials,
-} from '@mail-otter/shared/model';
+import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata, OAuth2Credentials } from '@mail-otter/shared/model';
 import { ApplicationResponseUtil } from '@/utils';
 import type { ApplicationResponse } from '@/utils';
 

@@ -47,8 +47,7 @@ class ApplicationContextDAO {
             UPDATE application_context_documents
             SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
                 source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
-                content_fingerprint = ?, indexed_text_chars = ?, title = NULL, sender = NULL, indexed_text = NULL,
-                status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
+                content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
             WHERE context_document_id = ?
           `,
         )
@@ -84,8 +83,8 @@ class ApplicationContextDAO {
           INSERT INTO application_context_documents
             (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
              vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
-             content_fingerprint, indexed_text_chars, title, sender, indexed_text, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, NULL, NULL, NULL, ?, ?)
+             content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
         `,
       )
       .bind(
@@ -376,7 +375,7 @@ class ApplicationContextDAO {
         .prepare(
           `
             UPDATE application_context_documents
-            SET status = ?, title = NULL, sender = NULL, indexed_text = NULL, deleted_at = ?, updated_at = ?
+            SET status = ?, deleted_at = ?, updated_at = ?
             WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
           `,
         )

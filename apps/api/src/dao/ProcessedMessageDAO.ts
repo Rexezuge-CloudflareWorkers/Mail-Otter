@@ -28,8 +28,8 @@ class ProcessedMessageDAO {
       .prepare(
         `
           INSERT OR IGNORE INTO processed_messages
-            (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, subject, status, summary_sent_at, error_message, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, ?)
+            (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
         `,
       )
       .bind(

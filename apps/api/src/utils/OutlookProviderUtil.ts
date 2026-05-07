@@ -125,34 +125,43 @@ class OutlookProviderUtil {
     mailboxAddress: string,
     summary: string,
   ): Promise<void> {
-    const originalSubject: string = originalMessage.subject || '(no subject)';
-    const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
-    const internetMessageHeaders: Array<{ name: string; value: string }> = [
-      { name: 'X-Mail-Otter-Summary', value: 'true' },
-    ];
-
-    const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+    const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
+      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
+      accessToken,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: '' }),
+      },
+    );
+    if (!draft.id) {
+      throw new InternalServerError('Microsoft Graph createReply did not return a draft id.');
+    }
+    await OutlookProviderUtil.fetchJson<unknown>(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`, accessToken, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        body: {
+          contentType: 'Text',
+          content: summary,
+        },
+        toRecipients: [{ emailAddress: { address: mailboxAddress } }],
+        ccRecipients: [],
+        bccRecipients: [],
+        internetMessageHeaders: [{ name: 'X-Mail-Otter-Summary', value: 'true' }],
+      }),
+    });
+    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message: {
-          subject: replySubject,
-          body: {
-            contentType: 'Text',
-            content: summary,
-          },
-          toRecipients: [{ emailAddress: { address: mailboxAddress } }],
-          internetMessageHeaders,
-        },
-        saveToSentItems: false,
-      }),
     });
     if (!response.ok) {
       throw new InternalServerError(`Microsoft Graph send summary failed: ${await response.text()}`);
     }
+    await OutlookProviderUtil.deleteSentCopy(accessToken, draft.id);
   }
 
   public static isMessageNotFoundError(error: unknown): boolean {
@@ -170,6 +179,16 @@ class OutlookProviderUtil {
       throw new InternalServerError(`Microsoft Graph API error: ${data.error?.message || text || response.statusText}`);
     }
     return data as T;
+  }
+
+  private static async deleteSentCopy(accessToken: string, messageId: string): Promise<void> {
+    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok && response.status !== 404) {
+      console.error(`Failed to delete Outlook sent summary ${messageId}: ${await response.text()}`);
+    }
   }
 }
 

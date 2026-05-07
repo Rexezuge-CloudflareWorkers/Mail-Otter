@@ -137,6 +137,7 @@ class OutlookProviderUtil {
         toRecipients: [{ emailAddress: { address: mailboxAddress } }],
         ccRecipients: [],
         bccRecipients: [],
+        saveToSentItems: false,
       }),
     });
     const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {

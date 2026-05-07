@@ -126,13 +126,8 @@ class OutlookProviderUtil {
     summary: string,
   ): Promise<void> {
     const originalSubject: string = originalMessage.subject || '(no subject)';
-    const originalMessageId: string | undefined = OutlookProviderUtil.getInternetHeader(originalMessage, 'Message-ID');
-    const originalReferences: string | undefined = OutlookProviderUtil.getInternetHeader(originalMessage, 'References');
     const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
-    const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
     const internetMessageHeaders: Array<{ name: string; value: string }> = [
-      ...(originalMessageId ? [{ name: 'In-Reply-To', value: originalMessageId }] : []),
-      ...(references ? [{ name: 'References', value: references }] : []),
       { name: 'X-Mail-Otter-Summary', value: 'true' },
     ];
 
@@ -163,12 +158,6 @@ class OutlookProviderUtil {
   public static isMessageNotFoundError(error: unknown): boolean {
     const message: string = error instanceof Error ? error.message : String(error);
     return OutlookProviderUtil.MESSAGE_NOT_FOUND_PATTERNS.some((pattern: RegExp): boolean => pattern.test(message));
-  }
-
-  private static getInternetHeader(message: OutlookMessage, name: string): string | undefined {
-    return message.internetMessageHeaders?.find(
-      (header: { name: string; value: string }): boolean => header.name.toLowerCase() === name.toLowerCase(),
-    )?.value;
   }
 
   private static async fetchJson<T>(url: string, accessToken: string, init: RequestInit = {}): Promise<T> {

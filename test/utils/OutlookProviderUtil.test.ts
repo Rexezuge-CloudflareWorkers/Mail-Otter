@@ -38,8 +38,6 @@ describe('OutlookProviderUtil', () => {
         toRecipients: [{ emailAddress: { address: 'sender@example.com' } }],
       });
       expect(sendBody.message.internetMessageHeaders).toEqual([
-        { name: 'In-Reply-To', value: '<original@example.com>' },
-        { name: 'References', value: '<root@example.com> <original@example.com>' },
         { name: 'X-Mail-Otter-Summary', value: 'true' },
       ]);
     });

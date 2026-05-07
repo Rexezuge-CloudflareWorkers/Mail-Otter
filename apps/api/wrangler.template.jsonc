@@ -1,5 +1,5 @@
 {
-  // "$version": 1778100466,
+  // "$version": 1778166798,
   // "$minimumVersion": 1778100466,
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mail-otter",
@@ -80,6 +80,8 @@
   ],
   "vars": {
     "SERVE_SPA_FROM_WORKER": "false",
+    "POLICY_AUD": "you-cloudflare-zero-trust-application-aud",
+    "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
     "PUBLIC_BASE_URL": "https://mail.example.com",
     "MAX_APPLICATIONS_PER_USER": "99",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",

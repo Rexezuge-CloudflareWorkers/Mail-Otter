@@ -3,18 +3,16 @@
   "version": "3.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/ensure-spa-shell-stub.mjs",
+    "postinstall": "node scripts/ensure-spa-shell-stub.mjs && pnpm -r typegen",
     "build": "pnpm -r build",
-    "dev": "pnpm --filter @mail-otter/web dev",
+    "checks": "pnpm -r typecheck && pnpm -r lint && pnpm run test",
+    "prettier": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
-    "prettier": "prettier --write .",
     "lint": "eslint --ext .ts,.tsx --fix .",
-    "deploy": "pnpm run build && wrangler deploy --dry-run && wrangler deploy",
-    "cf-typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv ./apps/api/cloudflare-env.d.ts"
+    "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260506.1",
     "@types/node": "25.6.x",
     "@types/react": "^19.2.x",
     "@types/react-dom": "^19.2.x",

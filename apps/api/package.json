@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "main": "src/index.ts",
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
     "@mail-otter/shared": "workspace:*",
     "chanfana": "^3.3.0",
@@ -15,7 +12,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260506.1",
     "@types/html-to-text": "^9.0.4",
     "@types/node": "25.6.x",
     "typescript": "^6.0.3"

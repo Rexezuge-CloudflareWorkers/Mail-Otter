@@ -14,7 +14,7 @@ import { OutlookProviderUtil } from './OutlookProviderUtil';
 import { WebhookSecurityUtil } from './WebhookSecurityUtil';
 
 class SubscriptionRenewalUtil {
-  public static async renewDueSubscriptions(env: SubscriptionRenewalEnv, baseUrl?: string): Promise<void> {
+  public static async renewDueSubscriptions(env: SubscriptionRenewalEnv): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const gmailWindowHours: number = ConfigurationUtil.getPositiveInteger(
       env.GMAIL_WATCH_RENEWAL_WINDOW_HOURS,
@@ -34,12 +34,8 @@ class SubscriptionRenewalUtil {
         if (subscription.providerId === PROVIDER_GOOGLE_GMAIL && (subscription.expiresAt || 0) <= now + gmailWindowHours * 60 * 60) {
           await SubscriptionRenewalUtil.renewGmail(subscription, applicationDAO, subscriptionDAO, env);
         }
-        if (
-          subscription.providerId === PROVIDER_MICROSOFT_OUTLOOK &&
-          (subscription.expiresAt || 0) <= now + outlookWindowHours * 60 * 60 &&
-          baseUrl
-        ) {
-          await SubscriptionRenewalUtil.renewOutlook(subscription, applicationDAO, subscriptionDAO, env, baseUrl);
+        if (subscription.providerId === PROVIDER_MICROSOFT_OUTLOOK && (subscription.expiresAt || 0) <= now + outlookWindowHours * 60 * 60) {
+          await SubscriptionRenewalUtil.renewOutlook(subscription, applicationDAO, subscriptionDAO, env);
         }
       } catch (error: unknown) {
         await subscriptionDAO.markError(subscription.subscriptionId, error instanceof Error ? error.message : String(error));
@@ -72,7 +68,6 @@ class SubscriptionRenewalUtil {
     applicationDAO: ConnectedApplicationDAO,
     subscriptionDAO: ProviderSubscriptionDAO,
     env: SubscriptionRenewalEnv,
-    baseUrl: string,
   ): Promise<void> {
     const application: ConnectedApplication | undefined = await applicationDAO.getById(subscription.applicationId);
     if (!application || !subscription.externalSubscriptionId) return;
@@ -85,7 +80,7 @@ class SubscriptionRenewalUtil {
       providerId: application.providerId,
       externalSubscriptionId: renewed.id,
       clientStateHash: subscription.clientStateHash || (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
-      resource: renewed.resource || `${baseUrl}/api/webhooks/outlook/${application.applicationId}`,
+      resource: renewed.resource,
       expiresAt: renewed.expiresAt,
     });
   }

@@ -9,7 +9,6 @@ declare global {
     EMAIL_PROCESSING_WORKFLOW: Workflow<EmailQueueMessage>;
     EMAIL_CONTEXT_INDEX: Vectorize;
     SERVE_SPA_FROM_WORKER?: string | undefined;
-    PUBLIC_BASE_URL?: string | undefined;
     DEV_AUTH_EMAIL?: string | undefined;
     MAX_APPLICATIONS_PER_USER?: string | undefined;
     OAUTH2_STATE_EXPIRY_MINUTES?: string | undefined;

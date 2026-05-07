@@ -19,7 +19,7 @@ Users bring their own OAuth app credentials. Gmail also requires a Google Pub/Su
 - Queue producer and consumer: `EMAIL_EVENTS_QUEUE`
 - Cron trigger: hourly, for subscription renewal
 
-Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, secret store id, routes, and `PUBLIC_BASE_URL`.
+Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, secret store id, and routes.
 
 Create the Vectorize index before deploy:
 

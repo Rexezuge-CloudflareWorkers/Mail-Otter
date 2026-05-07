@@ -82,7 +82,6 @@
     "SERVE_SPA_FROM_WORKER": "false",
     "POLICY_AUD": "you-cloudflare-zero-trust-application-aud",
     "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
-    "PUBLIC_BASE_URL": "https://mail.example.com",
     "MAX_APPLICATIONS_PER_USER": "99",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",
     "AI_SUMMARY_MODEL": "@cf/meta/llama-3.1-8b-instruct",

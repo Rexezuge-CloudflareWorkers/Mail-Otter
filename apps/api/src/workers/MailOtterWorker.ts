@@ -98,7 +98,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
   }
 
   protected async onScheduled(_event: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
-    await SubscriptionRenewalUtil.renewDueSubscriptions(env, env.PUBLIC_BASE_URL);
+    await SubscriptionRenewalUtil.renewDueSubscriptions(env);
   }
 }
 

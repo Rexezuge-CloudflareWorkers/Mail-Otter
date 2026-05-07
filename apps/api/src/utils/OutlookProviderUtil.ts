@@ -119,39 +119,39 @@ class OutlookProviderUtil {
     return EmailContentUtil.normalizeText(content);
   }
 
-  public static async sendSelfSummaryReply(accessToken: string, messageId: string, mailboxAddress: string, summary: string): Promise<void> {
-    const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
-      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/createReply`,
-      accessToken,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment: '' }),
-      },
-    );
-    if (!draft.id) {
-      throw new InternalServerError('Microsoft Graph createReply did not return a draft id.');
-    }
-    await OutlookProviderUtil.fetchJson<unknown>(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`, accessToken, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        body: {
-          contentType: 'Text',
-          content: summary,
-        },
-        toRecipients: [{ emailAddress: { address: mailboxAddress } }],
-        ccRecipients: [],
-        bccRecipients: [],
-      }),
-    });
-    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
+  public static async sendSelfSummaryReply(
+    accessToken: string,
+    originalMessage: OutlookMessage,
+    mailboxAddress: string,
+    summary: string,
+  ): Promise<void> {
+    const originalSubject: string = originalMessage.subject || '(no subject)';
+    const originalMessageId: string | undefined = OutlookProviderUtil.getInternetHeader(originalMessage, 'Message-ID');
+    const originalReferences: string | undefined = OutlookProviderUtil.getInternetHeader(originalMessage, 'References');
+    const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
+    const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
+    const internetMessageHeaders: Array<{ name: string; value: string }> = [
+      ...(originalMessageId ? [{ name: 'In-Reply-To', value: originalMessageId }] : []),
+      ...(references ? [{ name: 'References', value: references }] : []),
+      { name: 'X-Mail-Otter-Summary', value: 'true' },
+    ];
+
+    const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        message: {
+          subject: replySubject,
+          body: {
+            contentType: 'Text',
+            content: summary,
+          },
+          toRecipients: [{ emailAddress: { address: mailboxAddress } }],
+          internetMessageHeaders,
+        },
         saveToSentItems: false,
       }),
     });
@@ -163,6 +163,12 @@ class OutlookProviderUtil {
   public static isMessageNotFoundError(error: unknown): boolean {
     const message: string = error instanceof Error ? error.message : String(error);
     return OutlookProviderUtil.MESSAGE_NOT_FOUND_PATTERNS.some((pattern: RegExp): boolean => pattern.test(message));
+  }
+
+  private static getInternetHeader(message: OutlookMessage, name: string): string | undefined {
+    return message.internetMessageHeaders?.find(
+      (header: { name: string; value: string }): boolean => header.name.toLowerCase() === name.toLowerCase(),
+    )?.value;
   }
 
   private static async fetchJson<T>(url: string, accessToken: string, init: RequestInit = {}): Promise<T> {

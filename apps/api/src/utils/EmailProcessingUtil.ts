@@ -153,7 +153,7 @@ class EmailProcessingUtil {
         sourceThreadId: message.conversationId || null,
       });
       const summary: string = await EmailProcessingUtil.summarize(env, subject, from, body, ragContext);
-      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message.id, application.providerEmail!, summary);
+      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message, application.providerEmail!, summary);
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
       await processedDAO.markError(application.applicationId, message.id, EmailProcessingUtil.formatError(error));

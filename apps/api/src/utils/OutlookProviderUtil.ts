@@ -22,6 +22,12 @@ interface OutlookMessage {
 }
 
 class OutlookProviderUtil {
+  private static readonly MESSAGE_NOT_FOUND_PATTERNS: RegExp[] = [
+    /specified object was not found in the store/i,
+    /object was not found/i,
+    /erroritemnotfound/i,
+  ];
+
   public static async getProfile(accessToken: string): Promise<OutlookMailboxProfile> {
     const data = await OutlookProviderUtil.fetchJson<{
       mail?: string | null | undefined;
@@ -147,6 +153,11 @@ class OutlookProviderUtil {
     if (!response.ok) {
       throw new InternalServerError(`Microsoft Graph send summary failed: ${await response.text()}`);
     }
+  }
+
+  public static isMessageNotFoundError(error: unknown): boolean {
+    const message: string = error instanceof Error ? error.message : String(error);
+    return OutlookProviderUtil.MESSAGE_NOT_FOUND_PATTERNS.some((pattern: RegExp): boolean => pattern.test(message));
   }
 
   private static async fetchJson<T>(url: string, accessToken: string, init: RequestInit = {}): Promise<T> {

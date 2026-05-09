@@ -1,5 +1,9 @@
 import { InternalServerError } from '@/error';
 
+interface GptOss20bOutput {
+  response?: string | undefined;
+}
+
 class EmailSummaryUtil {
   public static async summarizeEmail(
     ai: Ai,
@@ -9,15 +13,19 @@ class EmailSummaryUtil {
     body: string,
     ragContext?: string | undefined,
   ): Promise<string> {
-    const prompt: string = [
-      'Summarize this email for the mailbox owner.',
-      'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
+    const instructions = [
+      'You are a helpful assistant that summarizes emails for a mailbox owner.',
       'Return JSON that exactly matches the requested schema.',
       'Keep the gist to one sentence.',
       'Key details must be short factual bullets copied from the email when possible.',
       'Action items must include deadlines or owners when present.',
       'If there are no action items, return an empty array.',
       'Do not invent facts. Do not include a greeting.',
+    ].join(' ');
+
+    const input = [
+      'Summarize this email for the mailbox owner.',
+      'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
       '',
       `Subject: ${subject || '(no subject)'}`,
       `From: ${from || '(unknown)'}`,
@@ -27,7 +35,8 @@ class EmailSummaryUtil {
     ].join('\n');
 
     const result = (await ai.run(model, {
-      prompt,
+      instructions,
+      input,
       max_tokens: 512,
       temperature: 0.2,
       response_format: {
@@ -51,19 +60,22 @@ class EmailSummaryUtil {
           },
         },
       },
-    })) as WorkersAiTextGenerationResult;
+    })) as GptOss20bOutput;
 
-    const summary = EmailSummaryUtil.parseAiSummaryResult(result);
-    if (!summary) {
+    const summaryText = typeof result === 'string' ? result : result?.response;
+    if (!summaryText) {
       throw new InternalServerError('Workers AI did not return a summary.');
+    }
+
+    const summary = EmailSummaryUtil.parseAiSummaryResult(summaryText);
+    if (!summary) {
+      throw new InternalServerError('Workers AI did not return a valid summary.');
     }
     return EmailSummaryUtil.renderSummary(summary);
   }
 
-  static parseAiSummaryResult(result: WorkersAiTextGenerationResult | string): EmailSummary | undefined {
-    const response: unknown = typeof result === 'string' ? result : result?.response !== undefined ? result.response : result?.result;
-    const parsed: unknown =
-      typeof response === 'string' ? (EmailSummaryUtil.tryParseJson(response) ?? EmailSummaryUtil.parseLooseText(response)) : response;
+  static parseAiSummaryResult(result: string): EmailSummary | undefined {
+    const parsed: unknown = EmailSummaryUtil.tryParseJson(result) ?? EmailSummaryUtil.parseLooseText(result);
 
     if (!EmailSummaryUtil.isEmailSummary(parsed)) {
       return undefined;
@@ -144,11 +156,6 @@ class EmailSummaryUtil {
   }
 }
 
-interface WorkersAiTextGenerationResult {
-  response?: string | EmailSummary | undefined;
-  result?: string | EmailSummary | undefined;
-}
-
 interface EmailSummary {
   gist: string;
   keyDetails: string[];
@@ -156,4 +163,4 @@ interface EmailSummary {
 }
 
 export { EmailSummaryUtil };
-export type { EmailSummary, WorkersAiTextGenerationResult };
+export type { EmailSummary };

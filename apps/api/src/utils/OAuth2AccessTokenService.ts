@@ -1,7 +1,4 @@
-import {
-  DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_EXCHANGE_URL,
-  DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_REFRESH_URL,
-} from '@/constants';
+import { DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_EXCHANGE_URL, DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_REFRESH_URL } from '@/constants';
 import { OAuth2AccessTokenCacheDAO } from '@/dao';
 import { InternalServerError } from '@/error';
 import { ConfigurationManager } from './ConfigurationManager';
@@ -37,8 +34,7 @@ class OAuth2AccessTokenService {
     env: OAuth2AccessTokenServiceEnv,
     options: GetAccessTokenOptions = {},
   ): Promise<string> {
-    const minValidSeconds: number =
-      options.minValidSeconds ?? ConfigurationManager.getOAuth2AccessTokenMinValidSeconds(env);
+    const minValidSeconds: number = options.minValidSeconds ?? ConfigurationManager.getOAuth2AccessTokenMinValidSeconds(env);
     if (!options.forceRefresh) {
       const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
       const cacheDAO = new OAuth2AccessTokenCacheDAO(env.OAUTH2_TOKEN_CACHE, masterKey);
@@ -58,8 +54,7 @@ class OAuth2AccessTokenService {
     env: OAuth2AccessTokenServiceEnv,
     options: GetAccessTokenOptions = {},
   ): Promise<OAuth2AccessTokenResult> {
-    const minValidSeconds: number =
-      options.minValidSeconds ?? ConfigurationManager.getOAuth2AccessTokenMinValidSeconds(env);
+    const minValidSeconds: number = options.minValidSeconds ?? ConfigurationManager.getOAuth2AccessTokenMinValidSeconds(env);
     return OAuth2AccessTokenService.invokeTokenWorker(DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_REFRESH_URL, applicationId, env, {
       applicationId,
       forceRefresh: options.forceRefresh === true,

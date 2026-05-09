@@ -3,11 +3,7 @@ import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRe
 import { OAuth2ProviderUtil } from '@/utils/OAuth2ProviderUtil';
 import { OutlookProviderUtil } from '@/utils/OutlookProviderUtil';
 import { OAuth2TokenRefreshWorker } from '@/workers/OAuth2TokenRefreshWorker';
-import {
-  CONNECTED_APPLICATION_STATUS_CONNECTED,
-  CONNECTION_METHOD_OAUTH2,
-  PROVIDER_MICROSOFT_OUTLOOK,
-} from '@mail-otter/shared/constants';
+import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_OAUTH2, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 
 function createDurableObjectState(): DurableObjectState {

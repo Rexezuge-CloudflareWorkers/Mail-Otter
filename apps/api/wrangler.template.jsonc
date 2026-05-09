@@ -1,5 +1,5 @@
 {
-  // "$version": 1778244052,
+  // "$version": 1778291472,
   // "$minimumVersion": 1778244052,
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mail-otter",
@@ -109,7 +109,7 @@
     "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
     "MAX_APPLICATIONS_PER_USER": "99",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",
-    "AI_SUMMARY_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "AI_SUMMARY_MODEL": "@cf/openai/gpt-oss-20b",
     "AI_EMBEDDING_MODEL": "@cf/baai/bge-base-en-v1.5",
     "MAX_EMAIL_BODY_CHARS": "12000",
     "MAX_CONTEXT_MEMORY_CHARS": "1800",

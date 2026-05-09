@@ -29,11 +29,11 @@ Action items:
   it('fills empty sections with stable fallback text', async () => {
     const ai = {
       run: vi.fn().mockResolvedValue({
-        response: {
+        response: JSON.stringify({
           gist: 'The email shares a status update with no requests.',
           keyDetails: [],
           actionItems: [],
-        },
+        }),
       }),
     } as unknown as Ai;
 
@@ -57,7 +57,7 @@ Action items:
     } as unknown as Ai;
 
     await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).rejects.toThrow(
-      new InternalServerError('Workers AI did not return a summary.'),
+      new InternalServerError('Workers AI did not return a valid summary.'),
     );
   });
 });

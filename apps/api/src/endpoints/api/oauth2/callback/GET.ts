@@ -49,12 +49,15 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
     }
-    await OAuth2AccessTokenService.completeAuthorization({
-      applicationId,
-      redirectUri: session.redirectUri,
-      code,
-      codeVerifier: session.codeVerifier,
-    }, env);
+    await OAuth2AccessTokenService.completeAuthorization(
+      {
+        applicationId,
+        redirectUri: session.redirectUri,
+        code,
+        codeVerifier: session.codeVerifier,
+      },
+      env,
+    );
     await sessionDAO.consume(session.sessionId);
     return this.redirect(`/user?oauth2=connected&applicationId=${encodeURIComponent(applicationId)}`);
   }

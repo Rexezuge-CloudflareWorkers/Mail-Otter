@@ -53,9 +53,7 @@ describe('CronTasksWorker', () => {
     await expect(response.json()).resolves.toEqual({ status: 'completed' });
     expect(taskSpies.oauth2Refresh).toHaveBeenCalledOnce();
     expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith(env);
-    expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(
-      taskSpies.subscriptionRenewal.mock.invocationCallOrder[0],
-    );
+    expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.subscriptionRenewal.mock.invocationCallOrder[0]);
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         cron: '*/10 * * * *',

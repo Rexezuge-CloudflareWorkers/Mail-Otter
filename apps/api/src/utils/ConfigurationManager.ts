@@ -84,11 +84,7 @@ class ConfigurationManager {
   }
 
   public static getOAuth2AccessTokenMinValidSeconds(env: unknown): number {
-    return ConfigurationManager.getPositiveInt(
-      env,
-      'OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS',
-      DEFAULT_OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS,
-    );
+    return ConfigurationManager.getPositiveInt(env, 'OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS', DEFAULT_OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS);
   }
 
   public static getOAuth2AccessTokenFallbackTtlSeconds(env: unknown): number {

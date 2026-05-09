@@ -1,21 +1,35 @@
 import { InternalServerError } from '@/error';
 
-interface GptOss20bOutput {
-  response: string;
-  usage?:
-    | {
-        prompt_tokens?: number;
-        completion_tokens?: number;
-        total_tokens?: number;
-      }
-    | undefined;
-  tool_calls?:
-    | Array<{
-        arguments?: Record<string, unknown> | undefined;
-        name?: string | undefined;
-      }>
-    | undefined;
-}
+const SUMMARY_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['gist', 'keyDetails', 'actionItems'],
+  properties: {
+    gist: {
+      type: 'string',
+    },
+    keyDetails: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    actionItems: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+  },
+} as const;
+
+const JSON_MODE_SUPPORTED_MODELS: ReadonlySet<string> = new Set<string>([
+  '@cf/meta/llama-3.1-8b-instruct-fast',
+  '@cf/meta/llama-3.1-70b-instruct',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/meta/llama-3-8b-instruct',
+  '@cf/meta/llama-3.1-8b-instruct',
+  '@cf/meta/llama-3.2-11b-vision-instruct',
+  '@hf/nousresearch/hermes-2-pro-mistral-7b',
+  '@hf/thebloke/deepseek-coder-6.7b-instruct-awq',
+  '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
+]);
 
 class EmailSummaryUtil {
   public static async summarizeEmail(
@@ -28,7 +42,7 @@ class EmailSummaryUtil {
   ): Promise<string> {
     const instructions = [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
-      'Return JSON that exactly matches the requested schema.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"]}.',
       'Keep the gist to one sentence.',
       'Key details must be short factual bullets copied from the email when possible.',
       'Action items must include deadlines or owners when present.',
@@ -47,33 +61,23 @@ class EmailSummaryUtil {
       ...(ragContext ? ['', '--- PRIOR CONTEXT (for background only, do not summarize) ---', ragContext] : []),
     ].join('\n');
 
-    const result = (await (ai as unknown as { run: (...args: unknown[]) => Promise<unknown> }).run(model, {
-      instructions,
-      input,
+    const request: AiTextGenerationRequest = {
+      messages: [
+        { role: 'system', content: instructions },
+        { role: 'user', content: input },
+      ],
       max_tokens: 512,
       temperature: 0.2,
-      response_format: {
+    };
+
+    if (EmailSummaryUtil.supportsJsonMode(model)) {
+      request.response_format = {
         type: 'json_schema',
-        json_schema: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['gist', 'keyDetails', 'actionItems'],
-          properties: {
-            gist: {
-              type: 'string',
-            },
-            keyDetails: {
-              type: 'array',
-              items: { type: 'string' },
-            },
-            actionItems: {
-              type: 'array',
-              items: { type: 'string' },
-            },
-          },
-        },
-      },
-    })) as GptOss20bOutput;
+        json_schema: SUMMARY_JSON_SCHEMA,
+      };
+    }
+
+    const result = await (ai as unknown as { run: (...args: unknown[]) => Promise<unknown> }).run(model, request);
 
     const summaryText = EmailSummaryUtil.extractResponseText(result);
     if (!summaryText) {
@@ -87,19 +91,53 @@ class EmailSummaryUtil {
     return EmailSummaryUtil.renderSummary(summary);
   }
 
-  private static extractResponseText(result: GptOss20bOutput): string | undefined {
-    if (result.response) {
-      return typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+  private static supportsJsonMode(model: string): boolean {
+    return JSON_MODE_SUPPORTED_MODELS.has(model);
+  }
+
+  private static extractResponseText(result: unknown): string | undefined {
+    if (typeof result === 'string') {
+      return result;
     }
-    if (result.tool_calls?.[0]?.arguments) {
-      const args = result.tool_calls[0].arguments;
-      return typeof args === 'string' ? args : JSON.stringify(args);
+    if (!EmailSummaryUtil.isRecord(result)) {
+      return undefined;
     }
+
+    const response: unknown = result.response;
+    if (response) {
+      return EmailSummaryUtil.stringifyTextResponse(response);
+    }
+
+    const outputText: unknown = result.output_text;
+    if (typeof outputText === 'string') {
+      return outputText;
+    }
+
+    const output: unknown = result.output;
+    const outputFromResponsesApi: string | undefined = EmailSummaryUtil.extractResponsesApiOutputText(output);
+    if (outputFromResponsesApi) {
+      return outputFromResponsesApi;
+    }
+
+    const choices: unknown = result.choices;
+    const chatCompletionText: string | undefined = EmailSummaryUtil.extractChatCompletionText(choices);
+    if (chatCompletionText) {
+      return chatCompletionText;
+    }
+
+    const toolCalls: unknown = result.tool_calls;
+    if (Array.isArray(toolCalls) && EmailSummaryUtil.isRecord(toolCalls[0]) && toolCalls[0].arguments) {
+      return EmailSummaryUtil.stringifyTextResponse(toolCalls[0].arguments);
+    }
+
     return undefined;
   }
 
   static parseAiSummaryResult(result: string): EmailSummary | undefined {
-    const parsed: unknown = EmailSummaryUtil.tryParseJson(result) ?? EmailSummaryUtil.parseLooseText(result);
+    const parsed: unknown =
+      EmailSummaryUtil.tryParseJson(result) ??
+      EmailSummaryUtil.tryParseExtractedJsonObject(result) ??
+      EmailSummaryUtil.parseLooseText(result);
 
     if (!EmailSummaryUtil.isEmailSummary(parsed)) {
       return undefined;
@@ -167,6 +205,88 @@ class EmailSummaryUtil {
     }
   }
 
+  private static tryParseExtractedJsonObject(value: string): unknown {
+    const jsonObjectText: string | undefined = EmailSummaryUtil.extractJsonObjectText(value);
+    return jsonObjectText ? EmailSummaryUtil.tryParseJson(jsonObjectText) : undefined;
+  }
+
+  private static extractJsonObjectText(value: string): string | undefined {
+    const fencedJson: RegExpMatchArray | null = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedJson?.[1]) {
+      return fencedJson[1].trim();
+    }
+
+    const start: number = value.indexOf('{');
+    if (start === -1) return undefined;
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < value.length; index += 1) {
+      const char: string = value[index]!;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (char === '{') depth += 1;
+      if (char === '}') {
+        depth -= 1;
+        if (depth === 0) return value.slice(start, index + 1);
+      }
+    }
+    return undefined;
+  }
+
+  private static extractResponsesApiOutputText(output: unknown): string | undefined {
+    if (!Array.isArray(output)) return undefined;
+    const textParts: string[] = [];
+    for (const item of output) {
+      if (!EmailSummaryUtil.isRecord(item)) continue;
+      const content: unknown = item.content;
+      if (!Array.isArray(content)) continue;
+      for (const contentPart of content) {
+        if (!EmailSummaryUtil.isRecord(contentPart)) continue;
+        if (typeof contentPart.text === 'string') {
+          textParts.push(contentPart.text);
+        }
+      }
+    }
+    return textParts.length > 0 ? textParts.join('\n') : undefined;
+  }
+
+  private static extractChatCompletionText(choices: unknown): string | undefined {
+    if (!Array.isArray(choices)) return undefined;
+    const firstChoice: unknown = choices[0];
+    if (!EmailSummaryUtil.isRecord(firstChoice)) return undefined;
+    const message: unknown = firstChoice.message;
+    if (!EmailSummaryUtil.isRecord(message)) return undefined;
+    const content: unknown = message.content;
+    return typeof content === 'string' ? content : undefined;
+  }
+
+  private static stringifyTextResponse(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value && typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return undefined;
+  }
+
+  private static isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  }
+
   private static isEmailSummary(value: unknown): value is EmailSummary {
     if (!value || typeof value !== 'object') return false;
     const candidate = value as Record<string, unknown>;
@@ -184,6 +304,18 @@ interface EmailSummary {
   gist: string;
   keyDetails: string[];
   actionItems: string[];
+}
+
+interface AiTextGenerationRequest {
+  messages: Array<{ role: 'system' | 'user'; content: string }>;
+  max_tokens: number;
+  temperature: number;
+  response_format?:
+    | {
+        type: 'json_schema';
+        json_schema: typeof SUMMARY_JSON_SCHEMA;
+      }
+    | undefined;
 }
 
 export { EmailSummaryUtil };

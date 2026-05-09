@@ -56,7 +56,7 @@ async function main() {
 
   for (const binding of config.vectorize) {
     const indexName = binding.index_name;
-    const dimensions = 768;
+    const dimensions = 1024;
 
     if (checkIndexExists(indexName)) {
       console.log(`Index ${indexName} already exists`);

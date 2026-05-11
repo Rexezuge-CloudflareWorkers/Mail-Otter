@@ -609,7 +609,11 @@ export default function SpaApp() {
             <div className="relative bg-[#111827] border border-[#374151] rounded-lg p-5 w-80 shadow-xl">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3a1f23] mb-4 mx-auto">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fecaca" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
               </div>
               <p className="text-sm text-[#e5e7eb] text-center mb-5">
@@ -924,7 +928,11 @@ function ReadOnlyField({ label, value, showCopy = false }: { label: string; valu
     <label className="block">
       <span className="block text-sm text-[#aab4c2] mb-2">{label}</span>
       <div className="flex">
-        <input readOnly value={value} className="min-w-0 px-3 py-2 rounded-l-md bg-[#0d1118] border border-[#2d3745] border-r-0 text-[#d1d5db] flex-1" />
+        <input
+          readOnly
+          value={value}
+          className="min-w-0 px-3 py-2 rounded-l-md bg-[#0d1118] border border-[#2d3745] border-r-0 text-[#d1d5db] flex-1"
+        />
         {showCopy && (
           <button
             type="button"

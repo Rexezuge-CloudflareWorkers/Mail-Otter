@@ -474,7 +474,7 @@ export default function SpaApp() {
                     <button
                       className="px-4 py-2 rounded-md bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50"
                       onClick={() => startWatch(selectedApplication.applicationId)}
-                      disabled={isBusy || selectedApplication.status !== 'connected'}
+                      disabled={isBusy || selectedApplication.status !== 'connected' || selectedApplication.watchStatus === 'active'}
                     >
                       Start Watch
                     </button>

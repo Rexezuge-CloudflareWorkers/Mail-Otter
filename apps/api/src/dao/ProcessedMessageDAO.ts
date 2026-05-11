@@ -73,12 +73,12 @@ class ProcessedMessageDAO {
         `
           SELECT processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at
           FROM processed_messages
-          WHERE application_id = ?
+          WHERE application_id = ? AND status = ?
           ORDER BY updated_at DESC
           LIMIT 1
         `,
       )
-      .bind(applicationId)
+      .bind(applicationId, PROCESSED_MESSAGE_STATUS_SUMMARIZED)
       .first<ProcessedMessageInternal>();
     return row ? this.toProcessedMessage(row) : undefined;
   }

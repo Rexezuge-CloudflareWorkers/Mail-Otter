@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Unauthorized from '../components/Unauthorized';
 import type {
   ApplicationContextDeletionRun,
@@ -52,6 +53,20 @@ export default function SpaApp() {
   const [contextDocumentsCursor, setContextDocumentsCursor] = useState<string | undefined>();
   const [contextDeletionRuns, setContextDeletionRuns] = useState<ApplicationContextDeletionRun[]>([]);
   const [contextDeletionRunsCursor, setContextDeletionRunsCursor] = useState<string | undefined>();
+  const [confirmDelete, setConfirmDelete] = useState<{ applicationId: string; displayName: string } | null>(null);
+
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const close = () => setConfirmDelete(null);
+    document.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [confirmDelete]);
 
   const selectedApplication = useMemo(
     () => applications.find((application) => application.applicationId === selectedApplicationId),
@@ -447,7 +462,13 @@ export default function SpaApp() {
                       </button>
                       <button
                         className="px-3 py-2 rounded-md bg-[#3a1f23] text-[#fecaca] hover:bg-[#4d272d]"
-                        onClick={() => deleteApplication(selectedApplication.applicationId)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete({
+                            applicationId: selectedApplication.applicationId,
+                            displayName: selectedApplication.displayName,
+                          });
+                        }}
                         disabled={isBusy}
                       >
                         Delete
@@ -574,6 +595,52 @@ export default function SpaApp() {
           busy={isBusy}
         />
       )}
+
+      {confirmDelete &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Confirm delete application"
+            className="fixed inset-0 z-50 flex items-center justify-center"
+          >
+            <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
+            <div className="relative bg-[#111827] border border-[#374151] rounded-lg p-5 w-80 shadow-xl">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#3a1f23] mb-4 mx-auto">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fecaca" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className="text-sm text-[#e5e7eb] text-center mb-5">
+                Delete <span className="font-medium text-white">{confirmDelete.displayName}</span>?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 rounded-md bg-transparent text-[#9ca3af] border border-[#374151] hover:bg-[#1f2937] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { applicationId } = confirmDelete;
+                    setConfirmDelete(null);
+                    deleteApplication(applicationId);
+                  }}
+                  className="flex-1 px-4 py-2 rounded-md bg-[#dc2626] text-white hover:bg-[#b91c1c] transition-colors font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -60,7 +60,7 @@ describe('OAuth2AccessTokenService', () => {
       AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('master-key') },
       OAUTH2_TOKEN_CACHE: {} as KVNamespace,
       OAUTH2_TOKEN_REFRESHERS: {
-        idFromName: vi.fn(() => ({} as DurableObjectId)),
+        idFromName: vi.fn(() => ({}) as DurableObjectId),
         get: vi.fn(() => ({ fetch })),
       },
     } as unknown as Env;
@@ -75,7 +75,7 @@ describe('OAuth2AccessTokenService', () => {
       AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('master-key') },
       OAUTH2_TOKEN_CACHE: {} as KVNamespace,
       OAUTH2_TOKEN_REFRESHERS: {
-        idFromName: vi.fn(() => ({} as DurableObjectId)),
+        idFromName: vi.fn(() => ({}) as DurableObjectId),
         get: vi.fn(() => ({ fetch })),
       },
     } as unknown as Env;

@@ -55,8 +55,9 @@ describe('EmailProcessingUtil', () => {
       ),
     );
 
-    await expect(EmailProcessingUtil.processQueueMessage(createOutlookQueueMessage(), createEnv(), { retryAttempt: 2 })).resolves
-      .toBeUndefined();
+    await expect(
+      EmailProcessingUtil.processQueueMessage(createOutlookQueueMessage(), createEnv(), { retryAttempt: 2 }),
+    ).resolves.toBeUndefined();
 
     expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'message-1', null, { allowExistingForRetry: true });
   });

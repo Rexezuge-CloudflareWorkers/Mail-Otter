@@ -19,7 +19,7 @@
     "@types/react-dom": "^19.2.x",
     "@vitejs/plugin-react": "^6.0.x",
     "@types/node": "25.7.x",
-    "terser": "^5.46.x",
+    "terser": "^5.47.x",
     "typescript": "^6.0.3",
     "vite": "^8.0.x"
   }

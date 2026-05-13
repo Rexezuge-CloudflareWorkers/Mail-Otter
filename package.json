@@ -13,7 +13,7 @@
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
-    "@types/node": "25.6.x",
+    "@types/node": "25.7.x",
     "@types/react": "^19.2.x",
     "@types/react-dom": "^19.2.x",
     "@vitejs/plugin-react": "^6.0.x",

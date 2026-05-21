@@ -1,4 +1,4 @@
-# v4-1777658362
+# v5-1779382086
 name: Scheduled Version Update
 
 on:
@@ -27,7 +27,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add .version
+          git add .github/.version
 
           if git diff --cached --quiet; then
             echo "No changes to commit"

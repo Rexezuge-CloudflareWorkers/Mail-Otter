@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
-import { OAuth2ProviderUtil } from '@mail-otter/backend-core';
+import { OAuth2ProviderUtil } from '@mail-otter/backend-core/utils';
 
 describe('OAuth2ProviderUtil', () => {
   it('builds a Google authorization URL with offline access and PKCE', () => {

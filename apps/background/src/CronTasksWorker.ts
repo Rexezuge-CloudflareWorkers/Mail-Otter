@@ -1,6 +1,6 @@
-import { AbstractDurableObjectWorker } from '@mail-otter/backend-core';
+import { AbstractDurableObjectWorker } from '@mail-otter/backend-core/base';
 import { OAuth2AccessTokenRefreshTask } from '@mail-otter/background/scheduled';
-import { SubscriptionRenewalUtil } from '@mail-otter/backend-core';
+import { SubscriptionRenewalUtil } from '@mail-otter/backend-core/utils';
 
 const CRON_TASKS_RUN_PATH: string = '/run';
 

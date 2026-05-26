@@ -2,15 +2,13 @@ import { PROVIDER_SUBSCRIPTION_STATUS_ACTIVE } from '@mail-otter/shared/constant
 import { ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '../dao';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { BadRequestError, NonRetryableError, RetryableError } from '../error';
-import {
-  ConfigurationManager,
-  EmailContentUtil,
-  EmailContextUtil,
-  EmailSummaryUtil,
-  GmailProviderUtil,
-  OAuth2AccessTokenService,
-  OutlookProviderUtil,
-} from './index';
+import { ConfigurationManager } from './ConfigurationManager';
+import { EmailContentUtil } from './EmailContentUtil';
+import { EmailContextUtil } from './EmailContextUtil';
+import { EmailSummaryUtil } from './EmailSummaryUtil';
+import { GmailProviderUtil } from './GmailProviderUtil';
+import { OAuth2AccessTokenService } from './OAuth2AccessTokenService';
+import { OutlookProviderUtil } from './OutlookProviderUtil';
 import type { GmailMessage } from './GmailProviderUtil';
 import type { OutlookMessage } from './OutlookProviderUtil';
 

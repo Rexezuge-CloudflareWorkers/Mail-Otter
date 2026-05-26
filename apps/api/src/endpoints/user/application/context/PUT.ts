@@ -1,10 +1,10 @@
-import { ConnectedApplicationDAO } from '@mail-otter/backend-core';
-import { BadRequestError } from '@mail-otter/backend-core';
+import { ConnectedApplicationDAO } from '@mail-otter/backend-core/dao';
+import { BadRequestError } from '@mail-otter/backend-core/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { ApplicationResponseUtil } from '@mail-otter/backend-core';
-import type { ApplicationResponse } from '@mail-otter/backend-core';
+import { ApplicationResponseUtil } from '@mail-otter/backend-core/utils';
+import type { ApplicationResponse } from '@mail-otter/backend-core/utils';
 
 class UpdateApplicationContextRoute extends IUserRoute<
   UpdateApplicationContextRequest,

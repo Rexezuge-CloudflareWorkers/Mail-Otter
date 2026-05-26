@@ -1,16 +1,16 @@
-import { AbstractDurableObjectWorker } from '@mail-otter/backend-core';
+import { AbstractDurableObjectWorker } from '@mail-otter/backend-core/base';
 import {
   CONNECTED_APPLICATION_STATUS_CONNECTED,
   CONNECTION_METHOD_OAUTH2,
   PROVIDER_GOOGLE_GMAIL,
   PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core';
+import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core/dao';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import { BadRequestError } from '@mail-otter/backend-core';
-import { ConfigurationManager, GmailProviderUtil, OAuth2ProviderUtil, OutlookProviderUtil } from '@mail-otter/backend-core';
-import type { OAuth2TokenResult } from '@mail-otter/backend-core';
+import { BadRequestError } from '@mail-otter/backend-core/error';
+import { ConfigurationManager, GmailProviderUtil, OAuth2ProviderUtil, OutlookProviderUtil } from '@mail-otter/backend-core/utils';
+import type { OAuth2TokenResult } from '@mail-otter/backend-core/utils';
 
 const TOKEN_REFRESH_PATH: string = '/refresh';
 const TOKEN_EXCHANGE_PATH: string = '/exchange';

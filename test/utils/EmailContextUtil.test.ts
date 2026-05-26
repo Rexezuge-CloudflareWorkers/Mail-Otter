@@ -1,4 +1,4 @@
-import { EmailContextUtil } from '@mail-otter/backend-core';
+import { EmailContextUtil } from '@mail-otter/backend-core/utils';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { describe, expect, it, vi } from 'vitest';
 

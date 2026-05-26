@@ -1,10 +1,10 @@
 import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-core';
-import { BadRequestError } from '@mail-otter/backend-core';
+import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-core/dao';
+import { BadRequestError } from '@mail-otter/backend-core/error';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
-import { BaseUrlUtil, ConfigurationManager, OAuth2ProviderUtil, OAuth2StateUtil, TimestampUtil } from '@mail-otter/backend-core';
+import { BaseUrlUtil, ConfigurationManager, OAuth2ProviderUtil, OAuth2StateUtil, TimestampUtil } from '@mail-otter/backend-core/utils';
 
 class CreateOAuth2AuthorizationRoute extends IUserRoute<
   CreateOAuth2AuthorizationRequest,

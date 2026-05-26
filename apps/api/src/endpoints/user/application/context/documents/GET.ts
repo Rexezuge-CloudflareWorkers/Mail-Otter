@@ -1,4 +1,4 @@
-import { ApplicationContextDAO } from '@mail-otter/backend-core';
+import { ApplicationContextDAO } from '@mail-otter/backend-core/dao';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDocument } from '@mail-otter/shared/model';

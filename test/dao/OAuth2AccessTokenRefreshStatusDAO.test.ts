@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core';
+import { OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core/dao';
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 
 function createStatement(rows: unknown[] = [], firstRow: unknown = null) {

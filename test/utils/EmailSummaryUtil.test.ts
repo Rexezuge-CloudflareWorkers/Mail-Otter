@@ -1,5 +1,5 @@
-import { EmailSummaryUtil } from '@mail-otter/backend-core';
-import { AiSummaryRetryableError } from '@mail-otter/backend-core';
+import { EmailSummaryUtil } from '@mail-otter/backend-core/utils';
+import { AiSummaryRetryableError } from '@mail-otter/backend-core/error';
 
 describe('EmailSummaryUtil', () => {
   it('renders a consistent summary format from structured AI output', async () => {

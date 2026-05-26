@@ -1,6 +1,6 @@
-import { UserDAO } from '@mail-otter/backend-core';
-import { IServiceError } from '@mail-otter/backend-core';
-import { EmailValidationUtil } from '@mail-otter/backend-core';
+import { UserDAO } from '@mail-otter/backend-core/dao';
+import { IServiceError } from '@mail-otter/backend-core/error';
+import { EmailValidationUtil } from '@mail-otter/backend-core/utils';
 import { Context, Next } from 'hono';
 
 type UserContext = Context<{ Bindings: Env; Variables: { AuthenticatedUserEmailAddress: string } }>;

@@ -1,6 +1,6 @@
-import { AbstractWorkflowWorker } from '@mail-otter/backend-core';
-import { NonRetryableError, RetryableError } from '@mail-otter/backend-core';
-import { EmailProcessingUtil } from '@mail-otter/backend-core';
+import { AbstractWorkflowWorker } from '@mail-otter/backend-core/base';
+import { NonRetryableError, RetryableError } from '@mail-otter/backend-core/error';
+import { EmailProcessingUtil } from '@mail-otter/backend-core/utils';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepContext } from 'cloudflare:workers';
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';

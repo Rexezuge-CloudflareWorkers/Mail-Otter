@@ -1,9 +1,9 @@
-import { ConnectedApplicationDAO } from '@mail-otter/backend-core';
+import { ConnectedApplicationDAO } from '@mail-otter/backend-core/dao';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { ApplicationResponseUtil } from '@mail-otter/backend-core';
-import type { ApplicationResponse } from '@mail-otter/backend-core';
+import { ApplicationResponseUtil } from '@mail-otter/backend-core/utils';
+import type { ApplicationResponse } from '@mail-otter/backend-core/utils';
 
 class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListApplicationsResponse, ListApplicationsEnv> {
   schema = {

@@ -1,7 +1,7 @@
 import { OpenAPIRoute } from 'chanfana';
 import { Context } from 'hono';
 import type { StatusCode } from 'hono/utils/http-status';
-import { BadRequestError, DefaultInternalServerError, InternalServerError, IServiceError } from '@mail-otter/backend-core';
+import { BadRequestError, DefaultInternalServerError, InternalServerError, IServiceError } from '@mail-otter/backend-core/error';
 import { validateRequestInput } from '@mail-otter/shared/schema';
 
 abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse, TEnv extends IEnv> extends OpenAPIRoute {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core';
-import { OAuth2ProviderUtil } from '@mail-otter/backend-core';
-import { OutlookProviderUtil } from '@mail-otter/backend-core';
+import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-core/dao';
+import { OAuth2ProviderUtil } from '@mail-otter/backend-core/utils';
+import { OutlookProviderUtil } from '@mail-otter/backend-core/utils';
 import { OAuth2TokenRefreshWorker } from '@mail-otter/background';
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_OAUTH2, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import type { ConnectedApplication } from '@mail-otter/shared/model';

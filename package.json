@@ -27,7 +27,7 @@
     "terser": "^5.48.x",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.x",
+    "typescript-eslint": "^8.60.x",
     "vite": "^8.0.x",
     "vitest": "^4.1.7",
     "wrangler": "^4.93.1"

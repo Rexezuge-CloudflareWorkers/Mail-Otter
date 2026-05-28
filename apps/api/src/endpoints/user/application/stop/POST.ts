@@ -1,12 +1,6 @@
-import { PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
-import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
-import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
+import { WatchService } from '@mail-otter/backend-services/subscription';
 
 class StopApplicationWatchRoute extends IUserRoute<StopApplicationWatchRequest, StopApplicationWatchResponse, StopApplicationWatchEnv> {
   schema = {
@@ -24,23 +18,7 @@ class StopApplicationWatchRoute extends IUserRoute<StopApplicationWatchRequest, 
     env: StopApplicationWatchEnv,
     cxt: RouteContext<StopApplicationWatchEnv>,
   ): Promise<StopApplicationWatchResponse> {
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(
-      request.applicationId,
-      this.getAuthenticatedUserEmailAddress(cxt),
-    );
-    if (!application) throw new BadRequestError('Connected application was not found.');
-
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-    const accessToken: string = await OAuth2AccessTokenService.getAccessToken(application.applicationId, env);
-    if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
-      await GmailProviderUtil.stopWatch(accessToken);
-    } else if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK && subscription?.externalSubscriptionId) {
-      await OutlookProviderUtil.deleteSubscription(accessToken, subscription.externalSubscriptionId);
-    }
-    await subscriptionDAO.markStopped(application.applicationId);
+    await WatchService.stopApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, env);
     return { message: 'Provider notifications stopped.' };
   }
 }

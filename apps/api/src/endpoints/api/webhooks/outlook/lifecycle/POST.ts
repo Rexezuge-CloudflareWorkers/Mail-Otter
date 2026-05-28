@@ -1,9 +1,7 @@
-import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, UnauthorizedError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
-import type { ProviderSubscription } from '@mail-otter/shared/model';
-import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import { OutlookWebhookService } from '@mail-otter/backend-services/webhook';
 
 class OutlookLifecycleWebhookRoute extends IBaseRoute<
   OutlookLifecycleWebhookRequest,
@@ -35,19 +33,7 @@ class OutlookLifecycleWebhookRoute extends IBaseRoute<
     }
     const applicationId: string | undefined = cxt.req.param('applicationId');
     if (!applicationId) throw new BadRequestError('Outlook lifecycle webhook is missing applicationId.');
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    for (const notification of request.value || []) {
-      const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByExternalSubscriptionId(notification.subscriptionId);
-      if (!subscription || subscription.applicationId !== applicationId) {
-        throw new UnauthorizedError('Unknown Outlook subscription.');
-      }
-      if (notification.clientState && !(await WebhookSecurityUtil.matchesSecret(notification.clientState, subscription.clientStateHash))) {
-        throw new UnauthorizedError('Invalid Outlook clientState.');
-      }
-      if (notification.lifecycleEvent === 'subscriptionRemoved' || notification.lifecycleEvent === 'missed') {
-        await subscriptionDAO.markError(subscription.subscriptionId, `Outlook lifecycle event: ${notification.lifecycleEvent}`);
-      }
-    }
+    await OutlookWebhookService.handleLifecycleNotifications(applicationId, request.value || [], env);
     return {
       statusCode: 202,
       body: { message: 'accepted' },

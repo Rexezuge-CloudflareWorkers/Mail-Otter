@@ -1,10 +1,7 @@
-import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
-import type { ConnectedApplication, OAuth2AuthorizationSession } from '@mail-otter/shared/model';
-import { OAuth2StateUtil } from '@mail-otter/backend-core/utils';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
+import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
 
 class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2CallbackResponse, OAuth2CallbackEnv> {
   schema = {
@@ -37,29 +34,14 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
       throw new BadRequestError('OAuth2 callback is missing code or state.');
     }
 
-    const stateHash: string = await OAuth2StateUtil.getStateHash(state);
-    const sessionDAO: OAuth2AuthorizationSessionDAO = new OAuth2AuthorizationSessionDAO(env.DB);
-    const session: OAuth2AuthorizationSession | undefined = await sessionDAO.getActive(applicationId, stateHash);
-    if (!session) {
-      throw new BadRequestError('OAuth2 authorization session is invalid or expired.');
-    }
-
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplication | undefined = await applicationDAO.getById(applicationId);
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
-    }
-    await OAuth2AccessTokenService.completeAuthorization(
+    await OAuth2AuthorizationService.completeCallback(
       {
         applicationId,
-        redirectUri: session.redirectUri,
         code,
-        codeVerifier: session.codeVerifier,
+        state,
       },
       env,
     );
-    await sessionDAO.consume(session.sessionId);
     return this.redirect(`/user?oauth2=connected&applicationId=${encodeURIComponent(applicationId)}`);
   }
 

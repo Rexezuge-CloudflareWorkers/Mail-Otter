@@ -1,10 +1,7 @@
-import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata, OAuth2Credentials } from '@mail-otter/shared/model';
-import { ApplicationResponseUtil } from '@mail-otter/backend-services/application';
+import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 
 class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, UpdateApplicationResponse, UpdateApplicationEnv> {
@@ -23,35 +20,8 @@ class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, Update
     env: UpdateApplicationEnv,
     cxt: RouteContext<UpdateApplicationEnv>,
   ): Promise<UpdateApplicationResponse> {
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const existing = await dao.getByIdForUser(request.applicationId, userEmail);
-    if (!existing) {
-      throw new BadRequestError('Connected application was not found.');
-    }
-    if (existing.providerId !== request.providerId || existing.connectionMethod !== request.connectionMethod) {
-      throw new BadRequestError('Provider and connection method cannot be changed after creation.');
-    }
-
-    const credentials: ConnectedApplicationCredentials = {
-      clientId: request.clientId,
-      clientSecret: request.clientSecret,
-      refreshToken: (existing.credentials as OAuth2Credentials).refreshToken,
-    };
-    const application: ConnectedApplicationMetadata | undefined = await dao.updateForUser(
-      request.applicationId,
-      userEmail,
-      request.displayName,
-      credentials,
-      CONNECTED_APPLICATION_STATUS_DRAFT,
-      request.gmailPubsubTopicName || null,
-    );
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
-    }
     return {
-      application: await ApplicationResponseUtil.decorateApplication(application, env, request.raw),
+      application: await ApplicationService.updateUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, env, request.raw),
     };
   }
 }

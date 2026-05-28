@@ -1,7 +1,6 @@
-import { ApplicationContextDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { EmailContextUtil } from '@mail-otter/backend-services/email';
+import { ApplicationService } from '@mail-otter/backend-services/application';
 
 class DeleteApplicationRoute extends IUserRoute<DeleteApplicationRequest, DeleteApplicationResponse, DeleteApplicationEnv> {
   schema = {
@@ -19,19 +18,7 @@ class DeleteApplicationRoute extends IUserRoute<DeleteApplicationRequest, Delete
     env: DeleteApplicationEnv,
     cxt: RouteContext<DeleteApplicationEnv>,
   ): Promise<DeleteApplicationResponse> {
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    const contextDAO = new ApplicationContextDAO(env.DB);
-    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(request.applicationId, userEmail);
-    if (env.EMAIL_CONTEXT_INDEX) {
-      for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
-        if (chunk.length > 0) await env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
-      }
-      await contextDAO.markDocumentsDeletedByVectorIds(request.applicationId, userEmail, vectorIds);
-    }
-    await new OAuth2AccessTokenCacheDAO(env.OAUTH2_TOKEN_CACHE, masterKey).deleteAccessToken(request.applicationId);
-    await dao.deleteForUser(request.applicationId, userEmail);
+    await ApplicationService.deleteUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, env);
     return { success: true };
   }
 }

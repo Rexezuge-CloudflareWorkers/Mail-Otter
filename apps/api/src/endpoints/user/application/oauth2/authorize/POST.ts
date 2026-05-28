@@ -1,11 +1,6 @@
-import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
-import { BaseUrlUtil, ConfigurationManager, OAuth2StateUtil, TimestampUtil } from '@mail-otter/backend-core/utils';
-import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
+import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
 
 class CreateOAuth2AuthorizationRoute extends IUserRoute<
   CreateOAuth2AuthorizationRequest,
@@ -27,41 +22,12 @@ class CreateOAuth2AuthorizationRoute extends IUserRoute<
     env: CreateOAuth2AuthorizationEnv,
     cxt: RouteContext<CreateOAuth2AuthorizationEnv>,
   ): Promise<CreateOAuth2AuthorizationResponse> {
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(
-      request.applicationId,
+    return OAuth2AuthorizationService.createAuthorization(
       this.getAuthenticatedUserEmailAddress(cxt),
+      request.applicationId,
+      env,
+      request.raw,
     );
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
-    }
-    if (application.connectionMethod !== CONNECTION_METHOD_OAUTH2) {
-      throw new BadRequestError('Connected application does not use OAuth2.');
-    }
-
-    const credentials: OAuth2Credentials = application.credentials as OAuth2Credentials;
-    const state: string = OAuth2StateUtil.generateState();
-    const codeVerifier: string = OAuth2StateUtil.generateCodeVerifier();
-    const codeChallenge: string = await OAuth2StateUtil.getCodeChallenge(codeVerifier);
-    const redirectUri: string = `${BaseUrlUtil.getBaseUrl(request.raw)}/api/oauth2/callback/${application.applicationId}`;
-    const stateHash: string = await OAuth2StateUtil.getStateHash(state);
-    const expiryMinutes: number = ConfigurationManager.getOauth2StateExpiryMinutes(env);
-    const expiresAt: number = TimestampUtil.addMinutes(TimestampUtil.getCurrentUnixTimestampInSeconds(), expiryMinutes);
-    const sessionDAO: OAuth2AuthorizationSessionDAO = new OAuth2AuthorizationSessionDAO(env.DB);
-    await sessionDAO.create(application.applicationId, stateHash, codeVerifier, redirectUri, expiresAt);
-    const authorizationUrl: string = OAuth2ProviderUtil.buildAuthorizationUrl({
-      providerId: application.providerId,
-      clientId: credentials.clientId,
-      redirectUri,
-      state,
-      codeChallenge,
-    });
-    return {
-      authorizationUrl,
-      redirectUri,
-      expiresAt,
-    };
   }
 }
 

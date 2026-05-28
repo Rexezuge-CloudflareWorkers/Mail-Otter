@@ -13,7 +13,9 @@
     "./oauth2": "./src/oauth2/index.ts",
     "./oauth2/*": "./src/oauth2/*.ts",
     "./subscription": "./src/subscription/index.ts",
-    "./subscription/*": "./src/subscription/*.ts"
+    "./subscription/*": "./src/subscription/*.ts",
+    "./webhook": "./src/webhook/index.ts",
+    "./webhook/*": "./src/webhook/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -2,7 +2,7 @@ import { CONNECTED_APPLICATION_STATUS_CONNECTED, PROVIDER_GOOGLE_GMAIL, PROVIDER
 import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';

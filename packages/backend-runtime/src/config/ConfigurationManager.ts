@@ -16,7 +16,7 @@ import {
   DEFAULT_RAG_TOP_K,
   DEFAULT_RAG_VECTOR_QUERY_TOP_K,
   DEFAULT_SERVE_SPA_FROM_WORKER,
-} from '../constants';
+} from './ConfigurationDefaults';
 
 class ConfigurationManager {
   public static getMaxApplicationsPerUser(env: unknown): number {

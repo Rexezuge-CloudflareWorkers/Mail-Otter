@@ -68,9 +68,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@mail-otter/backend-core':
-        specifier: workspace:*
-        version: link:../../packages/backend-core
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
@@ -111,9 +108,6 @@ importers:
 
   apps/background:
     dependencies:
-      '@mail-otter/backend-core':
-        specifier: workspace:*
-        version: link:../../packages/backend-core
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
@@ -177,25 +171,6 @@ importers:
         specifier: ^8.0.x
         version: 8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.3)(yaml@2.9.0)
 
-  packages/backend-core:
-    dependencies:
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
-      '@mail-otter/shared':
-        specifier: workspace:*
-        version: link:../shared
-      jose:
-        specifier: ^6.2.0
-        version: 6.2.3
-    devDependencies:
-      '@types/node':
-        specifier: 25.9.x
-        version: 25.9.1
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
   packages/backend-data:
     dependencies:
       '@mail-otter/backend-errors':
@@ -240,9 +215,6 @@ importers:
 
   packages/backend-services:
     dependencies:
-      '@mail-otter/backend-core':
-        specifier: workspace:*
-        version: link:../backend-core
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../backend-data
@@ -258,6 +230,9 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      jose:
+        specifier: ^6.2.0
+        version: 6.2.3
     devDependencies:
       '@types/node':
         specifier: 25.9.x

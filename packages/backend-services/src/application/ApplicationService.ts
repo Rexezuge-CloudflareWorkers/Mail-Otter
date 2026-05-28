@@ -7,7 +7,7 @@ import type {
   ConnectedApplicationMetadata,
   OAuth2Credentials,
 } from '@mail-otter/shared/model';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
 import type { ApplicationResponse } from './ApplicationResponseUtil';

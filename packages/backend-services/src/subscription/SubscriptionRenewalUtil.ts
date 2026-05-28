@@ -5,7 +5,7 @@ import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 
 class SubscriptionRenewalUtil {

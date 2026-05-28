@@ -7,7 +7,7 @@ import type { GmailMessage } from '@mail-otter/provider-clients/gmail';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailSummaryUtil } from './EmailSummaryUtil';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';

@@ -17,8 +17,6 @@
       "@/*": ["./src/*"],
       "@mail-otter/background": ["../../apps/background/src"],
       "@mail-otter/background/*": ["../../apps/background/src/*"],
-      "@mail-otter/backend-core": ["../../packages/backend-core/src"],
-      "@mail-otter/backend-core/*": ["../../packages/backend-core/src/*"],
       "@mail-otter/backend-data": ["../../packages/backend-data/src"],
       "@mail-otter/backend-data/*": ["../../packages/backend-data/src/*"],
       "@mail-otter/backend-errors": ["../../packages/backend-errors/src"],

@@ -2,9 +2,11 @@ import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ConnectedApplication, OAuth2AuthorizationSession, OAuth2Credentials } from '@mail-otter/shared/model';
-import { BaseUrlUtil, ConfigurationManager, OAuth2StateUtil, TimestampUtil } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { BaseUrlUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
 import { OAuth2AccessTokenService } from './OAuth2AccessTokenService';
+import { OAuth2StateUtil } from './OAuth2StateUtil';
 
 class OAuth2AuthorizationService {
   public static async createAuthorization(

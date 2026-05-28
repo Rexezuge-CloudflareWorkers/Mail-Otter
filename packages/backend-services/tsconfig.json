@@ -14,8 +14,6 @@
     "strict": true,
     "skipLibCheck": true,
     "paths": {
-      "@mail-otter/backend-core": ["../backend-core/src"],
-      "@mail-otter/backend-core/*": ["../backend-core/src/*"],
       "@mail-otter/backend-data": ["../backend-data/src"],
       "@mail-otter/backend-data/*": ["../backend-data/src/*"],
       "@mail-otter/backend-errors": ["../backend-errors/src"],

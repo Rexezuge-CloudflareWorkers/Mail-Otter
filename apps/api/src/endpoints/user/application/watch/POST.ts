@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { BaseUrlUtil } from '@mail-otter/backend-core/utils';
+import { BaseUrlUtil } from '@mail-otter/shared/utils';
 import { WatchService } from '@mail-otter/backend-services/subscription';
 
 class StartApplicationWatchRoute extends IUserRoute<StartApplicationWatchRequest, StartApplicationWatchResponse, StartApplicationWatchEnv> {

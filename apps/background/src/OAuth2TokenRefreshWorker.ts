@@ -9,7 +9,7 @@ import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRe
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';

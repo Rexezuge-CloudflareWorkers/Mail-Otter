@@ -23,7 +23,7 @@ import {
 import { MiddlewareHandlers } from '@/middleware';
 import { SPA_HTML } from '@/generated/spa-shell';
 import { DURABLE_OBJECT_CRON_TASKS_RUN_URL, DURABLE_OBJECT_NAMESPACE_GLOBAL } from '@mail-otter/backend-runtime/constants';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 
 class MailOtterWorker extends AbstractEntrypointWorker {
   protected readonly app: HonoOpenAPIRouterType<{

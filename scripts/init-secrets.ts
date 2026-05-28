@@ -32,7 +32,7 @@ function parseWranglerConfig(): WranglerConfig {
 
 function checkSecret(storeId: string, secretName: string): boolean {
   try {
-    const output = exec(`npx wrangler secrets-store secret list ${storeId} --remote`);
+    const output = exec(`pnpm exec wrangler secrets-store secret list ${storeId} --remote`);
     return output.includes(secretName);
   } catch {
     return false;
@@ -47,7 +47,7 @@ async function generateAESGCMKey(): Promise<string> {
 
 function createSecret(storeId: string, secretName: string, secretValue: string): void {
   console.log(`Creating secret: ${secretName}`);
-  exec(`echo "${secretValue}" | npx wrangler secrets-store secret create ${storeId} --name ${secretName} --scopes workers --remote`);
+  exec(`echo "${secretValue}" | pnpm exec wrangler secrets-store secret create ${storeId} --name ${secretName} --scopes workers --remote`);
 }
 
 async function main() {

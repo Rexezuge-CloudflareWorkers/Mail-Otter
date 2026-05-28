@@ -1,9 +1,8 @@
-import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, UnauthorizedError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
-import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
-import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import type { EmailQueueMessage } from '@mail-otter/shared/model';
+import { GmailWebhookService } from '@mail-otter/backend-services/webhook';
 
 class GmailWebhookRoute extends IBaseRoute<GmailWebhookRequest, GmailWebhookResponse, GmailWebhookEnv> {
   schema = {
@@ -24,21 +23,15 @@ class GmailWebhookRoute extends IBaseRoute<GmailWebhookRequest, GmailWebhookResp
     const applicationId: string | undefined = cxt.req.param('applicationId');
     if (!applicationId) throw new BadRequestError('Gmail webhook is missing applicationId.');
     const token: string | null = new URL(request.raw.url).searchParams.get('token');
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(applicationId);
-    if (!subscription || !(await WebhookSecurityUtil.matchesSecret(token, subscription.webhookSecretHash))) {
-      throw new UnauthorizedError('Invalid Gmail webhook token.');
-    }
-    const decoded = JSON.parse(WebhookSecurityUtil.base64UrlDecodeToString(request.message.data)) as GmailNotificationData;
-    if (!decoded.historyId) throw new BadRequestError('Gmail notification was missing historyId.');
-    const queueMessage: EmailQueueMessage = {
-      type: 'gmail-notification',
-      applicationId,
-      notificationHistoryId: decoded.historyId,
-      pubsubMessageId: request.message.messageId,
-    };
-    await env.EMAIL_EVENTS_QUEUE.send(queueMessage);
-    await subscriptionDAO.touchNotification(subscription.subscriptionId);
+    await GmailWebhookService.handleNotification(
+      {
+        applicationId,
+        token,
+        messageData: request.message.data,
+        pubsubMessageId: request.message.messageId,
+      },
+      env,
+    );
     return { message: 'accepted' };
   }
 }
@@ -50,11 +43,6 @@ interface GmailWebhookRequest extends IRequest {
     publishTime?: string | undefined;
   };
   subscription?: string | undefined;
-}
-
-interface GmailNotificationData {
-  emailAddress?: string | undefined;
-  historyId?: string | undefined;
 }
 
 interface GmailWebhookResponse extends IResponse {

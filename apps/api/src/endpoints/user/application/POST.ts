@@ -1,11 +1,6 @@
-import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { ConfigurationManager } from '@mail-otter/backend-core/utils';
-import { ApplicationResponseUtil } from '@mail-otter/backend-services/application';
+import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 
 class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, CreateApplicationResponse, CreateApplicationEnv> {
@@ -24,29 +19,8 @@ class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, Create
     env: CreateApplicationEnv,
     cxt: RouteContext<CreateApplicationEnv>,
   ): Promise<CreateApplicationResponse> {
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao: ConnectedApplicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const maxApplications: number = ConfigurationManager.getMaxApplicationsPerUser(env);
-    if ((await dao.countByUserEmail(userEmail)) >= maxApplications) {
-      throw new BadRequestError(`Maximum ${maxApplications} connected applications allowed per user.`);
-    }
-
-    const credentials: ConnectedApplicationCredentials = {
-      clientId: request.clientId,
-      clientSecret: request.clientSecret,
-    };
-    const application: ConnectedApplicationMetadata = await dao.create(
-      userEmail,
-      request.displayName,
-      request.providerId,
-      CONNECTION_METHOD_OAUTH2,
-      credentials,
-      CONNECTED_APPLICATION_STATUS_DRAFT,
-      request.gmailPubsubTopicName || null,
-    );
     return {
-      application: await ApplicationResponseUtil.decorateApplication(application, env, request.raw),
+      application: await ApplicationService.createUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, env, request.raw),
     };
   }
 }

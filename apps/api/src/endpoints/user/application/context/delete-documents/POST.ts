@@ -1,10 +1,7 @@
-import { APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED, APPLICATION_CONTEXT_DELETION_STATUS_ERROR } from '@mail-otter/shared/constants';
-import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ApplicationContextDeletionRun, ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { EmailContextUtil } from '@mail-otter/backend-services/email';
+import type { ApplicationContextDeletionRun } from '@mail-otter/shared/model';
+import { ContextService } from '@mail-otter/backend-services/email';
 
 class DeleteApplicationContextDocumentsRoute extends IUserRoute<
   DeleteApplicationContextDocumentsRequest,
@@ -26,53 +23,7 @@ class DeleteApplicationContextDocumentsRoute extends IUserRoute<
     env: DeleteApplicationContextDocumentsEnv,
     cxt: RouteContext<DeleteApplicationContextDocumentsEnv>,
   ): Promise<DeleteApplicationContextDocumentsResponse> {
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(
-      request.applicationId,
-      userEmail,
-    );
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
-    }
-
-    const contextDAO = new ApplicationContextDAO(env.DB);
-    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(application.applicationId, userEmail);
-    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);
-    const mutationIds: string[] = [];
-    try {
-      for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
-        if (chunk.length === 0) continue;
-        const mutation = await env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
-        if ('mutationId' in mutation && mutation.mutationId) {
-          mutationIds.push(mutation.mutationId);
-        }
-      }
-      await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, userEmail, vectorIds);
-      const deletionRun: ApplicationContextDeletionRun = await contextDAO.recordDeletionRun({
-        applicationId: application.applicationId,
-        userEmail,
-        vectorNamespace,
-        requestedVectorCount: vectorIds.length,
-        deletedVectorCount: vectorIds.length,
-        mutationIds,
-        status: APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED,
-      });
-      return { deletionRun };
-    } catch (error: unknown) {
-      const deletionRun: ApplicationContextDeletionRun = await contextDAO.recordDeletionRun({
-        applicationId: application.applicationId,
-        userEmail,
-        vectorNamespace,
-        requestedVectorCount: vectorIds.length,
-        deletedVectorCount: 0,
-        mutationIds,
-        status: APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
-        errorMessage: error instanceof Error ? error.message : String(error),
-      });
-      return { deletionRun };
-    }
+    return { deletionRun: await ContextService.deleteDocuments(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, env) };
   }
 }
 

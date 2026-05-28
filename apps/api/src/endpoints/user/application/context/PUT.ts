@@ -1,9 +1,6 @@
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { ApplicationResponseUtil } from '@mail-otter/backend-services/application';
+import { ContextService } from '@mail-otter/backend-services/email';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 
 class UpdateApplicationContextRoute extends IUserRoute<
@@ -26,19 +23,8 @@ class UpdateApplicationContextRoute extends IUserRoute<
     env: UpdateApplicationContextEnv,
     cxt: RouteContext<UpdateApplicationContextEnv>,
   ): Promise<UpdateApplicationContextResponse> {
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ConnectedApplicationDAO(env.DB, masterKey);
-    const application: ConnectedApplicationMetadata | undefined = await dao.updateContextIndexingForUser(
-      request.applicationId,
-      userEmail,
-      request.contextIndexingEnabled,
-    );
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
-    }
     return {
-      application: await ApplicationResponseUtil.decorateApplication(application, env, request.raw),
+      application: await ContextService.updateContextIndexing(this.getAuthenticatedUserEmailAddress(cxt), request, env, request.raw),
     };
   }
 }

@@ -1,0 +1,171 @@
+import {
+  APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED,
+  APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
+  PROVIDER_GOOGLE_GMAIL,
+  PROVIDER_MICROSOFT_OUTLOOK,
+} from '@mail-otter/shared/constants';
+import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
+import { BadRequestError } from '@mail-otter/backend-errors';
+import type {
+  ApplicationContextDeletionRun,
+  ApplicationContextDeletionRunList,
+  ApplicationContextDocumentList,
+  ApplicationContextDocumentSource,
+  ConnectedApplicationMetadata,
+} from '@mail-otter/shared/model';
+import type { ApplicationContextDocumentStatus } from '@mail-otter/shared/constants';
+import { ApplicationResponseUtil } from '../application/ApplicationResponseUtil';
+import type { ApplicationResponse } from '../application/ApplicationResponseUtil';
+import { EmailContextUtil } from './EmailContextUtil';
+
+class ContextService {
+  public static async updateContextIndexing(
+    userEmail: string,
+    input: UpdateContextIndexingInput,
+    env: ContextServiceEnv,
+    raw: Request,
+  ): Promise<ApplicationResponse> {
+    const applicationDAO: ConnectedApplicationDAO = await ContextService.createApplicationDAO(env);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateContextIndexingForUser(
+      input.applicationId,
+      userEmail,
+      input.contextIndexingEnabled,
+    );
+    if (!application) {
+      throw new BadRequestError('Connected application was not found.');
+    }
+    return ApplicationResponseUtil.decorateApplication(application, env, raw);
+  }
+
+  public static async listDocuments(userEmail: string, input: ListContextDocumentsInput, env: ContextListEnv): Promise<ApplicationContextDocumentList> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    return contextDAO.listDocumentsForUser(userEmail, input);
+  }
+
+  public static async listDeletionRuns(userEmail: string, input: ListDeletionRunsInput, env: ContextListEnv): Promise<ApplicationContextDeletionRunList> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    return contextDAO.listDeletionRunsForUser(userEmail, input);
+  }
+
+  public static async deleteDocuments(
+    userEmail: string,
+    applicationId: string,
+    env: DeleteContextDocumentsEnv,
+  ): Promise<ApplicationContextDeletionRun> {
+    const applicationDAO: ConnectedApplicationDAO = await ContextService.createApplicationDAO(env);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+    if (!application) {
+      throw new BadRequestError('Connected application was not found.');
+    }
+
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(application.applicationId, userEmail);
+    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);
+    const mutationIds: string[] = [];
+    try {
+      for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
+        if (chunk.length === 0) continue;
+        const mutation = await env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
+        if ('mutationId' in mutation && mutation.mutationId) {
+          mutationIds.push(mutation.mutationId);
+        }
+      }
+      await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, userEmail, vectorIds);
+      return contextDAO.recordDeletionRun({
+        applicationId: application.applicationId,
+        userEmail,
+        vectorNamespace,
+        requestedVectorCount: vectorIds.length,
+        deletedVectorCount: vectorIds.length,
+        mutationIds,
+        status: APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED,
+      });
+    } catch (error: unknown) {
+      return contextDAO.recordDeletionRun({
+        applicationId: application.applicationId,
+        userEmail,
+        vectorNamespace,
+        requestedVectorCount: vectorIds.length,
+        deletedVectorCount: 0,
+        mutationIds,
+        status: APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  public static async getDocumentProviderLink(userEmail: string, contextDocumentId: string, env: ContextServiceEnv): Promise<string> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
+    if (!document) {
+      throw new BadRequestError('Context document was not found.');
+    }
+
+    const applicationDAO: ConnectedApplicationDAO = await ContextService.createApplicationDAO(env);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(document.applicationId, userEmail);
+    if (!application) {
+      throw new BadRequestError('Connected application was not found.');
+    }
+    return ContextService.getProviderUrl(document, application);
+  }
+
+  private static async createApplicationDAO(env: ContextServiceEnv): Promise<ConnectedApplicationDAO> {
+    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    return new ConnectedApplicationDAO(env.DB, masterKey);
+  }
+
+  private static getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {
+    if (document.sourceProviderId === PROVIDER_GOOGLE_GMAIL) {
+      const url = new URL('https://mail.google.com/mail/u/');
+      if (application.providerEmail) url.searchParams.set('authuser', application.providerEmail);
+      url.hash = `all/${document.sourceThreadId || document.sourceDocumentId}`;
+      return url.toString();
+    }
+
+    if (document.sourceProviderId === PROVIDER_MICROSOFT_OUTLOOK) {
+      const url = new URL(`https://outlook.office.com/mail/deeplink/read/${encodeURIComponent(document.sourceDocumentId)}`);
+      if (application.providerEmail) url.searchParams.set('login_hint', application.providerEmail);
+      return url.toString();
+    }
+
+    throw new BadRequestError('Unsupported context document provider.');
+  }
+}
+
+interface UpdateContextIndexingInput {
+  applicationId: string;
+  contextIndexingEnabled: boolean;
+}
+
+interface ListContextDocumentsInput {
+  applicationId?: string | undefined;
+  status?: ApplicationContextDocumentStatus | undefined;
+  cursor?: string | undefined;
+}
+
+interface ListDeletionRunsInput {
+  applicationId?: string | undefined;
+  cursor?: string | undefined;
+}
+
+interface ContextListEnv {
+  DB: D1Database;
+}
+
+interface ContextServiceEnv extends ContextListEnv {
+  AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+}
+
+interface DeleteContextDocumentsEnv extends ContextServiceEnv {
+  EMAIL_CONTEXT_INDEX: Vectorize;
+}
+
+export { ContextService };
+export type {
+  ContextListEnv,
+  ContextServiceEnv,
+  DeleteContextDocumentsEnv,
+  ListContextDocumentsInput,
+  ListDeletionRunsInput,
+  UpdateContextIndexingInput,
+};

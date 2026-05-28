@@ -1,9 +1,8 @@
-import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, UnauthorizedError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
-import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
-import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import type { EmailQueueMessage } from '@mail-otter/shared/model';
+import { OutlookWebhookService } from '@mail-otter/backend-services/webhook';
 
 class OutlookWebhookRoute extends IBaseRoute<OutlookWebhookRequest, OutlookWebhookResponse, OutlookWebhookEnv> {
   schema = {
@@ -31,36 +30,11 @@ class OutlookWebhookRoute extends IBaseRoute<OutlookWebhookRequest, OutlookWebho
     }
     const applicationId: string | undefined = cxt.req.param('applicationId');
     if (!applicationId) throw new BadRequestError('Outlook webhook is missing applicationId.');
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    for (const notification of request.value || []) {
-      const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByExternalSubscriptionId(notification.subscriptionId);
-      if (!subscription || subscription.applicationId !== applicationId) {
-        throw new UnauthorizedError('Unknown Outlook subscription.');
-      }
-      if (!(await WebhookSecurityUtil.matchesSecret(notification.clientState, subscription.clientStateHash))) {
-        throw new UnauthorizedError('Invalid Outlook clientState.');
-      }
-      const messageId: string | undefined = notification.resourceData?.id || OutlookWebhookRoute.extractMessageId(notification.resource);
-      if (!messageId) continue;
-      const queueMessage: EmailQueueMessage = {
-        type: 'outlook-notification',
-        applicationId,
-        subscriptionId: notification.subscriptionId,
-        messageId,
-      };
-      await env.EMAIL_EVENTS_QUEUE.send(queueMessage);
-      await subscriptionDAO.touchNotification(subscription.subscriptionId);
-    }
+    await OutlookWebhookService.handleNotifications(applicationId, request.value || [], env);
     return {
       statusCode: 202,
       body: { message: 'accepted' },
     };
-  }
-
-  private static extractMessageId(resource: string | undefined): string | undefined {
-    if (!resource) return undefined;
-    const match: RegExpMatchArray | null = resource.match(/messages\/([^/]+)$/i);
-    return match?.[1];
   }
 }
 

@@ -1,7 +1,7 @@
-import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDeletionRun } from '@mail-otter/shared/model';
+import { ContextService } from '@mail-otter/backend-services/email';
 
 class ListApplicationContextDeletionRunsRoute extends IUserRoute<
   ListApplicationContextDeletionRunsRequest,
@@ -24,11 +24,10 @@ class ListApplicationContextDeletionRunsRoute extends IUserRoute<
     cxt: RouteContext<ListApplicationContextDeletionRunsEnv>,
   ): Promise<ListApplicationContextDeletionRunsResponse> {
     const url = new URL(request.raw.url);
-    const contextDAO = new ApplicationContextDAO(env.DB);
-    return contextDAO.listDeletionRunsForUser(this.getAuthenticatedUserEmailAddress(cxt), {
+    return ContextService.listDeletionRuns(this.getAuthenticatedUserEmailAddress(cxt), {
       applicationId: url.searchParams.get('applicationId') || undefined,
       cursor: url.searchParams.get('cursor') || undefined,
-    });
+    }, env);
   }
 }
 

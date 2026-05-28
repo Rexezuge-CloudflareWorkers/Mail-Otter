@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@mail-otter/backend-services':
+        specifier: workspace:*
+        version: link:packages/backend-services
       '@types/node':
         specifier: 25.9.x
         version: 25.9.1
@@ -77,6 +80,9 @@ importers:
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
+      '@mail-otter/backend-services':
+        specifier: workspace:*
+        version: link:../../packages/backend-services
       '@mail-otter/background':
         specifier: workspace:*
         version: link:../background
@@ -117,6 +123,9 @@ importers:
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
+      '@mail-otter/backend-services':
+        specifier: workspace:*
+        version: link:../../packages/backend-services
       '@mail-otter/provider-clients':
         specifier: workspace:*
         version: link:../../packages/provider-clients
@@ -170,18 +179,12 @@ importers:
 
   packages/backend-core:
     dependencies:
-      '@mail-otter/backend-runtime':
+      '@mail-otter/backend-errors':
         specifier: workspace:*
-        version: link:../backend-runtime
-      '@mail-otter/provider-clients':
-        specifier: workspace:*
-        version: link:../provider-clients
+        version: link:../backend-errors
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
-      hono:
-        specifier: ^4.12.18
-        version: 4.12.21
       jose:
         specifier: ^6.2.0
         version: 6.2.3
@@ -224,6 +227,34 @@ importers:
 
   packages/backend-runtime:
     dependencies:
+      '@mail-otter/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: 25.9.x
+        version: 25.9.1
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/backend-services:
+    dependencies:
+      '@mail-otter/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@mail-otter/backend-data':
+        specifier: workspace:*
+        version: link:../backend-data
+      '@mail-otter/backend-errors':
+        specifier: workspace:*
+        version: link:../backend-errors
+      '@mail-otter/backend-runtime':
+        specifier: workspace:*
+        version: link:../backend-runtime
+      '@mail-otter/provider-clients':
+        specifier: workspace:*
+        version: link:../provider-clients
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared

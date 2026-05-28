@@ -4,7 +4,7 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 

@@ -4,8 +4,8 @@ import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig, WorkflowStepContext } from 'cloudflare:workers';
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';
 
-vi.mock('@mail-otter/backend-core/utils', async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import('@mail-otter/backend-core/utils');
+vi.mock('@mail-otter/backend-services/email', async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import('@mail-otter/backend-services/email');
   return {
     ...actual,
     EmailProcessingUtil: {
@@ -16,7 +16,7 @@ vi.mock('@mail-otter/backend-core/utils', async (importOriginal) => {
 });
 
 import { EmailProcessingWorkflow } from '@mail-otter/background';
-import { EmailProcessingUtil } from '@mail-otter/backend-core/utils';
+import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 
 describe('EmailProcessingWorkflow', () => {
   beforeEach(() => {

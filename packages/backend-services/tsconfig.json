@@ -14,10 +14,18 @@
     "strict": true,
     "skipLibCheck": true,
     "paths": {
-      "@mail-otter/backend-core": ["./src"],
-      "@mail-otter/backend-core/*": ["./src/*"],
+      "@mail-otter/backend-core": ["../backend-core/src"],
+      "@mail-otter/backend-core/*": ["../backend-core/src/*"],
+      "@mail-otter/backend-data": ["../backend-data/src"],
+      "@mail-otter/backend-data/*": ["../backend-data/src/*"],
       "@mail-otter/backend-errors": ["../backend-errors/src"],
       "@mail-otter/backend-errors/*": ["../backend-errors/src/*"],
+      "@mail-otter/backend-runtime": ["../backend-runtime/src"],
+      "@mail-otter/backend-runtime/*": ["../backend-runtime/src/*"],
+      "@mail-otter/backend-services": ["./src"],
+      "@mail-otter/backend-services/*": ["./src/*"],
+      "@mail-otter/provider-clients": ["../provider-clients/src"],
+      "@mail-otter/provider-clients/*": ["../provider-clients/src/*"],
       "@mail-otter/shared": ["../shared/src"],
       "@mail-otter/shared/*": ["../shared/src/*"]
     }

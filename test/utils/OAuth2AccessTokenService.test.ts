@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { OAuth2TokenNonRetryableError, OAuth2TokenRetryableError } from '@mail-otter/backend-errors';
 
 describe('OAuth2AccessTokenService', () => {

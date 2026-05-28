@@ -13,8 +13,8 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
 }));
 
-vi.mock('@mail-otter/backend-core/utils', async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import('@mail-otter/backend-core/utils');
+vi.mock('@mail-otter/backend-services/subscription', async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import('@mail-otter/backend-services/subscription');
   return {
     ...actual,
     SubscriptionRenewalUtil: {

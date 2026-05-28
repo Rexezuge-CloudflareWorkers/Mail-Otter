@@ -15,10 +15,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mail-otter/backend-runtime": "workspace:*",
-    "@mail-otter/provider-clients": "workspace:*",
+    "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "hono": "^4.12.18",
     "jose": "^6.2.0"
   },
   "devDependencies": {

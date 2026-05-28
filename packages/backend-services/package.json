@@ -1,17 +1,19 @@
 {
-  "name": "@mail-otter/background",
+  "name": "@mail-otter/backend-services",
   "version": "1.0.0",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./CronTasksWorker": "./src/CronTasksWorker.ts",
-    "./EmailEventsDispatcherWorker": "./src/EmailEventsDispatcherWorker.ts",
-    "./EmailProcessingWorkflow": "./src/EmailProcessingWorkflow.ts",
-    "./OAuth2TokenRefreshWorker": "./src/OAuth2TokenRefreshWorker.ts",
-    "./scheduled": "./src/scheduled/index.ts",
-    "./scheduled/*": "./src/scheduled/*.ts"
+    "./application": "./src/application/index.ts",
+    "./application/*": "./src/application/*.ts",
+    "./email": "./src/email/index.ts",
+    "./email/*": "./src/email/*.ts",
+    "./oauth2": "./src/oauth2/index.ts",
+    "./oauth2/*": "./src/oauth2/*.ts",
+    "./subscription": "./src/subscription/index.ts",
+    "./subscription/*": "./src/subscription/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -21,7 +23,6 @@
     "@mail-otter/backend-data": "workspace:*",
     "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/backend-runtime": "workspace:*",
-    "@mail-otter/backend-services": "workspace:*",
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*"
   },

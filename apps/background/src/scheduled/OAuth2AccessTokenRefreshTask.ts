@@ -1,5 +1,6 @@
 import { OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
-import { ConfigurationManager, OAuth2AccessTokenService } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';

@@ -4,7 +4,7 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDeletionRun, ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { EmailContextUtil } from '@mail-otter/backend-core/utils';
+import { EmailContextUtil } from '@mail-otter/backend-services/email';
 
 class DeleteApplicationContextDocumentsRoute extends IUserRoute<
   DeleteApplicationContextDocumentsRequest,

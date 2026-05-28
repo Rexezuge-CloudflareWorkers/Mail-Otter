@@ -4,8 +4,9 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ConnectedApplicationCredentials, ConnectedApplicationMetadata } from '@mail-otter/shared/model';
-import { ApplicationResponseUtil, ConfigurationManager } from '@mail-otter/backend-core/utils';
-import type { ApplicationResponse } from '@mail-otter/backend-core/utils';
+import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { ApplicationResponseUtil } from '@mail-otter/backend-services/application';
+import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 
 class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, CreateApplicationResponse, CreateApplicationEnv> {
   schema = {

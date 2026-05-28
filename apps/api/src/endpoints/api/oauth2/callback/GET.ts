@@ -3,7 +3,8 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
 import type { ConnectedApplication, OAuth2AuthorizationSession } from '@mail-otter/shared/model';
-import { OAuth2AccessTokenService, OAuth2StateUtil } from '@mail-otter/backend-core/utils';
+import { OAuth2StateUtil } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 
 class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2CallbackResponse, OAuth2CallbackEnv> {
   schema = {

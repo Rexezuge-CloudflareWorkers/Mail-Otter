@@ -25,6 +25,8 @@
       "@mail-otter/backend-errors/*": ["../../packages/backend-errors/src/*"],
       "@mail-otter/backend-runtime": ["../../packages/backend-runtime/src"],
       "@mail-otter/backend-runtime/*": ["../../packages/backend-runtime/src/*"],
+      "@mail-otter/backend-services": ["../../packages/backend-services/src"],
+      "@mail-otter/backend-services/*": ["../../packages/backend-services/src/*"],
       "@mail-otter/provider-clients": ["../../packages/provider-clients/src"],
       "@mail-otter/provider-clients/*": ["../../packages/provider-clients/src/*"],
       "@mail-otter/shared": ["../../packages/shared/src"],

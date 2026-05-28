@@ -7,7 +7,8 @@ import {
 } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
-import { OAuth2AccessTokenService, SubscriptionRenewalUtil } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
+import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 
 describe('SubscriptionRenewalUtil', () => {

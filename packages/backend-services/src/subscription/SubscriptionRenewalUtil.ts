@@ -5,8 +5,8 @@ import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import { ConfigurationManager } from './ConfigurationManager';
-import { OAuth2AccessTokenService } from './OAuth2AccessTokenService';
+import { ConfigurationManager } from '@mail-otter/backend-core/utils';
+import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 
 class SubscriptionRenewalUtil {
   public static async renewDueSubscriptions(env: SubscriptionRenewalEnv): Promise<void> {

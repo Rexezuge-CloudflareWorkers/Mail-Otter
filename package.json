@@ -13,6 +13,7 @@
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
+    "@mail-otter/backend-services": "workspace:*",
     "@types/node": "25.9.x",
     "@types/react": "^19.2.x",
     "@types/react-dom": "^19.2.x",

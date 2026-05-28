@@ -1,4 +1,4 @@
-import { EmailSummaryUtil } from '@mail-otter/backend-core/utils';
+import { EmailSummaryUtil } from '@mail-otter/backend-services/email';
 import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
 
 describe('EmailSummaryUtil', () => {

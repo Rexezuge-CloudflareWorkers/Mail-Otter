@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { taskSpies } = vi.hoisted(() => ({
   taskSpies: {
     oauth2Refresh: vi.fn(),
+    contextPruning: vi.fn(),
     subscriptionRenewal: vi.fn(),
   },
 }));
@@ -10,6 +11,9 @@ const { taskSpies } = vi.hoisted(() => ({
 vi.mock('@mail-otter/background/scheduled', () => ({
   OAuth2AccessTokenRefreshTask: class {
     handle = taskSpies.oauth2Refresh;
+  },
+  ContextDocumentPruningTask: class {
+    handle = taskSpies.contextPruning;
   },
 }));
 
@@ -46,6 +50,7 @@ describe('CronTasksWorker', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     taskSpies.oauth2Refresh.mockReset().mockResolvedValue(undefined);
+    taskSpies.contextPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.subscriptionRenewal.mockReset().mockResolvedValue(undefined);
   });
 
@@ -57,8 +62,10 @@ describe('CronTasksWorker', () => {
 
     await expect(response.json()).resolves.toEqual({ status: 'completed' });
     expect(taskSpies.oauth2Refresh).toHaveBeenCalledOnce();
+    expect(taskSpies.contextPruning).toHaveBeenCalledOnce();
     expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith(env);
-    expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.subscriptionRenewal.mock.invocationCallOrder[0]);
+    expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.contextPruning.mock.invocationCallOrder[0]);
+    expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.subscriptionRenewal.mock.invocationCallOrder[0]);
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         cron: '*/10 * * * *',

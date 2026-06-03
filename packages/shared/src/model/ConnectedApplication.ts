@@ -17,6 +17,7 @@ interface ConnectedApplicationMetadata {
   connectionMethod: ConnectionMethod;
   status: ConnectedApplicationStatus;
   contextIndexingEnabled: boolean;
+  maxContextDocuments?: number | null | undefined;
   gmailPubsubTopicName?: string | null | undefined;
   watchedFolderIds?: string[] | null | undefined;
   oauth2RedirectUri?: string | undefined;
@@ -50,6 +51,7 @@ interface ConnectedApplicationInternal {
   credentials_iv: string;
   status: ConnectedApplicationStatus;
   context_indexing_enabled: number;
+  max_context_documents: number | null;
   gmail_pubsub_topic_name: string | null;
   watched_folder_ids: string | null;
   created_at: number;

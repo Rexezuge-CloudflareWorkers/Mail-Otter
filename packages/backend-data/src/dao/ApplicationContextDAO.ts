@@ -360,6 +360,51 @@ class ApplicationContextDAO {
     return run;
   }
 
+  public async listApplicationsOverDocumentLimit(globalMax: number): Promise<OverLimitApplication[]> {
+    const rows = await this.database
+      .prepare(
+        `
+          SELECT
+            ca.application_id,
+            ca.user_email,
+            COUNT(acd.context_document_id) AS active_count,
+            COALESCE(ca.max_context_documents, ?) AS effective_limit
+          FROM connected_applications ca
+          JOIN application_context_documents acd
+            ON acd.application_id = ca.application_id
+            AND acd.status = ?
+          GROUP BY ca.application_id, ca.user_email, ca.max_context_documents
+          HAVING COUNT(acd.context_document_id) > COALESCE(ca.max_context_documents, ?)
+        `,
+      )
+      .bind(globalMax, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, globalMax)
+      .all<{ application_id: string; user_email: string; active_count: number; effective_limit: number }>()
+      .then((r) => r.results || []);
+    return rows.map((r) => ({
+      applicationId: r.application_id,
+      userEmail: r.user_email,
+      activeCount: r.active_count,
+      effectiveLimit: r.effective_limit,
+    }));
+  }
+
+  public async listOldestActiveVectorIdsForApplication(applicationId: string, userEmail: string, count: number): Promise<string[]> {
+    const rows = await this.database
+      .prepare(
+        `
+          SELECT vector_id
+          FROM application_context_documents
+          WHERE application_id = ? AND user_email = ? AND status = ?
+          ORDER BY created_at ASC
+          LIMIT ?
+        `,
+      )
+      .bind(applicationId, userEmail, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count)
+      .all<{ vector_id: string }>()
+      .then((r) => r.results || []);
+    return rows.map((r) => r.vector_id);
+  }
+
   public async markDocumentsDeletedByVectorIds(applicationId: string, userEmail: string, vectorIds: string[]): Promise<void> {
     if (vectorIds.length === 0) return;
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
@@ -540,5 +585,12 @@ interface RecordDeletionRunInput {
   errorMessage?: string | null | undefined;
 }
 
+interface OverLimitApplication {
+  applicationId: string;
+  userEmail: string;
+  activeCount: number;
+  effectiveLimit: number;
+}
+
 export { ApplicationContextDAO };
-export type { ListContextDocumentsInput, ListDeletionRunsInput, RecordDeletionRunInput, UpsertEmailDocumentInput };
+export type { ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertEmailDocumentInput };

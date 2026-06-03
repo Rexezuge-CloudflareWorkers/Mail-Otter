@@ -3,6 +3,7 @@ import {
   DEFAULT_EMAIL_SUMMARY_MODEL,
   DEFAULT_GMAIL_WATCH_RENEWAL_WINDOW_HOURS,
   DEFAULT_MAX_APPLICATIONS_PER_USER,
+  DEFAULT_MAX_CONTEXT_DOCUMENTS_PER_APPLICATION,
   DEFAULT_MAX_CONTEXT_MEMORY_CHARS,
   DEFAULT_MAX_EMAIL_BODY_CHARS,
   DEFAULT_MAX_RAG_CONTEXT_CHARS,
@@ -107,6 +108,14 @@ class ConfigurationManager {
 
   public static getRenewalRetryMaxDelaySeconds(env: unknown): number {
     return ConfigurationManager.getPositiveInt(env, 'RENEWAL_RETRY_MAX_DELAY_SECONDS', DEFAULT_RENEWAL_RETRY_MAX_DELAY_SECONDS);
+  }
+
+  public static getMaxContextDocumentsPerApplication(env: unknown): number {
+    return ConfigurationManager.getPositiveInt(
+      env,
+      'MAX_CONTEXT_DOCUMENTS_PER_APPLICATION',
+      DEFAULT_MAX_CONTEXT_DOCUMENTS_PER_APPLICATION,
+    );
   }
 
   private static getPositiveInt(env: unknown, key: string, defaultValue: string): number {

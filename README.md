@@ -17,7 +17,7 @@ Users bring their own OAuth app credentials. Gmail also requires a Google Pub/Su
 - Vectorize index binding: `EMAIL_CONTEXT_INDEX`
 - Workflow binding: `EMAIL_PROCESSING_WORKFLOW`
 - Queue producer and consumer: `EMAIL_EVENTS_QUEUE`
-- Cron trigger: hourly, for subscription renewal
+- Cron trigger: every 10 minutes, for token refresh, context document pruning, and subscription renewal
 
 Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, secret store id, and routes.
 
@@ -28,7 +28,7 @@ source ~/.customrc
 volta run npx wrangler vectorize create mail-otter-email-context --dimensions=768 --metric=cosine
 ```
 
-The management UI lets users enable or disable context indexing per connected application, inspect indexed documents, and delete all indexed documents for one application.
+The management UI lets users enable or disable context indexing per connected application, set a per-application document limit, inspect indexed documents, and delete all indexed documents for one application. A global ceiling (`MAX_CONTEXT_DOCUMENTS_PER_APPLICATION`, default 10 000) caps the limit across all applications; the cron task automatically prunes oldest documents when an application exceeds its effective limit.
 
 ## OAuth Setup
 
@@ -71,6 +71,18 @@ projects/{projectId}/topics/{topicName}
 ```
 
 After OAuth succeeds, start the watch in Mail-Otter. The UI shows a one-time webhook URL containing a token. Configure the Pub/Sub push subscription to deliver to that URL.
+
+## Optional Environment Variables
+
+Set these in `wrangler.jsonc` under `vars` to override defaults:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `MAX_APPLICATIONS_PER_USER` | `99` | Hard limit on connected applications per user |
+| `MAX_CONTEXT_DOCUMENTS_PER_APPLICATION` | `10000` | Global ceiling on indexed documents per application |
+| `MAX_EMAIL_BODY_CHARS` | `12000` | Characters of email body sent to AI for summarization |
+| `AI_SUMMARY_MODEL` | `@cf/openai/gpt-oss-120b` | Workers AI model for email summarization |
+| `AI_EMBEDDING_MODEL` | `@cf/baai/bge-m3` | Workers AI model for context embeddings |
 
 ## Commands
 

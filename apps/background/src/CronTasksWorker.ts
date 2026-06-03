@@ -1,5 +1,5 @@
 import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
-import { OAuth2AccessTokenRefreshTask } from '@mail-otter/background/scheduled';
+import { ContextDocumentPruningTask, OAuth2AccessTokenRefreshTask } from '@mail-otter/background/scheduled';
 import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
 
 const CRON_TASKS_RUN_PATH: string = '/run';
@@ -65,6 +65,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
   protected async runScheduledTasks(event: ScheduledController): Promise<void> {
     const ctx: ExecutionContext = this.createExecutionContext();
     await new OAuth2AccessTokenRefreshTask().handle(event, this.env, ctx);
+    await new ContextDocumentPruningTask().handle(event, this.env, ctx);
     await SubscriptionRenewalUtil.renewDueSubscriptions(this.env);
   }
 }

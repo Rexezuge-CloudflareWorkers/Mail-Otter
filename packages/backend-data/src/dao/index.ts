@@ -1,5 +1,6 @@
 export { UserDAO } from './UserDAO';
 export { ApplicationContextDAO } from './ApplicationContextDAO';
+export type { OverLimitApplication } from './ApplicationContextDAO';
 export { ConnectedApplicationDAO } from './ConnectedApplicationDAO';
 export { IKeyValueDAO } from './IKeyValueDAO';
 export { OAuth2AccessTokenCacheDAO } from './OAuth2AccessTokenCacheDAO';

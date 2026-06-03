@@ -4,6 +4,7 @@ export interface CurrentUser {
   email: string;
   limits: {
     maxApplicationsPerUser: number;
+    maxContextDocumentsPerApplication: number;
   };
 }
 
@@ -25,6 +26,7 @@ export interface ConnectedApplication {
   lastError?: string | null;
   lastErrorAt?: number | null;
   contextIndexingEnabled: boolean;
+  maxContextDocuments?: number | null;
   contextDocumentCount?: number;
   contextLastIndexedAt?: number | null;
   contextLastDeleteAcceptedAt?: number | null;

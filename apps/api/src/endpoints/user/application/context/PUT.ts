@@ -1,3 +1,5 @@
+import { BadRequestError } from '@mail-otter/backend-errors';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ContextService } from '@mail-otter/backend-services/email';
@@ -10,10 +12,10 @@ class UpdateApplicationContextRoute extends IUserRoute<
 > {
   schema = {
     tags: ['Applications'],
-    summary: 'Update connected application context indexing setting',
+    summary: 'Update connected application context settings',
     responses: {
       '200': {
-        description: 'Application context setting updated',
+        description: 'Application context settings updated',
       },
     },
   };
@@ -23,21 +25,33 @@ class UpdateApplicationContextRoute extends IUserRoute<
     env: UpdateApplicationContextEnv,
     cxt: RouteContext<UpdateApplicationContextEnv>,
   ): Promise<UpdateApplicationContextResponse> {
+    if (request.maxContextDocuments != null) {
+      const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
+      if (request.maxContextDocuments < 1) {
+        throw new BadRequestError('maxContextDocuments must be a positive integer.');
+      }
+      if (request.maxContextDocuments > globalMax) {
+        throw new BadRequestError(`maxContextDocuments cannot exceed the global maximum of ${globalMax}.`);
+      }
+    }
     return {
-      application: await ContextService.updateContextIndexing(this.getAuthenticatedUserEmailAddress(cxt), request, env, request.raw),
+      application: await ContextService.updateContextSettings(this.getAuthenticatedUserEmailAddress(cxt), request, env, request.raw),
     };
   }
 }
 
 interface UpdateApplicationContextRequest extends IRequest {
   applicationId: string;
-  contextIndexingEnabled: boolean;
+  contextIndexingEnabled?: boolean | undefined;
+  maxContextDocuments?: number | null | undefined;
 }
 
 interface UpdateApplicationContextResponse extends IResponse {
   application: ApplicationResponse;
 }
 
-type UpdateApplicationContextEnv = IUserEnv;
+interface UpdateApplicationContextEnv extends IUserEnv {
+  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
+}
 
 export { UpdateApplicationContextRoute };

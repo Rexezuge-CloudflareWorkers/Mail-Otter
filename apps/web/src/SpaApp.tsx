@@ -285,6 +285,27 @@ export default function SpaApp() {
     }
   };
 
+  const updateMaxContextDocuments = async (applicationId: string, maxContextDocuments: number | null) => {
+    setIsBusy(true);
+    try {
+      const data = await readJson<{ application: ConnectedApplication }>(
+        await fetch('/user/application/context', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId, maxContextDocuments }),
+        }),
+      );
+      setApplications((current) =>
+        current.map((application) => (application.applicationId === data.application.applicationId ? data.application : application)),
+      );
+      showNotice('success', maxContextDocuments != null ? `Document limit set to ${maxContextDocuments}.` : 'Document limit reset to default.');
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to update document limit.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const loadFolders = async (applicationId: string) => {
     setLoadingFolders(true);
     try {
@@ -569,16 +590,34 @@ export default function SpaApp() {
                     <div>
                       <h2 className="text-xl font-semibold">Context</h2>
                     </div>
-                    <label className="inline-flex items-center gap-3 text-sm text-[#d1d5db]">
-                      <input
-                        type="checkbox"
-                        checked={selectedApplication.contextIndexingEnabled}
-                        onChange={(event) => updateContextIndexing(selectedApplication.applicationId, event.target.checked)}
-                        disabled={isBusy}
-                        className="h-4 w-4 accent-[#0d9488]"
-                      />
-                      Store documents
-                    </label>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="inline-flex items-center gap-3 text-sm text-[#d1d5db]">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplication.contextIndexingEnabled}
+                          onChange={(event) => updateContextIndexing(selectedApplication.applicationId, event.target.checked)}
+                          disabled={isBusy}
+                          className="h-4 w-4 accent-[#0d9488]"
+                        />
+                        Store documents
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-sm text-[#d1d5db]">
+                        Max documents
+                        <input
+                          type="number"
+                          min={1}
+                          max={user?.limits.maxContextDocumentsPerApplication}
+                          placeholder={`Default (${user?.limits.maxContextDocumentsPerApplication ?? ''})`}
+                          value={selectedApplication.maxContextDocuments ?? ''}
+                          onChange={(event) => {
+                            const val = event.target.value === '' ? null : Number(event.target.value);
+                            updateMaxContextDocuments(selectedApplication.applicationId, val);
+                          }}
+                          disabled={isBusy}
+                          className="w-32 px-2 py-1 rounded bg-[#0e131b] border border-[#2d3745] text-white text-sm"
+                        />
+                      </label>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                     <Metric label="Indexed docs" value={String(selectedApplication.contextDocumentCount || 0)} />

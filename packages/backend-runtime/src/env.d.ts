@@ -29,6 +29,7 @@ declare global {
     OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
     OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS?: string | undefined;
     OAUTH2_TOKEN_REFRESH_BATCH_SIZE?: string | undefined;
+    MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
   }
 }
 

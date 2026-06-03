@@ -19,22 +19,79 @@ import type { ApplicationResponse } from '../application/ApplicationResponseUtil
 import { EmailContextUtil } from './EmailContextUtil';
 
 class ContextService {
-  public static async updateContextIndexing(
+  public static async updateContextSettings(
     userEmail: string,
-    input: UpdateContextIndexingInput,
+    input: UpdateContextSettingsInput,
     env: ContextServiceEnv,
     raw: Request,
   ): Promise<ApplicationResponse> {
     const applicationDAO: ConnectedApplicationDAO = await ContextService.createApplicationDAO(env);
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateContextIndexingForUser(
-      input.applicationId,
-      userEmail,
-      input.contextIndexingEnabled,
-    );
-    if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+    let application: ConnectedApplicationMetadata | undefined;
+
+    if (input.contextIndexingEnabled !== undefined) {
+      application = await applicationDAO.updateContextIndexingForUser(input.applicationId, userEmail, input.contextIndexingEnabled);
+      if (!application) throw new BadRequestError('Connected application was not found.');
     }
+
+    if ('maxContextDocuments' in input) {
+      application = await applicationDAO.updateMaxContextDocumentsForUser(input.applicationId, userEmail, input.maxContextDocuments ?? null);
+      if (!application) throw new BadRequestError('Connected application was not found.');
+    }
+
+    if (!application) {
+      application = await applicationDAO.getMetadataByIdForUser(input.applicationId, userEmail);
+      if (!application) throw new BadRequestError('Connected application was not found.');
+    }
+
     return ApplicationResponseUtil.decorateApplication(application, env, raw);
+  }
+
+  public static async pruneApplicationDocuments(
+    applicationId: string,
+    userEmail: string,
+    activeCount: number,
+    effectiveLimit: number,
+    env: PruneDocumentsEnv,
+  ): Promise<void> {
+    const excessCount: number = activeCount - effectiveLimit;
+    if (excessCount <= 0) return;
+
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);
+    const vectorIds: string[] = await contextDAO.listOldestActiveVectorIdsForApplication(applicationId, userEmail, excessCount);
+    if (vectorIds.length === 0) return;
+
+    const mutationIds: string[] = [];
+    try {
+      for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
+        if (chunk.length === 0) continue;
+        const mutation = await env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
+        if ('mutationId' in mutation && mutation.mutationId) {
+          mutationIds.push(mutation.mutationId as string);
+        }
+      }
+      await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
+      await contextDAO.recordDeletionRun({
+        applicationId,
+        userEmail,
+        vectorNamespace,
+        requestedVectorCount: vectorIds.length,
+        deletedVectorCount: vectorIds.length,
+        mutationIds,
+        status: APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED,
+      });
+    } catch (error: unknown) {
+      await contextDAO.recordDeletionRun({
+        applicationId,
+        userEmail,
+        vectorNamespace,
+        requestedVectorCount: vectorIds.length,
+        deletedVectorCount: 0,
+        mutationIds,
+        status: APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   public static async listDocuments(userEmail: string, input: ListContextDocumentsInput, env: ContextListEnv): Promise<ApplicationContextDocumentList> {
@@ -132,9 +189,10 @@ class ContextService {
   }
 }
 
-interface UpdateContextIndexingInput {
+interface UpdateContextSettingsInput {
   applicationId: string;
-  contextIndexingEnabled: boolean;
+  contextIndexingEnabled?: boolean | undefined;
+  maxContextDocuments?: number | null | undefined;
 }
 
 interface ListContextDocumentsInput {
@@ -160,6 +218,11 @@ interface DeleteContextDocumentsEnv extends ContextServiceEnv {
   EMAIL_CONTEXT_INDEX: Vectorize;
 }
 
+interface PruneDocumentsEnv {
+  DB: D1Database;
+  EMAIL_CONTEXT_INDEX: Vectorize;
+}
+
 export { ContextService };
 export type {
   ContextListEnv,
@@ -167,5 +230,6 @@ export type {
   DeleteContextDocumentsEnv,
   ListContextDocumentsInput,
   ListDeletionRunsInput,
-  UpdateContextIndexingInput,
+  PruneDocumentsEnv,
+  UpdateContextSettingsInput,
 };

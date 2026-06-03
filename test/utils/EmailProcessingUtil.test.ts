@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { EmailProcessingEnv } from '@mail-otter/backend-services/email';
 import { ConnectedApplicationDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 

@@ -29,8 +29,8 @@ class ProcessedMessageDAO {
       .prepare(
         `
           INSERT OR IGNORE INTO processed_messages
-            (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+            (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, provider_stable_message_fingerprint, status, summary_sent_at, error_message, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
         `,
       )
       .bind(
@@ -39,6 +39,7 @@ class ProcessedMessageDAO {
         providerId,
         providerMessageId,
         providerThreadId || null,
+        options.providerStableMessageFingerprint || null,
         PROCESSED_MESSAGE_STATUS_PROCESSING,
         now,
         now,
@@ -51,8 +52,22 @@ class ProcessedMessageDAO {
     if (inserted || !options.allowExistingForRetry) {
       return inserted;
     }
-    const status: ProcessedMessageStatus | undefined = await this.getStatus(applicationId, providerMessageId);
-    return status === PROCESSED_MESSAGE_STATUS_PROCESSING || status === PROCESSED_MESSAGE_STATUS_ERROR;
+    const existing: ProcessedMessageInternal | null = await this.getInternalByMessageId(applicationId, providerMessageId);
+    if (!existing || (existing.status !== PROCESSED_MESSAGE_STATUS_PROCESSING && existing.status !== PROCESSED_MESSAGE_STATUS_ERROR)) {
+      return false;
+    }
+    if (options.providerStableMessageFingerprint) {
+      const stableMatch: ProcessedMessageInternal | null = await this.getInternalByStableMessageFingerprint(
+        applicationId,
+        providerId,
+        options.providerStableMessageFingerprint,
+      );
+      if (stableMatch && stableMatch.provider_message_id !== providerMessageId) {
+        return false;
+      }
+    }
+    await this.updateRetryMetadata(applicationId, providerMessageId, providerThreadId, options.providerStableMessageFingerprint);
+    return true;
   }
 
   public async markSummarized(applicationId: string, providerMessageId: string): Promise<void> {
@@ -71,7 +86,7 @@ class ProcessedMessageDAO {
     const row: ProcessedMessageInternal | null = await this.database
       .prepare(
         `
-          SELECT processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at
+          SELECT ${ProcessedMessageDAO.processedMessageColumns}
           FROM processed_messages
           WHERE application_id = ? AND status = ?
           ORDER BY updated_at DESC
@@ -87,7 +102,7 @@ class ProcessedMessageDAO {
     const row: ProcessedMessageInternal | null = await this.database
       .prepare(
         `
-          SELECT processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, status, summary_sent_at, error_message, created_at, updated_at
+          SELECT ${ProcessedMessageDAO.processedMessageColumns}
           FROM processed_messages
           WHERE application_id = ? AND status = ?
           ORDER BY updated_at DESC
@@ -122,19 +137,60 @@ class ProcessedMessageDAO {
     }
   }
 
-  private async getStatus(applicationId: string, providerMessageId: string): Promise<ProcessedMessageStatus | undefined> {
-    const row: { status: ProcessedMessageStatus } | null = await this.database
+  private async getInternalByMessageId(applicationId: string, providerMessageId: string): Promise<ProcessedMessageInternal | null> {
+    return this.database
       .prepare(
         `
-          SELECT status
+          SELECT ${ProcessedMessageDAO.processedMessageColumns}
           FROM processed_messages
           WHERE application_id = ? AND provider_message_id = ?
           LIMIT 1
         `,
       )
       .bind(applicationId, providerMessageId)
-      .first<{ status: ProcessedMessageStatus }>();
-    return row?.status;
+      .first<ProcessedMessageInternal>();
+  }
+
+  private async getInternalByStableMessageFingerprint(
+    applicationId: string,
+    providerId: ProviderId,
+    providerStableMessageFingerprint: string,
+  ): Promise<ProcessedMessageInternal | null> {
+    return this.database
+      .prepare(
+        `
+          SELECT ${ProcessedMessageDAO.processedMessageColumns}
+          FROM processed_messages
+          WHERE application_id = ? AND provider_id = ? AND provider_stable_message_fingerprint = ?
+          LIMIT 1
+        `,
+      )
+      .bind(applicationId, providerId, providerStableMessageFingerprint)
+      .first<ProcessedMessageInternal>();
+  }
+
+  private async updateRetryMetadata(
+    applicationId: string,
+    providerMessageId: string,
+    providerThreadId: string | null | undefined,
+    providerStableMessageFingerprint: string | null | undefined,
+  ): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          UPDATE processed_messages
+          SET provider_thread_id = COALESCE(?, provider_thread_id),
+              provider_stable_message_fingerprint = COALESCE(?, provider_stable_message_fingerprint),
+              updated_at = ?
+          WHERE application_id = ? AND provider_message_id = ?
+        `,
+      )
+      .bind(providerThreadId || null, providerStableMessageFingerprint || null, now, applicationId, providerMessageId)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to update processed message retry metadata: ${result.error}`);
+    }
   }
 
   private toProcessedMessage(row: ProcessedMessageInternal): ProcessedMessage {
@@ -144,6 +200,7 @@ class ProcessedMessageDAO {
       providerId: row.provider_id,
       providerMessageId: row.provider_message_id,
       providerThreadId: row.provider_thread_id,
+      providerStableMessageFingerprint: row.provider_stable_message_fingerprint,
       status: row.status,
       summarySentAt: row.summary_sent_at,
       errorMessage: row.error_message,
@@ -151,10 +208,25 @@ class ProcessedMessageDAO {
       updatedAt: row.updated_at,
     };
   }
+
+  private static readonly processedMessageColumns: string = [
+    'processed_message_id',
+    'application_id',
+    'provider_id',
+    'provider_message_id',
+    'provider_thread_id',
+    'provider_stable_message_fingerprint',
+    'status',
+    'summary_sent_at',
+    'error_message',
+    'created_at',
+    'updated_at',
+  ].join(', ');
 }
 
 interface TryStartProcessedMessageOptions {
   allowExistingForRetry?: boolean | undefined;
+  providerStableMessageFingerprint?: string | null | undefined;
 }
 
 export { ProcessedMessageDAO };

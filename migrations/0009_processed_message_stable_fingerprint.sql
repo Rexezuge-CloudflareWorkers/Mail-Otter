@@ -1,0 +1,6 @@
+ALTER TABLE processed_messages
+ADD COLUMN provider_stable_message_fingerprint TEXT;
+
+CREATE UNIQUE INDEX idx_processed_messages_stable_fingerprint
+ON processed_messages(application_id, provider_id, provider_stable_message_fingerprint)
+WHERE provider_stable_message_fingerprint IS NOT NULL;

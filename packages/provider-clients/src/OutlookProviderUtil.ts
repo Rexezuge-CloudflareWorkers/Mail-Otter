@@ -20,6 +20,7 @@ interface OutlookMessage {
   id: string;
   subject?: string | undefined;
   conversationId?: string | undefined;
+  internetMessageId?: string | undefined;
   body?: { contentType?: string | undefined; content?: string | undefined } | undefined;
   from?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
   sender?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
@@ -123,7 +124,7 @@ class OutlookProviderUtil {
 
   public static async getMessage(accessToken: string, messageId: string): Promise<OutlookMessage> {
     const url: URL = new URL(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`);
-    url.searchParams.set('$select', 'id,subject,conversationId,body,from,sender,internetMessageHeaders');
+    url.searchParams.set('$select', 'id,subject,conversationId,internetMessageId,body,from,sender,internetMessageHeaders');
     return OutlookProviderUtil.fetchJson<OutlookMessage>(url.toString(), accessToken, {
       headers: { Prefer: 'outlook.body-content-type="text"' },
     });

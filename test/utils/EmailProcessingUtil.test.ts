@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
+import { EmailProcessingUtil, EmailSummaryUtil } from '@mail-otter/backend-services/email';
 import type { EmailProcessingEnv } from '@mail-otter/backend-services/email';
 import { ConnectedApplicationDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
+import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import { NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 
 describe('EmailProcessingUtil', () => {
@@ -81,6 +82,49 @@ describe('EmailProcessingUtil', () => {
 
       expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Temporary Graph failure.');
     });
+
+    it('skips moved Outlook messages when the stable internet message id was already processed', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(false);
+      const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmail').mockResolvedValue('Summary text');
+      const sendSelfSummaryReply = vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+        createOutlookMessage({ id: 'moved-message-2', conversationId: 'conversation-1', internetMessageId: '<original@example.com>' }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'moved-message-2', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'moved-message-2', 'conversation-1', {
+        allowExistingForRetry: false,
+        providerStableMessageFingerprint: expect.any(String),
+      });
+      expect(summarizeEmail).not.toHaveBeenCalled();
+      expect(sendSelfSummaryReply).not.toHaveBeenCalled();
+    });
+
+    it('summarizes new Outlook replies in an already seen conversation when the stable message id is new', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSummarized = vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+      const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmail').mockResolvedValue('Summary text');
+      const sendSelfSummaryReply = vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+        createOutlookMessage({ id: 'reply-message-2', conversationId: 'conversation-1', internetMessageId: '<reply-2@example.com>' }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'reply-message-2', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'reply-message-2', 'conversation-1', {
+        allowExistingForRetry: false,
+        providerStableMessageFingerprint: expect.any(String),
+      });
+      expect(summarizeEmail).toHaveBeenCalledOnce();
+      expect(sendSelfSummaryReply).toHaveBeenCalledOnce();
+      expect(markSummarized).toHaveBeenCalledWith('app-1', 'reply-message-2');
+    });
   });
 });
 
@@ -101,6 +145,19 @@ function createOutlookQueueMessage() {
     subscriptionId: 'subscription-1',
     messageId: 'message-1',
   } as never;
+}
+
+function createOutlookMessage(overrides: Partial<OutlookMessage> = {}): OutlookMessage {
+  return {
+    id: 'message-1',
+    subject: 'Project update',
+    conversationId: 'conversation-1',
+    internetMessageId: '<message-1@example.com>',
+    body: { contentType: 'text', content: 'Please review the project update.' },
+    from: { emailAddress: { address: 'sender@example.com' } },
+    internetMessageHeaders: [],
+    ...overrides,
+  };
 }
 
 function createEnv(): EmailProcessingEnv {

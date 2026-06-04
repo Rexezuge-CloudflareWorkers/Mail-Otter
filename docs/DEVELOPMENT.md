@@ -48,7 +48,7 @@ Public routes:
 
 ## Processing
 
-Webhook routes validate provider secrets or client state, enqueue lightweight jobs, and acknowledge quickly. The queue consumer dispatches an `EmailProcessingWorkflow` instance for each job. The workflow refreshes provider access tokens, fetches the new message, deduplicates by provider message id, retrieves per-user Vectorize context from enabled applications, calls Workers AI, sends a self-addressed summary reply in the original thread, and stores the new document in Vectorize when that application has indexing enabled.
+Webhook routes validate provider secrets or client state, enqueue lightweight jobs, and acknowledge quickly. The queue consumer dispatches an `EmailProcessingWorkflow` instance for each job. The workflow refreshes provider access tokens, fetches the new message, deduplicates by provider message id or stable provider message fingerprint, retrieves per-user Vectorize context from enabled applications, calls Workers AI, sends a self-addressed summary reply in the original thread, and stores the new document in Vectorize when that application has indexing enabled.
 
 ## Configuration
 

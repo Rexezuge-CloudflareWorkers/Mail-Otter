@@ -8,6 +8,8 @@ import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { CryptoUtil } from '@mail-otter/shared/utils';
+import type { ProviderId } from '@mail-otter/shared/constants';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailSummaryUtil } from './EmailSummaryUtil';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
@@ -60,9 +62,15 @@ class EmailProcessingUtil {
     const subject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const from: string = EmailContentUtil.getHeader(headers, 'From') || '';
     const isSummary: boolean = EmailContentUtil.getHeader(headers, 'X-Mail-Otter-Summary')?.toLowerCase() === 'true';
+    const stableMessageFingerprint: string | null = await EmailProcessingUtil.getStableMessageFingerprint(
+      env,
+      application.providerId,
+      EmailContentUtil.getHeader(headers, 'Message-ID'),
+    );
     const processedDAO = new ProcessedMessageDAO(env.DB);
     const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, message.id, message.threadId, {
       allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      providerStableMessageFingerprint: stableMessageFingerprint,
     });
     if (!started) return;
     try {
@@ -100,16 +108,15 @@ class EmailProcessingUtil {
     options: EmailProcessingOptions = {},
   ): Promise<void> {
     const processedDAO = new ProcessedMessageDAO(env.DB);
-    const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
-      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
-    });
-    if (!started) return;
-
     let message: OutlookMessage;
     try {
       message = await OutlookProviderUtil.getMessage(accessToken, messageId);
     } catch (error: unknown) {
       if (OutlookProviderUtil.isMessageNotFoundError(error)) {
+        const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
+          allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+        });
+        if (!started) return;
         await processedDAO.markSkipped(
           application.applicationId,
           messageId,
@@ -118,6 +125,10 @@ class EmailProcessingUtil {
         return;
       }
       const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
+        allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      });
+      if (!started) return;
       await processedDAO.markError(application.applicationId, messageId, EmailProcessingUtil.formatError(processingError));
       throw processingError;
     }
@@ -129,6 +140,22 @@ class EmailProcessingUtil {
         (header: { name: string; value: string }): boolean =>
           header.name.toLowerCase() === 'x-mail-otter-summary' && header.value.toLowerCase() === 'true',
       ) ?? false;
+    const stableMessageFingerprint: string | null = await EmailProcessingUtil.getStableMessageFingerprint(
+      env,
+      application.providerId,
+      message.internetMessageId,
+    );
+    const started: boolean = await processedDAO.tryStart(
+      application.applicationId,
+      application.providerId,
+      message.id,
+      message.conversationId || null,
+      {
+        allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+        providerStableMessageFingerprint: stableMessageFingerprint,
+      },
+    );
+    if (!started) return;
 
     try {
       if (isSummary || EmailContentUtil.isFromMailbox(from, application.providerEmail)) {
@@ -174,6 +201,17 @@ class EmailProcessingUtil {
 
   private static isRetryAttempt(options: EmailProcessingOptions): boolean {
     return typeof options.retryAttempt === 'number' && options.retryAttempt > 1;
+  }
+
+  private static async getStableMessageFingerprint(
+    env: EmailProcessingEnv,
+    providerId: ProviderId,
+    stableMessageId: string | undefined,
+  ): Promise<string | null> {
+    const normalizedStableMessageId: string = stableMessageId?.trim() || '';
+    if (!normalizedStableMessageId) return null;
+    const secret: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    return CryptoUtil.hmacSha256Hex(`provider-stable-message-id\n${providerId}\n${normalizedStableMessageId}`, secret);
   }
 
   private static classifyError(error: unknown): Error {

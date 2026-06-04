@@ -48,6 +48,7 @@ jobs:
         run: pnpm exec tsx scripts/prepare-wrangler-config.ts
         env:
           WRANGLER_JSONC: ${{ vars.WRANGLER_JSONC }}
+          WRANGLER_VARS_PATCH_JSON: ${{ vars.WRANGLER_VARS_PATCH_JSON }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 

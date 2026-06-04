@@ -76,15 +76,29 @@ After OAuth succeeds, start the watch in Mail-Otter. The UI shows a one-time web
 
 Set these in `wrangler.jsonc` under `vars` to override defaults:
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `MAX_APPLICATIONS_PER_USER` | `99` | Hard limit on connected applications per user |
-| `MAX_CONTEXT_DOCUMENTS_PER_APPLICATION` | `10000` | Global ceiling on indexed documents per application |
-| `MAX_EMAIL_BODY_CHARS` | `12000` | Characters of email body sent to AI for summarization |
-| `AI_SUMMARY_MODEL` | `@cf/openai/gpt-oss-120b` | Workers AI model for email summarization |
-| `AI_SUMMARY_FALLBACK_MODEL` | `@cf/openai/gpt-oss-20b` | Workers AI summary model used after the daily neuron fallback threshold is reached |
-| `AI_DAILY_NEURON_FALLBACK_THRESHOLD` | `9000` | Estimated UTC daily Workers AI neuron usage where summaries switch to the fallback model; set `0` to disable |
-| `AI_EMBEDDING_MODEL` | `@cf/baai/bge-m3` | Workers AI model for context embeddings |
+| Variable                                | Default                   | Description                                                                                                  |
+| --------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `MAX_APPLICATIONS_PER_USER`             | `99`                      | Hard limit on connected applications per user                                                                |
+| `MAX_CONTEXT_DOCUMENTS_PER_APPLICATION` | `10000`                   | Global ceiling on indexed documents per application                                                          |
+| `MAX_EMAIL_BODY_CHARS`                  | `12000`                   | Characters of email body sent to AI for summarization                                                        |
+| `AI_SUMMARY_MODEL`                      | `@cf/openai/gpt-oss-120b` | Workers AI model for email summarization                                                                     |
+| `AI_SUMMARY_FALLBACK_MODEL`             | `@cf/openai/gpt-oss-20b`  | Workers AI summary model used after the daily neuron fallback threshold is reached                           |
+| `AI_DAILY_NEURON_FALLBACK_THRESHOLD`    | `9000`                    | Estimated UTC daily Workers AI neuron usage where summaries switch to the fallback model; set `0` to disable |
+| `AI_EMBEDDING_MODEL`                    | `@cf/baai/bge-m3`         | Workers AI model for context embeddings                                                                      |
+
+## Continuous Deployment Variables
+
+GitHub Actions deployments can patch Worker `vars` without replacing the whole Wrangler configuration. Set the repository variable `WRANGLER_VARS_PATCH_JSON` to a JSON object of string values. The deployment merges it into top-level `vars` after loading `WRANGLER_JSONC` or `apps/api/wrangler.template.jsonc`.
+
+```json
+{
+  "POLICY_AUD": "your-cloudflare-zero-trust-application-aud",
+  "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
+  "SERVE_SPA_FROM_WORKER": "true"
+}
+```
+
+Do not put secrets in `WRANGLER_VARS_PATCH_JSON`; use GitHub secrets, Wrangler secrets, or Cloudflare Secrets Store for sensitive values.
 
 ## Commands
 

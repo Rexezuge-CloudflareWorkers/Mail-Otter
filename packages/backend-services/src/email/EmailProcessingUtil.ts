@@ -13,6 +13,7 @@ import type { ProviderId } from '@mail-otter/shared/constants';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailSummaryUtil, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
+import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 
 const EMAIL_SUMMARY_MAX_COMPLETION_TOKENS = 512;
@@ -270,8 +271,8 @@ class EmailProcessingUtil {
     if (error instanceof RetryableError || error instanceof NonRetryableError) {
       return error;
     }
-    if (EmailProcessingUtil.isWorkersAiDailyLimitError(error)) {
-      return new NonRetryableError('Workers AI daily free allocation was exceeded.');
+    if (WorkersAiErrorUtil.isDailyFreeAllocationError(error)) {
+      return new NonRetryableError(WorkersAiErrorUtil.getDailyFreeAllocationMessage());
     }
     if (error instanceof BadRequestError) {
       return new NonRetryableError(error.message);
@@ -282,10 +283,6 @@ class EmailProcessingUtil {
     return new RetryableError(String(error));
   }
 
-  private static isWorkersAiDailyLimitError(error: unknown): boolean {
-    const message: string = EmailProcessingUtil.formatError(error);
-    return /3036|daily free allocation|10,?000 neurons|account limited/i.test(message);
-  }
 }
 
 interface ResolvedApplication {

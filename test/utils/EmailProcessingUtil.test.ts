@@ -200,13 +200,35 @@ describe('EmailProcessingUtil', () => {
       });
     });
 
-    it('classifies Workers AI free allocation exhaustion as non-retryable', async () => {
+    it('classifies Workers AI 4006 free allocation exhaustion as non-retryable', async () => {
       vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
       const markError = vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
       vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
       vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockRejectedValue(
-        new Error('Account limited 3036: You have used up your daily free allocation of 10,000 neurons.'),
+        new Error(
+          "4006: you have used up your daily free allocation of 10,000 neurons, please upgrade to Cloudflare's Workers Paid plan if you would like to continue usage.",
+        ),
       );
+
+      await expect(
+        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+      ).rejects.toThrow(NonRetryableError);
+
+      expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Workers AI daily free allocation was exceeded.');
+    });
+
+    it('classifies nested Workers AI free allocation payloads as non-retryable', async () => {
+      vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markError = vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
+      vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockRejectedValue({
+        errors: [
+          {
+            code: 4006,
+            message: "you have used up your daily free allocation of 10,000 neurons",
+          },
+        ],
+      });
 
       await expect(
         EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),

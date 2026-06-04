@@ -1,9 +1,11 @@
 import { AiDailyUsageDAO, ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ApplicationContextDocument, ConnectedApplication } from '@mail-otter/shared/model';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiUsageUtil, type AiEmbeddingUsageEstimate } from './AiUsageUtil';
+import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
 
 class EmailContextUtil {
   public static async getUserVectorNamespace(userEmail: string): Promise<string> {
@@ -18,6 +20,7 @@ class EmailContextUtil {
     const shouldRetrieve: boolean = enabledApplicationIds.size > 0;
     const shouldStore: boolean = input.application.contextIndexingEnabled;
     if (!shouldRetrieve && !shouldStore) return undefined;
+    if (await EmailContextUtil.shouldSkipWorkersAiForDailyUsage(input.env)) return undefined;
 
     const contextDAO = new ApplicationContextDAO(input.env.DB);
     const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(input.application.userEmail);
@@ -69,6 +72,9 @@ class EmailContextUtil {
       console.warn('Email context indexing or retrieval failed:', error);
       if (document) {
         await contextDAO.markDocumentError(document.contextDocumentId, error instanceof Error ? error.message : String(error));
+      }
+      if (WorkersAiErrorUtil.isDailyFreeAllocationError(error)) {
+        throw new NonRetryableError(WorkersAiErrorUtil.getDailyFreeAllocationMessage());
       }
       return undefined;
     }
@@ -134,6 +140,18 @@ class EmailContextUtil {
     }
   }
 
+  private static async shouldSkipWorkersAiForDailyUsage(env: EmailContextEnv): Promise<boolean> {
+    const fallbackThreshold: number = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
+    if (fallbackThreshold <= 0) return false;
+    try {
+      const estimatedNeurons: number = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(AiUsageUtil.getCurrentUtcUsageDate());
+      return estimatedNeurons >= fallbackThreshold;
+    } catch (error: unknown) {
+      console.warn('Failed to read Workers AI daily usage estimate for context:', error);
+      return false;
+    }
+  }
+
   private static async queryRelevantContext(
     env: EmailContextEnv,
     embedding: number[],
@@ -196,6 +214,7 @@ interface EmailContextEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
+  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string | undefined;
   AI_EMBEDDING_MODEL?: string | undefined;
   RAG_TOP_K?: string | undefined;
   RAG_VECTOR_QUERY_TOP_K?: string | undefined;

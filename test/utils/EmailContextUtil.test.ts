@@ -1,6 +1,8 @@
+import { AiDailyUsageDAO } from '@mail-otter/backend-data/dao';
+import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContextUtil } from '@mail-otter/backend-services/email';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 class FakeStatement {
   private readonly database: FakeD1Database;
@@ -65,6 +67,10 @@ class FakeD1Database {
 }
 
 describe('EmailContextUtil', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('keeps plaintext email context out of D1 while preserving Vectorize metadata', async () => {
     const database = new FakeD1Database();
     const vectorize = {
@@ -120,4 +126,85 @@ describe('EmailContextUtil', () => {
     });
     expect(String(vectorPayload?.metadata?.indexedText)).toContain('A confidential plan for the next quarter.');
   });
+
+  it('skips context embedding when the local daily neuron estimate reached the threshold', async () => {
+    vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(9000);
+    const database = new FakeD1Database();
+    const vectorize = {
+      upsert: vi.fn().mockResolvedValue({ mutationId: 'mutation-1' }),
+    };
+    const ai = {
+      run: vi.fn().mockResolvedValue({ data: [[0.1, 0.2, 0.3]] }),
+    };
+
+    await expect(
+      EmailContextUtil.prepareEmailRagContext({
+        env: {
+          DB: database as unknown as D1Database,
+          AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('test-secret') } as unknown as SecretsStoreSecret,
+          AI: ai as unknown as Ai,
+          EMAIL_CONTEXT_INDEX: vectorize as unknown as Vectorize,
+          AI_DAILY_NEURON_FALLBACK_THRESHOLD: '9000',
+        },
+        application: createApplication(),
+        enabledApplicationIds: [],
+        subject: 'Quarterly roadmap',
+        from: 'sender@example.com',
+        body: 'A confidential plan for the next quarter.',
+        sourceDocumentId: 'gmail-message-123',
+        sourceThreadId: 'gmail-thread-456',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(ai.run).not.toHaveBeenCalled();
+    expect(vectorize.upsert).not.toHaveBeenCalled();
+    expect(database.documentRow).toBeUndefined();
+  });
+
+  it('rethrows Workers AI embedding free allocation exhaustion as non-retryable', async () => {
+    const database = new FakeD1Database();
+    const vectorize = {
+      upsert: vi.fn().mockResolvedValue({ mutationId: 'mutation-1' }),
+    };
+    const ai = {
+      run: vi.fn().mockRejectedValue(new Error('4006: you have used up your daily free allocation of 10,000 neurons')),
+    };
+
+    await expect(
+      EmailContextUtil.prepareEmailRagContext({
+        env: {
+          DB: database as unknown as D1Database,
+          AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('test-secret') } as unknown as SecretsStoreSecret,
+          AI: ai as unknown as Ai,
+          EMAIL_CONTEXT_INDEX: vectorize as unknown as Vectorize,
+          AI_DAILY_NEURON_FALLBACK_THRESHOLD: '0',
+        },
+        application: createApplication(),
+        enabledApplicationIds: [],
+        subject: 'Quarterly roadmap',
+        from: 'sender@example.com',
+        body: 'A confidential plan for the next quarter.',
+        sourceDocumentId: 'gmail-message-123',
+        sourceThreadId: 'gmail-thread-456',
+      }),
+    ).rejects.toThrow(NonRetryableError);
+
+    expect(vectorize.upsert).not.toHaveBeenCalled();
+  });
 });
+
+function createApplication(): ConnectedApplication {
+  return {
+    applicationId: '11111111-1111-4111-8111-111111111111',
+    userEmail: 'owner@example.com',
+    providerEmail: 'owner@example.com',
+    displayName: 'Work inbox',
+    providerId: 'google-gmail',
+    connectionMethod: 'oauth2',
+    status: 'connected',
+    contextIndexingEnabled: true,
+    createdAt: 1,
+    updatedAt: 1,
+    credentials: { clientId: 'client', clientSecret: 'secret', refreshToken: 'refresh' },
+  };
+}

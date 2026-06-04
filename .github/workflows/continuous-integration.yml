@@ -6,7 +6,7 @@ permissions:
 on:
   repository_dispatch:
     types:
-      - upstream-sync
+      - Upstream Sync
   pull_request:
   push:
     branches:
@@ -66,3 +66,28 @@ jobs:
 
       - name: Type Check API Worker
         run: pnpm --filter @mail-otter/api typecheck
+
+  dispatch-upstream-sync-deployment:
+    if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'Upstream Sync' }}
+    name: Dispatch Upstream Sync Deployment
+    needs:
+      - checks
+      - build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch Deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'Upstream Sync Deployment',
+              client_payload: {
+                branch: context.payload.client_payload?.branch || 'main',
+                sha: context.payload.client_payload?.sha || context.sha,
+              },
+            });

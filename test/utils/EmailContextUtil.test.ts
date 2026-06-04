@@ -128,7 +128,7 @@ describe('EmailContextUtil', () => {
   });
 
   it('skips context embedding when the local daily neuron estimate reached the threshold', async () => {
-    vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(9000);
+    vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(6000);
     const database = new FakeD1Database();
     const vectorize = {
       upsert: vi.fn().mockResolvedValue({ mutationId: 'mutation-1' }),
@@ -144,7 +144,7 @@ describe('EmailContextUtil', () => {
           AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('test-secret') } as unknown as SecretsStoreSecret,
           AI: ai as unknown as Ai,
           EMAIL_CONTEXT_INDEX: vectorize as unknown as Vectorize,
-          AI_DAILY_NEURON_FALLBACK_THRESHOLD: '9000',
+          AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000',
         },
         application: createApplication(),
         enabledApplicationIds: [],

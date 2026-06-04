@@ -132,7 +132,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
       vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
       vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
-      vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(8000);
+      vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(5000);
       const incrementUsage = vi.spyOn(AiDailyUsageDAO.prototype, 'incrementUsage').mockResolvedValue();
       const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({
         summary: 'Summary text',
@@ -143,7 +143,7 @@ describe('EmailProcessingUtil', () => {
         createApplication(),
         'access-token',
         'message-1',
-        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '9000' }),
+        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' }),
         [],
       );
 
@@ -169,7 +169,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
       vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
       vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
-      vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(9000);
+      vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(6000);
       const incrementUsage = vi.spyOn(AiDailyUsageDAO.prototype, 'incrementUsage').mockResolvedValue();
       const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({
         summary: 'Summary text',
@@ -180,7 +180,7 @@ describe('EmailProcessingUtil', () => {
         createApplication(),
         'access-token',
         'message-1',
-        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '9000' }),
+        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' }),
         [],
       );
 

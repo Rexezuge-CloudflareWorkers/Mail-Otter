@@ -23,7 +23,7 @@ Key details:
 Action items:
 - Approve or reject the budget by Friday.
 
-<Mail-Otter Summary - AI model: @cf/meta/llama-3.1-8b-instruct>`);
+<Mail-Otter Summary - by @cf/meta/llama-3.1-8b-instruct>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/meta/llama-3.1-8b-instruct',
       expect.objectContaining({
@@ -54,7 +54,7 @@ Key details:
 Action items:
 - None.
 
-<Mail-Otter Summary - AI model: model>`);
+<Mail-Otter Summary - by model>`);
   });
 
   it('throws when the AI response cannot be parsed into the summary schema', async () => {
@@ -93,7 +93,7 @@ Key details:
 Action items:
 - Approve the budget by Friday.
 
-<Mail-Otter Summary - AI model: @cf/openai/gpt-oss-120b>`);
+<Mail-Otter Summary - by @cf/openai/gpt-oss-120b>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/openai/gpt-oss-120b',
       expect.not.objectContaining({
@@ -131,7 +131,7 @@ Key details:
 Action items:
 - None.
 
-<Mail-Otter Summary - AI model: @cf/openai/gpt-oss-120b>`);
+<Mail-Otter Summary - by @cf/openai/gpt-oss-120b>`);
   });
 
   it('returns token usage with summarized email output when available', async () => {

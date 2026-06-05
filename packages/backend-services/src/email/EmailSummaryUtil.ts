@@ -188,7 +188,7 @@ class EmailSummaryUtil {
       'Action items:',
       ...EmailSummaryUtil.renderList(actionItems, 'None.'),
       '',
-      `<Mail-Otter Summary - AI model: ${model}>`,
+      `<Mail-Otter Summary - by ${model}>`,
     ].join('\n');
   }
 

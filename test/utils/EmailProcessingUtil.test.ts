@@ -148,7 +148,9 @@ describe('EmailProcessingUtil', () => {
       );
 
       const summary: string = sendSelfSummaryReply.mock.calls[0]![3];
-      expect(summary).toMatch(/^Summary text\n\n--- Mail-Otter Debug ---/);
+      expect(summary).toContain('<hr>');
+      expect(summary).toContain('<pre style="font-size:11px;color:#666;white-space:pre-wrap;">');
+      expect(summary).toContain('--- Mail-Otter Debug ---');
       expect(summary).toContain('Provider: microsoft-outlook');
       expect(summary).toContain('Application: app-1 (app-1)');
       expect(summary).toContain('Model: @cf/openai/gpt-oss-120b');

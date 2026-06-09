@@ -206,7 +206,8 @@ class EmailProcessingUtil {
     const applicationName: string = application.displayName || application.applicationId;
     return [
       result.summary,
-      '',
+      '<hr>',
+      '<pre style="font-size:11px;color:#666;white-space:pre-wrap;">',
       '--- Mail-Otter Debug ---',
       `Generated at: ${new Date().toISOString()}`,
       `Provider: ${application.providerId}`,
@@ -220,6 +221,7 @@ class EmailProcessingUtil {
         `total=${EmailProcessingUtil.formatDebugNumber(result.usage?.totalTokens)}`,
         `estimatedNeurons=${EmailProcessingUtil.formatDebugNumber(usageEstimate?.estimatedNeurons)}`,
       ].join(' '),
+      '</pre>',
     ].join('\n');
   }
 

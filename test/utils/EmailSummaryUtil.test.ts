@@ -14,16 +14,20 @@ describe('EmailSummaryUtil', () => {
     } as unknown as Ai;
 
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/meta/llama-3.1-8b-instruct', 'Campaign budget', 'sam@example.com', 'body'))
-      .resolves.toBe(`Gist: The sender wants approval for the May campaign budget.
+      .resolves.toBe(`<p><strong>Gist:</strong> The sender wants approval for the May campaign budget.</p>
 
-Key details:
-- Budget requested is $12,000.
-- Launch is planned for May 20.
+<p><strong>Key details:</strong></p>
+<ul>
+<li>Budget requested is $12,000.</li>
+<li>Launch is planned for May 20.</li>
+</ul>
 
-Action items:
-- Approve or reject the budget by Friday.
+<p><strong>Action items:</strong></p>
+<ul>
+<li>Approve or reject the budget by Friday.</li>
+</ul>
 
-<Mail-Otter Summary - by @cf/meta/llama-3.1-8b-instruct>`);
+<p><em>Mail-Otter Summary - by @cf/meta/llama-3.1-8b-instruct</em></p>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/meta/llama-3.1-8b-instruct',
       expect.objectContaining({
@@ -46,15 +50,19 @@ Action items:
     } as unknown as Ai;
 
     await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).resolves
-      .toBe(`Gist: The email shares a status update with no requests.
+      .toBe(`<p><strong>Gist:</strong> The email shares a status update with no requests.</p>
 
-Key details:
-- No key details noted.
+<p><strong>Key details:</strong></p>
+<ul>
+<li>No key details noted.</li>
+</ul>
 
-Action items:
-- None.
+<p><strong>Action items:</strong></p>
+<ul>
+<li>None.</li>
+</ul>
 
-<Mail-Otter Summary - by model>`);
+<p><em>Mail-Otter Summary - by model</em></p>`);
   });
 
   it('throws when the AI response cannot be parsed into the summary schema', async () => {
@@ -85,15 +93,19 @@ Action items:
     } as unknown as Ai;
 
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/openai/gpt-oss-120b', 'Campaign budget', 'sam@example.com', 'body')).resolves
-      .toBe(`Gist: The sender needs approval for the budget.
+      .toBe(`<p><strong>Gist:</strong> The sender needs approval for the budget.</p>
 
-Key details:
-- Budget is $12,000.
+<p><strong>Key details:</strong></p>
+<ul>
+<li>Budget is $12,000.</li>
+</ul>
 
-Action items:
-- Approve the budget by Friday.
+<p><strong>Action items:</strong></p>
+<ul>
+<li>Approve the budget by Friday.</li>
+</ul>
 
-<Mail-Otter Summary - by @cf/openai/gpt-oss-120b>`);
+<p><em>Mail-Otter Summary - by @cf/openai/gpt-oss-120b</em></p>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/openai/gpt-oss-120b',
       expect.not.objectContaining({
@@ -123,15 +135,19 @@ Action items:
     } as unknown as Ai;
 
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/openai/gpt-oss-120b', 'Launch', 'sam@example.com', 'body')).resolves
-      .toBe(`Gist: The email shares a launch update.
+      .toBe(`<p><strong>Gist:</strong> The email shares a launch update.</p>
 
-Key details:
-- Launch starts Monday.
+<p><strong>Key details:</strong></p>
+<ul>
+<li>Launch starts Monday.</li>
+</ul>
 
-Action items:
-- None.
+<p><strong>Action items:</strong></p>
+<ul>
+<li>None.</li>
+</ul>
 
-<Mail-Otter Summary - by @cf/openai/gpt-oss-120b>`);
+<p><em>Mail-Otter Summary - by @cf/openai/gpt-oss-120b</em></p>`);
   });
 
   it('returns token usage with summarized email output when available', async () => {
@@ -152,7 +168,7 @@ Action items:
 
     await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
       .toMatchObject({
-        summary: expect.stringContaining('Gist: The email asks for feedback.'),
+        summary: expect.stringContaining('<strong>Gist:</strong> The email asks for feedback.'),
         usage: {
           promptTokens: 1000,
           completionTokens: 100,

@@ -114,7 +114,7 @@ class GmailProviderUtil {
     const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
     const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
     const boundary: string = GmailProviderUtil.createSummaryMimeBoundary(originalMessage.id);
-    const htmlSummary: string = EmailContentUtil.renderPlainTextAsHtml(summary);
+    const textSummary: string = EmailContentUtil.stripHtml(summary);
     const message: string = [
       `From: ${from}`,
       `To: ${from}`,
@@ -125,7 +125,7 @@ class GmailProviderUtil {
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
-      EmailContentUtil.buildAlternativeMimeBody(summary, htmlSummary, boundary),
+      EmailContentUtil.buildAlternativeMimeBody(textSummary, summary, boundary),
     ].join('\r\n');
     const response: Response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',

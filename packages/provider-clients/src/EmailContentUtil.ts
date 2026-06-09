@@ -43,16 +43,47 @@ class EmailContentUtil {
     });
   }
 
-  public static renderPlainTextAsHtml(value: string): string {
-    const escaped: string = EmailContentUtil.escapeHtml(value.replace(/\r\n/g, '\n').replace(/\r/g, '\n')).replace(/\n/g, '<br>\n');
-    return [
-      '<!doctype html>',
-      '<html>',
-      '<body style="margin:0;padding:0;font-family:Arial,sans-serif;line-height:1.5;color:#111827;">',
-      `<div style="font-size:14px;">${escaped}</div>`,
-      '</body>',
-      '</html>',
-    ].join('\n');
+  public static sanitizeHtml(value: string): string {
+    const parts: string[] = [];
+    let pos = 0;
+    const lowerVal = value.toLowerCase();
+
+    while (pos < value.length) {
+      const anchorIdx = lowerVal.indexOf('<a href="', pos);
+      if (anchorIdx === -1) {
+        parts.push(EmailContentUtil.escapeHtml(value.slice(pos)));
+        break;
+      }
+      parts.push(EmailContentUtil.escapeHtml(value.slice(pos, anchorIdx)));
+
+      const hrefStart = anchorIdx + 9;
+      const hrefEnd = value.indexOf('"', hrefStart);
+      if (hrefEnd === -1) {
+        parts.push(EmailContentUtil.escapeHtml(value.slice(anchorIdx)));
+        break;
+      }
+      const href = value.slice(hrefStart, hrefEnd);
+      if (!href.startsWith('http://') && !href.startsWith('https://')) {
+        parts.push(EmailContentUtil.escapeHtml(value.slice(anchorIdx)));
+        break;
+      }
+      const tagClose = value.indexOf('>', hrefEnd);
+      if (tagClose === -1) {
+        parts.push(EmailContentUtil.escapeHtml(value.slice(anchorIdx)));
+        break;
+      }
+      const closeAnchor = lowerVal.indexOf('</a>', tagClose);
+      if (closeAnchor === -1 || closeAnchor < tagClose) {
+        parts.push(EmailContentUtil.escapeHtml(value.slice(anchorIdx)));
+        break;
+      }
+      const innerText = value.slice(tagClose + 1, closeAnchor);
+
+      parts.push(`<a href="${EmailContentUtil.escapeHtml(href)}">${EmailContentUtil.escapeHtml(innerText)}</a>`);
+      pos = closeAnchor + 4;
+    }
+
+    return parts.join('');
   }
 
   public static buildAlternativeMimeBody(textBody: string, htmlBody: string, boundary: string): string {

@@ -104,7 +104,7 @@ class EmailSummaryUtil {
     if (!summary) {
       throw new AiSummaryRetryableError('Workers AI did not return a valid summary.');
     }
-    return { summary: EmailSummaryUtil.renderHtmlSummary(summary, model), usage };
+    return { summary: EmailSummaryUtil.renderHtmlSummary(summary), usage };
   }
 
   private static supportsJsonMode(model: string): boolean {
@@ -177,7 +177,7 @@ class EmailSummaryUtil {
     };
   }
 
-  static renderHtmlSummary(summary: EmailSummary, model: string): string {
+  static renderHtmlSummary(summary: EmailSummary): string {
     const gist: string = EmailSummaryUtil.normalizeSentence(summary.gist) || 'No clear gist available.';
     const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
     const actionItems: string[] = EmailSummaryUtil.normalizeItems(summary.actionItems);
@@ -195,12 +195,12 @@ class EmailSummaryUtil {
       ...EmailSummaryUtil.renderHtmlList(actionItems, '<li>None.</li>'),
       '</ul>',
       '',
-      `<p><em>Mail-Otter Summary - by ${model}</em></p>`,
+      '<p><em>Powered by Mail-Otter</em></p>',
     ].join('\n');
   }
 
-  static renderPlainTextSummary(summary: EmailSummary, model: string): string {
-    return EmailContentUtil.stripHtml(EmailSummaryUtil.renderHtmlSummary(summary, model));
+  static renderPlainTextSummary(summary: EmailSummary): string {
+    return EmailContentUtil.stripHtml(EmailSummaryUtil.renderHtmlSummary(summary));
   }
 
   private static parseLooseText(response: string): EmailSummary {

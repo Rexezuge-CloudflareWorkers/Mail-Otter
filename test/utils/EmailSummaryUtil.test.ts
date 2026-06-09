@@ -27,7 +27,7 @@ describe('EmailSummaryUtil', () => {
 <li>Approve or reject the budget by Friday.</li>
 </ul>
 
-<p><em>Mail-Otter Summary - by @cf/meta/llama-3.1-8b-instruct</em></p>`);
+<p><em>Powered by Mail-Otter</em></p>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/meta/llama-3.1-8b-instruct',
       expect.objectContaining({
@@ -62,7 +62,7 @@ describe('EmailSummaryUtil', () => {
 <li>None.</li>
 </ul>
 
-<p><em>Mail-Otter Summary - by model</em></p>`);
+<p><em>Powered by Mail-Otter</em></p>`);
   });
 
   it('throws when the AI response cannot be parsed into the summary schema', async () => {
@@ -105,7 +105,7 @@ describe('EmailSummaryUtil', () => {
 <li>Approve the budget by Friday.</li>
 </ul>
 
-<p><em>Mail-Otter Summary - by @cf/openai/gpt-oss-120b</em></p>`);
+<p><em>Powered by Mail-Otter</em></p>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/openai/gpt-oss-120b',
       expect.not.objectContaining({
@@ -147,7 +147,7 @@ describe('EmailSummaryUtil', () => {
 <li>None.</li>
 </ul>
 
-<p><em>Mail-Otter Summary - by @cf/openai/gpt-oss-120b</em></p>`);
+<p><em>Powered by Mail-Otter</em></p>`);
   });
 
   it('returns token usage with summarized email output when available', async () => {

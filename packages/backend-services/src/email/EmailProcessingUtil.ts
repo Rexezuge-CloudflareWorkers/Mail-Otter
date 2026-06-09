@@ -208,7 +208,7 @@ class EmailProcessingUtil {
       result.summary,
       '<hr>',
       '<pre style="font-size:11px;color:#666;white-space:pre-wrap;">',
-      '--- Mail-Otter Debug ---',
+      '--- Debug Informations ---',
       `Generated at: ${new Date().toISOString()}`,
       `Provider: ${application.providerId}`,
       `Application: ${applicationName} (${application.applicationId})`,

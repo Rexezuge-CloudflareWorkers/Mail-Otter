@@ -8,15 +8,13 @@ describe('OutlookProviderUtil', () => {
 
   describe('sendSelfSummaryReply', () => {
     it('sends a threaded reply and deletes the sent copy', async () => {
-      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
-      const mockPatchResponse = new Response('', { status: 200 });
+      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
       const mockSendResponse = new Response('', { status: 202 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse)
         .mockResolvedValueOnce(mockDeleteResponse);
 
@@ -31,32 +29,45 @@ describe('OutlookProviderUtil', () => {
         ],
       };
 
-      await OutlookProviderUtil.sendSelfSummaryReply('test-access-token', originalMessage, 'sender@example.com', 'Summary text');
+      await OutlookProviderUtil.sendSelfSummaryReply(
+        'test-access-token',
+        originalMessage,
+        'sender@example.com',
+        'Summary <tag> & text\nNext line',
+      );
 
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
         'https://graph.microsoft.com/v1.0/me/messages/original-msg-id/createReply',
         expect.objectContaining({ method: 'POST' }),
       );
 
-      const patchCall = fetchMock.mock.calls[1];
-      const patchBody = JSON.parse(patchCall[1].body as string);
+      const createReplyCall = fetchMock.mock.calls[0];
+      const createReplyHeaders = createReplyCall[1].headers as Headers;
+      const rawMessage: string = decodeBase64(createReplyCall[1].body as string);
+      const boundary: string = extractMimeBoundary(rawMessage);
 
-      expect(patchBody).toMatchObject({
-        body: { contentType: 'Text', content: 'Summary text' },
-        toRecipients: [{ emailAddress: { address: 'sender@example.com' } }],
-        ccRecipients: [],
-        bccRecipients: [],
-      });
-      expect(patchBody.internetMessageHeaders).toBeUndefined();
+      expect(createReplyHeaders.get('Content-Type')).toBe('text/plain');
+      expect(rawMessage).toContain('From: sender@example.com');
+      expect(rawMessage).toContain('To: sender@example.com');
+      expect(rawMessage).toContain('Subject: Re: Original subject');
+      expect(rawMessage).toContain('In-Reply-To: <original@example.com>');
+      expect(rawMessage).toContain('References: <root@example.com> <original@example.com>');
+      expect(rawMessage).toContain('X-Mail-Otter-Summary: true');
+      expect(rawMessage).toContain(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/plain; charset=utf-8`);
+      expect(rawMessage).toContain('Summary <tag> & text\r\nNext line');
+      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/html; charset=utf-8`);
+      expect(rawMessage).toContain('Summary &lt;tag&gt; &amp; text<br>\r\nNext line');
+      expect(rawMessage).toContain(`--${boundary}--`);
       expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
+        2,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/send',
         expect.objectContaining({ method: 'POST' }),
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        4,
+        3,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123',
         expect.objectContaining({ method: 'DELETE' }),
       );
@@ -64,13 +75,11 @@ describe('OutlookProviderUtil', () => {
 
     it('throws when send fails', async () => {
       const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
-      const mockPatchResponse = new Response('', { status: 200 });
       const mockSendResponse = new Response('Send failed', { status: 500 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse);
 
       vi.stubGlobal('fetch', fetchMock);
@@ -101,3 +110,15 @@ describe('OutlookProviderUtil', () => {
     });
   });
 });
+
+function decodeBase64(value: string): string {
+  const binary: string = atob(value);
+  const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function extractMimeBoundary(rawMessage: string): string {
+  const match: RegExpMatchArray | null = rawMessage.match(/boundary="([^"]+)"/);
+  expect(match).not.toBeNull();
+  return match![1]!;
+}

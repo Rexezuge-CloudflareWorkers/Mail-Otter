@@ -113,6 +113,8 @@ class GmailProviderUtil {
     const originalReferences: string | undefined = EmailContentUtil.getHeader(headers, 'References');
     const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
     const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
+    const boundary: string = GmailProviderUtil.createSummaryMimeBoundary(originalMessage.id);
+    const htmlSummary: string = EmailContentUtil.renderPlainTextAsHtml(summary);
     const message: string = [
       `From: ${from}`,
       `To: ${from}`,
@@ -121,9 +123,9 @@ class GmailProviderUtil {
       ...(references ? [`References: ${references}`] : []),
       'X-Mail-Otter-Summary: true',
       'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=utf-8',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
-      summary,
+      EmailContentUtil.buildAlternativeMimeBody(summary, htmlSummary, boundary),
     ].join('\r\n');
     const response: Response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
@@ -177,6 +179,11 @@ class GmailProviderUtil {
 
   private static isRetryableStatus(status: number): boolean {
     return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+  }
+
+  private static createSummaryMimeBoundary(seed: string): string {
+    const safeSeed: string = seed.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'message';
+    return `mail-otter-summary-${safeSeed}`;
   }
 }
 

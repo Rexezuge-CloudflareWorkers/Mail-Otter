@@ -43,6 +43,35 @@ class EmailContentUtil {
     });
   }
 
+  public static renderPlainTextAsHtml(value: string): string {
+    const escaped: string = EmailContentUtil.escapeHtml(value.replace(/\r\n/g, '\n').replace(/\r/g, '\n')).replace(/\n/g, '<br>\n');
+    return [
+      '<!doctype html>',
+      '<html>',
+      '<body style="margin:0;padding:0;font-family:Arial,sans-serif;line-height:1.5;color:#111827;">',
+      `<div style="font-size:14px;">${escaped}</div>`,
+      '</body>',
+      '</html>',
+    ].join('\n');
+  }
+
+  public static buildAlternativeMimeBody(textBody: string, htmlBody: string, boundary: string): string {
+    return [
+      `--${boundary}`,
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      EmailContentUtil.toCrlf(textBody),
+      `--${boundary}`,
+      'Content-Type: text/html; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      EmailContentUtil.toCrlf(htmlBody),
+      `--${boundary}--`,
+      '',
+    ].join('\r\n');
+  }
+
   public static normalizeText(value: string): string {
     return value
       .replace(/\r\n/g, '\n')
@@ -60,6 +89,29 @@ class EmailContentUtil {
   public static isFromMailbox(fromHeaderOrAddress: string | undefined | null, mailboxAddress: string | undefined | null): boolean {
     if (!fromHeaderOrAddress || !mailboxAddress) return false;
     return fromHeaderOrAddress.toLowerCase().includes(mailboxAddress.toLowerCase());
+  }
+
+  private static toCrlf(value: string): string {
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n');
+  }
+
+  private static escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char: string): string => {
+      switch (char) {
+        case '&':
+          return '&amp;';
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        case '"':
+          return '&quot;';
+        case "'":
+          return '&#39;';
+        default:
+          return char;
+      }
+    });
   }
 
   private static findGmailPart(part: GmailMessagePart | undefined, mimeType: string): string | undefined {

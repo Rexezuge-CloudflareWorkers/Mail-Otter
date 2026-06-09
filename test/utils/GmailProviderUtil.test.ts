@@ -26,13 +26,30 @@ describe('GmailProviderUtil', () => {
         },
       };
 
-      await GmailProviderUtil.sendSummaryReply('test-access-token', 'sender@example.com', originalMessage as never, 'Summary text');
+      await GmailProviderUtil.sendSummaryReply(
+        'test-access-token',
+        'sender@example.com',
+        originalMessage as never,
+        'Summary <tag> & text\nNext line',
+      );
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
 
       const sendCall = fetchMock.mock.calls[0];
       expect(sendCall[0]).toBe('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
       expect(sendCall[1].method).toBe('POST');
+
+      const sendBody = JSON.parse(sendCall[1].body as string) as { threadId?: string; raw?: string };
+      const rawMessage: string = decodeBase64Url(sendBody.raw || '');
+      const boundary: string = extractMimeBoundary(rawMessage);
+      expect(sendBody.threadId).toBe('thread-123');
+      expect(rawMessage).toContain('X-Mail-Otter-Summary: true');
+      expect(rawMessage).toContain(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/plain; charset=utf-8`);
+      expect(rawMessage).toContain('Summary <tag> & text\r\nNext line');
+      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/html; charset=utf-8`);
+      expect(rawMessage).toContain('Summary &lt;tag&gt; &amp; text<br>\r\nNext line');
+      expect(rawMessage).toContain(`--${boundary}--`);
 
       const trashCall = fetchMock.mock.calls[1];
       expect(trashCall[0]).toBe('https://gmail.googleapis.com/gmail/v1/users/me/messages/sent-message-id-123/trash');
@@ -78,3 +95,17 @@ describe('GmailProviderUtil', () => {
     });
   });
 });
+
+function decodeBase64Url(value: string): string {
+  const normalized: string = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded: string = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+  const binary: string = atob(padded);
+  const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function extractMimeBoundary(rawMessage: string): string {
+  const match: RegExpMatchArray | null = rawMessage.match(/boundary="([^"]+)"/);
+  expect(match).not.toBeNull();
+  return match![1]!;
+}

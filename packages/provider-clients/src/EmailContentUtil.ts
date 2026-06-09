@@ -43,16 +43,20 @@ class EmailContentUtil {
     });
   }
 
-  public static renderPlainTextAsHtml(value: string): string {
-    const escaped: string = EmailContentUtil.escapeHtml(value.replace(/\r\n/g, '\n').replace(/\r/g, '\n')).replace(/\n/g, '<br>\n');
-    return [
-      '<!doctype html>',
-      '<html>',
-      '<body style="margin:0;padding:0;font-family:Arial,sans-serif;line-height:1.5;color:#111827;">',
-      `<div style="font-size:14px;">${escaped}</div>`,
-      '</body>',
-      '</html>',
-    ].join('\n');
+  public static sanitizeHtml(value: string): string {
+    const parts: string[] = [];
+    let lastIndex = 0;
+    const anchorRegex = /<a\s+href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = anchorRegex.exec(value)) !== null) {
+      parts.push(EmailContentUtil.escapeHtml(value.slice(lastIndex, match.index)));
+      const href: string = match[1];
+      const innerText: string = match[2];
+      parts.push(`<a href="${EmailContentUtil.escapeHtml(href)}">${EmailContentUtil.escapeHtml(innerText)}</a>`);
+      lastIndex = match.index + match[0].length;
+    }
+    parts.push(EmailContentUtil.escapeHtml(value.slice(lastIndex)));
+    return parts.join('');
   }
 
   public static buildAlternativeMimeBody(textBody: string, htmlBody: string, boundary: string): string {

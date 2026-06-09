@@ -206,7 +206,7 @@ class OutlookProviderUtil {
     const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
     const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
     const boundary: string = OutlookProviderUtil.createSummaryMimeBoundary(originalMessage.id);
-    const htmlSummary: string = EmailContentUtil.renderPlainTextAsHtml(summary);
+    const textSummary: string = EmailContentUtil.stripHtml(summary);
 
     return [
       `From: ${mailboxAddress}`,
@@ -218,7 +218,7 @@ class OutlookProviderUtil {
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
-      EmailContentUtil.buildAlternativeMimeBody(summary, htmlSummary, boundary),
+      EmailContentUtil.buildAlternativeMimeBody(textSummary, summary, boundary),
     ].join('\r\n');
   }
 

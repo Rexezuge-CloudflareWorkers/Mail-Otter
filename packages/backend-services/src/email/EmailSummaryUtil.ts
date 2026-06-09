@@ -1,4 +1,5 @@
 import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
+import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 
 const SUMMARY_JSON_SCHEMA = {
   type: 'object',
@@ -60,6 +61,8 @@ class EmailSummaryUtil {
       'Action items must include deadlines or owners when present.',
       'If there are no action items, return an empty array.',
       'Do not invent facts. Do not include a greeting.',
+      'You may use <a href="URL">text</a> to create clickable links in gist, key details, or action items.',
+      'Only use the href attribute; no other HTML tags or attributes are allowed.',
     ].join(' ');
 
     const input = [
@@ -101,7 +104,7 @@ class EmailSummaryUtil {
     if (!summary) {
       throw new AiSummaryRetryableError('Workers AI did not return a valid summary.');
     }
-    return { summary: EmailSummaryUtil.renderSummary(summary, model), usage };
+    return { summary: EmailSummaryUtil.renderHtmlSummary(summary, model), usage };
   }
 
   private static supportsJsonMode(model: string): boolean {
@@ -174,22 +177,30 @@ class EmailSummaryUtil {
     };
   }
 
-  static renderSummary(summary: EmailSummary, model: string): string {
+  static renderHtmlSummary(summary: EmailSummary, model: string): string {
     const gist: string = EmailSummaryUtil.normalizeSentence(summary.gist) || 'No clear gist available.';
     const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
     const actionItems: string[] = EmailSummaryUtil.normalizeItems(summary.actionItems);
 
     return [
-      `Gist: ${gist}`,
+      `<p><strong>Gist:</strong> ${EmailContentUtil.sanitizeHtml(gist)}</p>`,
       '',
-      'Key details:',
-      ...EmailSummaryUtil.renderList(keyDetails, 'No key details noted.'),
+      '<p><strong>Key details:</strong></p>',
+      '<ul>',
+      ...EmailSummaryUtil.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),
+      '</ul>',
       '',
-      'Action items:',
-      ...EmailSummaryUtil.renderList(actionItems, 'None.'),
+      '<p><strong>Action items:</strong></p>',
+      '<ul>',
+      ...EmailSummaryUtil.renderHtmlList(actionItems, '<li>None.</li>'),
+      '</ul>',
       '',
-      `<Mail-Otter Summary - by ${model}>`,
+      `<p><em>Mail-Otter Summary - by ${model}</em></p>`,
     ].join('\n');
+  }
+
+  static renderPlainTextSummary(summary: EmailSummary, model: string): string {
+    return EmailContentUtil.stripHtml(EmailSummaryUtil.renderHtmlSummary(summary, model));
   }
 
   private static parseLooseText(response: string): EmailSummary {
@@ -209,9 +220,9 @@ class EmailSummaryUtil {
     };
   }
 
-  private static renderList(items: string[], emptyValue: string): string[] {
-    if (items.length === 0) return [`- ${emptyValue}`];
-    return items.map((item: string): string => `- ${item}`);
+  private static renderHtmlList(items: string[], emptyValue: string): string[] {
+    if (items.length === 0) return [emptyValue];
+    return items.map((item: string): string => `<li>${EmailContentUtil.sanitizeHtml(item)}</li>`);
   }
 
   private static normalizeItems(items: string[]): string[] {

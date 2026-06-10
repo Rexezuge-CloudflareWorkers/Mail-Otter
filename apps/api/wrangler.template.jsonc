@@ -109,6 +109,7 @@
     "POLICY_AUD": "you-cloudflare-zero-trust-application-aud",
     "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
     "MAX_APPLICATIONS_PER_USER": "99",
+    "MAX_CONTEXT_DOCUMENTS_PER_APPLICATION": "10000",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",
     "AI_SUMMARY_MODEL": "@cf/openai/gpt-oss-120b",
     "AI_SUMMARY_FALLBACK_MODEL": "@cf/openai/gpt-oss-20b",

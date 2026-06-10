@@ -29,15 +29,15 @@ class SubscriptionRenewalUtil {
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
+        const baseDelay = ConfigurationManager.getRenewalRetryBaseDelaySeconds(env);
+        const maxDelay = ConfigurationManager.getRenewalRetryMaxDelaySeconds(env);
+        const currentCount = subscription.renewalRetryCount;
+        const delay = Math.min(baseDelay * Math.pow(2, currentCount), maxDelay);
+        const nextRetryAt = now + delay;
         if (error instanceof RetryableError) {
-          const baseDelay = ConfigurationManager.getRenewalRetryBaseDelaySeconds(env);
-          const maxDelay = ConfigurationManager.getRenewalRetryMaxDelaySeconds(env);
-          const currentCount = subscription.renewalRetryCount;
-          const delay = Math.min(baseDelay * Math.pow(2, currentCount), maxDelay);
-          const nextRetryAt = now + delay;
           await subscriptionDAO.recordTransientError(subscription.subscriptionId, message, nextRetryAt);
         } else {
-          await subscriptionDAO.markError(subscription.subscriptionId, message);
+          await subscriptionDAO.markError(subscription.subscriptionId, message, nextRetryAt);
         }
       }
     }

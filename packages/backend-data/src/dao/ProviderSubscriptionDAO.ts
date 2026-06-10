@@ -130,12 +130,12 @@ class ProviderSubscriptionDAO {
         `
           SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
           FROM provider_subscriptions
-          WHERE status = ? AND expires_at IS NOT NULL AND expires_at <= ?
+          WHERE status IN (?, ?) AND expires_at IS NOT NULL AND expires_at <= ?
             AND (renewal_next_retry_at IS NULL OR renewal_next_retry_at <= ?)
           ORDER BY expires_at ASC
         `,
       )
-      .bind(PROVIDER_SUBSCRIPTION_STATUS_ACTIVE, maxExpiresAt || now, now)
+      .bind(PROVIDER_SUBSCRIPTION_STATUS_ACTIVE, PROVIDER_SUBSCRIPTION_STATUS_ERROR, maxExpiresAt || now, now)
       .all<ProviderSubscriptionInternal>()
       .then((result: D1Result<ProviderSubscriptionInternal>): ProviderSubscriptionInternal[] => result.results || []);
     return rows.map((row: ProviderSubscriptionInternal): ProviderSubscription => this.toSubscription(row));
@@ -176,11 +176,13 @@ class ProviderSubscriptionDAO {
     }
   }
 
-  public async markError(subscriptionId: string, errorMessage: string): Promise<void> {
+  public async markError(subscriptionId: string, errorMessage: string, nextRetryAt?: number): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const result: D1Result = await this.database
-      .prepare('UPDATE provider_subscriptions SET status = ?, last_error = ?, updated_at = ? WHERE subscription_id = ?')
-      .bind(PROVIDER_SUBSCRIPTION_STATUS_ERROR, errorMessage.slice(0, 1024), now, subscriptionId)
+      .prepare(
+        'UPDATE provider_subscriptions SET status = ?, last_error = ?, renewal_retry_count = renewal_retry_count + 1, renewal_next_retry_at = ?, updated_at = ? WHERE subscription_id = ?',
+      )
+      .bind(PROVIDER_SUBSCRIPTION_STATUS_ERROR, errorMessage.slice(0, 1024), nextRetryAt ?? null, now, subscriptionId)
       .run();
     if (!result.success) {
       throw new DatabaseError(`Failed to mark provider subscription error: ${result.error}`);

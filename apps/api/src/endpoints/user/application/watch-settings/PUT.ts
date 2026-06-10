@@ -32,6 +32,7 @@ class UpdateApplicationWatchSettingsRoute extends IUserRoute<
 interface UpdateApplicationWatchSettingsRequest extends IRequest {
   applicationId: string;
   folderIds: string[] | null;
+  folderNames?: Record<string, string>;
 }
 
 interface UpdateApplicationWatchSettingsResponse extends IResponse {

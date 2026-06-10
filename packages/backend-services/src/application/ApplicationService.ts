@@ -96,6 +96,7 @@ class ApplicationService {
       input.applicationId,
       userEmail,
       input.folderIds,
+      input.folderNames,
     );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
@@ -151,6 +152,7 @@ interface DeleteUserApplicationEnv extends ApplicationServiceEnv {
 interface UpdateWatchedFolderIdsInput {
   applicationId: string;
   folderIds: string[] | null;
+  folderNames?: Record<string, string>;
 }
 
 export { ApplicationService };

@@ -44,7 +44,7 @@ class EmailProcessingUtil {
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
     if (!subscription || subscription.status !== PROVIDER_SUBSCRIPTION_STATUS_ACTIVE) return null;
     const startHistoryId: string | undefined = subscription.gmailHistoryId || notificationHistoryId;
-    const history = await GmailProviderUtil.listMessageIdsSince(accessToken, startHistoryId, application.watchedFolderIds ?? undefined);
+    const history = await GmailProviderUtil.listMessageIdsSince(accessToken, startHistoryId, application.watchedFolders?.map((f) => f.id) ?? undefined);
     return { messageIds: history.messageIds, historyId: history.historyId || notificationHistoryId, subscriptionId: subscription.subscriptionId };
   }
 

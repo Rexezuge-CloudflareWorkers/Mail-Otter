@@ -238,6 +238,7 @@ class ConnectedApplicationDAO {
     applicationId: string,
     userEmail: string,
     folderIds: string[] | null,
+    folderNames?: Record<string, string>,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     if (folderIds && folderIds.length > 0) {
@@ -246,10 +247,11 @@ class ConnectedApplicationDAO {
         .bind(applicationId)
         .run();
       const stmt = this.database.prepare(
-        'INSERT INTO application_watched_folders (application_id, folder_path, created_at) VALUES (?, ?, ?)',
+        'INSERT INTO application_watched_folders (application_id, folder_path, folder_name, created_at) VALUES (?, ?, ?, ?)',
       );
       for (const folderPath of folderIds) {
-        await stmt.bind(applicationId, folderPath, now).run();
+        const folderName: string = folderNames?.[folderPath] || folderPath;
+        await stmt.bind(applicationId, folderPath, folderName, now).run();
       }
     } else {
       await this.database
@@ -324,13 +326,16 @@ class ConnectedApplicationDAO {
       .run();
   }
 
-  public async getWatchedFolderPaths(applicationId: string): Promise<string[]> {
-    const rows: Array<{ folder_path: string }> = await this.database
-      .prepare('SELECT folder_path FROM application_watched_folders WHERE application_id = ? ORDER BY folder_path ASC')
+  public async getWatchedFolders(applicationId: string): Promise<Array<{ folderPath: string; folderName: string }>> {
+    const rows: Array<{ folder_path: string; folder_name: string | null }> = await this.database
+      .prepare('SELECT folder_path, folder_name FROM application_watched_folders WHERE application_id = ? ORDER BY folder_path ASC')
       .bind(applicationId)
-      .all<{ folder_path: string }>()
-      .then((result: D1Result<{ folder_path: string }>): Array<{ folder_path: string }> => result.results || []);
-    return rows.map((row: { folder_path: string }): string => row.folder_path);
+      .all<{ folder_path: string; folder_name: string | null }>()
+      .then((result: D1Result<{ folder_path: string; folder_name: string | null }>): Array<{ folder_path: string; folder_name: string | null }> => result.results || []);
+    return rows.map((row: { folder_path: string; folder_name: string | null }): { folderPath: string; folderName: string } => ({
+      folderPath: row.folder_path,
+      folderName: row.folder_name || row.folder_path,
+    }));
   }
 
   private async getRowById(applicationId: string, userEmail?: string): Promise<ConnectedApplicationInternal | undefined> {
@@ -365,8 +370,8 @@ class ConnectedApplicationDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolderPaths, gmailPubsubTopicName]: [string[], string | null] = await Promise.all([
-      this.getWatchedFolderPaths(row.application_id),
+    const [watchedFolders, gmailPubsubTopicName]: [Array<{ folderPath: string; folderName: string }>, string | null] = await Promise.all([
+      this.getWatchedFolders(row.application_id),
       this.getProviderConfig(row.application_id, 'gmail_pubsub_topic_name'),
     ]);
     return {
@@ -379,7 +384,7 @@ class ConnectedApplicationDAO {
       status,
       contextIndexingEnabled: row.context_indexing_enabled !== 0,
       maxContextDocuments: row.max_context_documents ?? null,
-      watchedFolderIds: watchedFolderPaths.length > 0 ? watchedFolderPaths : null,
+      watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,

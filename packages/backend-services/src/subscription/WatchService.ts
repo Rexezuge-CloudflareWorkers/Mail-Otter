@@ -70,7 +70,7 @@ class WatchService {
       throw new BadRequestError('Gmail Pub/Sub topic name is required before starting Gmail watch.');
     }
     const webhookSecret: string = WebhookSecurityUtil.generateSecret();
-    const watch = await GmailProviderUtil.watchInbox(accessToken, application.gmailPubsubTopicName, application.watchedFolderIds ?? undefined);
+    const watch = await GmailProviderUtil.watchInbox(accessToken, application.gmailPubsubTopicName, application.watchedFolders?.map((f) => f.id) ?? undefined);
     const subscription: ProviderSubscription = await subscriptionDAO.upsertActive({
       applicationId: application.applicationId,
       providerId: application.providerId,
@@ -105,7 +105,7 @@ class WatchService {
       lifecycleNotificationUrl,
       clientState,
       expiresAt,
-      application.watchedFolderIds?.[0] ?? undefined,
+      application.watchedFolders?.[0]?.id ?? undefined,
     );
     const subscription: ProviderSubscription = await subscriptionDAO.upsertActive({
       applicationId: application.applicationId,

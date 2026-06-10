@@ -17,7 +17,7 @@ export interface ConnectedApplication {
   connectionMethod: 'oauth2';
   status: 'draft' | 'connected' | 'error';
   gmailPubsubTopicName?: string | null;
-  watchedFolderIds?: string[] | null;
+  watchedFolders?: Array<{ id: string; name: string }> | null;
   oauth2RedirectUri?: string;
   webhookUrl?: string;
   watchStatus?: 'active' | 'stopped' | 'error';

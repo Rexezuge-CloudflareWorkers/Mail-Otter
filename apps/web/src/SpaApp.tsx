@@ -323,11 +323,18 @@ export default function SpaApp() {
   const updateWatchedFolderIds = async (applicationId: string, folderIds: string[] | null) => {
     setIsBusy(true);
     try {
+      const folderNames: Record<string, string> = {};
+      if (folderIds && availableFolders) {
+        for (const folderId of folderIds) {
+          const folder = availableFolders.find((f) => f.id === folderId);
+          if (folder) folderNames[folderId] = folder.name;
+        }
+      }
       const data = await readJson<{ application: ConnectedApplication }>(
         await fetch('/user/application/watch-settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ applicationId, folderIds }),
+          body: JSON.stringify({ applicationId, folderIds, folderNames }),
         }),
       );
       setApplications((current) =>
@@ -668,7 +675,7 @@ export default function SpaApp() {
                       <div className="flex flex-col gap-2">
                         {availableFolders.map((folder) => {
                           const isOutlook = selectedApplication.providerId === 'microsoft-outlook';
-                          const checked = selectedApplication.watchedFolderIds?.includes(folder.id) ?? false;
+                          const checked = selectedApplication.watchedFolders?.some((wf) => wf.id === folder.id) ?? false;
                           return (
                             <label key={folder.id} className="inline-flex items-center gap-3 text-sm text-[#d1d5db]">
                               <input
@@ -676,11 +683,12 @@ export default function SpaApp() {
                                 name={isOutlook ? `watch-folder-${selectedApplication.applicationId}` : undefined}
                                 checked={checked}
                                 onChange={() => {
+                                  const currentIds = (selectedApplication.watchedFolders || []).map((wf) => wf.id);
                                   const next = isOutlook
                                     ? checked ? [] : [folder.id]
                                     : checked
-                                      ? (selectedApplication.watchedFolderIds || []).filter((id) => id !== folder.id)
-                                      : [...(selectedApplication.watchedFolderIds || []), folder.id];
+                                      ? currentIds.filter((id) => id !== folder.id)
+                                      : [...currentIds, folder.id];
                                   updateWatchedFolderIds(selectedApplication.applicationId, next.length > 0 ? next : null);
                                 }}
                                 disabled={isBusy}
@@ -692,9 +700,9 @@ export default function SpaApp() {
                         })}
                       </div>
                     )
-                  ) : selectedApplication.watchedFolderIds && selectedApplication.watchedFolderIds.length > 0 ? (
+                  ) : selectedApplication.watchedFolders && selectedApplication.watchedFolders.length > 0 ? (
                     <p className="text-sm text-[#aab4c2]">
-                      Watching: {selectedApplication.watchedFolderIds.join(', ')} — click &quot;Load Folders&quot; to change.
+                      Watching: {selectedApplication.watchedFolders.map((wf) => wf.name).join(', ')} — click &quot;Load Folders&quot; to change.
                     </p>
                   ) : (
                     <p className="text-sm text-[#aab4c2]">Watching default folder (Inbox). Click &quot;Load Folders&quot; to customize.</p>

@@ -19,7 +19,7 @@ interface ConnectedApplicationMetadata {
   contextIndexingEnabled: boolean;
   maxContextDocuments?: number | null | undefined;
   gmailPubsubTopicName?: string | null | undefined;
-  watchedFolderIds?: string[] | null | undefined;
+  watchedFolders?: Array<{ id: string; name: string }> | null | undefined;
   oauth2RedirectUri?: string | undefined;
   webhookUrl?: string | undefined;
   watchStatus?: string | undefined;

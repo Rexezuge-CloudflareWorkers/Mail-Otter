@@ -93,6 +93,8 @@ describe('EmailContextUtil', () => {
       credentials: { clientId: 'client', clientSecret: 'secret', refreshToken: 'refresh' },
     };
 
+    const incrementUsage = vi.spyOn(AiDailyUsageDAO.prototype, 'incrementUsage').mockResolvedValue();
+
     await EmailContextUtil.prepareEmailRagContext({
       env: {
         DB: database as unknown as D1Database,
@@ -125,10 +127,17 @@ describe('EmailContextUtil', () => {
       sender: 'sender@example.com',
     });
     expect(String(vectorPayload?.metadata?.indexedText)).toContain('A confidential plan for the next quarter.');
+
+    expect(incrementUsage).toHaveBeenCalledWith({
+      usageDate: expect.any(String),
+      estimatedNeurons: 1,
+      embeddingTokens: 30,
+    });
   });
 
   it('skips context embedding when the local daily neuron estimate reached the threshold', async () => {
     vi.spyOn(AiDailyUsageDAO.prototype, 'getEstimatedNeuronsForDate').mockResolvedValue(6000);
+    const incrementUsage = vi.spyOn(AiDailyUsageDAO.prototype, 'incrementUsage').mockResolvedValue();
     const database = new FakeD1Database();
     const vectorize = {
       upsert: vi.fn().mockResolvedValue({ mutationId: 'mutation-1' }),
@@ -159,6 +168,7 @@ describe('EmailContextUtil', () => {
     expect(ai.run).not.toHaveBeenCalled();
     expect(vectorize.upsert).not.toHaveBeenCalled();
     expect(database.documentRow).toBeUndefined();
+    expect(incrementUsage).not.toHaveBeenCalled();
   });
 
   it('rethrows Workers AI embedding free allocation exhaustion as non-retryable', async () => {

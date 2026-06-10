@@ -1,5 +1,5 @@
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 interface OAuth2AccessTokenRefreshStatus {
@@ -49,68 +49,71 @@ class OAuth2AccessTokenRefreshStatusDAO {
 
   public async recordRefreshStarted(applicationId: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO oauth2_access_token_refresh_status
-            (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
-             last_refresh_failed_at, last_error, created_at, updated_at)
-          VALUES (?, NULL, ?, NULL, NULL, NULL, ?, ?)
-          ON CONFLICT(application_id) DO UPDATE SET
-            last_refresh_started_at = excluded.last_refresh_started_at,
-            updated_at = excluded.updated_at
-        `,
-      )
-      .bind(applicationId, now, now, now)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to record OAuth2 token refresh start: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO oauth2_access_token_refresh_status
+                (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
+                 last_refresh_failed_at, last_error, created_at, updated_at)
+              VALUES (?, NULL, ?, NULL, NULL, NULL, ?, ?)
+              ON CONFLICT(application_id) DO UPDATE SET
+                last_refresh_started_at = excluded.last_refresh_started_at,
+                updated_at = excluded.updated_at
+            `,
+          )
+          .bind(applicationId, now, now, now)
+          .run(),
+      'record OAuth2 token refresh start',
+    );
   }
 
   public async recordRefreshSuccess(applicationId: string, accessTokenExpiresAt: number): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO oauth2_access_token_refresh_status
-            (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
-             last_refresh_failed_at, last_error, created_at, updated_at)
-          VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?)
-          ON CONFLICT(application_id) DO UPDATE SET
-            access_token_expires_at = excluded.access_token_expires_at,
-            last_refresh_succeeded_at = excluded.last_refresh_succeeded_at,
-            last_error = NULL,
-            updated_at = excluded.updated_at
-        `,
-      )
-      .bind(applicationId, accessTokenExpiresAt, now, now, now)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to record OAuth2 token refresh success: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO oauth2_access_token_refresh_status
+                (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
+                 last_refresh_failed_at, last_error, created_at, updated_at)
+              VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?)
+              ON CONFLICT(application_id) DO UPDATE SET
+                access_token_expires_at = excluded.access_token_expires_at,
+                last_refresh_succeeded_at = excluded.last_refresh_succeeded_at,
+                last_error = NULL,
+                updated_at = excluded.updated_at
+            `,
+          )
+          .bind(applicationId, accessTokenExpiresAt, now, now, now)
+          .run(),
+      'record OAuth2 token refresh success',
+    );
   }
 
   public async recordRefreshFailure(applicationId: string, errorMessage: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO oauth2_access_token_refresh_status
-            (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
-             last_refresh_failed_at, last_error, created_at, updated_at)
-          VALUES (?, NULL, NULL, NULL, ?, ?, ?, ?)
-          ON CONFLICT(application_id) DO UPDATE SET
-            last_refresh_failed_at = excluded.last_refresh_failed_at,
-            last_error = excluded.last_error,
-            updated_at = excluded.updated_at
-        `,
-      )
-      .bind(applicationId, now, errorMessage.slice(0, 1024), now, now)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to record OAuth2 token refresh failure: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO oauth2_access_token_refresh_status
+                (application_id, access_token_expires_at, last_refresh_started_at, last_refresh_succeeded_at,
+                 last_refresh_failed_at, last_error, created_at, updated_at)
+              VALUES (?, NULL, NULL, NULL, ?, ?, ?, ?)
+              ON CONFLICT(application_id) DO UPDATE SET
+                last_refresh_failed_at = excluded.last_refresh_failed_at,
+                last_error = excluded.last_error,
+                updated_at = excluded.updated_at
+            `,
+          )
+          .bind(applicationId, now, errorMessage.slice(0, 1024), now, now)
+          .run(),
+      'record OAuth2 token refresh failure',
+    );
   }
 
   public async listDueApplicationIds(refreshBefore: number, limit: number): Promise<string[]> {

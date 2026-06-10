@@ -1,8 +1,11 @@
 import { InternalServerError } from './InternalServerError';
 
 class DatabaseError extends InternalServerError {
-  constructor(message?: string | undefined) {
+  public readonly retryable: boolean;
+
+  constructor(message?: string | undefined, retryable: boolean = false) {
     super(message ?? 'The system encountered an unexpected problem while accessing the database.');
+    this.retryable = retryable;
   }
 
   public getErrorType(): string {

@@ -1,5 +1,5 @@
 import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
-import { NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { DatabaseError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, ResolvedApplication } from '@mail-otter/backend-services/email';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
@@ -110,6 +110,12 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     }
     if (error instanceof RetryableError) {
       return error;
+    }
+    if (error instanceof DatabaseError) {
+      if (!error.retryable) {
+        return new WorkflowNonRetryableError(error.message, 'DatabaseError');
+      }
+      return new RetryableError(error.message);
     }
     if (error instanceof Error) {
       return new RetryableError(error.message);

@@ -6,6 +6,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { decryptData, encryptData } from '../crypto';
 import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
@@ -36,32 +37,33 @@ class ConnectedApplicationDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const applicationId: string = UUIDUtil.getRandomUUID();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO connected_applications
-            (application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-      )
-      .bind(
-        applicationId,
-        userEmail,
-        null,
-        displayName,
-        providerId,
-        connectionMethod,
-        encrypted.encrypted,
-        encrypted.iv,
-        status,
-        1,
-        now,
-        now,
-      )
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to create connected application: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO connected_applications
+                (application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+          )
+          .bind(
+            applicationId,
+            userEmail,
+            null,
+            displayName,
+            providerId,
+            connectionMethod,
+            encrypted.encrypted,
+            encrypted.iv,
+            status,
+            1,
+            now,
+            now,
+          )
+          .run(),
+      'create connected application',
+    );
     if (gmailPubsubTopicName) {
       await this.setProviderConfig(applicationId, 'gmail_pubsub_topic_name', gmailPubsubTopicName, now);
     }
@@ -136,19 +138,20 @@ class ConnectedApplicationDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE connected_applications
-          SET display_name = ?, encrypted_credentials = ?, credentials_iv = ?, status = ?, updated_at = ?
-          WHERE application_id = ? AND user_email = ?
-        `,
-      )
-      .bind(displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, userEmail)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update connected application: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE connected_applications
+              SET display_name = ?, encrypted_credentials = ?, credentials_iv = ?, status = ?, updated_at = ?
+              WHERE application_id = ? AND user_email = ?
+            `,
+          )
+          .bind(displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, userEmail)
+          .run(),
+      'update connected application',
+    );
     if (gmailPubsubTopicName) {
       await this.setProviderConfig(applicationId, 'gmail_pubsub_topic_name', gmailPubsubTopicName, now);
     } else if (gmailPubsubTopicName === null) {
@@ -169,19 +172,20 @@ class ConnectedApplicationDAO {
     };
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE connected_applications
-          SET encrypted_credentials = ?, credentials_iv = ?, provider_email = ?, status = ?, updated_at = ?
-          WHERE application_id = ?
-        `,
-      )
-      .bind(encrypted.encrypted, encrypted.iv, providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to mark OAuth2 application connected: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE connected_applications
+              SET encrypted_credentials = ?, credentials_iv = ?, provider_email = ?, status = ?, updated_at = ?
+              WHERE application_id = ?
+            `,
+          )
+          .bind(encrypted.encrypted, encrypted.iv, providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId)
+          .run(),
+      'mark OAuth2 application connected',
+    );
   }
 
   public async updateOAuth2RefreshToken(applicationId: string, refreshToken: string): Promise<void> {
@@ -192,24 +196,26 @@ class ConnectedApplicationDAO {
       refreshToken,
     };
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
-    const result: D1Result = await this.database
-      .prepare('UPDATE connected_applications SET encrypted_credentials = ?, credentials_iv = ? WHERE application_id = ?')
-      .bind(encrypted.encrypted, encrypted.iv, applicationId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update OAuth2 refresh token: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('UPDATE connected_applications SET encrypted_credentials = ?, credentials_iv = ? WHERE application_id = ?')
+          .bind(encrypted.encrypted, encrypted.iv, applicationId)
+          .run(),
+      'update OAuth2 refresh token',
+    );
   }
 
-  public async markError(applicationId: string, message: string): Promise<void> {
+  public async markError(applicationId: string, _message: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare('UPDATE connected_applications SET status = ?, updated_at = ? WHERE application_id = ?')
-      .bind(CONNECTED_APPLICATION_STATUS_ERROR, now, applicationId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to mark connected application error: ${result.error || message}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('UPDATE connected_applications SET status = ?, updated_at = ? WHERE application_id = ?')
+          .bind(CONNECTED_APPLICATION_STATUS_ERROR, now, applicationId)
+          .run(),
+      'mark connected application error',
+    );
   }
 
   public async updateContextIndexingForUser(
@@ -218,19 +224,20 @@ class ConnectedApplicationDAO {
     contextIndexingEnabled: boolean,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE connected_applications
-          SET context_indexing_enabled = ?, updated_at = ?
-          WHERE application_id = ? AND user_email = ?
-        `,
-      )
-      .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, userEmail)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update context indexing setting: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE connected_applications
+              SET context_indexing_enabled = ?, updated_at = ?
+              WHERE application_id = ? AND user_email = ?
+            `,
+          )
+          .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, userEmail)
+          .run(),
+      'update context indexing setting',
+    );
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
@@ -242,22 +249,33 @@ class ConnectedApplicationDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     if (folderIds && folderIds.length > 0) {
-      await this.database
-        .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
-        .bind(applicationId)
-        .run();
+      await executeD1WithRetry(
+        (): Promise<D1Result> =>
+          this.database
+            .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
+            .bind(applicationId)
+            .run(),
+        'clear watched folders',
+      );
       const stmt = this.database.prepare(
         'INSERT INTO application_watched_folders (application_id, folder_path, folder_name, created_at) VALUES (?, ?, ?, ?)',
       );
       for (const folderPath of folderIds) {
         const folderName: string = folderNames?.[folderPath] || folderPath;
-        await stmt.bind(applicationId, folderPath, folderName, now).run();
+        await executeD1WithRetry(
+          (): Promise<D1Result> => stmt.bind(applicationId, folderPath, folderName, now).run(),
+          'insert watched folder',
+        );
       }
     } else {
-      await this.database
-        .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
-        .bind(applicationId)
-        .run();
+      await executeD1WithRetry(
+        (): Promise<D1Result> =>
+          this.database
+            .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
+            .bind(applicationId)
+            .run(),
+        'clear watched folders',
+      );
     }
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
@@ -268,30 +286,32 @@ class ConnectedApplicationDAO {
     maxContextDocuments: number | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE connected_applications
-          SET max_context_documents = ?, updated_at = ?
-          WHERE application_id = ? AND user_email = ?
-        `,
-      )
-      .bind(maxContextDocuments, now, applicationId, userEmail)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update max context documents: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE connected_applications
+              SET max_context_documents = ?, updated_at = ?
+              WHERE application_id = ? AND user_email = ?
+            `,
+          )
+          .bind(maxContextDocuments, now, applicationId, userEmail)
+          .run(),
+      'update max context documents',
+    );
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
   public async deleteForUser(applicationId: string, userEmail: string): Promise<void> {
-    const result: D1Result = await this.database
-      .prepare('DELETE FROM connected_applications WHERE application_id = ? AND user_email = ?')
-      .bind(applicationId, userEmail)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete connected application: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('DELETE FROM connected_applications WHERE application_id = ? AND user_email = ?')
+          .bind(applicationId, userEmail)
+          .run(),
+      'delete connected application',
+    );
   }
 
   public async getProviderConfig(applicationId: string, configKey: string): Promise<string | null> {
@@ -304,26 +324,31 @@ class ConnectedApplicationDAO {
 
   public async setProviderConfig(applicationId: string, configKey: string, configValue: string, now?: number): Promise<void> {
     const timestamp: number = now ?? TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO provider_application_configs (application_id, config_key, config_value, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(application_id, config_key) DO UPDATE SET config_value = excluded.config_value, updated_at = excluded.updated_at
-        `,
-      )
-      .bind(applicationId, configKey, configValue, timestamp, timestamp)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to set provider config: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO provider_application_configs (application_id, config_key, config_value, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(application_id, config_key) DO UPDATE SET config_value = excluded.config_value, updated_at = excluded.updated_at
+            `,
+          )
+          .bind(applicationId, configKey, configValue, timestamp, timestamp)
+          .run(),
+      'set provider config',
+    );
   }
 
   public async deleteProviderConfig(applicationId: string, configKey: string): Promise<void> {
-    await this.database
-      .prepare('DELETE FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
-      .bind(applicationId, configKey)
-      .run();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('DELETE FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
+          .bind(applicationId, configKey)
+          .run(),
+      'delete provider config',
+    );
   }
 
   public async getWatchedFolders(applicationId: string): Promise<Array<{ folderPath: string; folderName: string }>> {

@@ -1,4 +1,4 @@
-import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 class AiDailyUsageDAO {
@@ -25,13 +25,14 @@ class AiDailyUsageDAO {
   }
 
   public async deleteOlderThanDate(olderThanDate: string): Promise<number> {
-    const result: D1Result = await this.database
-      .prepare('DELETE FROM ai_daily_usage WHERE usage_date < ?')
-      .bind(olderThanDate)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete old AI daily usage: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('DELETE FROM ai_daily_usage WHERE usage_date < ?')
+          .bind(olderThanDate)
+          .run(),
+      'delete old AI daily usage',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
@@ -58,26 +59,27 @@ class AiDailyUsageDAO {
     const embeddingTokens: number = AiDailyUsageDAO.toNonNegativeInteger(input.embeddingTokens ?? 0);
     const requestCount: number = AiDailyUsageDAO.toNonNegativeInteger(input.requestCount ?? 1);
 
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO ai_daily_usage
-            (usage_date, estimated_neurons, prompt_tokens, completion_tokens, embedding_tokens, request_count, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(usage_date) DO UPDATE SET
-            estimated_neurons = ai_daily_usage.estimated_neurons + excluded.estimated_neurons,
-            prompt_tokens = ai_daily_usage.prompt_tokens + excluded.prompt_tokens,
-            completion_tokens = ai_daily_usage.completion_tokens + excluded.completion_tokens,
-            embedding_tokens = ai_daily_usage.embedding_tokens + excluded.embedding_tokens,
-            request_count = ai_daily_usage.request_count + excluded.request_count,
-            updated_at = excluded.updated_at
-        `,
-      )
-      .bind(input.usageDate, estimatedNeurons, promptTokens, completionTokens, embeddingTokens, requestCount, now, now)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to increment AI daily usage: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO ai_daily_usage
+                (usage_date, estimated_neurons, prompt_tokens, completion_tokens, embedding_tokens, request_count, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(usage_date) DO UPDATE SET
+                estimated_neurons = ai_daily_usage.estimated_neurons + excluded.estimated_neurons,
+                prompt_tokens = ai_daily_usage.prompt_tokens + excluded.prompt_tokens,
+                completion_tokens = ai_daily_usage.completion_tokens + excluded.completion_tokens,
+                embedding_tokens = ai_daily_usage.embedding_tokens + excluded.embedding_tokens,
+                request_count = ai_daily_usage.request_count + excluded.request_count,
+                updated_at = excluded.updated_at
+            `,
+          )
+          .bind(input.usageDate, estimatedNeurons, promptTokens, completionTokens, embeddingTokens, requestCount, now, now)
+          .run(),
+      'increment AI daily usage',
+    );
   }
 
   private toUsage(row: AiDailyUsageInternal): AiDailyUsage {

@@ -4,7 +4,7 @@ import {
   PROCESSED_MESSAGE_STATUS_SKIPPED,
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
 } from '@mail-otter/shared/constants';
-import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import type { ProcessedMessage, ProcessedMessageInternal } from '@mail-otter/shared/model';
 import type { ProcessedMessageStatus, ProviderId } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
@@ -25,29 +25,30 @@ class ProcessedMessageDAO {
   ): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const processedMessageId: string = UUIDUtil.getRandomUUID();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT OR IGNORE INTO processed_messages
-            (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, provider_stable_message_fingerprint, status, summary_sent_at, error_message, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
-        `,
-      )
-      .bind(
-        processedMessageId,
-        applicationId,
-        providerId,
-        providerMessageId,
-        providerThreadId || null,
-        options.providerStableMessageFingerprint || null,
-        PROCESSED_MESSAGE_STATUS_PROCESSING,
-        now,
-        now,
-      )
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to create processed message row: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT OR IGNORE INTO processed_messages
+                (processed_message_id, application_id, provider_id, provider_message_id, provider_thread_id, provider_stable_message_fingerprint, status, summary_sent_at, error_message, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+            `,
+          )
+          .bind(
+            processedMessageId,
+            applicationId,
+            providerId,
+            providerMessageId,
+            providerThreadId || null,
+            options.providerStableMessageFingerprint || null,
+            PROCESSED_MESSAGE_STATUS_PROCESSING,
+            now,
+            now,
+          )
+          .run(),
+      'create processed message row',
+    );
     const inserted: boolean = ((result.meta as { changes?: number } | undefined)?.changes ?? 0) > 0;
     if (inserted || !options.allowExistingForRetry) {
       return inserted;
@@ -84,19 +85,20 @@ class ProcessedMessageDAO {
 
   public async deleteOlderThan(olderThan: number, statuses: string[], limit: number): Promise<number> {
     const placeholders: string = statuses.map((): string => '?').join(', ');
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          DELETE FROM processed_messages
-          WHERE updated_at < ? AND status IN (${placeholders})
-          LIMIT ?
-        `,
-      )
-      .bind(olderThan, ...statuses, limit)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete old processed messages: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM processed_messages
+              WHERE updated_at < ? AND status IN (${placeholders})
+              LIMIT ?
+            `,
+          )
+          .bind(olderThan, ...statuses, limit)
+          .run(),
+      'delete old processed messages',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
@@ -140,19 +142,20 @@ class ProcessedMessageDAO {
     setSummarySentAt: boolean,
   ): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE processed_messages
-          SET status = ?, summary_sent_at = CASE WHEN ? THEN ? ELSE summary_sent_at END, error_message = ?, updated_at = ?
-          WHERE application_id = ? AND provider_message_id = ?
-        `,
-      )
-      .bind(status, setSummarySentAt ? 1 : 0, now, errorMessage ? errorMessage.slice(0, 1024) : null, now, applicationId, providerMessageId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update processed message: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE processed_messages
+              SET status = ?, summary_sent_at = CASE WHEN ? THEN ? ELSE summary_sent_at END, error_message = ?, updated_at = ?
+              WHERE application_id = ? AND provider_message_id = ?
+            `,
+          )
+          .bind(status, setSummarySentAt ? 1 : 0, now, errorMessage ? errorMessage.slice(0, 1024) : null, now, applicationId, providerMessageId)
+          .run(),
+      'update processed message',
+    );
   }
 
   private async getInternalByMessageId(applicationId: string, providerMessageId: string): Promise<ProcessedMessageInternal | null> {
@@ -194,21 +197,22 @@ class ProcessedMessageDAO {
     providerStableMessageFingerprint: string | null | undefined,
   ): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE processed_messages
-          SET provider_thread_id = COALESCE(?, provider_thread_id),
-              provider_stable_message_fingerprint = COALESCE(?, provider_stable_message_fingerprint),
-              updated_at = ?
-          WHERE application_id = ? AND provider_message_id = ?
-        `,
-      )
-      .bind(providerThreadId || null, providerStableMessageFingerprint || null, now, applicationId, providerMessageId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to update processed message retry metadata: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE processed_messages
+              SET provider_thread_id = COALESCE(?, provider_thread_id),
+                  provider_stable_message_fingerprint = COALESCE(?, provider_stable_message_fingerprint),
+                  updated_at = ?
+              WHERE application_id = ? AND provider_message_id = ?
+            `,
+          )
+          .bind(providerThreadId || null, providerStableMessageFingerprint || null, now, applicationId, providerMessageId)
+          .run(),
+      'update processed message retry metadata',
+    );
   }
 
   private toProcessedMessage(row: ProcessedMessageInternal): ProcessedMessage {

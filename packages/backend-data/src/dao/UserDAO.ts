@@ -1,4 +1,5 @@
 import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import type { User, UserInternal } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
@@ -11,19 +12,20 @@ class UserDAO {
 
   public async upsertByEmail(email: string): Promise<User> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO users (email, created_at, updated_at)
-          VALUES (?, ?, ?)
-          ON CONFLICT(email) DO UPDATE SET updated_at = excluded.updated_at
-        `,
-      )
-      .bind(email, now, now)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to upsert user: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO users (email, created_at, updated_at)
+              VALUES (?, ?, ?)
+              ON CONFLICT(email) DO UPDATE SET updated_at = excluded.updated_at
+            `,
+          )
+          .bind(email, now, now)
+          .run(),
+      'upsert user',
+    );
     const user: User | undefined = await this.getByEmail(email);
     if (!user) {
       throw new DatabaseError('Failed to load user after upsert.');

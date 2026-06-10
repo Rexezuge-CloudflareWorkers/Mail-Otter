@@ -1,4 +1,5 @@
 import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, ResolvedApplication } from '@mail-otter/backend-services/email';
@@ -16,7 +17,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
       async (): Promise<ResolvedApplication> => {
         try {
-          return await EmailProcessingUtil.resolveApplication(event.payload, this.env);
+          return await EmailProcessingUtil.resolveApplication(event.payload, createD1SessionEnv(this.env));
         } catch (error: unknown) {
           throw EmailProcessingWorkflow.toWorkflowError(error);
         }
@@ -34,7 +35,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               resolved.application,
               resolved.accessToken,
               gmailPayload.notificationHistoryId,
-              this.env,
+              createD1SessionEnv(this.env),
             );
           } catch (error: unknown) {
             throw EmailProcessingWorkflow.toWorkflowError(error);
@@ -53,7 +54,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
                   resolved.application,
                   resolved.accessToken,
                   messageId,
-                  this.env,
+                  createD1SessionEnv(this.env),
                   resolved.enabledApplicationIds,
                   { retryAttempt: context.attempt },
                 );
@@ -69,7 +70,11 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
           async (): Promise<void> => {
             try {
-              await EmailProcessingUtil.updateGmailHistory(messageList.subscriptionId, messageList.historyId, this.env);
+              await EmailProcessingUtil.updateGmailHistory(
+                messageList.subscriptionId,
+                messageList.historyId,
+                createD1SessionEnv(this.env),
+              );
             } catch (error: unknown) {
               throw EmailProcessingWorkflow.toWorkflowError(error);
             }
@@ -87,7 +92,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               resolved.application,
               resolved.accessToken,
               outlookPayload.messageId,
-              this.env,
+              createD1SessionEnv(this.env),
               resolved.enabledApplicationIds,
               { retryAttempt: context.attempt },
             );

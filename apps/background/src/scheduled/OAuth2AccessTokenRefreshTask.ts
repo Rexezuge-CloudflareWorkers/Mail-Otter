@@ -1,4 +1,5 @@
 import { OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { TimestampUtil } from '@mail-otter/shared/utils';
@@ -14,7 +15,8 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
     const refreshWindowSeconds: number = ConfigurationManager.getOAuth2AccessTokenRefreshWindowSeconds(env);
     const batchSize: number = ConfigurationManager.getOAuth2TokenRefreshBatchSize(env);
     const refreshBefore: number = TimestampUtil.getCurrentUnixTimestampInSeconds() + refreshWindowSeconds;
-    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(sessionEnv.DB);
     const applicationIds: string[] = await statusDAO.listDueApplicationIds(refreshBefore, batchSize);
 
     for (const applicationId of applicationIds) {

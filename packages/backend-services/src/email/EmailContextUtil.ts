@@ -1,4 +1,5 @@
 import { AiDailyUsageDAO, ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ApplicationContextDocument, ConnectedApplication } from '@mail-otter/shared/model';
@@ -210,7 +211,7 @@ interface PrepareEmailRagContextInput {
 }
 
 interface EmailContextEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;

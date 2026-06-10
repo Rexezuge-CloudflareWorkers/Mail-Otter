@@ -1,4 +1,5 @@
 import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import {
   AiDailyUsagePruningTask,
   ContextDeletionRunPruningTask,
@@ -75,7 +76,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
     await Promise.all([
       new OAuth2AccessTokenRefreshTask().handle(event, this.env, ctx),
       new ContextDocumentPruningTask().handle(event, this.env, ctx),
-      SubscriptionRenewalUtil.renewDueSubscriptions(this.env),
+      SubscriptionRenewalUtil.renewDueSubscriptions(createD1SessionEnv(this.env)),
     ]);
     await Promise.all([
       new ProcessedMessagePruningTask().handle(event, this.env, ctx),

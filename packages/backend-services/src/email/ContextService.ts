@@ -5,6 +5,7 @@ import {
   PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type {
   ApplicationContextDeletionRun,
@@ -207,7 +208,7 @@ interface ListDeletionRunsInput {
 }
 
 interface ContextListEnv {
-  DB: D1Database;
+  DB: D1Queryable;
 }
 
 interface ContextServiceEnv extends ContextListEnv {
@@ -219,7 +220,7 @@ interface DeleteContextDocumentsEnv extends ContextServiceEnv {
 }
 
 interface PruneDocumentsEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   EMAIL_CONTEXT_INDEX: Vectorize;
 }
 

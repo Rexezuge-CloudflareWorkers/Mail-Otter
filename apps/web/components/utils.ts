@@ -1,3 +1,21 @@
+const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
+
+let latestD1Bookmark: string | undefined;
+
+export async function apiFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
+  const isUserRequest: boolean = getFetchPath(input).startsWith('/user/');
+  const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+  if (isUserRequest && latestD1Bookmark && !headers.has(D1_BOOKMARK_HEADER)) {
+    headers.set(D1_BOOKMARK_HEADER, latestD1Bookmark);
+  }
+
+  const response: Response = await fetch(input, isUserRequest ? { ...init, headers } : init);
+  if (isUserRequest) {
+    rememberD1Bookmark(response.headers.get(D1_BOOKMARK_HEADER));
+  }
+  return response;
+}
+
 export async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.text();
@@ -50,3 +68,16 @@ export const providerMethod: Record<string, 'oauth2'> = {
   'google-gmail': 'oauth2',
   'microsoft-outlook': 'oauth2',
 };
+
+function getFetchPath(input: Parameters<typeof fetch>[0]): string {
+  const url: string = typeof input === 'string' || input instanceof URL ? input.toString() : input.url;
+  return new URL(url, window.location.origin).pathname;
+}
+
+function rememberD1Bookmark(bookmark: string | null): void {
+  const nextBookmark: string | undefined = bookmark?.trim() || undefined;
+  if (!nextBookmark) return;
+  if (!latestD1Bookmark || latestD1Bookmark < nextBookmark) {
+    latestD1Bookmark = nextBookmark;
+  }
+}

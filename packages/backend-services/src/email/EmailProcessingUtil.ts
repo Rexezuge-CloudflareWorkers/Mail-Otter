@@ -1,5 +1,6 @@
 import { PROVIDER_SUBSCRIPTION_STATUS_ACTIVE } from '@mail-otter/shared/constants';
 import { AiDailyUsageDAO, ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
@@ -336,7 +337,7 @@ interface GmailMessageList {
 }
 
 interface EmailProcessingEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;

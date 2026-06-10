@@ -1,5 +1,6 @@
 import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ConnectedApplication, OAuth2AuthorizationSession, OAuth2Credentials } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
@@ -88,13 +89,13 @@ interface CompleteOAuth2CallbackInput {
 }
 
 interface CreateOAuth2AuthorizationEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_STATE_EXPIRY_MINUTES?: string | undefined;
 }
 
 interface CompleteOAuth2CallbackEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;

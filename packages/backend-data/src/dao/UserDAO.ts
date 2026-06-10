@@ -1,12 +1,13 @@
 import { DatabaseError } from '@mail-otter/backend-errors';
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import type { User, UserInternal } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 class UserDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

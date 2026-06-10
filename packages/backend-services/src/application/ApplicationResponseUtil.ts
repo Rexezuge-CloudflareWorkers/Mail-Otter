@@ -1,4 +1,5 @@
 import { ApplicationContextDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type {
   ApplicationContextSummary,
   ConnectedApplicationMetadata,
@@ -42,7 +43,7 @@ class ApplicationResponseUtil {
 }
 
 interface ApplicationDecorationEnv {
-  DB: D1Database;
+  DB: D1Queryable;
 }
 
 interface ApplicationResponse extends ConnectedApplicationMetadata {

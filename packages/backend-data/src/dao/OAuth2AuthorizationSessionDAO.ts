@@ -1,11 +1,12 @@
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import type { OAuth2AuthorizationSession, OAuth2AuthorizationSessionInternal } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 class OAuth2AuthorizationSessionDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

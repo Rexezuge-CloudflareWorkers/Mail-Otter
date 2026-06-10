@@ -3,6 +3,7 @@ import {
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
 } from '@mail-otter/shared/constants';
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
@@ -17,7 +18,8 @@ class ProcessedMessagePruningTask extends IScheduledTask<ProcessedMessagePruning
   ): Promise<void> {
     const retentionDays: number = ConfigurationManager.getProcessedMessageRetentionDays(env);
     const olderThan: number = Date.now() - retentionDays * 86400 * 1000;
-    const dao = new ProcessedMessageDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const dao = new ProcessedMessageDAO(sessionEnv.DB);
 
     let total: number = 0;
     let deleted: number = BATCH_SIZE;

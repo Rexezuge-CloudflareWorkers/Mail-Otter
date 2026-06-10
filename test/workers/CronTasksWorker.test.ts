@@ -66,6 +66,14 @@ function createRunRequest(): Request {
   });
 }
 
+function createEnv(): Env {
+  return {
+    DB: {
+      withSession: vi.fn(() => ({}) as D1DatabaseSession),
+    } as unknown as D1Database,
+  } as Env;
+}
+
 describe('CronTasksWorker', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -80,7 +88,7 @@ describe('CronTasksWorker', () => {
   });
 
   it('runs token refresh before provider subscription renewal', async () => {
-    const env = { DB: {} as D1Database } as Env;
+    const env = createEnv();
     const worker = new CronTasksWorker(createDurableObjectState(), env);
 
     const response: Response = await worker.fetch(createRunRequest());
@@ -93,7 +101,7 @@ describe('CronTasksWorker', () => {
     expect(taskSpies.oauth2SessionPruning).toHaveBeenCalledOnce();
     expect(taskSpies.contextDeletionRunPruning).toHaveBeenCalledOnce();
     expect(taskSpies.aiDailyUsagePruning).toHaveBeenCalledOnce();
-    expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith(env);
+    expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith(expect.objectContaining({ DB: expect.any(Object) }));
     expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.contextPruning.mock.invocationCallOrder[0]);
     expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.processedMessagePruning.mock.invocationCallOrder[0]);
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(
@@ -111,7 +119,7 @@ describe('CronTasksWorker', () => {
         resolveRefresh = resolve;
       }),
     );
-    const worker = new CronTasksWorker(createDurableObjectState(), {} as Env);
+    const worker = new CronTasksWorker(createDurableObjectState(), createEnv());
     const firstResponsePromise: Promise<Response> = worker.fetch(createRunRequest());
     await Promise.resolve();
     await Promise.resolve();

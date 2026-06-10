@@ -5,14 +5,15 @@ import {
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
 } from '@mail-otter/shared/constants';
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import type { ProcessedMessage, ProcessedMessageInternal } from '@mail-otter/shared/model';
 import type { ProcessedMessageStatus, ProviderId } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 class ProcessedMessageDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

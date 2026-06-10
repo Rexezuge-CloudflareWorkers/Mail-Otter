@@ -1,4 +1,5 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
@@ -15,7 +16,8 @@ class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumen
     const errorGraceDays: number = ConfigurationManager.getStaleContextDocumentErrorGraceDays(env);
     const deletedBefore: number = Date.now() - deletedGraceDays * 86400 * 1000;
     const errorBefore: number = Date.now() - errorGraceDays * 86400 * 1000;
-    const dao = new ApplicationContextDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const dao = new ApplicationContextDAO(sessionEnv.DB);
 
     let totalDeleted: number = 0;
     let deleted: number = BATCH_SIZE;

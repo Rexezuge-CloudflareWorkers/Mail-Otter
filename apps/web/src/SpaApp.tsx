@@ -9,7 +9,7 @@ import type {
   CurrentUser,
   ProviderId,
 } from '../components/types';
-import { formatExpiryTimestamp, formatTimestamp, methodLabels, providerLabels, providerMethod, readJson } from '../components/utils';
+import { apiFetch, formatExpiryTimestamp, formatTimestamp, methodLabels, providerLabels, providerMethod, readJson } from '../components/utils';
 
 interface ApplicationFormState {
   applicationId?: string;
@@ -86,7 +86,7 @@ export default function SpaApp() {
   }, []);
 
   const loadApplications = useCallback(async () => {
-    const data = await readJson<{ applications: ConnectedApplication[] }>(await fetch('/user/applications'));
+    const data = await readJson<{ applications: ConnectedApplication[] }>(await apiFetch('/user/applications'));
     setApplications(data.applications);
     setSelectedApplicationId((current) => current || data.applications[0]?.applicationId || '');
   }, []);
@@ -105,10 +105,10 @@ export default function SpaApp() {
 
       const [documentData, deletionData] = await Promise.all([
         readJson<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(
-          await fetch(`/user/application/context/documents?${documentParams.toString()}`),
+          await apiFetch(`/user/application/context/documents?${documentParams.toString()}`),
         ),
         readJson<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
-          await fetch(`/user/application/context/deletions?${deletionParams.toString()}`),
+          await apiFetch(`/user/application/context/deletions?${deletionParams.toString()}`),
         ),
       ]);
       setContextDocuments((current) => (append ? [...current, ...documentData.documents] : documentData.documents));
@@ -122,7 +122,7 @@ export default function SpaApp() {
   useEffect(() => {
     const load = async () => {
       try {
-        const me = await readJson<CurrentUser>(await fetch('/user/me'));
+        const me = await readJson<CurrentUser>(await apiFetch('/user/me'));
         setUser(me);
         setAuthorized(true);
         await loadApplications();
@@ -168,7 +168,7 @@ export default function SpaApp() {
         clientSecret: applicationForm.clientSecret,
         ...(applicationForm.providerId === 'google-gmail' ? { gmailPubsubTopicName: applicationForm.gmailPubsubTopicName } : {}),
       };
-      const response = await fetch('/user/application', {
+      const response = await apiFetch('/user/application', {
         method: applicationForm.applicationId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -189,7 +189,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       await readJson<{ success: boolean }>(
-        await fetch('/user/application', {
+        await apiFetch('/user/application', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId }),
@@ -210,7 +210,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ authorizationUrl: string }>(
-        await fetch('/user/application/oauth2/authorize', {
+        await apiFetch('/user/application/oauth2/authorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId }),
@@ -227,7 +227,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ message: string; webhookUrl: string }>(
-        await fetch('/user/application/watch', {
+        await apiFetch('/user/application/watch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId }),
@@ -247,7 +247,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ message: string }>(
-        await fetch('/user/application/stop', {
+        await apiFetch('/user/application/stop', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId }),
@@ -267,7 +267,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ application: ConnectedApplication }>(
-        await fetch('/user/application/context', {
+        await apiFetch('/user/application/context', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId, contextIndexingEnabled }),
@@ -289,7 +289,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ application: ConnectedApplication }>(
-        await fetch('/user/application/context', {
+        await apiFetch('/user/application/context', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId, maxContextDocuments }),
@@ -310,7 +310,7 @@ export default function SpaApp() {
     setLoadingFolders(true);
     try {
       const data = await readJson<{ folders: Array<{ id: string; name: string }> }>(
-        await fetch(`/user/application/folders?applicationId=${encodeURIComponent(applicationId)}`),
+        await apiFetch(`/user/application/folders?applicationId=${encodeURIComponent(applicationId)}`),
       );
       setAvailableFolders(data.folders);
     } catch (error) {
@@ -331,7 +331,7 @@ export default function SpaApp() {
         }
       }
       const data = await readJson<{ application: ConnectedApplication }>(
-        await fetch('/user/application/watch-settings', {
+        await apiFetch('/user/application/watch-settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId, folderIds, folderNames }),
@@ -353,7 +353,7 @@ export default function SpaApp() {
     setIsBusy(true);
     try {
       const data = await readJson<{ deletionRun: ApplicationContextDeletionRun }>(
-        await fetch('/user/application/context/delete-documents', {
+        await apiFetch('/user/application/context/delete-documents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ applicationId }),
@@ -381,7 +381,7 @@ export default function SpaApp() {
     if (auditStatus) params.set('status', auditStatus);
     params.set('cursor', contextDocumentsCursor);
     const data = await readJson<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(
-      await fetch(`/user/application/context/documents?${params.toString()}`),
+      await apiFetch(`/user/application/context/documents?${params.toString()}`),
     );
     setContextDocuments((current) => [...current, ...data.documents]);
     setContextDocumentsCursor(data.nextCursor);
@@ -393,7 +393,7 @@ export default function SpaApp() {
     if (auditApplicationId) params.set('applicationId', auditApplicationId);
     params.set('cursor', contextDeletionRunsCursor);
     const data = await readJson<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
-      await fetch(`/user/application/context/deletions?${params.toString()}`),
+      await apiFetch(`/user/application/context/deletions?${params.toString()}`),
     );
     setContextDeletionRuns((current) => [...current, ...data.deletionRuns]);
     setContextDeletionRunsCursor(data.nextCursor);
@@ -402,7 +402,7 @@ export default function SpaApp() {
   const openContextDocumentInProvider = async (contextDocumentId: string) => {
     try {
       const data = await readJson<{ url: string }>(
-        await fetch(`/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`),
+        await apiFetch(`/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`),
       );
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {

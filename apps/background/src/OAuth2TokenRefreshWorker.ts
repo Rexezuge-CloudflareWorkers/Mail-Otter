@@ -6,6 +6,7 @@ import {
   PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
@@ -100,10 +101,11 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
       }
     }
 
-    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(this.env.DB);
+    const sessionEnv = createD1SessionEnv(this.env);
+    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(sessionEnv.DB);
     await statusDAO.recordRefreshStarted(applicationId);
     try {
-      const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
+      const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
       const application: ConnectedApplication = await this.getRefreshableApplication(applicationDAO, applicationId);
       const tokenResult: OAuth2TokenResult = await OAuth2ProviderUtil.refreshAccessToken({
         providerId: application.providerId,
@@ -125,8 +127,9 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
     const code: string = this.readRequiredString(payload.code, 'code');
     const codeVerifier: string = this.readRequiredString(payload.codeVerifier, 'codeVerifier');
     const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(this.env.DB);
+    const sessionEnv = createD1SessionEnv(this.env);
+    const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
+    const statusDAO = new OAuth2AccessTokenRefreshStatusDAO(sessionEnv.DB);
     await statusDAO.recordRefreshStarted(applicationId);
 
     try {

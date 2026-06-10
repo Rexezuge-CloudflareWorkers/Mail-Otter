@@ -1,5 +1,6 @@
 import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type {
   ConnectedApplication,
@@ -139,7 +140,7 @@ interface UpdateUserApplicationInput extends CreateUserApplicationInput {
 }
 
 interface ApplicationServiceEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   MAX_APPLICATIONS_PER_USER?: string | undefined;
 }

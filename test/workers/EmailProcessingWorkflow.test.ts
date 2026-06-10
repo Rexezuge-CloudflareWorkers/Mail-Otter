@@ -39,7 +39,7 @@ describe('EmailProcessingWorkflow', () => {
   it('passes the workflow retry attempt into email processing', async () => {
     vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication as never);
     vi.mocked(EmailProcessingUtil.processOutlookMessage).mockResolvedValue();
-    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, {} as Env);
+    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, createEnv());
     const step = createStep(3);
     const event = createEvent();
 
@@ -49,7 +49,7 @@ describe('EmailProcessingWorkflow', () => {
       resolvedApplication.application,
       resolvedApplication.accessToken,
       'message-1',
-      {},
+      expect.objectContaining({ DB: expect.any(Object) }),
       resolvedApplication.enabledApplicationIds,
       { retryAttempt: 3 },
     );
@@ -59,14 +59,14 @@ describe('EmailProcessingWorkflow', () => {
     vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication as never);
     const error = new RetryableError('Temporary provider failure.');
     vi.mocked(EmailProcessingUtil.processOutlookMessage).mockRejectedValue(error);
-    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, {} as Env);
+    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, createEnv());
 
     await expect(workflow.run(createEvent(), createStep(1))).rejects.toBe(error);
   });
 
   it('converts non-retryable errors into Cloudflare workflow fatal errors', async () => {
     vi.mocked(EmailProcessingUtil.resolveApplication).mockRejectedValue(new NonRetryableError('Application is not connected.'));
-    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, {} as Env);
+    const workflow = new EmailProcessingWorkflow({} as ExecutionContext, createEnv());
 
     await expect(workflow.run(createEvent(), createStep(1))).rejects.toThrow(WorkflowNonRetryableError);
   });
@@ -83,6 +83,14 @@ function createEvent(): Readonly<WorkflowEvent<EmailQueueMessage>> {
     timestamp: new Date(),
     instanceId: 'workflow-instance-1',
   };
+}
+
+function createEnv(): Env {
+  return {
+    DB: {
+      withSession: vi.fn(() => ({}) as D1DatabaseSession),
+    } as unknown as D1Database,
+  } as Env;
 }
 
 function createStep(attempt: number): WorkflowStep {

@@ -1,10 +1,11 @@
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 class AiDailyUsageDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

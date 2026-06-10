@@ -1,4 +1,5 @@
 import { AiDailyUsageDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
@@ -12,7 +13,8 @@ class AiDailyUsagePruningTask extends IScheduledTask<AiDailyUsagePruningTaskEnv>
     const retentionDays: number = ConfigurationManager.getAiDailyUsageRetentionDays(env);
     const date: Date = new Date(Date.now() - retentionDays * 86400 * 1000);
     const olderThanDate: string = date.toISOString().split('T')[0];
-    const dao = new AiDailyUsageDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const dao = new AiDailyUsageDAO(sessionEnv.DB);
 
     const deleted: number = await dao.deleteOlderThanDate(olderThanDate);
     console.log(`AiDailyUsagePruningTask: deleted ${deleted} old usage rows`);

@@ -1,4 +1,5 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
@@ -13,7 +14,8 @@ class ContextDeletionRunPruningTask extends IScheduledTask<ContextDeletionRunPru
   ): Promise<void> {
     const retentionDays: number = ConfigurationManager.getContextDeletionRunRetentionDays(env);
     const olderThan: number = Date.now() - retentionDays * 86400 * 1000;
-    const dao = new ApplicationContextDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const dao = new ApplicationContextDAO(sessionEnv.DB);
 
     let total: number = 0;
     let deleted: number = BATCH_SIZE;

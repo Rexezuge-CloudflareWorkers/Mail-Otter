@@ -14,7 +14,9 @@ function createDurableObjectState(): DurableObjectState {
 
 function createEnv(): Env {
   return {
-    DB: {} as D1Database,
+    DB: {
+      withSession: vi.fn(() => ({}) as D1DatabaseSession),
+    } as unknown as D1Database,
     OAUTH2_TOKEN_CACHE: {} as KVNamespace,
     AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('master-key') } as unknown as SecretsStoreSecret,
     OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS: '3600',

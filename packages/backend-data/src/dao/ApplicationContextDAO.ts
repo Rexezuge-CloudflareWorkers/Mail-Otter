@@ -8,6 +8,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { DatabaseError } from '@mail-otter/backend-errors';
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunInternal,
@@ -22,9 +23,9 @@ import type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 class ApplicationContextDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

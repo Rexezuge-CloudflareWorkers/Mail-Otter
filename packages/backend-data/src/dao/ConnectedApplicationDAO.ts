@@ -7,6 +7,7 @@ import {
 import { decryptData, encryptData } from '../crypto';
 import { DatabaseError } from '@mail-otter/backend-errors';
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
@@ -17,10 +18,10 @@ import type {
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 class ConnectedApplicationDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
   protected readonly masterKey: string;
 
-  constructor(database: D1Database, masterKey: string) {
+  constructor(database: D1Queryable, masterKey: string) {
     this.database = database;
     this.masterKey = masterKey;
   }

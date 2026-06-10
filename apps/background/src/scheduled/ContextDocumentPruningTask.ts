@@ -1,5 +1,6 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import type { OverLimitApplication } from '@mail-otter/backend-data/dao';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { ContextService } from '@mail-otter/backend-services/email';
 import { IScheduledTask } from './IScheduledTask';
@@ -12,7 +13,8 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
     _ctx: ExecutionContext,
   ): Promise<void> {
     const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
-    const contextDAO = new ApplicationContextDAO(env.DB);
+    const sessionEnv = createD1SessionEnv(env);
+    const contextDAO = new ApplicationContextDAO(sessionEnv.DB);
     const overLimitApps: OverLimitApplication[] = await contextDAO.listApplicationsOverDocumentLimit(globalMax);
 
     for (const app of overLimitApps) {
@@ -22,7 +24,7 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
           app.userEmail,
           app.activeCount,
           app.effectiveLimit,
-          env,
+          sessionEnv,
         );
       } catch (error: unknown) {
         console.error(`Context document pruning failed for application ${app.applicationId}:`, error);

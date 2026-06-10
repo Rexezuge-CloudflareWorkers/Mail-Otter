@@ -1,5 +1,6 @@
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { executeD1WithRetry } from '../utils';
+import type { D1Queryable } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 interface OAuth2AccessTokenRefreshStatus {
@@ -25,9 +26,9 @@ interface OAuth2AccessTokenRefreshStatusInternal {
 }
 
 class OAuth2AccessTokenRefreshStatusDAO {
-  protected readonly database: D1Database;
+  protected readonly database: D1Queryable;
 
-  constructor(database: D1Database) {
+  constructor(database: D1Queryable) {
     this.database = database;
   }
 

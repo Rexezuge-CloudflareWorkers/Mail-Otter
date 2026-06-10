@@ -26,6 +26,9 @@ import { MiddlewareHandlers } from '@/middleware';
 import { SPA_HTML } from '@/generated/spa-shell';
 import { DURABLE_OBJECT_CRON_TASKS_RUN_URL, DURABLE_OBJECT_NAMESPACE_GLOBAL } from '@mail-otter/backend-runtime/constants';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+
+const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
 
 class MailOtterWorker extends AbstractEntrypointWorker {
   protected readonly app: HonoOpenAPIRouterType<{
@@ -52,7 +55,8 @@ class MailOtterWorker extends AbstractEntrypointWorker {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, cf-access-jwt-assertion',
+          'Access-Control-Allow-Headers': `Content-Type, Authorization, cf-access-jwt-assertion, ${D1_BOOKMARK_HEADER}`,
+          'Access-Control-Expose-Headers': D1_BOOKMARK_HEADER,
           'Access-Control-Max-Age': '86400',
         },
       });
@@ -106,7 +110,23 @@ class MailOtterWorker extends AbstractEntrypointWorker {
   }
 
   protected async onRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    return this.app.fetch(request, env, ctx);
+    const path: string = new URL(request.url).pathname;
+    if (!MailOtterWorker.shouldUseD1Session(path, env)) {
+      return this.app.fetch(request, env, ctx);
+    }
+
+    const isUserRequest: boolean = path.startsWith('/user/');
+    const incomingBookmark: string | undefined = isUserRequest ? request.headers.get(D1_BOOKMARK_HEADER)?.trim() || undefined : undefined;
+    const sessionEnv = createD1SessionEnv(env, incomingBookmark || 'first-primary');
+    const response: Response = await this.app.fetch(request, sessionEnv as unknown as Env, ctx);
+    if (isUserRequest) {
+      const bookmark: D1SessionBookmark | null = sessionEnv.DB.getBookmark();
+      if (bookmark) {
+        response.headers.set(D1_BOOKMARK_HEADER, bookmark);
+      }
+      response.headers.set('Access-Control-Expose-Headers', D1_BOOKMARK_HEADER);
+    }
+    return response;
   }
 
   protected async onScheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
@@ -132,6 +152,14 @@ class MailOtterWorker extends AbstractEntrypointWorker {
           console.error('Failed to invoke CronTasksWorker:', error);
         }),
     );
+  }
+
+  private static shouldUseD1Session(path: string, env: Env): boolean {
+    if (!path.startsWith('/user/') && !path.startsWith('/api/')) {
+      return false;
+    }
+    const database = (env as { DB?: { withSession?: unknown } }).DB;
+    return typeof database?.withSession === 'function';
   }
 }
 

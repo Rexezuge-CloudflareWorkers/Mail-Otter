@@ -1,3 +1,8 @@
 export { IScheduledTask } from './IScheduledTask';
 export { ContextDocumentPruningTask } from './ContextDocumentPruningTask';
 export { OAuth2AccessTokenRefreshTask } from './OAuth2AccessTokenRefreshTask';
+export { ProcessedMessagePruningTask } from './ProcessedMessagePruningTask';
+export { StaleContextDocumentPruningTask } from './StaleContextDocumentPruningTask';
+export { OAuth2SessionPruningTask } from './OAuth2SessionPruningTask';
+export { ContextDeletionRunPruningTask } from './ContextDeletionRunPruningTask';
+export { AiDailyUsagePruningTask } from './AiDailyUsagePruningTask';

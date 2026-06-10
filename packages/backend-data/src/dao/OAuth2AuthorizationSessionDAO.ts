@@ -49,6 +49,24 @@ class OAuth2AuthorizationSessionDAO {
     return row ? this.toSession(row) : undefined;
   }
 
+  public async deleteExpiredSessions(limit: number): Promise<number> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          DELETE FROM oauth2_authorization_sessions
+          WHERE expires_at < ? OR consumed_at IS NOT NULL
+          LIMIT ?
+        `,
+      )
+      .bind(now, limit)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete expired OAuth2 sessions: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async consume(sessionId: string): Promise<void> {
     const consumedAt: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const result: D1Result = await this.database

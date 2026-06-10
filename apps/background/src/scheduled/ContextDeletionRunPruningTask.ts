@@ -1,0 +1,33 @@
+import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { IScheduledTask } from './IScheduledTask';
+import type { IEnv } from './IScheduledTask';
+
+const BATCH_SIZE: number = 500;
+
+class ContextDeletionRunPruningTask extends IScheduledTask<ContextDeletionRunPruningTaskEnv> {
+  protected async handleScheduledTask(
+    _event: ScheduledController,
+    env: ContextDeletionRunPruningTaskEnv,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    const retentionDays: number = ConfigurationManager.getContextDeletionRunRetentionDays(env);
+    const olderThan: number = Date.now() - retentionDays * 86400 * 1000;
+    const dao = new ApplicationContextDAO(env.DB);
+
+    let total: number = 0;
+    let deleted: number = BATCH_SIZE;
+    while (deleted >= BATCH_SIZE) {
+      deleted = await dao.deleteOldDeletionRuns(olderThan, BATCH_SIZE);
+      total += deleted;
+    }
+    console.log(`ContextDeletionRunPruningTask: deleted ${total} old deletion runs`);
+  }
+}
+
+interface ContextDeletionRunPruningTaskEnv extends IEnv {
+  DB: D1Database;
+  CONTEXT_DELETION_RUN_RETENTION_DAYS?: string | undefined;
+}
+
+export { ContextDeletionRunPruningTask };

@@ -369,6 +369,57 @@ class ApplicationContextDAO {
     return run;
   }
 
+  public async deleteStaleDeletedDocuments(deletedBefore: number, limit: number): Promise<number> {
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          DELETE FROM application_context_documents
+          WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
+          LIMIT ?
+        `,
+      )
+      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete stale deleted context documents: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
+  public async deleteStaleErrorDocuments(errorBefore: number, limit: number): Promise<number> {
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          DELETE FROM application_context_documents
+          WHERE status = ? AND updated_at < ?
+          LIMIT ?
+        `,
+      )
+      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete stale error context documents: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
+  public async deleteOldDeletionRuns(olderThan: number, limit: number): Promise<number> {
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          DELETE FROM application_context_deletion_runs
+          WHERE created_at < ?
+          LIMIT ?
+        `,
+      )
+      .bind(olderThan, limit)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete old context deletion runs: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async listApplicationsOverDocumentLimit(globalMax: number): Promise<OverLimitApplication[]> {
     const rows = await this.database
       .prepare(

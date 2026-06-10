@@ -82,6 +82,24 @@ class ProcessedMessageDAO {
     await this.updateStatus(applicationId, providerMessageId, PROCESSED_MESSAGE_STATUS_ERROR, errorMessage, false);
   }
 
+  public async deleteOlderThan(olderThan: number, statuses: string[], limit: number): Promise<number> {
+    const placeholders: string = statuses.map((): string => '?').join(', ');
+    const result: D1Result = await this.database
+      .prepare(
+        `
+          DELETE FROM processed_messages
+          WHERE updated_at < ? AND status IN (${placeholders})
+          LIMIT ?
+        `,
+      )
+      .bind(olderThan, ...statuses, limit)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete old processed messages: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async getLatestForApplication(applicationId: string): Promise<ProcessedMessage | undefined> {
     const row: ProcessedMessageInternal | null = await this.database
       .prepare(

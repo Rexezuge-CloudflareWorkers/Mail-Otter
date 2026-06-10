@@ -24,6 +24,17 @@ class AiDailyUsageDAO {
     return row ? this.toUsage(row) : undefined;
   }
 
+  public async deleteOlderThanDate(olderThanDate: string): Promise<number> {
+    const result: D1Result = await this.database
+      .prepare('DELETE FROM ai_daily_usage WHERE usage_date < ?')
+      .bind(olderThanDate)
+      .run();
+    if (!result.success) {
+      throw new DatabaseError(`Failed to delete old AI daily usage: ${result.error}`);
+    }
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async getEstimatedNeuronsForDate(usageDate: string): Promise<number> {
     const row: Pick<AiDailyUsageInternal, 'estimated_neurons'> | null = await this.database
       .prepare(

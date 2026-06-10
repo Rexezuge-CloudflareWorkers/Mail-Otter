@@ -1,4 +1,4 @@
-import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import type { OAuth2AuthorizationSession, OAuth2AuthorizationSessionInternal } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
@@ -18,19 +18,20 @@ class OAuth2AuthorizationSessionDAO {
   ): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const sessionId: string = UUIDUtil.getRandomUUID();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO oauth2_authorization_sessions
-            (session_id, application_id, state_hash, code_verifier, redirect_uri, created_at, expires_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `,
-      )
-      .bind(sessionId, applicationId, stateHash, codeVerifier, redirectUri, now, expiresAt)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to create OAuth2 authorization session: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO oauth2_authorization_sessions
+                (session_id, application_id, state_hash, code_verifier, redirect_uri, created_at, expires_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+          )
+          .bind(sessionId, applicationId, stateHash, codeVerifier, redirectUri, now, expiresAt)
+          .run(),
+      'create OAuth2 authorization session',
+    );
   }
 
   public async getActive(applicationId: string, stateHash: string): Promise<OAuth2AuthorizationSession | undefined> {
@@ -51,31 +52,33 @@ class OAuth2AuthorizationSessionDAO {
 
   public async deleteExpiredSessions(limit: number): Promise<number> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          DELETE FROM oauth2_authorization_sessions
-          WHERE expires_at < ? OR consumed_at IS NOT NULL
-          LIMIT ?
-        `,
-      )
-      .bind(now, limit)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete expired OAuth2 sessions: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM oauth2_authorization_sessions
+              WHERE expires_at < ? OR consumed_at IS NOT NULL
+              LIMIT ?
+            `,
+          )
+          .bind(now, limit)
+          .run(),
+      'delete expired OAuth2 sessions',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
   public async consume(sessionId: string): Promise<void> {
     const consumedAt: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare('UPDATE oauth2_authorization_sessions SET consumed_at = ? WHERE session_id = ? AND consumed_at IS NULL')
-      .bind(consumedAt, sessionId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to consume OAuth2 authorization session: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('UPDATE oauth2_authorization_sessions SET consumed_at = ? WHERE session_id = ? AND consumed_at IS NULL')
+          .bind(consumedAt, sessionId)
+          .run(),
+      'consume OAuth2 authorization session',
+    );
   }
 
   private toSession(row: OAuth2AuthorizationSessionInternal): OAuth2AuthorizationSession {

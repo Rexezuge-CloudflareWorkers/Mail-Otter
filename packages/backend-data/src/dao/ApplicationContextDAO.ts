@@ -7,6 +7,7 @@ import {
   SOURCE_TYPE_EMAIL,
 } from '@mail-otter/shared/constants';
 import { DatabaseError } from '@mail-otter/backend-errors';
+import { executeD1WithRetry } from '../utils';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunInternal,
@@ -42,35 +43,36 @@ class ApplicationContextDAO {
       .first<ApplicationContextDocumentInternal>();
 
     if (existing) {
-      const result: D1Result = await this.database
-        .prepare(
-          `
-            UPDATE application_context_documents
-            SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
-                source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
-                content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
-            WHERE context_document_id = ?
-          `,
-        )
-        .bind(
-          input.userEmail,
-          input.sourceProviderId,
-          input.sourceThreadId || null,
-          input.vectorNamespace,
-          input.sourceDocumentFingerprint,
-          input.sourceThreadFingerprint || null,
-          input.titleFingerprint || null,
-          input.senderFingerprint || null,
-          input.contentFingerprint,
-          input.indexedTextChars,
-          APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-          now,
-          existing.context_document_id,
-        )
-        .run();
-      if (!result.success) {
-        throw new DatabaseError(`Failed to update application context document: ${result.error}`);
-      }
+      await executeD1WithRetry(
+        (): Promise<D1Result> =>
+          this.database
+            .prepare(
+              `
+                UPDATE application_context_documents
+                SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
+                    source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
+                    content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
+                WHERE context_document_id = ?
+              `,
+            )
+            .bind(
+              input.userEmail,
+              input.sourceProviderId,
+              input.sourceThreadId || null,
+              input.vectorNamespace,
+              input.sourceDocumentFingerprint,
+              input.sourceThreadFingerprint || null,
+              input.titleFingerprint || null,
+              input.senderFingerprint || null,
+              input.contentFingerprint,
+              input.indexedTextChars,
+              APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+              now,
+              existing.context_document_id,
+            )
+            .run(),
+        'update application context document',
+      );
       const updated: ApplicationContextDocument | undefined = await this.getDocumentById(existing.context_document_id);
       if (!updated) throw new DatabaseError('Failed to load application context document after update.');
       return updated;
@@ -78,40 +80,41 @@ class ApplicationContextDAO {
 
     const contextDocumentId: string = UUIDUtil.getRandomUUID();
     const vectorId: string = `cd_${contextDocumentId}`;
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO application_context_documents
-            (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
-             vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
-             content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
-        `,
-      )
-      .bind(
-        contextDocumentId,
-        input.applicationId,
-        input.userEmail,
-        SOURCE_TYPE_EMAIL,
-        input.sourceProviderId,
-        input.sourceDocumentId,
-        input.sourceThreadId || null,
-        input.vectorNamespace,
-        vectorId,
-        input.sourceDocumentFingerprint,
-        input.sourceThreadFingerprint || null,
-        input.titleFingerprint || null,
-        input.senderFingerprint || null,
-        input.contentFingerprint,
-        input.indexedTextChars,
-        APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-        now,
-        now,
-      )
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to create application context document: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO application_context_documents
+                (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
+                 vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
+                 content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+            `,
+          )
+          .bind(
+            contextDocumentId,
+            input.applicationId,
+            input.userEmail,
+            SOURCE_TYPE_EMAIL,
+            input.sourceProviderId,
+            input.sourceDocumentId,
+            input.sourceThreadId || null,
+            input.vectorNamespace,
+            vectorId,
+            input.sourceDocumentFingerprint,
+            input.sourceThreadFingerprint || null,
+            input.titleFingerprint || null,
+            input.senderFingerprint || null,
+            input.contentFingerprint,
+            input.indexedTextChars,
+            APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+            now,
+            now,
+          )
+          .run(),
+      'create application context document',
+    );
     const document: ApplicationContextDocument | undefined = await this.getDocumentById(contextDocumentId);
     if (!document) throw new DatabaseError('Failed to load application context document after create.');
     return document;
@@ -119,36 +122,38 @@ class ApplicationContextDAO {
 
   public async markDocumentIndexed(contextDocumentId: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE application_context_documents
-          SET status = ?, indexed_at = ?, last_error = NULL, updated_at = ?
-          WHERE context_document_id = ?
-        `,
-      )
-      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, now, now, contextDocumentId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to mark application context document indexed: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE application_context_documents
+              SET status = ?, indexed_at = ?, last_error = NULL, updated_at = ?
+              WHERE context_document_id = ?
+            `,
+          )
+          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, now, now, contextDocumentId)
+          .run(),
+      'mark application context document indexed',
+    );
   }
 
   public async markDocumentError(contextDocumentId: string, errorMessage: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          UPDATE application_context_documents
-          SET status = ?, last_error = ?, updated_at = ?
-          WHERE context_document_id = ?
-        `,
-      )
-      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorMessage.slice(0, 1024), now, contextDocumentId)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to mark application context document error: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              UPDATE application_context_documents
+              SET status = ?, last_error = ?, updated_at = ?
+              WHERE context_document_id = ?
+            `,
+          )
+          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorMessage.slice(0, 1024), now, contextDocumentId)
+          .run(),
+      'mark application context document error',
+    );
   }
 
   public async getSummaryByApplication(applicationId: string): Promise<ApplicationContextSummary> {
@@ -338,85 +343,89 @@ class ApplicationContextDAO {
   public async recordDeletionRun(input: RecordDeletionRunInput): Promise<ApplicationContextDeletionRun> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const deletionRunId: string = UUIDUtil.getRandomUUID();
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          INSERT INTO application_context_deletion_runs
-            (deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count,
-             mutation_ids, status, error_message, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-      )
-      .bind(
-        deletionRunId,
-        input.applicationId,
-        input.userEmail,
-        input.vectorNamespace,
-        input.requestedVectorCount,
-        input.deletedVectorCount,
-        JSON.stringify(input.mutationIds),
-        input.status,
-        input.errorMessage ? input.errorMessage.slice(0, 1024) : null,
-        now,
-        now,
-      )
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to record context deletion run: ${result.error}`);
-    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO application_context_deletion_runs
+                (deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count,
+                 mutation_ids, status, error_message, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+          )
+          .bind(
+            deletionRunId,
+            input.applicationId,
+            input.userEmail,
+            input.vectorNamespace,
+            input.requestedVectorCount,
+            input.deletedVectorCount,
+            JSON.stringify(input.mutationIds),
+            input.status,
+            input.errorMessage ? input.errorMessage.slice(0, 1024) : null,
+            now,
+            now,
+          )
+          .run(),
+      'record context deletion run',
+    );
     const run: ApplicationContextDeletionRun | undefined = await this.getDeletionRunById(deletionRunId);
     if (!run) throw new DatabaseError('Failed to load context deletion run after create.');
     return run;
   }
 
   public async deleteStaleDeletedDocuments(deletedBefore: number, limit: number): Promise<number> {
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          DELETE FROM application_context_documents
-          WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
-          LIMIT ?
-        `,
-      )
-      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete stale deleted context documents: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM application_context_documents
+              WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
+              LIMIT ?
+            `,
+          )
+          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit)
+          .run(),
+      'delete stale deleted context documents',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
   public async deleteStaleErrorDocuments(errorBefore: number, limit: number): Promise<number> {
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          DELETE FROM application_context_documents
-          WHERE status = ? AND updated_at < ?
-          LIMIT ?
-        `,
-      )
-      .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete stale error context documents: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM application_context_documents
+              WHERE status = ? AND updated_at < ?
+              LIMIT ?
+            `,
+          )
+          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit)
+          .run(),
+      'delete stale error context documents',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
   public async deleteOldDeletionRuns(olderThan: number, limit: number): Promise<number> {
-    const result: D1Result = await this.database
-      .prepare(
-        `
-          DELETE FROM application_context_deletion_runs
-          WHERE created_at < ?
-          LIMIT ?
-        `,
-      )
-      .bind(olderThan, limit)
-      .run();
-    if (!result.success) {
-      throw new DatabaseError(`Failed to delete old context deletion runs: ${result.error}`);
-    }
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM application_context_deletion_runs
+              WHERE created_at < ?
+              LIMIT ?
+            `,
+          )
+          .bind(olderThan, limit)
+          .run(),
+      'delete old context deletion runs',
+    );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
@@ -470,19 +479,20 @@ class ApplicationContextDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (const chunk of ApplicationContextDAO.chunk(vectorIds, 100)) {
       const placeholders: string = chunk.map((): string => '?').join(', ');
-      const result: D1Result = await this.database
-        .prepare(
-          `
-            UPDATE application_context_documents
-            SET status = ?, deleted_at = ?, updated_at = ?
-            WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
-          `,
-        )
-        .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, userEmail, ...chunk)
-        .run();
-      if (!result.success) {
-        throw new DatabaseError(`Failed to mark context documents deleted: ${result.error}`);
-      }
+      await executeD1WithRetry(
+        (): Promise<D1Result> =>
+          this.database
+            .prepare(
+              `
+                UPDATE application_context_documents
+                SET status = ?, deleted_at = ?, updated_at = ?
+                WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
+              `,
+            )
+            .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, userEmail, ...chunk)
+            .run(),
+        'mark context documents deleted',
+      );
     }
   }
 

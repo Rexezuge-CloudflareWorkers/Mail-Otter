@@ -59,6 +59,7 @@ const ApplicationFoldersQuerySchema = z.object({
 const UpdateApplicationWatchSettingsBodySchema = z.object({
   applicationId: UuidSchema,
   folderIds: z.array(nonEmptyStringSchema('folderIds', 512)).nullable(),
+  folderNames: z.record(nonEmptyStringSchema('folderNames.key', 512), nonEmptyStringSchema('folderNames.value', 512)).optional(),
 });
 
 const WatchApplicationBodySchema = z.object({

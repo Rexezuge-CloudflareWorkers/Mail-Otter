@@ -56,7 +56,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
                   messageId,
                   createD1SessionEnv(this.env),
                   resolved.enabledApplicationIds,
-                  { retryAttempt: context.attempt },
+                  { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
                 );
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
@@ -94,7 +94,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               outlookPayload.messageId,
               createD1SessionEnv(this.env),
               resolved.enabledApplicationIds,
-              { retryAttempt: context.attempt },
+              { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
             );
           } catch (error: unknown) {
             throw EmailProcessingWorkflow.toWorkflowError(error);

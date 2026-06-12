@@ -34,13 +34,14 @@ const ProviderConfig = {
   [PROVIDER_GOOGLE_GMAIL]: {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
-    scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
+    scope:
+      'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.compose https://www.googleapis.com/auth/calendar.events',
   },
   [PROVIDER_MICROSOFT_OUTLOOK]: {
     authorizationEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
     tokenEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
     scope:
-      'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access',
+      'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Calendars.ReadWrite offline_access',
   },
 } as const;
 

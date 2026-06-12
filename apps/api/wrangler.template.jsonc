@@ -102,6 +102,16 @@
       "store_id": "00000000000000000000000000000000",
       "secret_name": "mail-otter-aes-encryption-key",
     },
+    {
+      "binding": "ACTION_ENCRYPTION_KEY_SECRET",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "mail-otter-action-encryption-key",
+    },
+    {
+      "binding": "ACTION_SIGNING_SECRET",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "mail-otter-action-signing-secret",
+    },
   ],
   "vars": {
     "DEBUG_MODE": "false",
@@ -127,5 +137,8 @@
     "OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS": "60",
     "OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS": "3600",
     "OAUTH2_TOKEN_REFRESH_BATCH_SIZE": "25",
+    "ACTION_CALLBACK_BASE_URL": "",
+    "ACTION_DEFAULT_EXPIRY_HOURS": "168",
+    "ACTION_RETENTION_DAYS": "90",
   },
 }

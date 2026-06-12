@@ -7,6 +7,9 @@ import type {
   ApplicationContextDocumentStatus,
   ConnectedApplication,
   CurrentUser,
+  EmailAction,
+  EmailActionExecution,
+  EmailActionStatus,
   ProviderId,
 } from '../components/types';
 import { apiFetch, formatExpiryTimestamp, formatTimestamp, methodLabels, providerLabels, providerMethod, readJson } from '../components/utils';
@@ -28,7 +31,7 @@ const emptyForm: ApplicationFormState = {
   gmailPubsubTopicName: '',
 };
 
-type ActiveView = 'mailboxes' | 'context';
+type ActiveView = 'mailboxes' | 'context' | 'actions';
 
 function getInitialNotice(): { type: 'success' | 'error'; text: string } | null {
   const params = new URLSearchParams(window.location.search);
@@ -53,6 +56,12 @@ export default function SpaApp() {
   const [contextDocumentsCursor, setContextDocumentsCursor] = useState<string | undefined>();
   const [contextDeletionRuns, setContextDeletionRuns] = useState<ApplicationContextDeletionRun[]>([]);
   const [contextDeletionRunsCursor, setContextDeletionRunsCursor] = useState<string | undefined>();
+  const [actions, setActions] = useState<EmailAction[]>([]);
+  const [actionsCursor, setActionsCursor] = useState<string | undefined>();
+  const [actionApplicationId, setActionApplicationId] = useState<string>('');
+  const [actionStatus, setActionStatus] = useState<EmailActionStatus | ''>('');
+  const [actionExecutions, setActionExecutions] = useState<EmailActionExecution[]>([]);
+  const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [confirmDelete, setConfirmDelete] = useState<{ applicationId: string; displayName: string } | null>(null);
   const [availableFolders, setAvailableFolders] = useState<Array<{ id: string; name: string }> | null>(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -119,6 +128,20 @@ export default function SpaApp() {
     [auditApplicationId, auditStatus],
   );
 
+  const loadActions = useCallback(
+    async (append = false, cursor?: string | undefined) => {
+      const params = new URLSearchParams();
+      if (actionApplicationId) params.set('applicationId', actionApplicationId);
+      if (actionStatus) params.set('status', actionStatus);
+      if (cursor) params.set('cursor', cursor);
+      const data = await readJson<{ actions: EmailAction[]; nextCursor?: string }>(await apiFetch(`/user/actions?${params.toString()}`));
+      setActions((current) => (append ? [...current, ...data.actions] : data.actions));
+      setActionsCursor(data.nextCursor);
+      setSelectedActionId((current) => current || data.actions[0]?.actionId || '');
+    },
+    [actionApplicationId, actionStatus],
+  );
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -140,6 +163,14 @@ export default function SpaApp() {
       });
     }
   }, [activeView, authorized, loadContextAudit, showNotice]);
+
+  useEffect(() => {
+    if (authorized && activeView === 'actions') {
+      loadActions().catch((error: unknown): void => {
+        showNotice('error', error instanceof Error ? error.message : 'Unable to load actions.');
+      });
+    }
+  }, [activeView, authorized, loadActions, showNotice]);
 
   const resetForm = () => {
     setApplicationForm(emptyForm);
@@ -399,6 +430,39 @@ export default function SpaApp() {
     setContextDeletionRunsCursor(data.nextCursor);
   };
 
+  const loadMoreActions = async () => {
+    if (!actionsCursor) return;
+    await loadActions(true, actionsCursor);
+  };
+
+  const loadActionExecutions = async (actionId: string) => {
+    setSelectedActionId(actionId);
+    try {
+      const data = await readJson<{ executions: EmailActionExecution[] }>(
+        await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/executions`),
+      );
+      setActionExecutions(data.executions);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to load action audit.');
+    }
+  };
+
+  const executeAction = async (actionId: string) => {
+    setIsBusy(true);
+    try {
+      const data = await readJson<{ action: EmailAction }>(
+        await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/execute`, { method: 'POST' }),
+      );
+      setActions((current) => current.map((action) => (action.actionId === data.action.actionId ? data.action : action)));
+      await loadActionExecutions(actionId);
+      showNotice(data.action.status === 'succeeded' ? 'success' : 'error', data.action.result?.summary || data.action.errorMessage || data.action.status);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to execute action.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const openContextDocumentInProvider = async (contextDocumentId: string) => {
     try {
       const data = await readJson<{ url: string }>(
@@ -442,6 +506,12 @@ export default function SpaApp() {
                 onClick={() => setActiveView('context')}
               >
                 Context Audit
+              </button>
+              <button
+                className={`px-3 py-1 rounded ${activeView === 'actions' ? 'bg-[#2d3745] text-white' : 'hover:text-white'}`}
+                onClick={() => setActiveView('actions')}
+              >
+                Actions
               </button>
             </div>
           </div>
@@ -716,7 +786,7 @@ export default function SpaApp() {
             )}
           </section>
         </main>
-      ) : (
+      ) : activeView === 'context' ? (
         <ContextAuditView
           applications={applications}
           applicationId={auditApplicationId}
@@ -733,6 +803,23 @@ export default function SpaApp() {
           onOpenProviderDocument={openContextDocumentInProvider}
           onToggleIndexing={updateContextIndexing}
           onDeleteDocuments={deleteContextDocuments}
+          busy={isBusy}
+        />
+      ) : (
+        <ActionsView
+          applications={applications}
+          applicationId={actionApplicationId}
+          setApplicationId={setActionApplicationId}
+          status={actionStatus}
+          setStatus={setActionStatus}
+          actions={actions}
+          actionsCursor={actionsCursor}
+          selectedActionId={selectedActionId}
+          executions={actionExecutions}
+          onRefresh={() => loadActions()}
+          onLoadMore={loadMoreActions}
+          onSelectAction={loadActionExecutions}
+          onExecuteAction={executeAction}
           busy={isBusy}
         />
       )}
@@ -815,6 +902,243 @@ function ContextBadge({ enabled }: { enabled: boolean }) {
     <span className={`px-2 py-1 rounded text-xs font-medium ${enabled ? 'bg-[#12362f] text-[#6ee7b7]' : 'bg-[#2d3745] text-[#cbd5e1]'}`}>
       CONTEXT {enabled ? 'ON' : 'OFF'}
     </span>
+  );
+}
+
+function ActionStatusBadge({ status }: { status: EmailActionStatus }) {
+  const className =
+    status === 'succeeded'
+      ? 'bg-[#12362f] text-[#6ee7b7]'
+      : status === 'failed' || status === 'expired'
+        ? 'bg-[#3a1f23] text-[#fecaca]'
+        : status === 'executing'
+          ? 'bg-[#1e3a5f] text-[#bfdbfe]'
+          : 'bg-[#3b2f16] text-[#fbbf24]';
+  return <span className={`px-2 py-1 rounded text-xs font-medium ${className}`}>{status.toUpperCase()}</span>;
+}
+
+function ActionsView({
+  applications,
+  applicationId,
+  setApplicationId,
+  status,
+  setStatus,
+  actions,
+  actionsCursor,
+  selectedActionId,
+  executions,
+  onRefresh,
+  onLoadMore,
+  onSelectAction,
+  onExecuteAction,
+  busy,
+}: {
+  applications: ConnectedApplication[];
+  applicationId: string;
+  setApplicationId: (applicationId: string) => void;
+  status: EmailActionStatus | '';
+  setStatus: (status: EmailActionStatus | '') => void;
+  actions: EmailAction[];
+  actionsCursor?: string | undefined;
+  selectedActionId: string;
+  executions: EmailActionExecution[];
+  onRefresh: () => void;
+  onLoadMore: () => void;
+  onSelectAction: (actionId: string) => void;
+  onExecuteAction: (actionId: string) => void;
+  busy: boolean;
+}) {
+  const selectedAction = actions.find((action) => action.actionId === selectedActionId);
+  return (
+    <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Actions</h1>
+          <p className="text-sm text-[#aab4c2] mt-1">Review AI-proposed actions, execution results, audit trail, and expiry.</p>
+        </div>
+        <button className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]" onClick={onRefresh} disabled={busy}>
+          Refresh
+        </button>
+      </div>
+
+      <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5 flex flex-col md:flex-row gap-4">
+        <label className="text-sm text-[#d1d5db] flex flex-col gap-2">
+          Mailbox
+          <select
+            value={applicationId}
+            onChange={(event) => setApplicationId(event.target.value)}
+            className="px-3 py-2 rounded bg-[#0e131b] border border-[#2d3745] text-white"
+          >
+            <option value="">All mailboxes</option>
+            {applications.map((application) => (
+              <option key={application.applicationId} value={application.applicationId}>
+                {application.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-[#d1d5db] flex flex-col gap-2">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value as EmailActionStatus | '')}
+            className="px-3 py-2 rounded bg-[#0e131b] border border-[#2d3745] text-white"
+          >
+            <option value="">All statuses</option>
+            {['pending', 'executing', 'succeeded', 'failed', 'expired', 'cancelled'].map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-6">
+        <section className="rounded-md border border-[#2d3745] bg-[#171c25] overflow-hidden">
+          <div className="p-5 border-b border-[#2d3745] flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Action Items</h2>
+            <span className="text-sm text-[#aab4c2]">{actions.length} loaded</span>
+          </div>
+          <div className="divide-y divide-[#2d3745]">
+            {actions.map((action) => (
+              <button
+                key={action.actionId}
+                onClick={() => onSelectAction(action.actionId)}
+                className={`w-full text-left p-5 hover:bg-[#1d2430] ${selectedActionId === action.actionId ? 'bg-[#17221f]' : ''}`}
+              >
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-white truncate">{action.title}</div>
+                    <div className="text-sm text-[#aab4c2] mt-1">{action.description}</div>
+                    <div className="text-xs text-[#7d8896] mt-2">
+                      {action.actionType} / expires {formatExpiryTimestamp(action.expiresAt)} / updated {formatTimestamp(action.updatedAt)}
+                    </div>
+                  </div>
+                  <ActionStatusBadge status={action.status} />
+                </div>
+              </button>
+            ))}
+            {actions.length === 0 && <div className="p-8 text-center text-[#aab4c2]">No actions found.</div>}
+          </div>
+          {actionsCursor && (
+            <div className="p-4 border-t border-[#2d3745]">
+              <button className="px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655]" onClick={onLoadMore} disabled={busy}>
+                Load More
+              </button>
+            </div>
+          )}
+        </section>
+
+        <aside className="space-y-6">
+          {selectedAction ? (
+            <>
+              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-semibold">{selectedAction.title}</h2>
+                    <p className="text-sm text-[#aab4c2] mt-1">{selectedAction.description}</p>
+                  </div>
+                  <ActionStatusBadge status={selectedAction.status} />
+                </div>
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <Metric label="Type" value={selectedAction.actionType} />
+                  <Metric label="Risk" value={selectedAction.riskLevel} />
+                  <Metric label="Expires" value={formatExpiryTimestamp(selectedAction.expiresAt)} />
+                  <Metric label="Executed" value={formatTimestamp(selectedAction.executedAt)} />
+                </div>
+                <ActionPayloadDetails action={selectedAction} />
+                {selectedAction.result && (
+                  <div className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm">
+                    <div className="font-medium text-white mb-1">Result</div>
+                    <div className="text-[#d1d5db]">{selectedAction.result.summary}</div>
+                    {(selectedAction.result.providerUrl || selectedAction.result.externalUrl) && (
+                      <a
+                        className="inline-block mt-2 text-[#6ee7b7] hover:underline"
+                        href={selectedAction.result.providerUrl || selectedAction.result.externalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open result
+                      </a>
+                    )}
+                  </div>
+                )}
+                {selectedAction.errorMessage && <div className="text-sm text-[#fca5a5]">{selectedAction.errorMessage}</div>}
+                <button
+                  className="px-4 py-2 rounded-md bg-[#0f766e] hover:bg-[#0d9488] disabled:opacity-50"
+                  disabled={busy || selectedAction.status !== 'pending'}
+                  onClick={() => onExecuteAction(selectedAction.actionId)}
+                >
+                  Execute From UI
+                </button>
+              </div>
+
+              <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Audit</h2>
+                  <button className="px-3 py-1.5 rounded-md bg-[#2d3745] hover:bg-[#3b4655] text-sm" onClick={() => onSelectAction(selectedAction.actionId)}>
+                    Refresh Audit
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {executions.map((execution) => (
+                    <div key={execution.executionId} className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-white">Attempt {execution.attempt}</span>
+                        <ActionStatusBadge status={execution.status} />
+                      </div>
+                      <div className="text-[#aab4c2] mt-1">{execution.triggeredBy} / {formatTimestamp(execution.createdAt)}</div>
+                      {execution.providerOperationId && <div className="text-[#7d8896] mt-1">Provider ID: {execution.providerOperationId}</div>}
+                      {execution.errorMessage && <div className="text-[#fca5a5] mt-1">{execution.errorMessage}</div>}
+                    </div>
+                  ))}
+                  {executions.length === 0 && <div className="text-sm text-[#aab4c2]">No execution attempts recorded.</div>}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-md border border-[#2d3745] bg-[#171c25] p-8 text-center text-[#aab4c2]">Select an action.</div>
+          )}
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function ActionPayloadDetails({ action }: { action: EmailAction }) {
+  const payload = action.payload;
+  if (payload.type === 'calendar.add_event') {
+    return (
+      <div className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm text-[#d1d5db]">
+        <div className="font-medium text-white mb-1">Calendar Event</div>
+        <div>{String(payload.eventTitle || action.title)}</div>
+        <div>{String(payload.startTime || '')} to {String(payload.endTime || '')}</div>
+        {payload.location ? <div>{String(payload.location)}</div> : null}
+      </div>
+    );
+  }
+  if (payload.type === 'email.draft_reply') {
+    return (
+      <div className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm text-[#d1d5db]">
+        <div className="font-medium text-white mb-1">Draft Reply</div>
+        <pre className="whitespace-pre-wrap font-sans">{String(payload.draftBody || '')}</pre>
+      </div>
+    );
+  }
+  if (payload.type === 'external.open_link') {
+    return (
+      <div className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm text-[#d1d5db]">
+        <div className="font-medium text-white mb-1">External Link</div>
+        <div className="break-all">{String(payload.url || '')}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded bg-[#0e131b] border border-[#2d3745] p-3 text-sm text-[#d1d5db]">
+      <div className="font-medium text-white mb-1">Manual Todo</div>
+      <div>{String(payload.instructions || action.description)}</div>
+    </div>
   );
 }
 

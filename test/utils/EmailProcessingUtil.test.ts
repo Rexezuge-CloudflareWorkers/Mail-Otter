@@ -9,6 +9,7 @@ import { AiSummaryRetryableError, NonRetryableError, RetryableError } from '@mai
 describe('EmailProcessingUtil', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(ProcessedMessageDAO.prototype, 'getByMessageId').mockResolvedValue(createProcessedMessage());
   });
 
   describe('resolveApplication', () => {
@@ -360,6 +361,19 @@ function createOutlookMessage(overrides: Partial<OutlookMessage> = {}): OutlookM
   };
 }
 
+function createProcessedMessage() {
+  return {
+    processedMessageId: 'processed-message-1',
+    applicationId: 'app-1',
+    providerId: 'microsoft-outlook',
+    providerMessageId: 'message-1',
+    providerThreadId: 'conversation-1',
+    status: 'processing',
+    createdAt: 1778200000,
+    updatedAt: 1778200000,
+  } as never;
+}
+
 function createEnv(overrides: Partial<EmailProcessingEnv> = {}): EmailProcessingEnv {
   return {
     DB: {} as D1Database,
@@ -368,6 +382,12 @@ function createEnv(overrides: Partial<EmailProcessingEnv> = {}): EmailProcessing
     } as never,
     OAUTH2_TOKEN_CACHE: {} as KVNamespace,
     OAUTH2_TOKEN_REFRESHERS: {} as DurableObjectNamespace,
+    ACTION_ENCRYPTION_KEY_SECRET: {
+      get: vi.fn().mockResolvedValue('action-master-key'),
+    } as never,
+    ACTION_SIGNING_SECRET: {
+      get: vi.fn().mockResolvedValue('action-signing-secret'),
+    } as never,
     AI: {} as Ai,
     AI_DAILY_NEURON_FALLBACK_THRESHOLD: '0',
     ...overrides,

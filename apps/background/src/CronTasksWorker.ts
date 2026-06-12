@@ -4,6 +4,7 @@ import {
   AiDailyUsagePruningTask,
   ContextDeletionRunPruningTask,
   ContextDocumentPruningTask,
+  EmailActionPruningTask,
   OAuth2AccessTokenRefreshTask,
   OAuth2SessionPruningTask,
   ProcessedMessagePruningTask,
@@ -84,6 +85,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
       new OAuth2SessionPruningTask().handle(event, this.env, ctx),
       new ContextDeletionRunPruningTask().handle(event, this.env, ctx),
       new AiDailyUsagePruningTask().handle(event, this.env, ctx),
+      new EmailActionPruningTask().handle(event, this.env, ctx),
     ]);
   }
 }

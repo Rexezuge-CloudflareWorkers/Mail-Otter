@@ -3,6 +3,7 @@ import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { OutlookWebhookService } from '@mail-otter/backend-services/webhook';
+import { BaseUrlUtil } from '@mail-otter/shared/utils';
 
 class OutlookWebhookRoute extends IBaseRoute<OutlookWebhookRequest, OutlookWebhookResponse, OutlookWebhookEnv> {
   schema = {
@@ -30,7 +31,7 @@ class OutlookWebhookRoute extends IBaseRoute<OutlookWebhookRequest, OutlookWebho
     }
     const applicationId: string | undefined = cxt.req.param('applicationId');
     if (!applicationId) throw new BadRequestError('Outlook webhook is missing applicationId.');
-    await OutlookWebhookService.handleNotifications(applicationId, request.value || [], env);
+    await OutlookWebhookService.handleNotifications(applicationId, request.value || [], env, BaseUrlUtil.getBaseUrl(request.raw));
     return {
       statusCode: 202,
       body: { message: 'accepted' },

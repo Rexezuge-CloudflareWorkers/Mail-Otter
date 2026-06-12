@@ -25,6 +25,26 @@ interface OutlookMessage {
   from?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
   sender?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
   internetMessageHeaders?: Array<{ name: string; value: string }> | undefined;
+  webLink?: string | undefined;
+}
+
+interface OutlookCalendarEventInput {
+  eventTitle: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string;
+  location?: string | undefined;
+  notes?: string | undefined;
+}
+
+interface OutlookCalendarEventResult {
+  id?: string | undefined;
+  webLink?: string | undefined;
+}
+
+interface OutlookDraftReplyResult {
+  id?: string | undefined;
+  webLink?: string | undefined;
 }
 
 class OutlookProviderUtil {
@@ -138,6 +158,49 @@ class OutlookProviderUtil {
     return EmailContentUtil.normalizeText(content);
   }
 
+  public static async createCalendarEvent(accessToken: string, input: OutlookCalendarEventInput): Promise<OutlookCalendarEventResult> {
+    return OutlookProviderUtil.fetchJson<OutlookCalendarEventResult>('https://graph.microsoft.com/v1.0/me/events', accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: input.eventTitle,
+        body: {
+          contentType: 'text',
+          content: input.notes || '',
+        },
+        start: {
+          dateTime: input.startTime,
+          timeZone: input.timeZone,
+        },
+        end: {
+          dateTime: input.endTime,
+          timeZone: input.timeZone,
+        },
+        ...(input.location ? { location: { displayName: input.location } } : {}),
+      }),
+    });
+  }
+
+  public static async createDraftReply(
+    accessToken: string,
+    originalMessageId: string,
+    draftBody: string,
+  ): Promise<OutlookDraftReplyResult> {
+    const draft = await OutlookProviderUtil.fetchJson<OutlookDraftReplyResult>(
+      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessageId)}/createReply`,
+      accessToken,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: draftBody }),
+      },
+    );
+    if (!draft.id) {
+      throw new ProviderApiRetryableError('Microsoft Graph createReply did not return a draft id.');
+    }
+    return draft;
+  }
+
   public static async sendSelfSummaryReply(
     accessToken: string,
     originalMessage: OutlookMessage,
@@ -248,4 +311,12 @@ class OutlookProviderUtil {
 }
 
 export { OutlookProviderUtil };
-export type { OutlookMailboxProfile, OutlookMailFolder, OutlookMessage, OutlookSubscriptionResult };
+export type {
+  OutlookCalendarEventInput,
+  OutlookCalendarEventResult,
+  OutlookDraftReplyResult,
+  OutlookMailboxProfile,
+  OutlookMailFolder,
+  OutlookMessage,
+  OutlookSubscriptionResult,
+};

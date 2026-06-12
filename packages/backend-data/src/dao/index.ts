@@ -4,6 +4,8 @@ export type { AiDailyUsage, IncrementAiDailyUsageInput } from './AiDailyUsageDAO
 export { ApplicationContextDAO } from './ApplicationContextDAO';
 export type { OverLimitApplication } from './ApplicationContextDAO';
 export { ConnectedApplicationDAO } from './ConnectedApplicationDAO';
+export { EmailActionDAO } from './EmailActionDAO';
+export type { CreateEmailActionInput, ListEmailActionsInput, RecordEmailActionExecutionInput } from './EmailActionDAO';
 export { IKeyValueDAO } from './IKeyValueDAO';
 export { OAuth2AccessTokenCacheDAO } from './OAuth2AccessTokenCacheDAO';
 export { OAuth2AccessTokenRefreshStatusDAO } from './OAuth2AccessTokenRefreshStatusDAO';

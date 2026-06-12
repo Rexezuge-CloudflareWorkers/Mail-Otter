@@ -9,6 +9,7 @@ const { taskSpies } = vi.hoisted(() => ({
     oauth2SessionPruning: vi.fn(),
     contextDeletionRunPruning: vi.fn(),
     aiDailyUsagePruning: vi.fn(),
+    emailActionPruning: vi.fn(),
     subscriptionRenewal: vi.fn(),
   },
 }));
@@ -34,6 +35,9 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
   AiDailyUsagePruningTask: class {
     handle = taskSpies.aiDailyUsagePruning;
+  },
+  EmailActionPruningTask: class {
+    handle = taskSpies.emailActionPruning;
   },
 }));
 
@@ -84,6 +88,7 @@ describe('CronTasksWorker', () => {
     taskSpies.oauth2SessionPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.contextDeletionRunPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.aiDailyUsagePruning.mockReset().mockResolvedValue(undefined);
+    taskSpies.emailActionPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.subscriptionRenewal.mockReset().mockResolvedValue(undefined);
   });
 
@@ -101,6 +106,7 @@ describe('CronTasksWorker', () => {
     expect(taskSpies.oauth2SessionPruning).toHaveBeenCalledOnce();
     expect(taskSpies.contextDeletionRunPruning).toHaveBeenCalledOnce();
     expect(taskSpies.aiDailyUsagePruning).toHaveBeenCalledOnce();
+    expect(taskSpies.emailActionPruning).toHaveBeenCalledOnce();
     expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith(expect.objectContaining({ DB: expect.any(Object) }));
     expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.contextPruning.mock.invocationCallOrder[0]);
     expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.processedMessagePruning.mock.invocationCallOrder[0]);

@@ -6,12 +6,17 @@ import {
   CreateOAuth2AuthorizationRoute,
   DeleteApplicationRoute,
   DeleteApplicationContextDocumentsRoute,
+  ExecuteActionCallbackRoute,
+  ExecuteUserEmailActionRoute,
+  GetActionConfirmationRoute,
   GetCurrentUserRoute,
   GetApplicationContextDocumentProviderLinkRoute,
   GetApplicationFoldersRoute,
   GmailWebhookRoute,
   ListApplicationContextDeletionRunsRoute,
   ListApplicationContextDocumentsRoute,
+  ListEmailActionExecutionsRoute,
+  ListEmailActionsRoute,
   ListApplicationsRoute,
   OAuth2CallbackRoute,
   OutlookLifecycleWebhookRoute,
@@ -82,6 +87,9 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/user/application/context/documents', ListApplicationContextDocumentsRoute);
     openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);
     openapi.get('/user/application/context/document/:contextDocumentId/provider-link', GetApplicationContextDocumentProviderLinkRoute);
+    openapi.get('/user/actions', ListEmailActionsRoute);
+    openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);
+    openapi.post('/user/actions/:actionId/execute', ExecuteUserEmailActionRoute);
     openapi.get('/user/application/folders', GetApplicationFoldersRoute);
     openapi.put('/user/application/watch-settings', UpdateApplicationWatchSettingsRoute);
     openapi.post('/user/application/oauth2/authorize', CreateOAuth2AuthorizationRoute);
@@ -89,6 +97,8 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.post('/user/application/stop', StopApplicationWatchRoute);
 
     openapi.get('/api/oauth2/callback/:applicationId', OAuth2CallbackRoute);
+    openapi.get('/api/actions/:actionId', GetActionConfirmationRoute);
+    openapi.post('/api/actions/:actionId/execute', ExecuteActionCallbackRoute);
     openapi.post('/api/webhooks/gmail/:applicationId', GmailWebhookRoute);
     openapi.get('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);
     openapi.post('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);

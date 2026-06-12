@@ -8,6 +8,12 @@ const normalizePathname = (pathname: string): string => {
   if (/^\/api\/oauth2\/callback\/[^/]+$/.test(path)) {
     return '/api/oauth2/callback/:applicationId';
   }
+  if (/^\/api\/actions\/[^/]+\/execute$/.test(path)) {
+    return '/api/actions/:actionId/execute';
+  }
+  if (/^\/api\/actions\/[^/]+$/.test(path)) {
+    return '/api/actions/:actionId';
+  }
   if (/^\/api\/webhooks\/gmail\/[^/]+$/.test(path)) {
     return '/api/webhooks/gmail/:applicationId';
   }
@@ -19,6 +25,12 @@ const normalizePathname = (pathname: string): string => {
   }
   if (/^\/user\/application\/context\/document\/[^/]+\/provider-link$/.test(path)) {
     return '/user/application/context/document/:contextDocumentId/provider-link';
+  }
+  if (/^\/user\/actions\/[^/]+\/executions$/.test(path)) {
+    return '/user/actions/:actionId/executions';
+  }
+  if (/^\/user\/actions\/[^/]+\/execute$/.test(path)) {
+    return '/user/actions/:actionId/execute';
   }
   return path;
 };

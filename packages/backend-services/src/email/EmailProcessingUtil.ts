@@ -6,18 +6,20 @@ import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { GmailMessage } from '@mail-otter/provider-clients/gmail';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
-import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
+import type { ConnectedApplication, EmailActionProposal, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { AiSummaryRetryableError, BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { ProviderId } from '@mail-otter/shared/constants';
+import { ActionService } from '../action';
+import type { CreatedEmailAction } from '../action';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
 import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 
-const EMAIL_SUMMARY_MAX_COMPLETION_TOKENS = 512;
+const EMAIL_SUMMARY_MAX_COMPLETION_TOKENS = 1200;
 
 class EmailProcessingUtil {
   public static async resolveApplication(message: EmailQueueMessage, env: EmailProcessingEnv): Promise<ResolvedApplication> {
@@ -94,8 +96,23 @@ class EmailProcessingUtil {
         sourceDocumentId: message.id,
         sourceThreadId: message.threadId,
       });
-      const summary: string = await EmailProcessingUtil.summarize(env, application, subject, from, extracted.text, ragContext);
-      await GmailProviderUtil.sendSummaryReply(accessToken, application.providerEmail!, message, summary);
+      const summary: EmailProcessingSummary = await EmailProcessingUtil.summarize(env, application, subject, from, extracted.text, ragContext);
+      const processedMessage = await processedDAO.getByMessageId(application.applicationId, message.id);
+      const actions: CreatedEmailAction[] = processedMessage
+        ? await ActionService.createActionsForSummary(
+            {
+              application,
+              processedMessage,
+              subject,
+              from,
+              body: extracted.text,
+              proposals: summary.actionProposals,
+              callbackBaseUrl: options.callbackBaseUrl,
+            },
+            env,
+          )
+        : [];
+      await GmailProviderUtil.sendSummaryReply(accessToken, application.providerEmail!, message, EmailProcessingUtil.withActionSection(summary.html, actions));
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
       const processingError: Error = EmailProcessingUtil.classifyError(error);
@@ -178,8 +195,23 @@ class EmailProcessingUtil {
         sourceDocumentId: message.id,
         sourceThreadId: message.conversationId || null,
       });
-      const summary: string = await EmailProcessingUtil.summarize(env, application, subject, from, body, ragContext);
-      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message, application.providerEmail!, summary);
+      const summary: EmailProcessingSummary = await EmailProcessingUtil.summarize(env, application, subject, from, body, ragContext);
+      const processedMessage = await processedDAO.getByMessageId(application.applicationId, message.id);
+      const actions: CreatedEmailAction[] = processedMessage
+        ? await ActionService.createActionsForSummary(
+            {
+              application,
+              processedMessage,
+              subject,
+              from,
+              body,
+              proposals: summary.actionProposals,
+              callbackBaseUrl: options.callbackBaseUrl,
+            },
+            env,
+          )
+        : [];
+      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message, application.providerEmail!, EmailProcessingUtil.withActionSection(summary.html, actions));
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
       const processingError: Error = EmailProcessingUtil.classifyError(error);
@@ -195,7 +227,7 @@ class EmailProcessingUtil {
     from: string,
     body: string,
     ragContext?: string | undefined,
-  ): Promise<string> {
+  ): Promise<EmailProcessingSummary> {
     const maxChars: number = ConfigurationManager.getMaxEmailBodyChars(env);
     const bodyText: string = body || '(empty message body)';
     const input: string = EmailContentUtil.truncate(bodyText, maxChars);
@@ -227,28 +259,36 @@ class EmailProcessingUtil {
       promptText,
       result.summary,
     );
-    if (!ConfigurationManager.getDebugMode(env)) return result.summary;
+    if (!ConfigurationManager.getDebugMode(env)) return { html: result.summary, actionProposals: result.actionProposals ?? [] };
 
     const applicationName: string = application.displayName || application.applicationId;
-    return [
-      result.summary,
-      '<hr>',
-      '<pre style="font-size:11px;color:#666;white-space:pre-wrap;">',
-      '--- Debug Informations ---',
-      `Generated at: ${new Date().toISOString()}`,
-      `Provider: ${application.providerId}`,
-      `Application: ${applicationName} (${application.applicationId})`,
-      `Model: ${model}`,
-      `Input chars: ${input.length} / ${maxChars}${bodyText.length > input.length ? ' (truncated)' : ''}`,
-      `RAG context: ${ragContext ? `used, ${ragContext.length} chars` : 'not used'}`,
-      [
-        `AI usage: prompt=${EmailProcessingUtil.formatDebugNumber(result.usage?.promptTokens)}`,
-        `completion=${EmailProcessingUtil.formatDebugNumber(result.usage?.completionTokens)}`,
-        `total=${EmailProcessingUtil.formatDebugNumber(result.usage?.totalTokens)}`,
-        `estimatedNeurons=${EmailProcessingUtil.formatDebugNumber(usageEstimate?.estimatedNeurons)}`,
-      ].join(' '),
-      '</pre>',
-    ].join('\n');
+    return {
+      html: [
+        result.summary,
+        '<hr>',
+        '<pre style="font-size:11px;color:#666;white-space:pre-wrap;">',
+        '--- Debug Informations ---',
+        `Generated at: ${new Date().toISOString()}`,
+        `Provider: ${application.providerId}`,
+        `Application: ${applicationName} (${application.applicationId})`,
+        `Model: ${model}`,
+        `Input chars: ${input.length} / ${maxChars}${bodyText.length > input.length ? ' (truncated)' : ''}`,
+        `RAG context: ${ragContext ? `used, ${ragContext.length} chars` : 'not used'}`,
+        [
+          `AI usage: prompt=${EmailProcessingUtil.formatDebugNumber(result.usage?.promptTokens)}`,
+          `completion=${EmailProcessingUtil.formatDebugNumber(result.usage?.completionTokens)}`,
+          `total=${EmailProcessingUtil.formatDebugNumber(result.usage?.totalTokens)}`,
+          `estimatedNeurons=${EmailProcessingUtil.formatDebugNumber(usageEstimate?.estimatedNeurons)}`,
+        ].join(' '),
+        '</pre>',
+      ].join('\n'),
+      actionProposals: result.actionProposals ?? [],
+    };
+  }
+
+  private static withActionSection(summaryHtml: string, actions: CreatedEmailAction[]): string {
+    const actionSection: string = ActionService.renderEmailActionSection(actions);
+    return actionSection ? [summaryHtml, actionSection].join('\n') : summaryHtml;
   }
 
   private static async resolveSummaryModel(env: EmailProcessingEnv, estimatedPromptText: string): Promise<string> {
@@ -372,11 +412,18 @@ interface GmailMessageList {
   subscriptionId: string;
 }
 
+interface EmailProcessingSummary {
+  html: string;
+  actionProposals: EmailActionProposal[];
+}
+
 interface EmailProcessingEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
+  ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+  ACTION_SIGNING_SECRET: SecretsStoreSecret;
   AI: Ai;
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
@@ -390,10 +437,13 @@ interface EmailProcessingEnv {
   MAX_RAG_CONTEXT_CHARS?: string | undefined;
   RAG_TOP_K?: string | undefined;
   RAG_VECTOR_QUERY_TOP_K?: string | undefined;
+  ACTION_CALLBACK_BASE_URL?: string | undefined;
+  ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
 }
 
 interface EmailProcessingOptions {
   retryAttempt?: number | undefined;
+  callbackBaseUrl?: string | undefined;
 }
 
 export { EmailProcessingUtil };

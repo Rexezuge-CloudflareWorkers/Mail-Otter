@@ -18,6 +18,7 @@ class GmailWebhookService {
       applicationId: input.applicationId,
       notificationHistoryId: decoded.historyId,
       pubsubMessageId: input.pubsubMessageId,
+      callbackBaseUrl: input.callbackBaseUrl,
     });
     await subscriptionDAO.touchNotification(subscription.subscriptionId);
   }
@@ -28,6 +29,7 @@ interface GmailWebhookInput {
   token: string | null;
   messageData: string;
   pubsubMessageId?: string | undefined;
+  callbackBaseUrl?: string | undefined;
 }
 
 interface GmailNotificationData {

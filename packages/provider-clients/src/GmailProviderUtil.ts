@@ -30,6 +30,25 @@ interface GmailLabel {
   type: string;
 }
 
+interface GmailCalendarEventInput {
+  eventTitle: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string;
+  location?: string | undefined;
+  notes?: string | undefined;
+}
+
+interface GmailCalendarEventResult {
+  id?: string | undefined;
+  htmlLink?: string | undefined;
+}
+
+interface GmailDraftReplyResult {
+  id?: string | undefined;
+  message?: { id?: string | undefined; threadId?: string | undefined } | undefined;
+}
+
 class GmailProviderUtil {
   public static async getProfile(accessToken: string): Promise<GmailProfile> {
     return GmailProviderUtil.fetchJson<GmailProfile>('https://gmail.googleapis.com/gmail/v1/users/me/profile', accessToken);
@@ -106,6 +125,40 @@ class GmailProviderUtil {
     return GmailProviderUtil.fetchJson<GmailMessage>(url.toString(), accessToken);
   }
 
+  public static async createCalendarEvent(accessToken: string, input: GmailCalendarEventInput): Promise<GmailCalendarEventResult> {
+    return GmailProviderUtil.fetchJson<GmailCalendarEventResult>('https://www.googleapis.com/calendar/v3/calendars/primary/events', accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summary: input.eventTitle,
+        description: input.notes || undefined,
+        location: input.location || undefined,
+        start: { dateTime: input.startTime, timeZone: input.timeZone },
+        end: { dateTime: input.endTime, timeZone: input.timeZone },
+      }),
+    });
+  }
+
+  public static async createDraftReply(
+    accessToken: string,
+    from: string,
+    originalMessage: GmailMessage,
+    draftBody: string,
+    draftSubject?: string | undefined,
+  ): Promise<GmailDraftReplyResult> {
+    const message: string = GmailProviderUtil.createDraftReplyMimeMessage(from, originalMessage, draftBody, draftSubject);
+    return GmailProviderUtil.fetchJson<GmailDraftReplyResult>('https://gmail.googleapis.com/gmail/v1/users/me/drafts', accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          threadId: originalMessage.threadId,
+          raw: WebhookSecurityUtil.base64UrlEncodeString(message),
+        },
+      }),
+    });
+  }
+
   public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string): Promise<void> {
     const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
     const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
@@ -157,9 +210,12 @@ class GmailProviderUtil {
     }
   }
 
-  private static async fetchJson<T>(url: string, accessToken: string): Promise<T> {
+  private static async fetchJson<T>(url: string, accessToken: string, init: RequestInit = {}): Promise<T> {
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', `Bearer ${accessToken}`);
     const response: Response = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      ...init,
+      headers,
     });
     const text: string = await response.text();
     const data = text ? (JSON.parse(text) as T & { error?: { message?: string } }) : ({} as T & { error?: { message?: string } });
@@ -185,6 +241,32 @@ class GmailProviderUtil {
     const safeSeed: string = seed.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'message';
     return `mail-otter-summary-${safeSeed}`;
   }
+
+  private static createDraftReplyMimeMessage(
+    from: string,
+    originalMessage: GmailMessage,
+    draftBody: string,
+    draftSubject?: string | undefined,
+  ): string {
+    const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
+    const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
+    const originalMessageId: string | undefined = EmailContentUtil.getHeader(headers, 'Message-ID');
+    const originalReferences: string | undefined = EmailContentUtil.getHeader(headers, 'References');
+    const replySubject: string = draftSubject || (/^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`);
+    const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
+    return [
+      `From: ${from}`,
+      `To: ${EmailContentUtil.getHeader(headers, 'From') || ''}`,
+      `Subject: ${replySubject}`,
+      ...(originalMessageId ? [`In-Reply-To: ${originalMessageId}`] : []),
+      ...(references ? [`References: ${references}`] : []),
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      draftBody,
+    ].join('\r\n');
+  }
 }
 
 interface GmailHistoryListResponse {
@@ -202,4 +284,13 @@ interface GmailHistoryListResponse {
 }
 
 export { GmailProviderUtil };
-export type { GmailHistoryResult, GmailLabel, GmailMessage, GmailProfile, GmailWatchResult };
+export type {
+  GmailCalendarEventInput,
+  GmailCalendarEventResult,
+  GmailDraftReplyResult,
+  GmailHistoryResult,
+  GmailLabel,
+  GmailMessage,
+  GmailProfile,
+  GmailWatchResult,
+};

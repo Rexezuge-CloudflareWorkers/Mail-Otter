@@ -3,6 +3,7 @@ import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { GmailWebhookService } from '@mail-otter/backend-services/webhook';
+import { BaseUrlUtil } from '@mail-otter/shared/utils';
 
 class GmailWebhookRoute extends IBaseRoute<GmailWebhookRequest, GmailWebhookResponse, GmailWebhookEnv> {
   schema = {
@@ -29,6 +30,7 @@ class GmailWebhookRoute extends IBaseRoute<GmailWebhookRequest, GmailWebhookResp
         token,
         messageData: request.message.data,
         pubsubMessageId: request.message.messageId,
+        callbackBaseUrl: BaseUrlUtil.getBaseUrl(request.raw),
       },
       env,
     );

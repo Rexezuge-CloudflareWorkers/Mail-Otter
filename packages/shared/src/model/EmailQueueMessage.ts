@@ -3,6 +3,7 @@ interface GmailNotificationQueueMessage {
   applicationId: string;
   notificationHistoryId: string;
   pubsubMessageId?: string | undefined;
+  callbackBaseUrl?: string | undefined;
 }
 
 interface OutlookNotificationQueueMessage {
@@ -10,6 +11,7 @@ interface OutlookNotificationQueueMessage {
   applicationId: string;
   subscriptionId: string;
   messageId: string;
+  callbackBaseUrl?: string | undefined;
 }
 
 type EmailQueueMessage = GmailNotificationQueueMessage | OutlookNotificationQueueMessage;

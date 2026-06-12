@@ -1,4 +1,7 @@
 import {
+  DEFAULT_ACTION_CALLBACK_BASE_URL,
+  DEFAULT_ACTION_DEFAULT_EXPIRY_HOURS,
+  DEFAULT_ACTION_RETENTION_DAYS,
   DEFAULT_AI_DAILY_NEURON_FALLBACK_THRESHOLD,
   DEFAULT_AI_DAILY_USAGE_RETENTION_DAYS,
   DEFAULT_AI_EMBEDDING_MODEL,
@@ -172,6 +175,18 @@ class ConfigurationManager {
 
   public static getAiDailyUsageRetentionDays(env: unknown): number {
     return ConfigurationManager.getPositiveInt(env, 'AI_DAILY_USAGE_RETENTION_DAYS', DEFAULT_AI_DAILY_USAGE_RETENTION_DAYS);
+  }
+
+  public static getActionCallbackBaseUrl(env: unknown): string {
+    return ConfigurationManager.getString(env, 'ACTION_CALLBACK_BASE_URL', DEFAULT_ACTION_CALLBACK_BASE_URL).replace(/\/+$/, '');
+  }
+
+  public static getActionDefaultExpiryHours(env: unknown): number {
+    return ConfigurationManager.getPositiveInt(env, 'ACTION_DEFAULT_EXPIRY_HOURS', DEFAULT_ACTION_DEFAULT_EXPIRY_HOURS);
+  }
+
+  public static getActionRetentionDays(env: unknown): number {
+    return ConfigurationManager.getPositiveInt(env, 'ACTION_RETENTION_DAYS', DEFAULT_ACTION_RETENTION_DAYS);
   }
 
   private static getPositiveInt(env: unknown, key: string, defaultValue: string): number {

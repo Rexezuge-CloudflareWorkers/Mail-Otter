@@ -4,6 +4,8 @@ declare global {
   interface Env {
     DB: D1Database;
     AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+    ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+    ACTION_SIGNING_SECRET: SecretsStoreSecret;
     AI: Ai;
     OAUTH2_TOKEN_CACHE: KVNamespace;
     CRON_TASKS: DurableObjectNamespace;
@@ -33,6 +35,9 @@ declare global {
     OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS?: string | undefined;
     OAUTH2_TOKEN_REFRESH_BATCH_SIZE?: string | undefined;
     MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
+    ACTION_CALLBACK_BASE_URL?: string | undefined;
+    ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
+    ACTION_RETENTION_DAYS?: string | undefined;
   }
 }
 

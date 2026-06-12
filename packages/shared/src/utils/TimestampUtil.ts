@@ -11,6 +11,10 @@ class TimestampUtil {
     return timestamp + minutes * 60;
   }
 
+  public static addHours(timestamp: number, hours: number): number {
+    return timestamp + hours * 60 * 60;
+  }
+
   public static addDays(timestamp: number, days: number): number {
     return timestamp + days * 60 * 60 * 24;
   }

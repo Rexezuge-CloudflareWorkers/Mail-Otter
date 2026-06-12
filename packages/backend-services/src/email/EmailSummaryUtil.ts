@@ -1,10 +1,11 @@
 import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
+import type { EmailActionProposal } from '@mail-otter/shared/model';
 
 const SUMMARY_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['gist', 'keyDetails', 'actionItems'],
+  required: ['gist', 'keyDetails', 'actionItems', 'actions'],
   properties: {
     gist: {
       type: 'string',
@@ -16,6 +17,28 @@ const SUMMARY_JSON_SCHEMA = {
     actionItems: {
       type: 'array',
       items: { type: 'string' },
+    },
+    actions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'title', 'description', 'parameters'],
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['calendar.add_event', 'email.draft_reply', 'external.open_link', 'manual.todo'],
+          },
+          title: { type: 'string' },
+          description: { type: 'string' },
+          confidence: { type: 'number' },
+          expiresAt: { type: 'string' },
+          parameters: {
+            type: 'object',
+            additionalProperties: true,
+          },
+        },
+      },
     },
   },
 } as const;
@@ -65,7 +88,7 @@ class EmailSummaryUtil {
         { role: 'system', content: instructions },
         { role: 'user', content: input },
       ],
-      max_tokens: 512,
+      max_tokens: 1200,
       temperature: 0.2,
     };
 
@@ -97,7 +120,7 @@ class EmailSummaryUtil {
     if (!summary) {
       throw new AiSummaryRetryableError('Workers AI did not return a valid summary.', { aiUsage: usage, aiOutputText: summaryText });
     }
-    return { summary: EmailSummaryUtil.renderHtmlSummary(summary), usage };
+    return { summary: EmailSummaryUtil.renderHtmlSummary(summary), emailSummary: summary, actionProposals: summary.actions, usage };
   }
 
   public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string | undefined): string {
@@ -107,14 +130,18 @@ class EmailSummaryUtil {
   private static buildSummaryInstructions(): string {
     return [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
-      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"]}.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"expiresAt":"ISO-8601 optional","parameters":{}}]}.',
       'Keep the gist to one sentence.',
       'Key details must be short factual bullets copied from the email when possible.',
       'Action items must include deadlines or owners when present.',
       'If there are no action items, return an empty array.',
+      'Actions are optional executable proposals; return an empty actions array when no safe action exists.',
+      'Use calendar.add_event only when start time, end time, and timezone are clear; parameters must include eventTitle, startTime, endTime, timeZone, and optional location or notes.',
+      'Use email.draft_reply when the owner should respond; parameters must include draftBody and optional draftSubject.',
+      'Use external.open_link only for URLs present in the email; parameters must include url.',
+      'Use manual.todo for useful actions that cannot be automated safely; parameters must include instructions.',
+      'Do not create callback URLs or invent links.',
       'Do not invent facts. Do not include a greeting.',
-      'You may use <a href="URL">text</a> to create clickable links in gist, key details, or action items.',
-      'Only use the href attribute; no other HTML tags or attributes are allowed.',
     ].join(' ');
   }
 
@@ -223,6 +250,7 @@ class EmailSummaryUtil {
       gist: EmailSummaryUtil.normalizeSentence(parsed.gist),
       keyDetails: EmailSummaryUtil.normalizeItems(parsed.keyDetails),
       actionItems: EmailSummaryUtil.normalizeItems(parsed.actionItems),
+      actions: EmailSummaryUtil.normalizeActionProposals(parsed.actions),
     };
   }
 
@@ -266,6 +294,7 @@ class EmailSummaryUtil {
       gist: gistLine,
       keyDetails: bulletLines,
       actionItems: [],
+      actions: [],
     };
   }
 
@@ -403,8 +432,29 @@ class EmailSummaryUtil {
       Array.isArray(candidate.keyDetails) &&
       candidate.keyDetails.every((item: unknown): boolean => typeof item === 'string') &&
       Array.isArray(candidate.actionItems) &&
-      candidate.actionItems.every((item: unknown): boolean => typeof item === 'string')
+      candidate.actionItems.every((item: unknown): boolean => typeof item === 'string') &&
+      (candidate.actions === undefined || Array.isArray(candidate.actions))
     );
+  }
+
+  private static normalizeActionProposals(value: unknown): EmailActionProposal[] {
+    if (!Array.isArray(value)) return [];
+    const actions: EmailActionProposal[] = [];
+    for (const item of value) {
+      if (!EmailSummaryUtil.isRecord(item)) continue;
+      const type = typeof item.type === 'string' ? item.type : '';
+      if (!['calendar.add_event', 'email.draft_reply', 'external.open_link', 'manual.todo'].includes(type)) continue;
+      if (typeof item.title !== 'string' || typeof item.description !== 'string') continue;
+      actions.push({
+        type: type as EmailActionProposal['type'],
+        title: EmailSummaryUtil.normalizeSentence(item.title),
+        description: EmailSummaryUtil.normalizeSentence(item.description),
+        confidence: typeof item.confidence === 'number' && Number.isFinite(item.confidence) ? item.confidence : undefined,
+        expiresAt: typeof item.expiresAt === 'string' ? item.expiresAt : undefined,
+        parameters: EmailSummaryUtil.isRecord(item.parameters) ? item.parameters : {},
+      });
+    }
+    return actions;
   }
 }
 
@@ -412,10 +462,13 @@ interface EmailSummary {
   gist: string;
   keyDetails: string[];
   actionItems: string[];
+  actions: EmailActionProposal[];
 }
 
 interface EmailSummaryResult {
   summary: string;
+  emailSummary?: EmailSummary | undefined;
+  actionProposals?: EmailActionProposal[] | undefined;
   usage?: AiTextGenerationUsage | undefined;
 }
 

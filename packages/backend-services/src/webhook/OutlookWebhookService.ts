@@ -5,7 +5,12 @@ import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 
 class OutlookWebhookService {
-  public static async handleNotifications(applicationId: string, notifications: OutlookNotification[], env: OutlookWebhookEnv): Promise<void> {
+  public static async handleNotifications(
+    applicationId: string,
+    notifications: OutlookNotification[],
+    env: OutlookWebhookEnv,
+    callbackBaseUrl?: string | undefined,
+  ): Promise<void> {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
     for (const notification of notifications) {
       const subscription: ProviderSubscription = await OutlookWebhookService.getAuthorizedSubscription(
@@ -22,6 +27,7 @@ class OutlookWebhookService {
         applicationId,
         subscriptionId: notification.subscriptionId,
         messageId,
+        callbackBaseUrl,
       });
       await subscriptionDAO.touchNotification(subscription.subscriptionId);
     }

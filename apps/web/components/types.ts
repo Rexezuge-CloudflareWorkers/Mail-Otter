@@ -37,6 +37,9 @@ export interface ConnectedApplication {
 
 export type ApplicationContextDocumentStatus = 'active' | 'deleted' | 'error';
 export type ApplicationContextDeletionStatus = 'accepted' | 'error';
+export type EmailActionStatus = 'pending' | 'executing' | 'succeeded' | 'failed' | 'expired' | 'cancelled';
+export type EmailActionType = 'calendar.add_event' | 'email.draft_reply' | 'external.open_link' | 'manual.todo';
+export type EmailActionExecutionTrigger = 'email_callback' | 'web_ui' | 'system_expiry';
 
 export interface ApplicationContextDocument {
   contextDocumentId: string;
@@ -72,4 +75,44 @@ export interface ApplicationContextDeletionRun {
   errorMessage?: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface EmailAction {
+  actionId: string;
+  processedMessageId: string;
+  applicationId: string;
+  userEmail: string;
+  providerId: ProviderId;
+  providerMessageId: string;
+  providerThreadId?: string | null;
+  actionType: EmailActionType;
+  status: EmailActionStatus;
+  riskLevel: 'low' | 'medium' | 'high';
+  title: string;
+  description: string;
+  payload: Record<string, unknown> & { type: EmailActionType };
+  result?: {
+    summary: string;
+    providerOperationId?: string;
+    providerUrl?: string;
+    externalUrl?: string;
+  } | null;
+  errorMessage?: string | null;
+  expiresAt: number;
+  executedAt?: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface EmailActionExecution {
+  executionId: string;
+  actionId: string;
+  attempt: number;
+  triggeredBy: EmailActionExecutionTrigger;
+  status: EmailActionStatus;
+  providerOperationId?: string | null;
+  requestUserAgentHash?: string | null;
+  errorMessage?: string | null;
+  createdAt: number;
+  completedAt?: number | null;
 }

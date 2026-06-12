@@ -5,6 +5,12 @@ import {
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
   APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED,
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR,
+  EMAIL_ACTION_STATUS_CANCELLED,
+  EMAIL_ACTION_STATUS_EXECUTING,
+  EMAIL_ACTION_STATUS_EXPIRED,
+  EMAIL_ACTION_STATUS_FAILED,
+  EMAIL_ACTION_STATUS_PENDING,
+  EMAIL_ACTION_STATUS_SUCCEEDED,
 } from '../constants';
 
 interface RequestInputSchema {
@@ -45,6 +51,25 @@ const ApplicationContextListQuerySchema = z.object({
 
 const ApplicationContextDeletionRunsQuerySchema = z.object({
   applicationId: UuidSchema.optional(),
+  cursor: nonEmptyStringSchema('cursor', 64).optional(),
+});
+
+const EmailActionCallbackQuerySchema = z.object({
+  token: nonEmptyStringSchema('token', 256),
+});
+
+const EmailActionListQuerySchema = z.object({
+  applicationId: UuidSchema.optional(),
+  status: z
+    .enum([
+      EMAIL_ACTION_STATUS_PENDING,
+      EMAIL_ACTION_STATUS_EXECUTING,
+      EMAIL_ACTION_STATUS_SUCCEEDED,
+      EMAIL_ACTION_STATUS_FAILED,
+      EMAIL_ACTION_STATUS_EXPIRED,
+      EMAIL_ACTION_STATUS_CANCELLED,
+    ])
+    .optional(),
   cursor: nonEmptyStringSchema('cursor', 64).optional(),
 });
 
@@ -121,12 +146,17 @@ const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'GET /user/application/context/documents': { query: ApplicationContextListQuerySchema },
   'GET /user/application/context/deletions': { query: ApplicationContextDeletionRunsQuerySchema },
   'GET /user/application/context/document/:contextDocumentId/provider-link': {},
+  'GET /user/actions': { query: EmailActionListQuerySchema },
+  'GET /user/actions/:actionId/executions': {},
+  'POST /user/actions/:actionId/execute': {},
   'POST /user/application/oauth2/authorize': { body: OAuth2AuthorizeBodySchema },
   'GET /user/application/folders': { query: ApplicationFoldersQuerySchema },
   'PUT /user/application/watch-settings': { body: UpdateApplicationWatchSettingsBodySchema },
   'POST /user/application/watch': { body: WatchApplicationBodySchema },
   'POST /user/application/stop': { body: StopApplicationBodySchema },
   'GET /api/oauth2/callback/:applicationId': { query: OAuth2CallbackQuerySchema },
+  'GET /api/actions/:actionId': { query: EmailActionCallbackQuerySchema },
+  'POST /api/actions/:actionId/execute': { query: EmailActionCallbackQuerySchema },
   'POST /api/webhooks/gmail/:applicationId': { query: GmailWebhookQuerySchema, body: GmailWebhookBodySchema },
   'GET /api/webhooks/outlook/:applicationId': { query: OutlookWebhookQuerySchema },
   'POST /api/webhooks/outlook/:applicationId': { query: OutlookWebhookQuerySchema, body: OutlookWebhookBodySchema },

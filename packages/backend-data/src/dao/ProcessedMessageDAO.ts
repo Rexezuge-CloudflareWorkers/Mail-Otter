@@ -135,6 +135,11 @@ class ProcessedMessageDAO {
     return row ? this.toProcessedMessage(row) : undefined;
   }
 
+  public async getByMessageId(applicationId: string, providerMessageId: string): Promise<ProcessedMessage | undefined> {
+    const row: ProcessedMessageInternal | null = await this.getInternalByMessageId(applicationId, providerMessageId);
+    return row ? this.toProcessedMessage(row) : undefined;
+  }
+
   private async updateStatus(
     applicationId: string,
     providerMessageId: string,

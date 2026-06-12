@@ -32,9 +32,14 @@ class AiUsageUtil {
     fallbackInputText: string,
     fallbackOutputText: string,
   ): AiTextGenerationUsageEstimate {
-    const promptTokens: number = AiUsageUtil.toTokenCount(usage?.promptTokens) ?? AiUsageUtil.estimateTokensFromText(fallbackInputText);
+    const promptTokensFromUsage: number | undefined = AiUsageUtil.toTokenCount(usage?.promptTokens);
+    const promptTokens: number = promptTokensFromUsage ?? AiUsageUtil.estimateTokensFromText(fallbackInputText);
+    const completionTokensFromUsage: number | undefined = AiUsageUtil.toTokenCount(usage?.completionTokens);
+    const totalTokens: number | undefined = AiUsageUtil.toTokenCount(usage?.totalTokens);
+    const completionTokensFromTotal: number | undefined =
+      promptTokensFromUsage !== undefined && totalTokens !== undefined ? Math.max(0, totalTokens - promptTokens) : undefined;
     const completionTokens: number =
-      AiUsageUtil.toTokenCount(usage?.completionTokens) ?? AiUsageUtil.estimateTokensFromText(fallbackOutputText);
+      AiUsageUtil.maxTokenCount(completionTokensFromUsage, completionTokensFromTotal) ?? AiUsageUtil.estimateTokensFromText(fallbackOutputText);
     return AiUsageUtil.estimateTextGenerationUsageForTokenCounts(model, promptTokens, completionTokens);
   }
 
@@ -72,6 +77,12 @@ class AiUsageUtil {
   private static toTokenCount(value: number | undefined): number | undefined {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return undefined;
     return Math.ceil(value);
+  }
+
+  private static maxTokenCount(first: number | undefined, second: number | undefined): number | undefined {
+    if (first === undefined) return second;
+    if (second === undefined) return first;
+    return Math.max(first, second);
   }
 }
 

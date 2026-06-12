@@ -12,7 +12,7 @@ import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { ProviderId } from '@mail-otter/shared/constants';
 import { EmailContextUtil } from './EmailContextUtil';
-import { EmailSummaryUtil, type EmailSummaryResult } from './EmailSummaryUtil';
+import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
 import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
@@ -199,18 +199,34 @@ class EmailProcessingUtil {
     const maxChars: number = ConfigurationManager.getMaxEmailBodyChars(env);
     const bodyText: string = body || '(empty message body)';
     const input: string = EmailContentUtil.truncate(bodyText, maxChars);
-    let model: string = await EmailProcessingUtil.resolveSummaryModel(env, input);
+    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext);
+    let model: string = await EmailProcessingUtil.resolveSummaryModel(env, promptText);
     let result: EmailSummaryResult;
     try {
       result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext);
     } catch (error: unknown) {
       if (!(error instanceof AiSummaryRetryableError)) throw error;
+      await EmailProcessingUtil.recordSummaryFailureUsage(env, model, error, promptText);
       const fallbackModel: string = ConfigurationManager.getEmailSummaryFallbackModel(env);
+      if (model === fallbackModel) throw error;
       console.warn(`AI summary failed with primary model ${model}, retrying with fallback ${fallbackModel}:`, error);
       model = fallbackModel;
-      result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext);
+      try {
+        result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext);
+      } catch (fallbackError: unknown) {
+        if (fallbackError instanceof AiSummaryRetryableError) {
+          await EmailProcessingUtil.recordSummaryFailureUsage(env, model, fallbackError, promptText);
+        }
+        throw fallbackError;
+      }
     }
-    const usageEstimate: AiTextGenerationUsageEstimate | undefined = await EmailProcessingUtil.recordSummaryUsage(env, model, result, input);
+    const usageEstimate: AiTextGenerationUsageEstimate | undefined = await EmailProcessingUtil.recordSummaryUsage(
+      env,
+      model,
+      result.usage,
+      promptText,
+      result.summary,
+    );
     if (!ConfigurationManager.getDebugMode(env)) return result.summary;
 
     const applicationName: string = application.displayName || application.applicationId;
@@ -235,7 +251,7 @@ class EmailProcessingUtil {
     ].join('\n');
   }
 
-  private static async resolveSummaryModel(env: EmailProcessingEnv, fallbackInputText: string): Promise<string> {
+  private static async resolveSummaryModel(env: EmailProcessingEnv, estimatedPromptText: string): Promise<string> {
     const primaryModel: string = ConfigurationManager.getEmailSummaryModel(env);
     const fallbackThreshold: number = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
     if (fallbackThreshold <= 0) return primaryModel;
@@ -245,7 +261,7 @@ class EmailProcessingUtil {
       const estimatedNeurons: number = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(usageDate);
       const projectedPrimaryUsage: AiTextGenerationUsageEstimate = AiUsageUtil.estimateTextGenerationUsageForTokenCounts(
         primaryModel,
-        AiUsageUtil.estimateTokensFromText(fallbackInputText),
+        AiUsageUtil.estimateTokensFromText(estimatedPromptText),
         EMAIL_SUMMARY_MAX_COMPLETION_TOKENS,
       );
       return estimatedNeurons + projectedPrimaryUsage.estimatedNeurons >= fallbackThreshold
@@ -260,16 +276,17 @@ class EmailProcessingUtil {
   private static async recordSummaryUsage(
     env: EmailProcessingEnv,
     model: string,
-    result: EmailSummaryResult,
+    usage: AiTextGenerationUsage | undefined,
     fallbackInputText: string,
+    fallbackOutputText: string,
   ): Promise<AiTextGenerationUsageEstimate | undefined> {
     let estimate: AiTextGenerationUsageEstimate | undefined;
     try {
       estimate = AiUsageUtil.estimateTextGenerationUsage(
         model,
-        result.usage,
+        usage,
         fallbackInputText,
-        result.summary,
+        fallbackOutputText,
       );
       await new AiDailyUsageDAO(env.DB).incrementUsage({
         usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
@@ -281,6 +298,25 @@ class EmailProcessingUtil {
       console.warn('Failed to record Workers AI summary usage estimate:', error);
     }
     return estimate;
+  }
+
+  private static async recordSummaryFailureUsage(
+    env: EmailProcessingEnv,
+    model: string,
+    error: AiSummaryRetryableError,
+    fallbackInputText: string,
+  ): Promise<void> {
+    await EmailProcessingUtil.recordSummaryUsage(
+      env,
+      model,
+      EmailProcessingUtil.getAiSummaryErrorUsage(error),
+      fallbackInputText,
+      error.aiOutputText ?? '',
+    );
+  }
+
+  private static getAiSummaryErrorUsage(error: AiSummaryRetryableError): AiTextGenerationUsage | undefined {
+    return error.aiUsage && typeof error.aiUsage === 'object' ? (error.aiUsage as AiTextGenerationUsage) : undefined;
   }
 
   private static formatDebugNumber(value: number | undefined): string {

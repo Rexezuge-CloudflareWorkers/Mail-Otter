@@ -21,6 +21,8 @@ const SUMMARY_JSON_SCHEMA = {
 } as const;
 
 const JSON_MODE_SUPPORTED_MODELS: ReadonlySet<string> = new Set<string>([
+  '@cf/openai/gpt-oss-120b',
+  '@cf/openai/gpt-oss-20b',
   '@cf/meta/llama-3.1-8b-instruct-fast',
   '@cf/meta/llama-3.1-70b-instruct',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
@@ -31,6 +33,8 @@ const JSON_MODE_SUPPORTED_MODELS: ReadonlySet<string> = new Set<string>([
   '@hf/thebloke/deepseek-coder-6.7b-instruct-awq',
   '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
 ]);
+
+const GPT_OSS_MODELS: ReadonlySet<string> = new Set<string>(['@cf/openai/gpt-oss-120b', '@cf/openai/gpt-oss-20b']);
 
 class EmailSummaryUtil {
   public static async summarizeEmail(
@@ -53,28 +57,8 @@ class EmailSummaryUtil {
     body: string,
     ragContext?: string | undefined,
   ): Promise<EmailSummaryResult> {
-    const instructions = [
-      'You are a helpful assistant that summarizes emails for a mailbox owner.',
-      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"]}.',
-      'Keep the gist to one sentence.',
-      'Key details must be short factual bullets copied from the email when possible.',
-      'Action items must include deadlines or owners when present.',
-      'If there are no action items, return an empty array.',
-      'Do not invent facts. Do not include a greeting.',
-      'You may use <a href="URL">text</a> to create clickable links in gist, key details, or action items.',
-      'Only use the href attribute; no other HTML tags or attributes are allowed.',
-    ].join(' ');
-
-    const input = [
-      'Summarize this email for the mailbox owner.',
-      'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
-      '',
-      `Subject: ${subject || '(no subject)'}`,
-      `From: ${from || '(unknown)'}`,
-      '',
-      body,
-      ...(ragContext ? ['', '--- PRIOR CONTEXT (for background only, do not summarize) ---', ragContext] : []),
-    ].join('\n');
+    const instructions: string = EmailSummaryUtil.buildSummaryInstructions();
+    const input: string = EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext);
 
     const request: AiTextGenerationRequest = {
       messages: [
@@ -88,8 +72,17 @@ class EmailSummaryUtil {
     if (EmailSummaryUtil.supportsJsonMode(model)) {
       request.response_format = {
         type: 'json_schema',
-        json_schema: SUMMARY_JSON_SCHEMA,
+        json_schema: {
+          name: 'email_summary',
+          schema: SUMMARY_JSON_SCHEMA,
+          strict: true,
+        },
       };
+    }
+
+    if (EmailSummaryUtil.isGptOssModel(model)) {
+      request.reasoning_effort = 'low';
+      request.chat_template_kwargs = { enable_thinking: false };
     }
 
     const result = await (ai as unknown as { run: (...args: unknown[]) => Promise<unknown> }).run(model, request);
@@ -97,18 +90,53 @@ class EmailSummaryUtil {
 
     const summaryText = EmailSummaryUtil.extractResponseText(result);
     if (!summaryText) {
-      throw new AiSummaryRetryableError('Workers AI did not return a summary.');
+      throw new AiSummaryRetryableError('Workers AI did not return a summary.', { aiUsage: usage });
     }
 
     const summary = EmailSummaryUtil.parseAiSummaryResult(summaryText);
     if (!summary) {
-      throw new AiSummaryRetryableError('Workers AI did not return a valid summary.');
+      throw new AiSummaryRetryableError('Workers AI did not return a valid summary.', { aiUsage: usage, aiOutputText: summaryText });
     }
     return { summary: EmailSummaryUtil.renderHtmlSummary(summary), usage };
   }
 
+  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string | undefined): string {
+    return [EmailSummaryUtil.buildSummaryInstructions(), EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
+  }
+
+  private static buildSummaryInstructions(): string {
+    return [
+      'You are a helpful assistant that summarizes emails for a mailbox owner.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"]}.',
+      'Keep the gist to one sentence.',
+      'Key details must be short factual bullets copied from the email when possible.',
+      'Action items must include deadlines or owners when present.',
+      'If there are no action items, return an empty array.',
+      'Do not invent facts. Do not include a greeting.',
+      'You may use <a href="URL">text</a> to create clickable links in gist, key details, or action items.',
+      'Only use the href attribute; no other HTML tags or attributes are allowed.',
+    ].join(' ');
+  }
+
+  private static buildSummaryInput(subject: string, from: string, body: string, ragContext?: string | undefined): string {
+    return [
+      'Summarize this email for the mailbox owner.',
+      'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
+      '',
+      `Subject: ${subject || '(no subject)'}`,
+      `From: ${from || '(unknown)'}`,
+      '',
+      body,
+      ...(ragContext ? ['', '--- PRIOR CONTEXT (for background only, do not summarize) ---', ragContext] : []),
+    ].join('\n');
+  }
+
   private static supportsJsonMode(model: string): boolean {
     return JSON_MODE_SUPPORTED_MODELS.has(model);
+  }
+
+  private static isGptOssModel(model: string): boolean {
+    return GPT_OSS_MODELS.has(model);
   }
 
   private static extractResponseText(result: unknown): string | undefined {
@@ -153,12 +181,33 @@ class EmailSummaryUtil {
     if (!EmailSummaryUtil.isRecord(result) || !EmailSummaryUtil.isRecord(result.usage)) return undefined;
 
     const promptTokens: number | undefined = EmailSummaryUtil.getOptionalNumber(result.usage.prompt_tokens ?? result.usage.input_tokens);
-    const completionTokens: number | undefined = EmailSummaryUtil.getOptionalNumber(
-      result.usage.completion_tokens ?? result.usage.output_tokens,
-    );
+    const outputTokens: number | undefined = EmailSummaryUtil.getOptionalNumber(result.usage.completion_tokens ?? result.usage.output_tokens);
     const totalTokens: number | undefined = EmailSummaryUtil.getOptionalNumber(result.usage.total_tokens);
+    const completionTokens: number | undefined = EmailSummaryUtil.resolveBilledOutputTokens(promptTokens, outputTokens, totalTokens);
+    const reasoningTokens: number | undefined = EmailSummaryUtil.extractReasoningTokens(result.usage);
     if (promptTokens === undefined && completionTokens === undefined && totalTokens === undefined) return undefined;
-    return { promptTokens, completionTokens, totalTokens };
+    return { promptTokens, completionTokens, totalTokens, reasoningTokens };
+  }
+
+  private static resolveBilledOutputTokens(
+    promptTokens: number | undefined,
+    outputTokens: number | undefined,
+    totalTokens: number | undefined,
+  ): number | undefined {
+    const outputTokensFromTotal: number | undefined =
+      promptTokens !== undefined && totalTokens !== undefined ? Math.max(0, totalTokens - promptTokens) : undefined;
+    if (outputTokens === undefined) return outputTokensFromTotal;
+    if (outputTokensFromTotal === undefined) return outputTokens;
+    return Math.max(outputTokens, outputTokensFromTotal);
+  }
+
+  private static extractReasoningTokens(usage: Record<string, unknown>): number | undefined {
+    const directReasoningTokens: number | undefined = EmailSummaryUtil.getOptionalNumber(usage.reasoning_tokens);
+    if (directReasoningTokens !== undefined) return directReasoningTokens;
+
+    const completionTokenDetails: unknown = usage.completion_tokens_details ?? usage.output_tokens_details;
+    if (!EmailSummaryUtil.isRecord(completionTokenDetails)) return undefined;
+    return EmailSummaryUtil.getOptionalNumber(completionTokenDetails.reasoning_tokens);
   }
 
   static parseAiSummaryResult(result: string): EmailSummary | undefined {
@@ -374,6 +423,7 @@ interface AiTextGenerationUsage {
   promptTokens?: number | undefined;
   completionTokens?: number | undefined;
   totalTokens?: number | undefined;
+  reasoningTokens?: number | undefined;
 }
 
 interface AiTextGenerationRequest {
@@ -383,9 +433,15 @@ interface AiTextGenerationRequest {
   response_format?:
     | {
         type: 'json_schema';
-        json_schema: typeof SUMMARY_JSON_SCHEMA;
+        json_schema: {
+          name: string;
+          schema: typeof SUMMARY_JSON_SCHEMA;
+          strict: boolean;
+        };
       }
     | undefined;
+  reasoning_effort?: 'low' | 'medium' | 'high' | undefined;
+  chat_template_kwargs?: { enable_thinking?: boolean | undefined } | undefined;
 }
 
 export { EmailSummaryUtil };

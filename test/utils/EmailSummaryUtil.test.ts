@@ -65,19 +65,30 @@ describe('EmailSummaryUtil', () => {
 <p><em>Powered by Mail-Otter</em></p>`);
   });
 
-  it('throws when the AI response cannot be parsed into the summary schema', async () => {
+  it('throws with usage details when the AI response cannot be parsed into the summary schema', async () => {
     const ai = {
       run: vi.fn().mockResolvedValue({
         response: '{"wrong":true}',
+        usage: {
+          prompt_tokens: 1000,
+          completion_tokens: 12,
+          total_tokens: 1012,
+        },
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).rejects.toThrow(
-      new AiSummaryRetryableError('Workers AI did not return a valid summary.'),
-    );
+    await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).rejects.toMatchObject({
+      message: 'Workers AI did not return a valid summary.',
+      aiOutputText: '{"wrong":true}',
+      aiUsage: {
+        promptTokens: 1000,
+        completionTokens: 12,
+        totalTokens: 1012,
+      },
+    } satisfies Partial<AiSummaryRetryableError>);
   });
 
-  it('does not request JSON mode from gpt-oss-120b and parses fenced JSON output', async () => {
+  it('requests JSON mode and low reasoning from gpt-oss-120b', async () => {
     const ai = {
       run: vi.fn().mockResolvedValue({
         response: `Here is the summary:
@@ -108,8 +119,16 @@ describe('EmailSummaryUtil', () => {
 <p><em>Powered by Mail-Otter</em></p>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/openai/gpt-oss-120b',
-      expect.not.objectContaining({
-        response_format: expect.anything(),
+      expect.objectContaining({
+        response_format: {
+          type: 'json_schema',
+          json_schema: expect.objectContaining({
+            name: 'email_summary',
+            strict: true,
+          }),
+        },
+        reasoning_effort: 'low',
+        chat_template_kwargs: { enable_thinking: false },
       }),
     );
   });
@@ -173,6 +192,74 @@ describe('EmailSummaryUtil', () => {
           promptTokens: 1000,
           completionTokens: 100,
           totalTokens: 1100,
+        },
+      });
+  });
+
+  it('uses Responses API totals as billed output tokens when they exceed visible output tokens', async () => {
+    const ai = {
+      run: vi.fn().mockResolvedValue({
+        output_text: JSON.stringify({
+          gist: 'The email asks for feedback.',
+          keyDetails: ['Review is due Tuesday.'],
+          actionItems: ['Send feedback by Tuesday.'],
+        }),
+        usage: {
+          input_tokens: 1000,
+          output_tokens: 100,
+          total_tokens: 1800,
+          output_tokens_details: {
+            reasoning_tokens: 700,
+          },
+        },
+      }),
+    } as unknown as Ai;
+
+    await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
+      .toMatchObject({
+        summary: expect.stringContaining('<strong>Gist:</strong> The email asks for feedback.'),
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 800,
+          totalTokens: 1800,
+          reasoningTokens: 700,
+        },
+      });
+  });
+
+  it('uses Chat Completions totals as billed output tokens when reasoning details are present', async () => {
+    const ai = {
+      run: vi.fn().mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                gist: 'The email asks for feedback.',
+                keyDetails: ['Review is due Tuesday.'],
+                actionItems: ['Send feedback by Tuesday.'],
+              }),
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 1000,
+          completion_tokens: 100,
+          total_tokens: 1800,
+          completion_tokens_details: {
+            reasoning_tokens: 700,
+          },
+        },
+      }),
+    } as unknown as Ai;
+
+    await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
+      .toMatchObject({
+        summary: expect.stringContaining('<strong>Gist:</strong> The email asks for feedback.'),
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 800,
+          totalTokens: 1800,
+          reasoningTokens: 700,
         },
       });
   });

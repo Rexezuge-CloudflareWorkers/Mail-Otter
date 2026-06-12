@@ -1,7 +1,16 @@
 import { NonRetryableError } from './NonRetryableError';
 import { RetryableError } from './RetryableError';
 
-class AiSummaryRetryableError extends RetryableError {}
+class AiSummaryRetryableError extends RetryableError {
+  public readonly aiUsage: unknown | undefined;
+  public readonly aiOutputText: string | undefined;
+
+  constructor(message: string, options: AiSummaryRetryableErrorOptions = {}) {
+    super(message);
+    this.aiUsage = options.aiUsage;
+    this.aiOutputText = options.aiOutputText;
+  }
+}
 
 class ProviderApiRetryableError extends RetryableError {}
 
@@ -18,3 +27,8 @@ export {
   ProviderApiNonRetryableError,
   ProviderApiRetryableError,
 };
+
+interface AiSummaryRetryableErrorOptions {
+  aiUsage?: unknown | undefined;
+  aiOutputText?: string | undefined;
+}

@@ -4,7 +4,7 @@ import type { EmailProcessingEnv } from '@mail-otter/backend-services/email';
 import { AiDailyUsageDAO, ConnectedApplicationDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
-import { NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { AiSummaryRetryableError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 
 describe('EmailProcessingUtil', () => {
   beforeEach(() => {
@@ -232,6 +232,60 @@ describe('EmailProcessingUtil', () => {
         estimatedNeurons: 21,
         promptTokens: 1000,
         completionTokens: 100,
+      });
+    });
+
+    it('records failed primary summary usage before retrying with the fallback model', async () => {
+      vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
+      const incrementUsage = vi.spyOn(AiDailyUsageDAO.prototype, 'incrementUsage').mockResolvedValue();
+      const summarizeEmail = vi
+        .spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage')
+        .mockRejectedValueOnce(
+          new AiSummaryRetryableError('Workers AI did not return a valid summary.', {
+            aiUsage: { promptTokens: 1000, completionTokens: 700, totalTokens: 1700 },
+            aiOutputText: '{"wrong":true}',
+          }),
+        )
+        .mockResolvedValueOnce({
+          summary: 'Summary text',
+          usage: { promptTokens: 500, completionTokens: 50 },
+        });
+
+      await EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []);
+
+      expect(summarizeEmail).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        '@cf/openai/gpt-oss-120b',
+        'Project update',
+        'sender@example.com',
+        'Please review the project update.',
+        undefined,
+      );
+      expect(summarizeEmail).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        '@cf/openai/gpt-oss-20b',
+        'Project update',
+        'sender@example.com',
+        'Please review the project update.',
+        undefined,
+      );
+      expect(incrementUsage).toHaveBeenNthCalledWith(1, {
+        usageDate: expect.any(String),
+        estimatedNeurons: 80,
+        promptTokens: 1000,
+        completionTokens: 700,
+      });
+      expect(incrementUsage).toHaveBeenNthCalledWith(2, {
+        usageDate: expect.any(String),
+        estimatedNeurons: 11,
+        promptTokens: 500,
+        completionTokens: 50,
       });
     });
 

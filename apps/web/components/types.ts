@@ -116,3 +116,34 @@ export interface EmailActionExecution {
   createdAt: number;
   completedAt?: number | null;
 }
+
+export interface ContextAuditLog {
+  id: string;
+  contextDocumentId: string;
+  applicationId: string;
+  userEmail: string;
+  sourceDocumentId?: string | null;
+  eventType: ContextAuditEventType;
+  eventLabel?: string | null;
+  eventData?: unknown | null;
+  severity: 'info' | 'warning' | 'error';
+  createdAt: number;
+}
+
+export type ContextAuditEventType =
+  | 'email_received'
+  | 'processing_started'
+  | 'context_indexed'
+  | 'context_skipped'
+  | 'embedding_generated'
+  | 'rag_queried'
+  | 'summary_generated'
+  | 'action_created'
+  | 'action_executed'
+  | 'document_deleted'
+  | 'error';
+
+export interface ContextAuditLogList {
+  logs: ContextAuditLog[];
+  nextCursor?: string | null;
+}

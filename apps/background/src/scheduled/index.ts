@@ -7,3 +7,4 @@ export { OAuth2SessionPruningTask } from './OAuth2SessionPruningTask';
 export { ContextDeletionRunPruningTask } from './ContextDeletionRunPruningTask';
 export { AiDailyUsagePruningTask } from './AiDailyUsagePruningTask';
 export { EmailActionPruningTask } from './EmailActionPruningTask';
+export { AuditLogPruningTask } from './AuditLogPruningTask';

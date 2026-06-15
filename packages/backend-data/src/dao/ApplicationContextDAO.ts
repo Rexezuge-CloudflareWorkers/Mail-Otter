@@ -18,8 +18,11 @@ import type {
   ApplicationContextDocumentList,
   ApplicationContextDocumentSource,
   ApplicationContextSummary,
+  ContextAuditLog,
+  ContextAuditLogInternal,
+  ContextAuditLogList,
 } from '@mail-otter/shared/model';
-import type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus, ProviderId } from '@mail-otter/shared/constants';
+import type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus, ProviderId, ContextAuditEventType, ContextAuditLogSeverity } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 class ApplicationContextDAO {
@@ -119,6 +122,21 @@ class ApplicationContextDAO {
     const document: ApplicationContextDocument | undefined = await this.getDocumentById(contextDocumentId);
     if (!document) throw new DatabaseError('Failed to load application context document after create.');
     return document;
+  }
+
+  public async getContextDocumentIdBySource(applicationId: string, sourceDocumentId: string, sourceType: string): Promise<string | undefined> {
+    const row: { context_document_id: string } | null = await this.database
+      .prepare(
+        `
+          SELECT context_document_id
+          FROM application_context_documents
+          WHERE application_id = ? AND source_type = ? AND source_document_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(applicationId, sourceType, sourceDocumentId)
+      .first<{ context_document_id: string }>();
+    return row?.context_document_id;
   }
 
   public async markDocumentIndexed(contextDocumentId: string): Promise<void> {
@@ -412,6 +430,119 @@ class ApplicationContextDAO {
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
+  public async insertAuditLog(input: InsertAuditLogInput): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO context_audit_logs
+                (id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+          )
+          .bind(
+            UUIDUtil.getRandomUUID(),
+            input.contextDocumentId,
+            input.applicationId,
+            input.userEmail,
+            input.sourceDocumentId || null,
+            input.eventType,
+            input.eventLabel || null,
+            input.eventData ? JSON.stringify(input.eventData) : null,
+            input.severity,
+            now,
+          )
+          .run(),
+      'insert context audit log',
+    );
+  }
+
+  public async insertAuditLogs(inputs: InsertAuditLogInput[]): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const placeholders: string = inputs.map((): string => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const bindings: unknown[] = [];
+    for (const input of inputs) {
+      bindings.push(
+        UUIDUtil.getRandomUUID(),
+        input.contextDocumentId,
+        input.applicationId,
+        input.userEmail,
+        input.sourceDocumentId || null,
+        input.eventType,
+        input.eventLabel || null,
+        input.eventData ? JSON.stringify(input.eventData) : null,
+        input.severity,
+        now,
+      );
+    }
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              INSERT INTO context_audit_logs
+                (id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at)
+              VALUES ${placeholders}
+            `,
+          )
+          .bind(...bindings)
+          .run(),
+      'batch insert context audit logs',
+    );
+  }
+
+  public async listAuditLogs(
+    contextDocumentId: string,
+    options: ListAuditLogsOptions = {},
+  ): Promise<ContextAuditLogList> {
+    const limit: number = Math.min(Math.max(options.limit ?? 50, 1), 100);
+    const conditions: string[] = ['context_document_id = ?'];
+    const bindings: Array<string | number> = [contextDocumentId];
+    const cursor: { createdAt: number } | undefined = ApplicationContextDAO.parseAuditLogCursor(options.cursor);
+    if (cursor) {
+      conditions.push('created_at < ?');
+      bindings.push(cursor.createdAt);
+    }
+    const rows: ContextAuditLogInternal[] = await this.database
+      .prepare(
+        `
+          SELECT id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at
+          FROM context_audit_logs
+          WHERE ${conditions.join(' AND ')}
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+      )
+      .bind(...bindings, limit + 1)
+      .all<ContextAuditLogInternal>()
+      .then((result: D1Result<ContextAuditLogInternal>): ContextAuditLogInternal[] => result.results || []);
+    const pageRows: ContextAuditLogInternal[] = rows.slice(0, limit);
+    return {
+      logs: pageRows.map((row: ContextAuditLogInternal): ContextAuditLog => this.toAuditLog(row)),
+      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeAuditLogCursor(pageRows[pageRows.length - 1].created_at) : undefined,
+    };
+  }
+
+  public async deleteOldAuditLogs(olderThan: number, limit: number): Promise<number> {
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM context_audit_logs
+              WHERE created_at < ?
+              LIMIT ?
+            `,
+          )
+          .bind(olderThan, limit)
+          .run(),
+      'delete old context audit logs',
+    );
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async deleteOldDeletionRuns(olderThan: number, limit: number): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>
@@ -475,6 +606,34 @@ class ApplicationContextDAO {
     return rows.map((r) => r.vector_id);
   }
 
+  public async getDocumentSourcesByVectorIds(
+    applicationId: string,
+    userEmail: string,
+    vectorIds: string[],
+  ): Promise<Array<{ contextDocumentId: string; sourceDocumentId: string | null }>> {
+    if (vectorIds.length === 0) return [];
+    const rows: Array<{ context_document_id: string; source_document_id: string | null }> = [];
+    for (const chunk of ApplicationContextDAO.chunk(vectorIds, 100)) {
+      const placeholders: string = chunk.map((): string => '?').join(', ');
+      const result: Array<{ context_document_id: string; source_document_id: string | null }> = await this.database
+        .prepare(
+          `
+            SELECT context_document_id, source_document_id
+            FROM application_context_documents
+            WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
+          `,
+        )
+        .bind(applicationId, userEmail, ...chunk)
+        .all<{ context_document_id: string; source_document_id: string | null }>()
+        .then((r) => r.results || []);
+      rows.push(...result);
+    }
+    return rows.map((row) => ({
+      contextDocumentId: row.context_document_id,
+      sourceDocumentId: row.source_document_id,
+    }));
+  }
+
   public async markDocumentsDeletedByVectorIds(applicationId: string, userEmail: string, vectorIds: string[]): Promise<void> {
     if (vectorIds.length === 0) return;
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
@@ -526,6 +685,21 @@ class ApplicationContextDAO {
       .bind(deletionRunId)
       .first<ApplicationContextDeletionRunInternal>();
     return row ? this.toDeletionRun(row) : undefined;
+  }
+
+  private toAuditLog(row: ContextAuditLogInternal): ContextAuditLog {
+    return {
+      id: row.id,
+      contextDocumentId: row.context_document_id,
+      applicationId: row.application_id,
+      userEmail: row.user_email,
+      sourceDocumentId: row.source_document_id,
+      eventType: row.event_type,
+      eventLabel: row.event_label,
+      eventData: ApplicationContextDAO.parseAuditLogEventData(row.event_data),
+      severity: row.severity,
+      createdAt: row.created_at,
+    };
   }
 
   private toDocument(row: ApplicationContextDocumentInternal): ApplicationContextDocument {
@@ -602,6 +776,33 @@ class ApplicationContextDAO {
 
   private static encodeDeletionRunCursor(createdAt: number): string {
     return btoa(JSON.stringify([createdAt]));
+  }
+
+  private static parseAuditLogCursor(cursor: string | undefined): { createdAt: number } | undefined {
+    if (!cursor) return undefined;
+    try {
+      const decoded: string = atob(cursor);
+      const parsed: unknown = JSON.parse(decoded);
+      if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'number') {
+        return { createdAt: parsed[0] };
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private static encodeAuditLogCursor(createdAt: number): string {
+    return btoa(JSON.stringify([createdAt]));
+  }
+
+  private static parseAuditLogEventData(value: string | null): unknown | null {
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
   }
 
   private static parseMutationIds(value: string | null): string[] {
@@ -693,5 +894,21 @@ interface OverLimitApplication {
   effectiveLimit: number;
 }
 
+interface InsertAuditLogInput {
+  contextDocumentId: string;
+  applicationId: string;
+  userEmail: string;
+  sourceDocumentId?: string | null | undefined;
+  eventType: ContextAuditEventType;
+  eventLabel?: string | null | undefined;
+  eventData?: unknown | null | undefined;
+  severity: ContextAuditLogSeverity;
+}
+
+interface ListAuditLogsOptions {
+  cursor?: string | undefined;
+  limit?: number | undefined;
+}
+
 export { ApplicationContextDAO };
-export type { ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertEmailDocumentInput };
+export type { InsertAuditLogInput, ListAuditLogsOptions, ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertEmailDocumentInput };

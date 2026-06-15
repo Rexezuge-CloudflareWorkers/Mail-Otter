@@ -64,6 +64,12 @@ export const providerLabels: Record<string, string> = {
   'microsoft-outlook': 'Microsoft Outlook',
 };
 
+export async function fetchDocumentAuditLogs(contextDocumentId: string, cursor?: string): Promise<{ logs: import('./types').ContextAuditLog[]; nextCursor?: string | null }> {
+  let url = `/user/application/context/document/${encodeURIComponent(contextDocumentId)}/logs`;
+  if (cursor) url += `?cursor=${encodeURIComponent(cursor)}`;
+  return readJson<{ logs: import('./types').ContextAuditLog[]; nextCursor?: string | null }>(await apiFetch(url));
+}
+
 export const providerMethod: Record<string, 'oauth2'> = {
   'google-gmail': 'oauth2',
   'microsoft-outlook': 'oauth2',

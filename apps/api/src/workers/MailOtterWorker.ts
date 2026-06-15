@@ -15,6 +15,7 @@ import {
   GmailWebhookRoute,
   ListApplicationContextDeletionRunsRoute,
   ListApplicationContextDocumentsRoute,
+  ListContextDocumentAuditLogsRoute,
   ListEmailActionExecutionsRoute,
   ListEmailActionsRoute,
   ListApplicationsRoute,
@@ -87,6 +88,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/user/application/context/documents', ListApplicationContextDocumentsRoute);
     openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);
     openapi.get('/user/application/context/document/:contextDocumentId/provider-link', GetApplicationContextDocumentProviderLinkRoute);
+    openapi.get('/user/application/context/document/:contextDocumentId/logs', ListContextDocumentAuditLogsRoute);
     openapi.get('/user/actions', ListEmailActionsRoute);
     openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);
     openapi.post('/user/actions/:actionId/execute', ExecuteUserEmailActionRoute);

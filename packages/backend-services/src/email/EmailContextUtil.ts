@@ -3,6 +3,7 @@ import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ApplicationContextDocument, ConnectedApplication } from '@mail-otter/shared/model';
+import { CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED, CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED, CONTEXT_AUDIT_EVENT_RAG_QUERIED, CONTEXT_AUDIT_EVENT_ERROR, CONTEXT_AUDIT_LOG_SEVERITY_INFO, CONTEXT_AUDIT_LOG_SEVERITY_WARNING } from '@mail-otter/shared/constants';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiUsageUtil, type AiEmbeddingUsageEstimate } from './AiUsageUtil';
@@ -38,6 +39,20 @@ class EmailContextUtil {
         vectorNamespace,
         ...auditMetadata,
       });
+      await contextDAO.insertAuditLog({
+        contextDocumentId: document.contextDocumentId,
+        applicationId: input.application.applicationId,
+        userEmail: input.application.userEmail,
+        sourceDocumentId: input.sourceDocumentId,
+        eventType: CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
+        eventLabel: 'Email document indexed into context',
+        eventData: {
+          indexedTextChars: auditMetadata.indexedTextChars,
+          sourceProviderId: input.application.providerId,
+          vectorId: document.vectorId,
+        },
+        severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+      });
     }
 
     try {
@@ -48,6 +63,16 @@ class EmailContextUtil {
         ? await EmailContextUtil.queryRelevantContext(input.env, embedding, vectorNamespace, enabledApplicationIds, document?.vectorId)
         : undefined;
       if (shouldStore && document) {
+        await contextDAO.insertAuditLog({
+          contextDocumentId: document.contextDocumentId,
+          applicationId: input.application.applicationId,
+          userEmail: input.application.userEmail,
+          sourceDocumentId: input.sourceDocumentId,
+          eventType: CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED,
+          eventLabel: 'AI embedding generated',
+          eventData: { embeddingModel },
+          severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+        });
         await input.env.EMAIL_CONTEXT_INDEX.upsert([
           {
             id: document.vectorId,
@@ -68,11 +93,33 @@ class EmailContextUtil {
         ]);
         await contextDAO.markDocumentIndexed(document.contextDocumentId);
       }
+      if (document && ragContext) {
+        await contextDAO.insertAuditLog({
+          contextDocumentId: document.contextDocumentId,
+          applicationId: input.application.applicationId,
+          userEmail: input.application.userEmail,
+          sourceDocumentId: input.sourceDocumentId,
+          eventType: CONTEXT_AUDIT_EVENT_RAG_QUERIED,
+          eventLabel: 'Relevant context retrieved',
+          eventData: { ragChars: ragContext.length },
+          severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+        });
+      }
       return ragContext;
     } catch (error: unknown) {
       console.warn('Email context indexing or retrieval failed:', error);
       if (document) {
         await contextDAO.markDocumentError(document.contextDocumentId, error instanceof Error ? error.message : String(error));
+        await contextDAO.insertAuditLog({
+          contextDocumentId: document.contextDocumentId,
+          applicationId: input.application.applicationId,
+          userEmail: input.application.userEmail,
+          sourceDocumentId: input.sourceDocumentId,
+          eventType: CONTEXT_AUDIT_EVENT_ERROR,
+          eventLabel: 'Context indexing or retrieval failed',
+          eventData: { error: error instanceof Error ? error.message : String(error) },
+          severity: CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
+        });
       }
       if (WorkersAiErrorUtil.isDailyFreeAllocationError(error)) {
         throw new NonRetryableError(WorkersAiErrorUtil.getDailyFreeAllocationMessage());

@@ -6,13 +6,14 @@ import type {
   ApplicationContextDocument,
   ApplicationContextDocumentStatus,
   ConnectedApplication,
+  ContextAuditLog,
   CurrentUser,
   EmailAction,
   EmailActionExecution,
   EmailActionStatus,
   ProviderId,
 } from '../components/types';
-import { apiFetch, formatExpiryTimestamp, formatTimestamp, methodLabels, providerLabels, providerMethod, readJson } from '../components/utils';
+import { apiFetch, fetchDocumentAuditLogs, formatExpiryTimestamp, formatTimestamp, methodLabels, providerLabels, providerMethod, readJson } from '../components/utils';
 
 interface ApplicationFormState {
   applicationId?: string;
@@ -65,6 +66,10 @@ export default function SpaApp() {
   const [confirmDelete, setConfirmDelete] = useState<{ applicationId: string; displayName: string } | null>(null);
   const [availableFolders, setAvailableFolders] = useState<Array<{ id: string; name: string }> | null>(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [auditLogDocumentId, setAuditLogDocumentId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<ContextAuditLog[]>([]);
+  const [auditLogsCursor, setAuditLogsCursor] = useState<string | undefined>();
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
 
   useEffect(() => {
     if (!confirmDelete) return;
@@ -474,6 +479,43 @@ export default function SpaApp() {
     }
   };
 
+  const viewDocumentAuditLogs = async (contextDocumentId: string) => {
+    setAuditLogDocumentId(contextDocumentId);
+    setAuditLogs([]);
+    setAuditLogsCursor(undefined);
+    setLoadingAuditLogs(true);
+    try {
+      const data = await fetchDocumentAuditLogs(contextDocumentId);
+      setAuditLogs(data.logs);
+      setAuditLogsCursor(data.nextCursor ?? undefined);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to load audit logs.');
+      setAuditLogDocumentId(null);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  const loadMoreAuditLogs = async () => {
+    if (!auditLogDocumentId || !auditLogsCursor || loadingAuditLogs) return;
+    setLoadingAuditLogs(true);
+    try {
+      const data = await fetchDocumentAuditLogs(auditLogDocumentId, auditLogsCursor);
+      setAuditLogs((prev) => [...prev, ...data.logs]);
+      setAuditLogsCursor(data.nextCursor ?? undefined);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to load more audit logs.');
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  const closeAuditLogsModal = () => {
+    setAuditLogDocumentId(null);
+    setAuditLogs([]);
+    setAuditLogsCursor(undefined);
+  };
+
   if (authorized === null) {
     return (
       <div className="min-h-screen bg-[#101319] text-white flex items-center justify-center">
@@ -801,6 +843,7 @@ export default function SpaApp() {
           onLoadMoreDocuments={loadMoreContextDocuments}
           onLoadMoreDeletions={loadMoreContextDeletions}
           onOpenProviderDocument={openContextDocumentInProvider}
+          onViewLogs={viewDocumentAuditLogs}
           onToggleIndexing={updateContextIndexing}
           onDeleteDocuments={deleteContextDocuments}
           busy={isBusy}
@@ -871,6 +914,18 @@ export default function SpaApp() {
               </div>
             </div>
           </div>,
+          document.body,
+        )}
+      {auditLogDocumentId &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <AuditLogsModal
+            logs={auditLogs}
+            cursor={auditLogsCursor}
+            loading={loadingAuditLogs}
+            onClose={closeAuditLogsModal}
+            onLoadMore={loadMoreAuditLogs}
+          />,
           document.body,
         )}
     </div>
@@ -1156,6 +1211,7 @@ function ContextAuditView({
   onLoadMoreDocuments,
   onLoadMoreDeletions,
   onOpenProviderDocument,
+  onViewLogs,
   onToggleIndexing,
   onDeleteDocuments,
   busy,
@@ -1173,6 +1229,7 @@ function ContextAuditView({
   onLoadMoreDocuments: () => void;
   onLoadMoreDeletions: () => void;
   onOpenProviderDocument: (contextDocumentId: string) => void;
+  onViewLogs: (contextDocumentId: string) => void;
   onToggleIndexing: (applicationId: string, contextIndexingEnabled: boolean) => void;
   onDeleteDocuments: (applicationId: string) => void;
   busy: boolean;
@@ -1259,6 +1316,7 @@ function ContextAuditView({
                 document={document}
                 application={applications.find((item) => item.applicationId === document.applicationId)}
                 onOpenProviderDocument={onOpenProviderDocument}
+                onViewLogs={onViewLogs}
               />
             ))}
             {documents.length === 0 && <div className="p-5 rounded-md bg-[#11161f] text-[#aab4c2]">No context documents found.</div>}
@@ -1297,10 +1355,12 @@ function ContextDocumentRow({
   document,
   application,
   onOpenProviderDocument,
+  onViewLogs,
 }: {
   document: ApplicationContextDocument;
   application: ConnectedApplication | undefined;
   onOpenProviderDocument: (contextDocumentId: string) => void;
+  onViewLogs: (contextDocumentId: string) => void;
 }) {
   const statusClass =
     document.status === 'active'
@@ -1323,11 +1383,17 @@ function ContextDocumentRow({
         </div>
         <div className="flex items-center gap-2">
           <button
+            className="px-3 py-1 rounded-md bg-[#2d3745] hover:bg-[#3b4655] text-sm"
+            onClick={() => onViewLogs(document.contextDocumentId)}
+          >
+            Logs
+          </button>
+          <button
             className="px-3 py-1 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50 text-sm"
             onClick={() => onOpenProviderDocument(document.contextDocumentId)}
             disabled={document.status === 'deleted'}
           >
-            Open
+            Open Provider
           </button>
           <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass}`}>{document.status.toUpperCase()}</span>
         </div>
@@ -1379,6 +1445,88 @@ function ContextDeletionRunRow({
       {run.mutationIds.length > 0 && <div className="mt-3 text-xs text-[#7d8896] break-words">Mutations: {run.mutationIds.join(', ')}</div>}
       {run.errorMessage && <div className="mt-3 text-sm text-[#fca5a5] break-words">{run.errorMessage}</div>}
     </article>
+  );
+}
+
+const auditEventLabels: Record<string, string> = {
+  processing_started: 'Processing Started',
+  context_indexed: 'Context Indexed',
+  context_skipped: 'Context Skipped',
+  embedding_generated: 'Embedding Generated',
+  rag_queried: 'RAG Context Queried',
+  summary_generated: 'Summary Generated',
+  action_created: 'Action Created',
+  action_executed: 'Action Executed',
+  document_deleted: 'Document Deleted',
+  error: 'Error',
+};
+
+function AuditLogsModal({
+  logs,
+  cursor,
+  loading,
+  onClose,
+  onLoadMore,
+}: {
+  logs: ContextAuditLog[];
+  cursor?: string | null | undefined;
+  loading: boolean;
+  onClose: () => void;
+  onLoadMore: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/60" />
+      <div className="relative bg-[#111827] border border-[#374151] rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2d3745]">
+          <h2 className="text-lg font-semibold">Document Audit Logs</h2>
+          <button className="text-[#9ca3af] hover:text-white text-xl leading-none" onClick={onClose}>&times;</button>
+        </div>
+        <div className="overflow-y-auto p-5 space-y-3">
+          {logs.length === 0 && !loading && (
+            <div className="text-center text-[#aab4c2] py-8">No audit logs found for this document.</div>
+          )}
+          {logs.map((log) => {
+            const severityColor =
+              log.severity === 'error' ? 'bg-[#fca5a5]' : log.severity === 'warning' ? 'bg-[#fbbf24]' : 'bg-[#6ee7b7]';
+            return (
+              <div key={log.id} className="rounded-md border border-[#2d3745] bg-[#0d1118] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-block w-2 h-2 rounded-full shrink-0 mt-1.5 ${severityColor}`} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[#e5e7eb]">{log.eventLabel || auditEventLabels[log.eventType] || log.eventType}</div>
+                      <div className="text-xs text-[#7d8896] mt-0.5">
+                        {formatTimestamp(log.createdAt)}
+                        <span className="ml-2 inline-block px-1.5 py-0.5 rounded bg-[#2d3745] text-[#aab4c2] text-[10px] uppercase">{log.eventType}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {(() => {
+                  const data: unknown = log.eventData;
+                  if (data == null) return null;
+                  return (
+                    <div className="mt-2 text-xs text-[#7d8896] font-mono bg-[#0b0f16] border border-[#2d3745] rounded p-2 overflow-x-auto">
+                      {typeof data === 'object' ? JSON.stringify(data, null, 1) : String(data)}
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })}
+          {cursor && (
+            <button
+              className="w-full px-4 py-2 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50 text-sm"
+              onClick={onLoadMore}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Load More'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

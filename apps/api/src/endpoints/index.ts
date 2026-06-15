@@ -10,6 +10,7 @@ import { DeleteApplicationContextDocumentsRoute as OriginalDeleteApplicationCont
 import { ListApplicationContextDocumentsRoute as OriginalListApplicationContextDocumentsRoute } from './user/application/context/documents/GET';
 import { ListApplicationContextDeletionRunsRoute as OriginalListApplicationContextDeletionRunsRoute } from './user/application/context/deletions/GET';
 import { GetApplicationContextDocumentProviderLinkRoute as OriginalGetApplicationContextDocumentProviderLinkRoute } from './user/application/context/document/provider-link/GET';
+import { ListContextDocumentAuditLogsRoute as OriginalListContextDocumentAuditLogsRoute } from './user/application/context/document/audit-logs/GET';
 import { ListEmailActionsRoute as OriginalListEmailActionsRoute } from './user/actions/GET';
 import { ListEmailActionExecutionsRoute as OriginalListEmailActionExecutionsRoute } from './user/actions/executions/GET';
 import { ExecuteUserEmailActionRoute as OriginalExecuteUserEmailActionRoute } from './user/actions/execute/POST';
@@ -35,6 +36,7 @@ export const DeleteApplicationContextDocumentsRoute: any = OriginalDeleteApplica
 export const ListApplicationContextDocumentsRoute: any = OriginalListApplicationContextDocumentsRoute;
 export const ListApplicationContextDeletionRunsRoute: any = OriginalListApplicationContextDeletionRunsRoute;
 export const GetApplicationContextDocumentProviderLinkRoute: any = OriginalGetApplicationContextDocumentProviderLinkRoute;
+export const ListContextDocumentAuditLogsRoute: any = OriginalListContextDocumentAuditLogsRoute;
 export const ListEmailActionsRoute: any = OriginalListEmailActionsRoute;
 export const ListEmailActionExecutionsRoute: any = OriginalListEmailActionExecutionsRoute;
 export const ExecuteUserEmailActionRoute: any = OriginalExecuteUserEmailActionRoute;

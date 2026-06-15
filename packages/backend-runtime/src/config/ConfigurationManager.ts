@@ -5,6 +5,7 @@ import {
   DEFAULT_AI_DAILY_NEURON_FALLBACK_THRESHOLD,
   DEFAULT_AI_DAILY_USAGE_RETENTION_DAYS,
   DEFAULT_AI_EMBEDDING_MODEL,
+  DEFAULT_CONTEXT_AUDIT_LOG_RETENTION_DAYS,
   DEFAULT_CONTEXT_DELETION_RUN_RETENTION_DAYS,
   DEFAULT_DEBUG_MODE,
   DEFAULT_EMAIL_SUMMARY_FALLBACK_MODEL,
@@ -187,6 +188,10 @@ class ConfigurationManager {
 
   public static getActionRetentionDays(env: unknown): number {
     return ConfigurationManager.getPositiveInt(env, 'ACTION_RETENTION_DAYS', DEFAULT_ACTION_RETENTION_DAYS);
+  }
+
+  public static getContextAuditLogRetentionDays(env: unknown): number {
+    return ConfigurationManager.getPositiveInt(env, 'CONTEXT_AUDIT_LOG_RETENTION_DAYS', DEFAULT_CONTEXT_AUDIT_LOG_RETENTION_DAYS);
   }
 
   private static getPositiveInt(env: unknown, key: string, defaultValue: string): number {

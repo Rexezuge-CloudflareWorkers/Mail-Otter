@@ -2,6 +2,7 @@ import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import {
   AiDailyUsagePruningTask,
+  AuditLogPruningTask,
   ContextDeletionRunPruningTask,
   ContextDocumentPruningTask,
   EmailActionPruningTask,
@@ -86,6 +87,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
       new ContextDeletionRunPruningTask().handle(event, this.env, ctx),
       new AiDailyUsagePruningTask().handle(event, this.env, ctx),
       new EmailActionPruningTask().handle(event, this.env, ctx),
+      new AuditLogPruningTask().handle(event, this.env, ctx),
     ]);
   }
 }

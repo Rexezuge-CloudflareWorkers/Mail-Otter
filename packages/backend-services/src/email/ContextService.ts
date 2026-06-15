@@ -3,6 +3,8 @@ import {
   APPLICATION_CONTEXT_DELETION_STATUS_ERROR,
   PROVIDER_GOOGLE_GMAIL,
   PROVIDER_MICROSOFT_OUTLOOK,
+  CONTEXT_AUDIT_EVENT_DOCUMENT_DELETED,
+  CONTEXT_AUDIT_LOG_SEVERITY_INFO,
 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
@@ -13,6 +15,7 @@ import type {
   ApplicationContextDocumentList,
   ApplicationContextDocumentSource,
   ConnectedApplicationMetadata,
+  ContextAuditLogList,
 } from '@mail-otter/shared/model';
 import type { ApplicationContextDocumentStatus } from '@mail-otter/shared/constants';
 import { ApplicationResponseUtil } from '../application/ApplicationResponseUtil';
@@ -72,6 +75,7 @@ class ContextService {
         }
       }
       await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
+      await ContextService.logDocumentDeletions(contextDAO, applicationId, userEmail, vectorIds);
       await contextDAO.recordDeletionRun({
         applicationId,
         userEmail,
@@ -129,6 +133,7 @@ class ContextService {
         }
       }
       await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, userEmail, vectorIds);
+      await ContextService.logDocumentDeletions(contextDAO, application.applicationId, userEmail, vectorIds);
       return contextDAO.recordDeletionRun({
         applicationId: application.applicationId,
         userEmail,
@@ -152,6 +157,20 @@ class ContextService {
     }
   }
 
+  public static async listAuditLogs(
+    userEmail: string,
+    contextDocumentId: string,
+    env: ContextListEnv,
+    cursor?: string | undefined,
+  ): Promise<ContextAuditLogList> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
+    if (!document) {
+      throw new BadRequestError('Context document was not found.');
+    }
+    return contextDAO.listAuditLogs(contextDocumentId, { cursor });
+  }
+
   public static async getDocumentProviderLink(userEmail: string, contextDocumentId: string, env: ContextServiceEnv): Promise<string> {
     const contextDAO = new ApplicationContextDAO(env.DB);
     const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
@@ -170,6 +189,31 @@ class ContextService {
   private static async createApplicationDAO(env: ContextServiceEnv): Promise<ConnectedApplicationDAO> {
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     return new ConnectedApplicationDAO(env.DB, masterKey);
+  }
+
+  private static async logDocumentDeletions(
+    contextDAO: ApplicationContextDAO,
+    applicationId: string,
+    userEmail: string,
+    vectorIds: string[],
+  ): Promise<void> {
+    const documents: Array<{ contextDocumentId: string; sourceDocumentId: string | null }> = await contextDAO.getDocumentSourcesByVectorIds(
+      applicationId,
+      userEmail,
+      vectorIds,
+    );
+    if (documents.length === 0) return;
+    await contextDAO.insertAuditLogs(
+      documents.map((doc) => ({
+        contextDocumentId: doc.contextDocumentId,
+        applicationId,
+        userEmail,
+        sourceDocumentId: doc.sourceDocumentId,
+        eventType: CONTEXT_AUDIT_EVENT_DOCUMENT_DELETED,
+        eventLabel: 'Document deleted from context index',
+        severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+      })),
+    );
   }
 
   private static getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {

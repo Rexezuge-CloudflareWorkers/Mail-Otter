@@ -6,4 +6,5 @@ export * from './EmailAction';
 export * from './EmailQueueMessage';
 export * from './OAuth2AuthorizationSession';
 export * from './ProcessedMessage';
+export * from './ContextAuditLog';
 export * from './ProviderSubscription';

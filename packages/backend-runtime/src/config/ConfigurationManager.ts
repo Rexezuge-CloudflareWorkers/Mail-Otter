@@ -179,7 +179,11 @@ class ConfigurationManager {
   }
 
   public static getActionCallbackBaseUrl(env: unknown): string {
-    return ConfigurationManager.getString(env, 'ACTION_CALLBACK_BASE_URL', DEFAULT_ACTION_CALLBACK_BASE_URL).replace(/\/+$/, '');
+    let url = ConfigurationManager.getString(env, 'ACTION_CALLBACK_BASE_URL', DEFAULT_ACTION_CALLBACK_BASE_URL);
+    while (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+    return url;
   }
 
   public static getActionDefaultExpiryHours(env: unknown): number {

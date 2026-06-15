@@ -395,7 +395,11 @@ class ActionService {
   }
 
   private static resolveCallbackBaseUrl(callbackBaseUrl: string | undefined, env: ActionCreationEnv): string {
-    return (callbackBaseUrl?.trim() || ConfigurationManager.getActionCallbackBaseUrl(env)).replace(/\/+$/, '');
+    let url = callbackBaseUrl?.trim() || ConfigurationManager.getActionCallbackBaseUrl(env);
+    while (url.endsWith('/')) {
+      url = url.slice(0, -1);
+    }
+    return url;
   }
 
   private static resolveExpiresAt(expiresAt: string | undefined, now: number, env: ActionCreationEnv): number {
@@ -409,18 +413,24 @@ class ActionService {
   private static extractUrls(body: string): Set<string> {
     const urls = new Set<string>();
     for (const match of body.matchAll(/https?:\/\/[^\s<>"]+/gi)) {
-      const url: string = match[0].replace(/[),.;!?]+$/, '');
-      urls.add(url);
+      let raw = match[0];
+      while (raw.length > 0 && '),.;!?'.includes(raw[raw.length - 1])) raw = raw.slice(0, -1);
+      urls.add(raw);
     }
     return urls;
   }
 
   private static findAllowedUrl(url: string, allowedUrls: Set<string>): string | undefined {
-    const candidate: string = url.trim().replace(/[),.;!?]+$/, '');
+    let candidate = url.trim();
+    while (candidate.length > 0 && '),.;!?'.includes(candidate[candidate.length - 1])) candidate = candidate.slice(0, -1);
     if (!candidate.startsWith('http://') && !candidate.startsWith('https://')) return undefined;
     if (allowedUrls.has(candidate)) return candidate;
     for (const allowed of allowedUrls) {
-      if (allowed.replace(/\/+$/, '') === candidate.replace(/\/+$/, '')) return allowed;
+      let a = allowed;
+      let c = candidate;
+      while (a.endsWith('/')) a = a.slice(0, -1);
+      while (c.endsWith('/')) c = c.slice(0, -1);
+      if (a === c) return allowed;
     }
     return undefined;
   }

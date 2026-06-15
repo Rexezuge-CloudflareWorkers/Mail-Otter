@@ -4,6 +4,8 @@ Mail-Otter is a Cloudflare Worker app that watches connected Gmail or Outlook in
 
 Users bring their own OAuth app credentials. Gmail also requires a Google Pub/Sub topic and push subscription.
 
+Optional RAG context indexing lets the AI draw on recent indexed email content when generating summaries. Email actions (reply, flag, snooze, etc.) can be defined with a public confirmation/denial callback flow that works from any email client.
+
 ## Providers
 
 - `google-gmail` / `oauth2`
@@ -12,14 +14,19 @@ Users bring their own OAuth app credentials. Gmail also requires a Google Pub/Su
 ## Cloudflare Bindings
 
 - D1 database binding: `DB`
-- Secrets Store secret: `AES_ENCRYPTION_KEY_SECRET`
+- KV namespace: `OAUTH2_TOKEN_CACHE`
 - Workers AI binding: `AI`
 - Vectorize index binding: `EMAIL_CONTEXT_INDEX`
 - Workflow binding: `EMAIL_PROCESSING_WORKFLOW`
 - Queue producer and consumer: `EMAIL_EVENTS_QUEUE`
-- Cron trigger: every 10 minutes, for token refresh, context document pruning, and subscription renewal
+- Durable Object: `CRON_TASKS`
+- Durable Object: `OAUTH2_TOKEN_REFRESHERS`
+- Secrets Store: `AES_ENCRYPTION_KEY_SECRET` (token encryption)
+- Secrets Store: `ACTION_ENCRYPTION_KEY_SECRET` (action payload encryption)
+- Secrets Store: `ACTION_SIGNING_SECRET` (action token signing)
+- Cron trigger: every 10 minutes, for OAuth2 token refresh, context document pruning/embedding, processed message pruning, stale context document pruning, OAuth2 session pruning, context deletion run pruning, AI daily usage pruning, email action pruning, audit log pruning, and subscription renewal
 
-Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, secret store id, and routes.
+Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 database id, KV namespace id, secret store ids, and routes.
 
 Create the Vectorize index before deploy:
 
@@ -28,7 +35,20 @@ source ~/.customrc
 volta run npx wrangler vectorize create mail-otter-email-context --dimensions=768 --metric=cosine
 ```
 
-The management UI lets users enable or disable context indexing per connected application, set a per-application document limit, inspect indexed documents, and delete all indexed documents for one application. A global ceiling (`MAX_CONTEXT_DOCUMENTS_PER_APPLICATION`, default 10 000) caps the limit across all applications; the cron task automatically prunes oldest documents when an application exceeds its effective limit.
+The management UI lets users enable or disable context indexing per connected application, set a per-application document limit, inspect indexed documents, view provider links to original emails, view audit logs, view deletion runs, and delete all indexed documents for one application. A global ceiling (`MAX_CONTEXT_DOCUMENTS_PER_APPLICATION`, default 1 000) caps the limit across all applications; the cron task automatically prunes oldest documents when an application exceeds its effective limit.
+
+## Email Actions
+
+When processing an email, the AI can generate one or more suggested actions (e.g. reply, flag, snooze). Each action gets an encrypted and signed callback URL that is posted in the summary reply:
+
+```text
+https://your-domain.example/api/actions/{actionId}
+https://your-domain.example/api/actions/{actionId}/execute
+```
+
+These routes are publicly accessible because email clients render the links. Security relies on `ACTION_ENCRYPTION_KEY_SECRET` (AES-GCM encryption of the action payload) and `ACTION_SIGNING_SECRET` (HMAC signing of the action token).
+
+Users can also view, manually execute, and track execution history of actions via the management UI.
 
 ## OAuth Setup
 
@@ -72,20 +92,42 @@ projects/{projectId}/topics/{topicName}
 
 After OAuth succeeds, start the watch in Mail-Otter. The UI shows a one-time webhook URL containing a token. Configure the Pub/Sub push subscription to deliver to that URL.
 
+## Outlook Watch
+
+For Outlook, the watch is started automatically after OAuth succeeds. You can optionally restrict the watch to specific folders via the management UI (`PUT /user/application/watch-settings`).
+
 ## Optional Environment Variables
 
 Set these in `wrangler.jsonc` under `vars` to override defaults:
 
-| Variable                                | Default                   | Description                                                                                                  |
-| --------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `DEBUG_MODE`                            | `false`                   | Appends metadata-only processing diagnostics to summary emails when set to `true`                            |
-| `MAX_APPLICATIONS_PER_USER`             | `99`                      | Hard limit on connected applications per user                                                                |
-| `MAX_CONTEXT_DOCUMENTS_PER_APPLICATION` | `10000`                   | Global ceiling on indexed documents per application                                                          |
-| `MAX_EMAIL_BODY_CHARS`                  | `12000`                   | Characters of email body sent to AI for summarization                                                        |
-| `AI_SUMMARY_MODEL`                      | `@cf/openai/gpt-oss-120b` | Workers AI model for email summarization                                                                     |
-| `AI_SUMMARY_FALLBACK_MODEL`             | `@cf/openai/gpt-oss-20b`  | Workers AI summary model used after the daily neuron fallback threshold is reached                           |
-| `AI_DAILY_NEURON_FALLBACK_THRESHOLD`    | `6000`                    | Estimated UTC daily Workers AI neuron usage where summaries switch to the fallback model; set `0` to disable |
-| `AI_EMBEDDING_MODEL`                    | `@cf/baai/bge-m3`         | Workers AI model for context embeddings                                                                      |
+| Variable                                     | Default                   | Description                                                                                                  |
+| -------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `DEBUG_MODE`                                 | `false`                   | Appends metadata-only processing diagnostics to summary emails when set to `true`                            |
+| `SERVE_SPA_FROM_WORKER`                      | `false`                   | Serves the SPA from the Worker catch-all route instead of Cloudflare Pages assets                            |
+| `POLICY_AUD`                                 | *(required)*              | Cloudflare Zero Trust application AUD for Access JWT validation                                              |
+| `TEAM_DOMAIN`                                | *(required)*              | Cloudflare Zero Trust team domain for JWKS endpoint discovery                                                |
+| `MAX_APPLICATIONS_PER_USER`                  | `99`                      | Hard limit on connected applications per user                                                                |
+| `MAX_CONTEXT_DOCUMENTS_PER_APPLICATION`      | `1000`                    | Global ceiling on indexed documents per application                                                          |
+| `MAX_CONTEXT_MEMORY_CHARS`                   | `1800`                    | Characters of recent context included in AI prompts as conversation memory                                   |
+| `MAX_RAG_CONTEXT_CHARS`                      | `6000`                    | Characters of RAG results included in AI prompts                                                             |
+| `RAG_TOP_K`                                  | `5`                       | Context documents included in the RAG prompt                                                                 |
+| `RAG_VECTOR_QUERY_TOP_K`                     | `50`                      | Candidate documents retrieved from Vectorize before re-ranking                                               |
+| `MAX_EMAIL_BODY_CHARS`                       | `12000`                   | Characters of email body sent to AI for summarization                                                        |
+| `AI_SUMMARY_MODEL`                           | `@cf/openai/gpt-oss-120b` | Workers AI model for email summarization                                                                     |
+| `AI_SUMMARY_FALLBACK_MODEL`                  | `@cf/openai/gpt-oss-20b`  | Workers AI summary model used after the daily neuron fallback threshold is reached                           |
+| `AI_DAILY_NEURON_FALLBACK_THRESHOLD`         | `6000`                    | Estimated UTC daily Workers AI neuron usage where summaries switch to the fallback model; set `0` to disable |
+| `AI_EMBEDDING_MODEL`                         | `@cf/baai/bge-m3`         | Workers AI model for context embeddings                                                                      |
+| `OAUTH2_STATE_EXPIRY_MINUTES`                | `15`                      | TTL for OAuth2 authorization state values                                                                    |
+| `OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS` | `900`                     | Seconds before token expiry to trigger a refresh                                                             |
+| `OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS`      | `60`                      | Minimum seconds a cached token must remain valid to be used without refresh                                  |
+| `OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS`   | `3600`                    | Fallback TTL when the provider does not return `expires_in`                                                  |
+| `OAUTH2_TOKEN_REFRESH_BATCH_SIZE`            | `25`                      | Maximum number of tokens refreshed per cron cycle                                                            |
+| `GMAIL_WATCH_RENEWAL_WINDOW_HOURS`           | `48`                      | Hours before Gmail watch expiry to attempt renewal                                                           |
+| `OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS`  | `24`                      | Hours before Outlook subscription expiry to attempt renewal                                                  |
+| `OUTLOOK_SUBSCRIPTION_TTL_DAYS`              | `6`                       | Maximum requested TTL for Outlook change notifications                                                       |
+| `ACTION_CALLBACK_BASE_URL`                   | `""`                      | Base URL for action callback links; uses the request host if empty                                           |
+| `ACTION_DEFAULT_EXPIRY_HOURS`                | `168`                     | Default TTL for email action confirmation tokens                                                             |
+| `ACTION_RETENTION_DAYS`                      | `90`                      | Days to retain completed or expired email actions                                                            |
 
 ## Continuous Deployment Variables
 

@@ -1486,7 +1486,7 @@ function AuditLogsModal({
           {logs.length === 0 && !loading && (
             <div className="text-center text-[#aab4c2] py-8">No audit logs found for this document.</div>
           )}
-          {logs.map((log) => {
+          {logs.map((log, index) => {
             const severityColor =
               log.severity === 'error' ? 'bg-[#fca5a5]' : log.severity === 'warning' ? 'bg-[#fbbf24]' : 'bg-[#6ee7b7]';
             return (
@@ -1497,6 +1497,7 @@ function AuditLogsModal({
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-[#e5e7eb]">{log.eventLabel || auditEventLabels[log.eventType] || log.eventType}</div>
                       <div className="text-xs text-[#7d8896] mt-0.5">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#2d3745] text-[#aab4c2] text-[10px] font-medium mr-2 shrink-0">{logs.length - index}</span>
                         {formatTimestamp(log.createdAt)}
                         <span className="ml-2 inline-block px-1.5 py-0.5 rounded bg-[#2d3745] text-[#aab4c2] text-[10px] uppercase">{log.eventType}</span>
                       </div>

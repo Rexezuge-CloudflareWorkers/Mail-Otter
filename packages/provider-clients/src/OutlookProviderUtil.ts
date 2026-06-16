@@ -207,14 +207,30 @@ class OutlookProviderUtil {
     mailboxAddress: string,
     summary: string,
   ): Promise<void> {
-    const mimeMessage: string = OutlookProviderUtil.createSummaryReplyMimeMessage(originalMessage, mailboxAddress, summary);
     const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
       accessToken,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: OutlookProviderUtil.base64EncodeString(mimeMessage),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            body: {
+              contentType: 'html',
+              content: summary,
+            },
+            toRecipients: [
+              {
+                emailAddress: {
+                  address: mailboxAddress,
+                },
+              },
+            ],
+            internetMessageHeaders: [
+              { name: 'X-Mail-Otter-Summary', value: 'true' },
+            ],
+          },
+        }),
       },
     );
     if (!draft.id) {
@@ -260,43 +276,6 @@ class OutlookProviderUtil {
 
   private static isRetryableStatus(status: number): boolean {
     return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
-  }
-
-  private static createSummaryReplyMimeMessage(originalMessage: OutlookMessage, mailboxAddress: string, summary: string): string {
-    const originalSubject: string = originalMessage.subject || '(no subject)';
-    const originalMessageId: string | undefined = EmailContentUtil.getHeader(originalMessage.internetMessageHeaders, 'Message-ID');
-    const originalReferences: string | undefined = EmailContentUtil.getHeader(originalMessage.internetMessageHeaders, 'References');
-    const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
-    const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
-    const boundary: string = OutlookProviderUtil.createSummaryMimeBoundary(originalMessage.id);
-    const textSummary: string = EmailContentUtil.stripHtml(summary);
-
-    return [
-      `From: ${mailboxAddress}`,
-      `To: ${mailboxAddress}`,
-      `Subject: ${replySubject}`,
-      ...(originalMessageId ? [`In-Reply-To: ${originalMessageId}`] : []),
-      ...(references ? [`References: ${references}`] : []),
-      'X-Mail-Otter-Summary: true',
-      'MIME-Version: 1.0',
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      '',
-      EmailContentUtil.buildAlternativeMimeBody(textSummary, summary, boundary),
-    ].join('\r\n');
-  }
-
-  private static createSummaryMimeBoundary(seed: string): string {
-    const safeSeed: string = seed.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'message';
-    return `mail-otter-summary-${safeSeed}`;
-  }
-
-  private static base64EncodeString(value: string): string {
-    const bytes: Uint8Array = new TextEncoder().encode(value);
-    let binary = '';
-    bytes.forEach((byte: number): void => {
-      binary += String.fromCharCode(byte);
-    });
-    return btoa(binary);
   }
 
   private static async deleteSentCopy(accessToken: string, messageId: string): Promise<void> {

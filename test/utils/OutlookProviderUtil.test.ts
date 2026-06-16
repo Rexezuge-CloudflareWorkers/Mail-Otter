@@ -20,14 +20,7 @@ describe('OutlookProviderUtil', () => {
 
       vi.stubGlobal('fetch', fetchMock);
 
-      const originalMessage = {
-        id: 'original-msg-id',
-        subject: 'Original subject',
-        internetMessageHeaders: [
-          { name: 'Message-ID', value: '<original@example.com>' },
-          { name: 'References', value: '<root@example.com>' },
-        ],
-      };
+      const originalMessage = { id: 'original-msg-id' };
 
       const htmlSummary =
         '<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Key details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
@@ -47,22 +40,27 @@ describe('OutlookProviderUtil', () => {
 
       const createReplyCall = fetchMock.mock.calls[0];
       const createReplyHeaders = createReplyCall[1].headers as Headers;
-      const rawMessage: string = decodeBase64(createReplyCall[1].body as string);
-      const boundary: string = extractMimeBoundary(rawMessage);
+      const parsedBody: Record<string, unknown> = JSON.parse(createReplyCall[1].body as string);
 
-      expect(createReplyHeaders.get('Content-Type')).toBe('text/plain');
-      expect(rawMessage).toContain('From: sender@example.com');
-      expect(rawMessage).toContain('To: sender@example.com');
-      expect(rawMessage).toContain('Subject: Re: Original subject');
-      expect(rawMessage).toContain('In-Reply-To: <original@example.com>');
-      expect(rawMessage).toContain('References: <root@example.com> <original@example.com>');
-      expect(rawMessage).toContain('X-Mail-Otter-Summary: true');
-      expect(rawMessage).toContain(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/plain; charset=utf-8`);
-      expect(rawMessage).toContain('Gist: Summary <tag> & text');
-      expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/html; charset=utf-8`);
-      expect(rawMessage).toContain('<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>');
-      expect(rawMessage).toContain(`--${boundary}--`);
+      expect(createReplyHeaders.get('Content-Type')).toBe('application/json');
+      expect(parsedBody).toEqual({
+        message: {
+          body: {
+            contentType: 'html',
+            content: htmlSummary,
+          },
+          toRecipients: [
+            {
+              emailAddress: {
+                address: 'sender@example.com',
+              },
+            },
+          ],
+          internetMessageHeaders: [
+            { name: 'X-Mail-Otter-Summary', value: 'true' },
+          ],
+        },
+      });
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/send',
@@ -113,14 +111,4 @@ describe('OutlookProviderUtil', () => {
   });
 });
 
-function decodeBase64(value: string): string {
-  const binary: string = atob(value);
-  const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
 
-function extractMimeBoundary(rawMessage: string): string {
-  const match: RegExpMatchArray | null = rawMessage.match(/boundary="([^"]+)"/);
-  expect(match).not.toBeNull();
-  return match![1]!;
-}

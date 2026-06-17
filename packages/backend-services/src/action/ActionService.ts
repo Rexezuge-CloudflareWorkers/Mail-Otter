@@ -82,23 +82,27 @@ class ActionService {
     return created;
   }
 
+  public static renderActionItems(actions: CreatedEmailAction[]): string[] {
+    return actions.map((item: CreatedEmailAction): string => {
+      const expires: string = new Date(item.action.expiresAt * 1000).toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' });
+      return [
+        '<li>',
+        `<strong>${ActionService.escapeHtml(item.action.title)}</strong><br>`,
+        `${ActionService.escapeHtml(item.action.description)}<br>`,
+        `Review action: ${ActionService.escapeHtml(item.confirmationUrl)}<br>`,
+        ` <span style="color:#666;">Expires ${ActionService.escapeHtml(expires)}</span>`,
+        '</li>',
+      ].join('');
+    });
+  }
+
   public static renderEmailActionSection(actions: CreatedEmailAction[]): string {
     if (actions.length === 0) return '';
     return [
       '',
       '<p><strong>Available actions:</strong></p>',
       '<ul>',
-      ...actions.map((item: CreatedEmailAction): string => {
-        const expires: string = new Date(item.action.expiresAt * 1000).toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' });
-        return [
-          '<li>',
-          `<strong>${ActionService.escapeHtml(item.action.title)}</strong><br>`,
-          `${ActionService.escapeHtml(item.action.description)}<br>`,
-          `Review action: ${ActionService.escapeHtml(item.confirmationUrl)}<br>`,
-          ` <span style="color:#666;">Expires ${ActionService.escapeHtml(expires)}</span>`,
-          '</li>',
-        ].join('');
-      }),
+      ...ActionService.renderActionItems(actions),
       '</ul>',
     ].join('\n');
   }

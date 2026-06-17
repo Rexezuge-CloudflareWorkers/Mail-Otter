@@ -1,0 +1,61 @@
+# $version: v6-1781708455
+name: Backup Main Branch
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 5 * *'
+
+jobs:
+  backup:
+    if: ${{ !github.event.repository.fork }}
+    name: Backup to ${{ matrix.destination }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        destination:
+          - azure-devops
+          - gitlab
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "Actions"
+          git config user.email "actions@github.com"
+
+      - name: Set Up SSH for ${{ matrix.destination }}
+        run: |
+          mkdir -p ~/.ssh
+          case "${{ matrix.destination }}" in
+            azure-devops)
+              echo "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}" > ~/.ssh/id_rsa
+              echo "REMOTE_URL=${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}" >> $GITHUB_ENV
+              ;;
+            gitlab)
+              echo "${{ secrets.BACKUP_REPO_GITLAB_SSH_KEY }}" > ~/.ssh/id_rsa
+              echo "REMOTE_URL=${{ secrets.BACKUP_REPO_GITLAB_REPO_URL }}" >> $GITHUB_ENV
+              ;;
+          esac
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Add SSH Remote
+        run: git remote add backup "${REMOTE_URL}"
+
+      - name: Push main Branch to ${{ matrix.destination }}
+        uses: ./.github/actions/retry-step
+        with:
+          command: git push --force backup main:main
+          max_attempts: '3'

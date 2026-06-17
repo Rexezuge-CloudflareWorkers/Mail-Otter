@@ -87,9 +87,8 @@ class ActionService {
       const expires: string = new Date(item.action.expiresAt * 1000).toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' });
       return [
         '<li>',
-        `<strong>${ActionService.escapeHtml(item.action.title)}</strong><br>`,
+        `<strong><a href="${ActionService.escapeHtml(item.confirmationUrl)}">${ActionService.escapeHtml(item.action.title)}</a></strong><br>`,
         `${ActionService.escapeHtml(item.action.description)}<br>`,
-        `Review action: ${ActionService.escapeHtml(item.confirmationUrl)}<br>`,
         ` <span style="color:#666;">Expires ${ActionService.escapeHtml(expires)}</span>`,
         '</li>',
       ].join('');

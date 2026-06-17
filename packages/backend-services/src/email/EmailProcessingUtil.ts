@@ -118,7 +118,7 @@ class EmailProcessingUtil {
       if (actions.length > 0) {
         await EmailProcessingUtil.logActionsCreated(contextDAO, application, message.id, actions);
       }
-      await GmailProviderUtil.sendSummaryReply(accessToken, application.providerEmail!, message, EmailProcessingUtil.withActionSection(summary.html, actions));
+      await GmailProviderUtil.sendSummaryReply(accessToken, application.providerEmail!, message, EmailProcessingUtil.withActionSection(summary.html, actions), ConfigurationManager.getDisableDeleteAfterSend(env));
       await EmailProcessingUtil.logSummarySent(contextDAO, application, message.id);
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
@@ -225,7 +225,7 @@ class EmailProcessingUtil {
       if (actions.length > 0) {
         await EmailProcessingUtil.logActionsCreated(contextDAO, application, message.id, actions);
       }
-      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message, application.providerEmail!, EmailProcessingUtil.withActionSection(summary.html, actions));
+      await OutlookProviderUtil.sendSelfSummaryReply(accessToken, message, application.providerEmail!, EmailProcessingUtil.withActionSection(summary.html, actions), ConfigurationManager.getDisableDeleteAfterSend(env));
       await EmailProcessingUtil.logSummarySent(contextDAO, application, message.id);
       await processedDAO.markSummarized(application.applicationId, message.id);
     } catch (error: unknown) {
@@ -576,6 +576,7 @@ interface EmailProcessingEnv {
   RAG_VECTOR_QUERY_TOP_K?: string | undefined;
   ACTION_CALLBACK_BASE_URL?: string | undefined;
   ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
+  DISABLE_DELETE_AFTER_SEND?: string | undefined;
 }
 
 interface EmailProcessingOptions {

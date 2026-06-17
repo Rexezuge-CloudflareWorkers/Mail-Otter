@@ -159,7 +159,7 @@ class GmailProviderUtil {
     });
   }
 
-  public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string): Promise<void> {
+  public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string, disableDelete?: boolean): Promise<void> {
     const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
     const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const originalMessageId: string | undefined = EmailContentUtil.getHeader(headers, 'Message-ID');
@@ -195,7 +195,9 @@ class GmailProviderUtil {
       throw GmailProviderUtil.createApiError('send summary', response, await response.text());
     }
     const sentMessage = (await response.json()) as { id: string };
-    await GmailProviderUtil.trashGmailMessage(sentMessage.id, accessToken);
+    if (!disableDelete) {
+      await GmailProviderUtil.trashGmailMessage(sentMessage.id, accessToken);
+    }
   }
 
   private static async trashGmailMessage(messageId: string, accessToken: string): Promise<void> {

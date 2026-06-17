@@ -124,7 +124,7 @@ describe('EmailProcessingUtil', () => {
       });
       expect(summarizeEmail).toHaveBeenCalledOnce();
       expect(sendSelfSummaryReply).toHaveBeenCalledOnce();
-      expect(sendSelfSummaryReply).toHaveBeenCalledWith('access-token', expect.anything(), 'owner@example.com', 'Summary text');
+      expect(sendSelfSummaryReply).toHaveBeenCalledWith('access-token', expect.anything(), 'owner@example.com', 'Summary text', false);
       expect(markSummarized).toHaveBeenCalledWith('app-1', 'reply-message-2');
     });
 

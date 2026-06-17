@@ -126,7 +126,7 @@ Set these in `wrangler.jsonc` under `vars` to override defaults:
 | `OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS`  | `24`                      | Hours before Outlook subscription expiry to attempt renewal                                                  |
 | `OUTLOOK_SUBSCRIPTION_TTL_DAYS`              | `6`                       | Maximum requested TTL for Outlook change notifications                                                       |
 | `ACTION_CALLBACK_BASE_URL`                   | `""`                      | Base URL for action callback links; uses the request host if empty                                           |
-| `ACTION_DEFAULT_EXPIRY_HOURS`                | `168`                     | Default TTL for email action confirmation tokens                                                             |
+| `ACTION_DEFAULT_EXPIRY_HOURS`                | `720`                     | Default TTL for email action confirmation tokens                                                             |
 | `ACTION_RETENTION_DAYS`                      | `90`                      | Days to retain completed or expired email actions                                                            |
 
 ## Continuous Deployment Variables

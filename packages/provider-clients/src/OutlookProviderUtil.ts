@@ -208,71 +208,45 @@ class OutlookProviderUtil {
     summary: string,
     disableDelete?: boolean,
   ): Promise<void> {
-    // Step 1: Create a draft reply without overriding body content to ensure
-    // proper conversation threading (avoiding sanitization issues with complex HTML).
     const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
       accessToken,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          message: {
+            body: {
+              contentType: 'html',
+              content: summary,
+            },
+            toRecipients: [
+              {
+                emailAddress: {
+                  address: mailboxAddress,
+                },
+              },
+            ],
+            internetMessageHeaders: [
+              { name: 'X-Mail-Otter-Summary', value: 'true' },
+            ],
+          },
+        }),
       },
     );
     if (!draft.id) {
       throw new ProviderApiRetryableError('Microsoft Graph createReply did not return a draft id.');
     }
-
-    // Step 2: PATCH the draft to set our custom HTML body, recipients, and headers.
-    // Using PATCH after createReply avoids HTML sanitization issues that occur
-    // when complex HTML (e.g. with <a> and <span> tags from action sections)
-    // is passed through the createReply message parameter.
-    const patchResponse: Response = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          body: {
-            contentType: 'html',
-            content: summary,
-          },
-          toRecipients: [
-            {
-              emailAddress: {
-                address: mailboxAddress,
-              },
-            },
-          ],
-          internetMessageHeaders: [
-            { name: 'X-Mail-Otter-Summary', value: 'true' },
-          ],
-        }),
+    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-    );
-    if (!patchResponse.ok) {
-      throw OutlookProviderUtil.createApiError('patch draft', patchResponse, await patchResponse.text());
+    });
+    if (!response.ok) {
+      throw OutlookProviderUtil.createApiError('send summary', response, await response.text());
     }
-
-    // Step 3: Send the draft
-    const sendResponse: Response = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      },
-    );
-    if (!sendResponse.ok) {
-      throw OutlookProviderUtil.createApiError('send summary', sendResponse, await sendResponse.text());
-    }
-
-    // Step 4: Clean up the sent copy
     if (!disableDelete) {
       await OutlookProviderUtil.deleteSentCopy(accessToken, draft.id);
     }

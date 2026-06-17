@@ -9,14 +9,12 @@ describe('OutlookProviderUtil', () => {
   describe('sendSelfSummaryReply', () => {
     it('sends a threaded reply and deletes the sent copy', async () => {
       const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
-      const mockPatchResponse = new Response('', { status: 200 });
       const mockSendResponse = new Response('', { status: 202 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse)
         .mockResolvedValueOnce(mockDeleteResponse);
 
@@ -33,85 +31,55 @@ describe('OutlookProviderUtil', () => {
         htmlSummary,
       );
 
-      expect(fetchMock).toHaveBeenCalledTimes(4);
-
-      // Step 1: createReply with empty body to get proper threading
+      expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
         'https://graph.microsoft.com/v1.0/me/messages/original-msg-id/createReply',
         expect.objectContaining({ method: 'POST' }),
       );
+
       const createReplyCall = fetchMock.mock.calls[0];
       const createReplyHeaders = createReplyCall[1].headers as Headers;
-      const parsedCreateReplyBody: Record<string, unknown> = JSON.parse(createReplyCall[1].body as string);
-      expect(createReplyHeaders.get('Content-Type')).toBe('application/json');
-      expect(parsedCreateReplyBody).toEqual({});
+      const parsedBody: Record<string, unknown> = JSON.parse(createReplyCall[1].body as string);
 
-      // Step 2: PATCH the draft to set body, recipients, and headers
+      expect(createReplyHeaders.get('Content-Type')).toBe('application/json');
+      expect(parsedBody).toEqual({
+        message: {
+          body: {
+            contentType: 'html',
+            content: htmlSummary,
+          },
+          toRecipients: [
+            {
+              emailAddress: {
+                address: 'sender@example.com',
+              },
+            },
+          ],
+          internetMessageHeaders: [
+            { name: 'X-Mail-Otter-Summary', value: 'true' },
+          ],
+        },
+      });
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
-        'https://graph.microsoft.com/v1.0/me/messages/draft-id-123',
-        expect.objectContaining({ method: 'PATCH' }),
-      );
-      const patchCall = fetchMock.mock.calls[1];
-      const patchBody: Record<string, unknown> = JSON.parse(patchCall[1].body as string);
-      expect(patchBody).toEqual({
-        body: {
-          contentType: 'html',
-          content: htmlSummary,
-        },
-        toRecipients: [
-          {
-            emailAddress: {
-              address: 'sender@example.com',
-            },
-          },
-        ],
-        internetMessageHeaders: [
-          { name: 'X-Mail-Otter-Summary', value: 'true' },
-        ],
-      });
-
-      // Step 3: Send the draft
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/send',
         expect.objectContaining({ method: 'POST' }),
       );
-
-      // Step 4: Delete the sent copy
       expect(fetchMock).toHaveBeenNthCalledWith(
-        4,
+        3,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123',
         expect.objectContaining({ method: 'DELETE' }),
       );
     });
 
-    it('throws when patch fails', async () => {
-      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
-      const mockPatchResponse = new Response('Patch failed', { status: 400 });
-
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockPatchResponse);
-
-      vi.stubGlobal('fetch', fetchMock);
-
-      await expect(
-        OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
-      ).rejects.toThrow('Microsoft Graph patch draft failed (400): Patch failed');
-    });
-
     it('throws when send fails', async () => {
-      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
-      const mockPatchResponse = new Response('', { status: 200 });
+      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
       const mockSendResponse = new Response('Send failed', { status: 500 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockPatchResponse)
         .mockResolvedValueOnce(mockSendResponse);
 
       vi.stubGlobal('fetch', fetchMock);

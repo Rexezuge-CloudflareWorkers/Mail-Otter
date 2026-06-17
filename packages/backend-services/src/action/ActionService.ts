@@ -94,7 +94,7 @@ class ActionService {
           '<li>',
           `<strong>${ActionService.escapeHtml(item.action.title)}</strong><br>`,
           `${ActionService.escapeHtml(item.action.description)}<br>`,
-          `<a href="${ActionService.escapeHtml(item.confirmationUrl)}">Review action</a>`,
+          `Review action: ${ActionService.escapeHtml(item.confirmationUrl)}<br>`,
           ` <span style="color:#666;">Expires ${ActionService.escapeHtml(expires)}</span>`,
           '</li>',
         ].join('');

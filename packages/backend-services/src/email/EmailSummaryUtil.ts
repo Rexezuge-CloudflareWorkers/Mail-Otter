@@ -271,8 +271,6 @@ class EmailSummaryUtil {
       '<ul>',
       ...EmailSummaryUtil.renderHtmlList(actionItems, '<li>None.</li>'),
       '</ul>',
-      '',
-      '<p><em>Powered by Mail-Otter</em></p>',
     ].join('\n');
   }
 

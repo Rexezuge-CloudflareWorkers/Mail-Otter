@@ -304,7 +304,8 @@ class EmailProcessingUtil {
 
   private static withActionSection(summaryHtml: string, actions: CreatedEmailAction[]): string {
     const actionSection: string = ActionService.renderEmailActionSection(actions);
-    return actionSection ? [summaryHtml, actionSection].join('\n') : summaryHtml;
+    const body: string = actionSection ? [summaryHtml, actionSection].join('\n') : summaryHtml;
+    return [body, '', '<p><em>Powered by Mail-Otter</em></p>'].join('\n');
   }
 
   private static async resolveSummaryModel(env: EmailProcessingEnv, estimatedPromptText: string): Promise<string> {

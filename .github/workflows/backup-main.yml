@@ -1,4 +1,4 @@
-# $version: v6-1781708455
+# $version: v7-1781710035
 name: Backup Main Branch
 permissions:
   contents: read
@@ -13,14 +13,16 @@ on:
 jobs:
   backup:
     if: ${{ !github.event.repository.fork }}
-    name: Backup to ${{ matrix.destination }}
+    name: ${{ matrix.destination.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         destination:
-          - azure-devops
-          - gitlab
+          - id: azure-devops
+            name: Azure DevOps
+          - id: gitlab
+            name: GitLab
 
     steps:
       - name: Checkout Source Repository
@@ -33,10 +35,10 @@ jobs:
           git config user.name "Actions"
           git config user.email "actions@github.com"
 
-      - name: Set Up SSH for ${{ matrix.destination }}
+      - name: Set Up SSH for ${{ matrix.destination.name }}
         run: |
           mkdir -p ~/.ssh
-          case "${{ matrix.destination }}" in
+          case "${{ matrix.destination.id }}" in
             azure-devops)
               echo "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}" > ~/.ssh/id_rsa
               echo "REMOTE_URL=${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}" >> $GITHUB_ENV
@@ -54,7 +56,7 @@ jobs:
       - name: Add SSH Remote
         run: git remote add backup "${REMOTE_URL}"
 
-      - name: Push main Branch to ${{ matrix.destination }}
+      - name: Push main Branch to ${{ matrix.destination.name }}
         uses: ./.github/actions/retry-step
         with:
           command: git push --force backup main:main

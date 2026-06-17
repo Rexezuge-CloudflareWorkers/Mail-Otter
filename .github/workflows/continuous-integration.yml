@@ -88,6 +88,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
       - name: Enable Auto-Merge
         uses: ./.github/actions/retry-step
         with:
@@ -108,6 +111,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
       - name: Dispatch Deployment
         uses: ./.github/actions/retry-step
         with:

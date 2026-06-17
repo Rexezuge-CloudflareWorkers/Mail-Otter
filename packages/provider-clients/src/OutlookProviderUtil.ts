@@ -206,6 +206,7 @@ class OutlookProviderUtil {
     originalMessage: OutlookMessage,
     mailboxAddress: string,
     summary: string,
+    disableDelete?: boolean,
   ): Promise<void> {
     const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
@@ -246,7 +247,9 @@ class OutlookProviderUtil {
     if (!response.ok) {
       throw OutlookProviderUtil.createApiError('send summary', response, await response.text());
     }
-    await OutlookProviderUtil.deleteSentCopy(accessToken, draft.id);
+    if (!disableDelete) {
+      await OutlookProviderUtil.deleteSentCopy(accessToken, draft.id);
+    }
   }
 
   public static isMessageNotFoundError(error: unknown): boolean {

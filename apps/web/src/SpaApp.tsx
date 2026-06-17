@@ -1490,13 +1490,17 @@ function AuditLogsModal({
           {logs.map((log, index) => {
             const severityColor =
               log.severity === 'error' ? 'bg-[#fca5a5]' : log.severity === 'warning' ? 'bg-[#fbbf24]' : 'bg-[#6ee7b7]';
+            const attemptNumber: number | undefined = (log.eventData as { attempt?: number } | undefined)?.attempt;
             return (
               <div key={log.id} className="rounded-md border border-[#2d3745] bg-[#0d1118] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`inline-block w-2 h-2 rounded-full shrink-0 mt-1.5 ${severityColor}`} />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#e5e7eb]">{log.eventLabel || auditEventLabels[log.eventType] || log.eventType}</div>
+                      <div className="text-sm font-medium text-[#e5e7eb]">
+                        {log.eventLabel || auditEventLabels[log.eventType] || log.eventType}
+                        {attemptNumber != null && <span className="ml-2 text-[#9ca3af]">(Attempt {attemptNumber})</span>}
+                      </div>
                       <div className="text-xs text-[#9ca3af] mt-0.5">
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#2d3745] text-[#cbd5e1] text-[10px] font-medium mr-2 shrink-0">{logs.length - index}</span>
                         {formatTimestamp(log.createdAt)}

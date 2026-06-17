@@ -16,13 +16,13 @@ describe('EmailSummaryUtil', () => {
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/meta/llama-3.1-8b-instruct', 'Campaign budget', 'sam@example.com', 'body'))
       .resolves.toBe(`<p><strong>Gist:</strong> The sender wants approval for the May campaign budget.</p>
 
-<p><strong>Key details:</strong></p>
+<p><strong>Details:</strong></p>
 <ul>
 <li>Budget requested is $12,000.</li>
 <li>Launch is planned for May 20.</li>
 </ul>
 
-<p><strong>Action items:</strong></p>
+<p><strong>Actions:</strong></p>
 <ul>
 <li>Approve or reject the budget by Friday.</li>
 </ul>`);
@@ -50,12 +50,12 @@ describe('EmailSummaryUtil', () => {
     await expect(EmailSummaryUtil.summarizeEmail(ai, 'model', 'Status', 'sam@example.com', 'body')).resolves
       .toBe(`<p><strong>Gist:</strong> The email shares a status update with no requests.</p>
 
-<p><strong>Key details:</strong></p>
+<p><strong>Details:</strong></p>
 <ul>
 <li>No key details noted.</li>
 </ul>
 
-<p><strong>Action items:</strong></p>
+<p><strong>Actions:</strong></p>
 <ul>
 <li>None.</li>
 </ul>`);
@@ -102,12 +102,12 @@ describe('EmailSummaryUtil', () => {
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/openai/gpt-oss-120b', 'Campaign budget', 'sam@example.com', 'body')).resolves
       .toBe(`<p><strong>Gist:</strong> The sender needs approval for the budget.</p>
 
-<p><strong>Key details:</strong></p>
+<p><strong>Details:</strong></p>
 <ul>
 <li>Budget is $12,000.</li>
 </ul>
 
-<p><strong>Action items:</strong></p>
+<p><strong>Actions:</strong></p>
 <ul>
 <li>Approve the budget by Friday.</li>
 </ul>`);
@@ -150,12 +150,12 @@ describe('EmailSummaryUtil', () => {
     await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/openai/gpt-oss-120b', 'Launch', 'sam@example.com', 'body')).resolves
       .toBe(`<p><strong>Gist:</strong> The email shares a launch update.</p>
 
-<p><strong>Key details:</strong></p>
+<p><strong>Details:</strong></p>
 <ul>
 <li>Launch starts Monday.</li>
 </ul>
 
-<p><strong>Action items:</strong></p>
+<p><strong>Actions:</strong></p>
 <ul>
 <li>None.</li>
 </ul>`);

@@ -27,7 +27,7 @@ describe('GmailProviderUtil', () => {
       };
 
       const htmlSummary =
-        '<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Key details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
+        '<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
       await GmailProviderUtil.sendSummaryReply(
         'test-access-token',
         'sender@example.com',

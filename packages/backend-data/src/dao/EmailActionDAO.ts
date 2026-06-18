@@ -220,6 +220,23 @@ class EmailActionDAO {
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
+  public async deleteByProcessedMessageId(processedMessageId: string): Promise<number> {
+    const result: D1Result = await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `
+              DELETE FROM email_summary_actions
+              WHERE processed_message_id = ? AND status = ?
+            `,
+          )
+          .bind(processedMessageId, EMAIL_ACTION_STATUS_PENDING)
+          .run(),
+      'delete pending email actions by processed message',
+    );
+    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
   public async deleteOlderThan(olderThan: number, limit: number): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>

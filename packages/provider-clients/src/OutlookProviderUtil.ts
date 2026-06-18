@@ -206,7 +206,7 @@ class OutlookProviderUtil {
     originalMessage: OutlookMessage,
     mailboxAddress: string,
     summary: string,
-    disableDelete?: boolean,
+    disableCleanup?: boolean,
   ): Promise<void> {
     const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
@@ -237,18 +237,9 @@ class OutlookProviderUtil {
     if (!draft.id) {
       throw new ProviderApiRetryableError('Microsoft Graph createReply did not return a draft id.');
     }
-    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw OutlookProviderUtil.createApiError('send summary', response, await response.text());
-    }
-    if (!disableDelete) {
-      await OutlookProviderUtil.deleteSentCopy(accessToken, draft.id);
+    await OutlookProviderUtil.copyMessage(accessToken, draft.id, 'inbox');
+    if (!disableCleanup) {
+      await OutlookProviderUtil.deleteMessage(accessToken, draft.id);
     }
   }
 
@@ -281,13 +272,27 @@ class OutlookProviderUtil {
     return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
   }
 
-  private static async deleteSentCopy(accessToken: string, messageId: string): Promise<void> {
+  private static async copyMessage(accessToken: string, messageId: string, destinationId: string): Promise<void> {
+    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/copy`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ destinationId }),
+    });
+    if (!response.ok) {
+      throw OutlookProviderUtil.createApiError('copy message', response, await response.text());
+    }
+  }
+
+  private static async deleteMessage(accessToken: string, messageId: string): Promise<void> {
     const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!response.ok && response.status !== 404) {
-      console.error(`Failed to delete Outlook sent summary ${messageId}: ${await response.text()}`);
+      console.error(`Failed to delete Outlook message ${messageId}: ${await response.text()}`);
     }
   }
 }

@@ -126,7 +126,6 @@ interface EmailActionProposal {
   title: string;
   description: string;
   confidence?: number | undefined;
-  expiresAt?: string | undefined;
   parameters?: Record<string, unknown> | undefined;
 }
 

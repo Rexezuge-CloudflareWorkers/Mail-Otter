@@ -47,6 +47,7 @@ class ActionService {
     if (!baseUrl || input.proposals.length === 0) return [];
 
     const actionDAO: EmailActionDAO = await ActionService.createActionDAO(env);
+    await actionDAO.deleteByProcessedMessageId(input.processedMessage.processedMessageId);
     const signingSecret: string = await env.ACTION_SIGNING_SECRET.get();
     const allowedUrls: Set<string> = ActionService.extractUrls(input.body);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
@@ -292,7 +293,7 @@ class ActionService {
     const title: string = ActionService.cleanText(proposal.title || ActionService.getFallbackActionTitle(proposal.type));
     const description: string = ActionService.cleanText(proposal.description || title);
     const parameters: Record<string, unknown> = proposal.parameters || {};
-    const expiresAt: number = ActionService.resolveExpiresAt(proposal.expiresAt, now, env);
+    const expiresAt: number = ActionService.resolveExpiresAt(now, env);
     const base = { title, description, sourceSubject: input.subject, sourceFrom: input.from };
 
     if (proposal.type === EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT) {
@@ -404,12 +405,8 @@ class ActionService {
     return url;
   }
 
-  private static resolveExpiresAt(expiresAt: string | undefined, now: number, env: ActionCreationEnv): number {
-    const defaultExpiresAt: number = TimestampUtil.addHours(now, ConfigurationManager.getActionDefaultExpiryHours(env));
-    if (!expiresAt) return defaultExpiresAt;
-    const parsed: number = Math.floor(new Date(expiresAt).getTime() / 1000);
-    if (!Number.isFinite(parsed) || parsed <= now) return defaultExpiresAt;
-    return Math.min(parsed, defaultExpiresAt);
+  private static resolveExpiresAt(now: number, env: ActionCreationEnv): number {
+    return TimestampUtil.addHours(now, ConfigurationManager.getActionDefaultExpiryHours(env));
   }
 
   private static extractUrls(body: string): Set<string> {

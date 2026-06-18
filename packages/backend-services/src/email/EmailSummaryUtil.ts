@@ -32,7 +32,6 @@ const SUMMARY_JSON_SCHEMA = {
           title: { type: 'string' },
           description: { type: 'string' },
           confidence: { type: 'number' },
-          expiresAt: { type: 'string' },
           parameters: {
             type: 'object',
             additionalProperties: true,
@@ -130,7 +129,7 @@ class EmailSummaryUtil {
   private static buildSummaryInstructions(): string {
     return [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
-      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"expiresAt":"ISO-8601 optional","parameters":{}}]}.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
       'Keep the gist to one sentence.',
       'Details must be short factual bullets copied from the email when possible.',
       'Actions must include deadlines or owners when present.',
@@ -448,7 +447,6 @@ class EmailSummaryUtil {
         title: EmailSummaryUtil.normalizeSentence(item.title),
         description: EmailSummaryUtil.normalizeSentence(item.description),
         confidence: typeof item.confidence === 'number' && Number.isFinite(item.confidence) ? item.confidence : undefined,
-        expiresAt: typeof item.expiresAt === 'string' ? item.expiresAt : undefined,
         parameters: EmailSummaryUtil.isRecord(item.parameters) ? item.parameters : {},
       });
     }

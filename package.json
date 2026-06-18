@@ -9,10 +9,12 @@
     "prettier": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
+    "test:integration": "vitest run --config test/integration/vitest.config.mts",
     "lint": "eslint --ext .ts,.tsx --fix .",
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.16",
     "@mail-otter/backend-services": "workspace:*",
     "@types/node": "25.9.x",
     "@types/react": "^19.2.x",

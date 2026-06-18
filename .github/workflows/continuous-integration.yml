@@ -47,6 +47,35 @@ jobs:
           command: pnpm run checks
           max_attempts: '2'
 
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install Dependencies
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm install
+          max_attempts: '3'
+
+      - name: Run Integration Tests
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run test:integration
+          max_attempts: '2'
+
   build:
     name: Build
     runs-on: ubuntu-latest

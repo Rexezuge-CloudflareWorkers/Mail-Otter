@@ -1,0 +1,76 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "mail-otter-integration-test",
+  "main": "self.ts",
+  "compatibility_date": "2025-11-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mail-otter-test-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH2_TOKEN_CACHE",
+      "id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "EMAIL_EVENTS_QUEUE",
+        "queue": "mail-otter-test-events",
+      },
+    ],
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "AES_ENCRYPTION_KEY_SECRET",
+      "store_id": "00000000-0000-0000-0000-000000000000",
+      "secret_name": "test-aes-encryption-key",
+    },
+    {
+      "binding": "ACTION_ENCRYPTION_KEY_SECRET",
+      "store_id": "00000000-0000-0000-0000-000000000000",
+      "secret_name": "test-action-encryption-key",
+    },
+    {
+      "binding": "ACTION_SIGNING_SECRET",
+      "store_id": "00000000-0000-0000-0000-000000000000",
+      "secret_name": "test-action-signing-secret",
+    },
+  ],
+  "vars": {
+    "DEV_AUTH_EMAIL": "test@example.com",
+
+    "DEBUG_MODE": "false",
+    "SERVE_SPA_FROM_WORKER": "false",
+    "POLICY_AUD": "test-aud",
+    "TEAM_DOMAIN": "https://test.cloudflareaccess.com",
+    "MAX_APPLICATIONS_PER_USER": "99",
+    "MAX_CONTEXT_DOCUMENTS_PER_APPLICATION": "1000",
+    "OAUTH2_STATE_EXPIRY_MINUTES": "15",
+    "AI_SUMMARY_MODEL": "@cf/openai/gpt-oss-120b",
+    "AI_SUMMARY_FALLBACK_MODEL": "@cf/openai/gpt-oss-20b",
+    "AI_DAILY_NEURON_FALLBACK_THRESHOLD": "6000",
+    "AI_EMBEDDING_MODEL": "@cf/baai/bge-m3",
+    "MAX_EMAIL_BODY_CHARS": "12000",
+    "MAX_CONTEXT_MEMORY_CHARS": "1800",
+    "MAX_RAG_CONTEXT_CHARS": "6000",
+    "RAG_TOP_K": "5",
+    "RAG_VECTOR_QUERY_TOP_K": "50",
+    "GMAIL_WATCH_RENEWAL_WINDOW_HOURS": "48",
+    "OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS": "24",
+    "OUTLOOK_SUBSCRIPTION_TTL_DAYS": "6",
+    "OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS": "900",
+    "OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS": "60",
+    "OAUTH2_ACCESS_TOKEN_FALLBACK_TTL_SECONDS": "3600",
+    "OAUTH2_TOKEN_REFRESH_BATCH_SIZE": "25",
+    "ACTION_CALLBACK_BASE_URL": "https://mail.example.com",
+    "ACTION_DEFAULT_EXPIRY_HOURS": "168",
+    "ACTION_RETENTION_DAYS": "90",
+    "DISABLE_DELETE_AFTER_SEND": "false",
+  },
+}

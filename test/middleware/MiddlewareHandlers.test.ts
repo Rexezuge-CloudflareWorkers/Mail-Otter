@@ -17,7 +17,6 @@ vi.mock('@mail-otter/backend-data/dao', () => {
 
 import { MiddlewareHandlers } from '../../apps/api/src/middleware/MiddlewareHandlers';
 import { EmailValidationUtil } from '@mail-otter/backend-services/auth';
-import { UserDAO } from '@mail-otter/backend-data/dao';
 import { UnauthorizedError } from '@mail-otter/backend-errors';
 import type { Context } from 'hono';
 

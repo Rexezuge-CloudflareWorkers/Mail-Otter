@@ -6,7 +6,7 @@ vi.mock('@mail-otter/shared/schema', () => ({
 
 import { IBaseRoute } from '../../apps/api/src/endpoints/IBaseRoute';
 import { validateRequestInput } from '@mail-otter/shared/schema';
-import { BadRequestError, DatabaseError } from '@mail-otter/backend-errors';
+import { DatabaseError } from '@mail-otter/backend-errors';
 
 describe('IBaseRoute', () => {
   class TestRoute extends IBaseRoute<{ raw: Request }, { message: string }, Record<string, unknown>> {

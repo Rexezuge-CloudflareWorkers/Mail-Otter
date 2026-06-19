@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EmailContentUtil } from '@mail-otter/provider-clients';
-import type { GmailMessagePart, ExtractedEmailContent } from '@mail-otter/provider-clients';
+import type { GmailMessagePart } from '@mail-otter/provider-clients';
 
 describe('EmailContentUtil', () => {
   describe('getHeader', () => {

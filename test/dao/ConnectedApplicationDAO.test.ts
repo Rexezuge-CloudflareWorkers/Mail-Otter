@@ -18,10 +18,9 @@ vi.mock('@mail-otter/shared/utils', () => ({
 
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { encryptData } from '@mail-otter/backend-data/crypto';
-import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
+import { UUIDUtil } from '@mail-otter/shared/utils';
 import type {
   ConnectedApplicationInternal,
-  ConnectedApplicationMetadata,
 } from '@mail-otter/shared/model';
 import type { D1Result } from '@mail-otter/shared/constants';
 
@@ -36,7 +35,6 @@ function createMockDb(overrides?: {
   const runFn = vi.fn().mockResolvedValue({ success: true, meta: runMeta } as D1Result);
   const firstFn = vi.fn().mockResolvedValue(firstResult ?? null);
   const allFn = vi.fn().mockResolvedValue({ results: allResults ?? [] } as D1Result);
-  const bindFn = vi.fn().mockReturnThis();
   return {
     prepare: vi.fn(() => ({
       bind: vi.fn(() => ({

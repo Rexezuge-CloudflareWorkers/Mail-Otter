@@ -516,6 +516,20 @@ export default function SpaApp() {
     setAuditLogsCursor(undefined);
   };
 
+  const refreshAuditLogs = useCallback(async () => {
+    if (!auditLogDocumentId) return;
+    setLoadingAuditLogs(true);
+    try {
+      const data = await fetchDocumentAuditLogs(auditLogDocumentId);
+      setAuditLogs(data.logs);
+      setAuditLogsCursor(data.nextCursor ?? undefined);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Unable to refresh audit logs.');
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  }, [auditLogDocumentId]);
+
   if (authorized === null) {
     return (
       <div className="min-h-screen bg-[#101319] text-white flex items-center justify-center">
@@ -925,6 +939,7 @@ export default function SpaApp() {
             loading={loadingAuditLogs}
             onClose={closeAuditLogsModal}
             onLoadMore={loadMoreAuditLogs}
+            onRefresh={refreshAuditLogs}
           />,
           document.body,
         )}
@@ -1468,12 +1483,14 @@ function AuditLogsModal({
   loading,
   onClose,
   onLoadMore,
+  onRefresh,
 }: {
   logs: ContextAuditLog[];
   cursor?: string | null | undefined;
   loading: boolean;
   onClose: () => void;
   onLoadMore: () => void;
+  onRefresh: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
@@ -1481,7 +1498,16 @@ function AuditLogsModal({
       <div className="relative bg-[#111827] border border-[#374151] rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#2d3745]">
           <h2 className="text-lg font-semibold text-white">Document Audit Logs</h2>
-          <button className="text-[#9ca3af] hover:text-white text-xl leading-none" onClick={onClose}>&times;</button>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1.5 rounded-md bg-[#2d3745] hover:bg-[#3b4655] disabled:opacity-50 text-sm"
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              Refresh
+            </button>
+            <button className="text-[#9ca3af] hover:text-white text-xl leading-none" onClick={onClose}>&times;</button>
+          </div>
         </div>
         <div className="overflow-y-auto p-5 space-y-3 max-h-[calc(80vh-4rem)]">
           {logs.length === 0 && !loading && (

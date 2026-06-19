@@ -14,8 +14,8 @@ class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumen
   ): Promise<void> {
     const deletedGraceDays: number = ConfigurationManager.getStaleContextDocumentDeletedGraceDays(env);
     const errorGraceDays: number = ConfigurationManager.getStaleContextDocumentErrorGraceDays(env);
-    const deletedBefore: number = Date.now() - deletedGraceDays * 86400 * 1000;
-    const errorBefore: number = Date.now() - errorGraceDays * 86400 * 1000;
+    const deletedBefore: number = Math.floor(Date.now() / 1000) - deletedGraceDays * 86400;
+    const errorBefore: number = Math.floor(Date.now() / 1000) - errorGraceDays * 86400;
     const sessionEnv = createD1SessionEnv(env);
     const dao = new ApplicationContextDAO(sessionEnv.DB);
 

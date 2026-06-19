@@ -100,6 +100,8 @@ describe('ProcessedMessagePruningTask', () => {
   it('deletes old processed messages', async () => {
     await new ProcessedMessagePruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
     expect(mocks.mockDeleteOlderThan).toHaveBeenCalled();
+    const olderThan: number = mocks.mockDeleteOlderThan.mock.calls[0][0] as number;
+    expect(olderThan).toBeLessThan(Date.now() / 1000);
   });
 });
 
@@ -138,6 +140,10 @@ describe('StaleContextDocumentPruningTask', () => {
     await new StaleContextDocumentPruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
     expect(mocks.mockDeleteStaleDeletedDocuments).toHaveBeenCalled();
     expect(mocks.mockDeleteStaleErrorDocuments).toHaveBeenCalled();
+    const deletedBefore: number = mocks.mockDeleteStaleDeletedDocuments.mock.calls[0][0] as number;
+    const errorBefore: number = mocks.mockDeleteStaleErrorDocuments.mock.calls[0][0] as number;
+    expect(deletedBefore).toBeLessThan(Date.now() / 1000);
+    expect(errorBefore).toBeLessThan(Date.now() / 1000);
   });
 });
 
@@ -150,6 +156,8 @@ describe('ContextDeletionRunPruningTask', () => {
   it('deletes old context deletion runs', async () => {
     await new ContextDeletionRunPruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
     expect(mocks.mockDeleteOldDeletionRuns).toHaveBeenCalled();
+    const olderThan: number = mocks.mockDeleteOldDeletionRuns.mock.calls[0][0] as number;
+    expect(olderThan).toBeLessThan(Date.now() / 1000);
   });
 });
 

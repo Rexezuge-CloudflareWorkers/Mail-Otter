@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Envelope body -->
+  <rect x="3" y="14" width="26" height="16" rx="2.5" fill="#1a1814" stroke="#6ee7b7" stroke-width="1.5"/>
+  <!-- Envelope flap fold lines -->
+  <path d="M3 16.5L16 24L29 16.5" stroke="#6ee7b7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Otter body (rounded oval peeking above envelope) -->
+  <ellipse cx="16" cy="11" rx="7" ry="6.5" fill="#1a1814" stroke="#6ee7b7" stroke-width="1.5"/>
+  <!-- Otter ears (left) -->
+  <ellipse cx="10" cy="6.5" rx="2.2" ry="2.2" fill="#1a1814" stroke="#6ee7b7" stroke-width="1.5"/>
+  <!-- Otter ears (right) -->
+  <ellipse cx="22" cy="6.5" rx="2.2" ry="2.2" fill="#1a1814" stroke="#6ee7b7" stroke-width="1.5"/>
+  <!-- Inner ear (left) -->
+  <ellipse cx="10" cy="6.5" rx="1" ry="1" fill="#6ee7b7"/>
+  <!-- Inner ear (right) -->
+  <ellipse cx="22" cy="6.5" rx="1" ry="1" fill="#6ee7b7"/>
+  <!-- Otter eyes -->
+  <circle cx="13.5" cy="10.5" r="1.1" fill="#6ee7b7"/>
+  <circle cx="18.5" cy="10.5" r="1.1" fill="#6ee7b7"/>
+  <!-- Otter nose -->
+  <ellipse cx="16" cy="13" rx="1.5" ry="1" fill="#6ee7b7"/>
+</svg>

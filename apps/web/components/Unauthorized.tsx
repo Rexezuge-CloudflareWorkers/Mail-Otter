@@ -6,14 +6,17 @@ export default function Unauthorized() {
   };
 
   return (
-    <div className="min-h-screen bg-[#101319] text-white flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex items-center justify-center">
       <div className="text-center px-6">
-        <h1 className="text-2xl font-semibold mb-2">Unauthorized</h1>
-        <p className="text-[#aab4c2]">You do not have access to this application.</p>
+        <div className="text-3xl font-semibold mb-1 tracking-tight">
+          <span className="text-[var(--color-accent)]">Mail</span>-Otter
+        </div>
+        <h1 className="text-lg font-medium mt-4 mb-1">Access Required</h1>
+        <p className="text-[var(--color-text-secondary)] text-sm">You must authenticate to access this application.</p>
         <button
           type="button"
           onClick={authenticateWithZeroTrust}
-          className="mt-6 inline-flex items-center justify-center rounded-md bg-[#0f766e] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0d9488] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6ee7b7]"
+          className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-[#0d1008] transition-colors hover:bg-[var(--color-accent-dim)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         >
           Authenticate with Cloudflare Zero Trust
         </button>

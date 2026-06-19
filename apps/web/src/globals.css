@@ -1,12 +1,42 @@
 @import 'tailwindcss';
 
 @theme {
+  /* Warm dark palette */
+  --color-surface-base: #100f0d;
+  --color-surface-1: #1a1814;
+  --color-surface-2: #201e1b;
+  --color-surface-3: #2a2722;
+  --color-surface-4: #332f29;
+  --color-border: #2e2a24;
+  --color-border-muted: #3a3530;
+  --color-text-primary: #f5f0eb;
+  --color-text-secondary: #b0a89a;
+  --color-text-muted: #7a7068;
+
+  /* Semantic status colors */
+  --color-success-bg: #0e2d22;
+  --color-success-text: #6ee7b7;
+  --color-error-bg: #2d1214;
+  --color-error-text: #fca5a5;
+  --color-warning-bg: #2d2007;
+  --color-warning-text: #fbbf24;
+  --color-info-bg: #0e1e3a;
+  --color-info-text: #93c5fd;
+  --color-neutral-bg: #252219;
+  --color-neutral-text: #b0a89a;
+
+  /* Accent */
+  --color-accent: #6ee7b7;
+  --color-accent-dim: #4fd1a0;
+
+  /* Animations */
   --animate-fade-in: fade-in 0.2s ease-out both;
   --animate-fade-in-up: fade-in-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-backdrop-in: backdrop-in 0.2s ease-out both;
   --animate-slide-down: slide-down 0.2s ease-out both;
-  --color-gray-750: #2a3040;
-  --color-gray-850: #171d2b;
+  --animate-stagger-1: fade-in-up 0.3s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-stagger-2: fade-in-up 0.3s 0.10s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-stagger-3: fade-in-up 0.3s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes fade-in {
@@ -59,13 +89,13 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: #3a3530;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: #4a4540;
 }
 
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(110, 231, 183, 0.2);
 }

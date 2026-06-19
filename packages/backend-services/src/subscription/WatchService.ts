@@ -41,10 +41,15 @@ class WatchService {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
     const accessToken: string = await OAuth2AccessTokenService.getAccessToken(application.applicationId, env);
-    if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
-      await GmailProviderUtil.stopWatch(accessToken);
-    } else if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK && subscription?.externalSubscriptionId) {
-      await OutlookProviderUtil.deleteSubscription(accessToken, subscription.externalSubscriptionId);
+    try {
+      if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
+        await GmailProviderUtil.stopWatch(accessToken);
+      } else if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK && subscription?.externalSubscriptionId) {
+        await OutlookProviderUtil.deleteSubscription(accessToken, subscription.externalSubscriptionId);
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[WatchService] Provider unsubscribe failed, proceeding with local stop: ${message}`);
     }
     await subscriptionDAO.markStopped(application.applicationId);
   }

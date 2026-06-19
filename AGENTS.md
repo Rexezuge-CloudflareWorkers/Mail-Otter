@@ -157,6 +157,20 @@ Public API routes:
 - `GET|POST /api/webhooks/outlook/:applicationId`
 - `GET|POST /api/webhooks/outlook/lifecycle/:applicationId`
 
+## Provider Client Gotchas
+
+### Microsoft Graph API: `internetMessageHeaders` Cannot Be Filtered
+
+The Microsoft Graph API returns `internetMessageHeaders` on messages when requested via `$select`, but **does not support `$filter`** on this property. Using `$filter=internetMessageHeaders/any(...)` returns a 400 error.
+
+This affects `OutlookProviderUtil.findSummaryMessageInFolder` in `packages/provider-clients/src/OutlookProviderUtil.ts`. The workaround is to embed a unique UUID marker in the reply subject (e.g., `[OtterSum-<uuid>]`) and filter on `contains(subject, 'OtterSum-<uuid>')` instead — `$filter` on `subject` IS supported.
+
+When modifying `sendSelfSummaryReply` or related Outlook message-finding logic:
+- Use `crypto.randomUUID()` to generate a unique marker
+- Set the marker in the subject when sending replies
+- Use `contains(subject, ...)` for the `$filter` parameter
+- The `X-Mail-Otter-Summary` header is still set on outgoing messages for identification during message reads (via `$select`), just not for filtering
+
 ## Provider Naming
 
 - `google-gmail` / `oauth2`

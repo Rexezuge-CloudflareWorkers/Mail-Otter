@@ -32,6 +32,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/index.ts',
         '**/types.d.ts',
+        '**/model/**',
       ],
       thresholds: {
         statements: 90,

@@ -5,16 +5,12 @@ import type { EmailActionProposal } from '@mail-otter/shared/model';
 const SUMMARY_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['gist', 'keyDetails', 'actionItems', 'actions'],
+  required: ['gist', 'keyDetails', 'actions'],
   properties: {
     gist: {
       type: 'string',
     },
     keyDetails: {
-      type: 'array',
-      items: { type: 'string' },
-    },
-    actionItems: {
       type: 'array',
       items: { type: 'string' },
     },
@@ -129,11 +125,9 @@ class EmailSummaryUtil {
   private static buildSummaryInstructions(): string {
     return [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
-      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actionItems":["owner deadline or request"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
       'Keep the gist to one sentence.',
       'Details must be short factual bullets copied from the email when possible.',
-      'Actions must include deadlines or owners when present.',
-      'If there are no action items, return an empty array.',
       'Actions are optional executable proposals; return an empty actions array when no safe action exists.',
       'Use calendar.add_event only when start time, end time, and timezone are clear; parameters must include eventTitle, startTime, endTime, timeZone, and optional location or notes.',
       'Use email.draft_reply when the owner should respond; parameters must include draftBody and optional draftSubject.',
@@ -248,7 +242,6 @@ class EmailSummaryUtil {
     return {
       gist: EmailSummaryUtil.normalizeSentence(parsed.gist),
       keyDetails: EmailSummaryUtil.normalizeItems(parsed.keyDetails),
-      actionItems: EmailSummaryUtil.normalizeItems(parsed.actionItems),
       actions: EmailSummaryUtil.normalizeActionProposals(parsed.actions),
     };
   }
@@ -256,7 +249,6 @@ class EmailSummaryUtil {
   static renderHtmlSummary(summary: EmailSummary): string {
     const gist: string = EmailSummaryUtil.normalizeSentence(summary.gist) || 'No clear gist available.';
     const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
-    const actionItems: string[] = EmailSummaryUtil.normalizeItems(summary.actionItems);
 
     return [
       `<p><strong>Gist:</strong> ${EmailContentUtil.sanitizeHtml(gist)}</p>`,
@@ -264,11 +256,6 @@ class EmailSummaryUtil {
       '<p><strong>Details:</strong></p>',
       '<ul>',
       ...EmailSummaryUtil.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),
-      '</ul>',
-      '',
-      '<p><strong>Actions:</strong></p>',
-      '<ul>',
-      ...EmailSummaryUtil.renderHtmlList(actionItems, '<li>None.</li>'),
       '</ul>',
     ].join('\n');
   }
@@ -290,7 +277,6 @@ class EmailSummaryUtil {
     return {
       gist: gistLine,
       keyDetails: bulletLines,
-      actionItems: [],
       actions: [],
     };
   }
@@ -428,8 +414,6 @@ class EmailSummaryUtil {
       typeof candidate.gist === 'string' &&
       Array.isArray(candidate.keyDetails) &&
       candidate.keyDetails.every((item: unknown): boolean => typeof item === 'string') &&
-      Array.isArray(candidate.actionItems) &&
-      candidate.actionItems.every((item: unknown): boolean => typeof item === 'string') &&
       (candidate.actions === undefined || Array.isArray(candidate.actions))
     );
   }
@@ -457,7 +441,6 @@ class EmailSummaryUtil {
 interface EmailSummary {
   gist: string;
   keyDetails: string[];
-  actionItems: string[];
   actions: EmailActionProposal[];
 }
 

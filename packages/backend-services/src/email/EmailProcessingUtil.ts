@@ -385,15 +385,9 @@ class EmailProcessingUtil {
   }
 
   private static withActionSection(summaryHtml: string, actions: CreatedEmailAction[]): string {
-    let body: string = summaryHtml;
-    if (actions.length > 0) {
-      const actionLiHtml: string = ActionService.renderActionItems(actions).join('\n');
-      const lastUlIndex: number = summaryHtml.lastIndexOf('</ul>');
-      if (lastUlIndex !== -1) {
-        body = summaryHtml.slice(0, lastUlIndex) + actionLiHtml + '\n' + summaryHtml.slice(lastUlIndex);
-      }
-    }
-    return [body, '', '<p><em>Powered by Mail-Otter</em></p>'].join('\n');
+    const actionSection = ActionService.renderEmailActionSection(actions);
+    const parts = [summaryHtml, actionSection].filter(Boolean);
+    return [...parts, '', '<p><em>Powered by Mail-Otter</em></p>'].join('\n');
   }
 
   private static async resolveSummaryModel(env: EmailProcessingEnv, estimatedPromptText: string): Promise<string> {

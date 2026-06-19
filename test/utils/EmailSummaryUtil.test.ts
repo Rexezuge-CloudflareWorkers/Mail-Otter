@@ -8,7 +8,6 @@ describe('EmailSummaryUtil', () => {
         response: JSON.stringify({
           gist: 'The sender wants approval for the May campaign budget.',
           keyDetails: ['Budget requested is $12,000.', 'Launch is planned for May 20.'],
-          actionItems: ['Approve or reject the budget by Friday.'],
         }),
       }),
     } as unknown as Ai;
@@ -20,11 +19,6 @@ describe('EmailSummaryUtil', () => {
 <ul>
 <li>Budget requested is $12,000.</li>
 <li>Launch is planned for May 20.</li>
-</ul>
-
-<p><strong>Actions:</strong></p>
-<ul>
-<li>Approve or reject the budget by Friday.</li>
 </ul>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/meta/llama-3.1-8b-instruct',
@@ -42,7 +36,6 @@ describe('EmailSummaryUtil', () => {
         response: JSON.stringify({
           gist: 'The email shares a status update with no requests.',
           keyDetails: [],
-          actionItems: [],
         }),
       }),
     } as unknown as Ai;
@@ -53,11 +46,6 @@ describe('EmailSummaryUtil', () => {
 <p><strong>Details:</strong></p>
 <ul>
 <li>No key details noted.</li>
-</ul>
-
-<p><strong>Actions:</strong></p>
-<ul>
-<li>None.</li>
 </ul>`);
   });
 
@@ -92,8 +80,7 @@ describe('EmailSummaryUtil', () => {
 \`\`\`json
 {
   "gist": "The sender needs approval for the budget.",
-  "keyDetails": ["Budget is $12,000."],
-  "actionItems": ["Approve the budget by Friday."]
+  "keyDetails": ["Budget is $12,000."]
 }
 \`\`\``,
       }),
@@ -105,11 +92,6 @@ describe('EmailSummaryUtil', () => {
 <p><strong>Details:</strong></p>
 <ul>
 <li>Budget is $12,000.</li>
-</ul>
-
-<p><strong>Actions:</strong></p>
-<ul>
-<li>Approve the budget by Friday.</li>
 </ul>`);
     expect(ai.run).toHaveBeenCalledWith(
       '@cf/openai/gpt-oss-120b',
@@ -138,7 +120,6 @@ describe('EmailSummaryUtil', () => {
                 text: JSON.stringify({
                   gist: 'The email shares a launch update.',
                   keyDetails: ['Launch starts Monday.'],
-                  actionItems: [],
                 }),
               },
             ],
@@ -153,11 +134,6 @@ describe('EmailSummaryUtil', () => {
 <p><strong>Details:</strong></p>
 <ul>
 <li>Launch starts Monday.</li>
-</ul>
-
-<p><strong>Actions:</strong></p>
-<ul>
-<li>None.</li>
 </ul>`);
   });
 
@@ -167,7 +143,6 @@ describe('EmailSummaryUtil', () => {
         response: JSON.stringify({
           gist: 'The email asks for feedback.',
           keyDetails: ['Review is due Tuesday.'],
-          actionItems: ['Send feedback by Tuesday.'],
         }),
         usage: {
           prompt_tokens: 1000,
@@ -194,7 +169,6 @@ describe('EmailSummaryUtil', () => {
         output_text: JSON.stringify({
           gist: 'The email asks for feedback.',
           keyDetails: ['Review is due Tuesday.'],
-          actionItems: ['Send feedback by Tuesday.'],
         }),
         usage: {
           input_tokens: 1000,
@@ -228,7 +202,6 @@ describe('EmailSummaryUtil', () => {
               content: JSON.stringify({
                 gist: 'The email asks for feedback.',
                 keyDetails: ['Review is due Tuesday.'],
-                actionItems: ['Send feedback by Tuesday.'],
               }),
             },
           },

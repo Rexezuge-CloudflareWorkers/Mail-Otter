@@ -207,14 +207,16 @@ class OutlookProviderUtil {
     mailboxAddress: string,
     summary: string,
   ): Promise<void> {
-    // Idempotency: if summary already in Inbox, all previous steps completed
-    const inboxMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'inbox');
+    const marker: string = await OutlookProviderUtil.deriveMessageMarker(originalMessage.id);
+
+    // Idempotency: if this email's summary already in Inbox, all steps completed
+    const inboxMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'inbox', marker);
     if (inboxMsgId) {
       return;
     }
 
-    // If summary in Sent Items only, reply was sent but copy+delete are pending
-    const sentMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'sentitems');
+    // If this email's summary in Sent Items only, reply was sent but copy+delete are pending
+    const sentMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
     if (sentMsgId) {
       await OutlookProviderUtil.copyMessage(accessToken, sentMsgId, 'inbox');
       await OutlookProviderUtil.deleteMessage(accessToken, sentMsgId);
@@ -226,7 +228,6 @@ class OutlookProviderUtil {
     const sinkAddress: string = atIndex !== -1
       ? `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`
       : mailboxAddress;
-    const marker: string = crypto.randomUUID();
     const originalSubject: string = originalMessage.subject || '';
     const response: Response = await fetch(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/reply`,
@@ -273,7 +274,6 @@ class OutlookProviderUtil {
         ? `startswith(subject, '[OtterSum-${marker}]')`
         : `startswith(subject, '[OtterSum-')`,
     );
-    url.searchParams.set('$orderby', 'sentDateTime desc');
     url.searchParams.set('$top', '1');
     url.searchParams.set('$select', 'id');
     const data = await OutlookProviderUtil.fetchJson<{
@@ -341,6 +341,15 @@ class OutlookProviderUtil {
     if (!response.ok && response.status !== 404) {
       throw OutlookProviderUtil.createApiError('delete message', response, await response.text());
     }
+  }
+
+  private static async deriveMessageMarker(messageId: string): Promise<string> {
+    const bytes = new TextEncoder().encode(messageId);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(hashBuffer))
+      .slice(0, 8)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 }
 

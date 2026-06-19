@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 
+// SHA-256('original-msg-id').slice(0, 8 bytes) as hex = '45da5cec0da75b4c'
+const EXPECTED_MARKER = '45da5cec0da75b4c';
+
 function mockEmptyResponse(): Response {
   return new Response(JSON.stringify({ value: [] }), { status: 200 });
 }
@@ -41,15 +44,17 @@ describe('OutlookProviderUtil', () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(6);
 
-      // Step 1: inbox idempotency check
+      // Step 1: inbox idempotency check uses deterministic marker, no $orderby
       const inboxUrl = fetchMock.mock.calls[0][0] as string;
       expect(inboxUrl).toContain('/me/mailFolders/inbox/messages');
-      expect(inboxUrl).toContain(encodeURIComponent('[OtterSum-'));
+      expect(inboxUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(inboxUrl).not.toContain('orderby');
 
-      // Step 2: sent items idempotency check
+      // Step 2: sent items idempotency check uses same deterministic marker
       const sentItemsCheckUrl = fetchMock.mock.calls[1][0] as string;
       expect(sentItemsCheckUrl).toContain('/me/mailFolders/sentitems/messages');
-      expect(sentItemsCheckUrl).toContain(encodeURIComponent('[OtterSum-'));
+      expect(sentItemsCheckUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(sentItemsCheckUrl).not.toContain('orderby');
 
       // Step 3: reply with sink address
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -64,7 +69,7 @@ describe('OutlookProviderUtil', () => {
 
       expect(replyHeaders['Content-Type']).toBe('application/json');
       expect(replyHeaders['Authorization']).toBe('Bearer test-access-token');
-      expect(parsedBody.message.subject).toMatch(/^\[OtterSum-/);
+      expect(parsedBody.message.subject).toBe(`[OtterSum-${EXPECTED_MARKER}] Re: `);
       expect(parsedBody.message.body).toEqual({
         contentType: 'html',
         content: htmlSummary,
@@ -76,12 +81,12 @@ describe('OutlookProviderUtil', () => {
         { name: 'X-Mail-Otter-Summary', value: 'true' },
       ]);
 
-      // Step 4: find sent summary message (also in sentitems folder)
+      // Step 4: find sent summary message by same marker, no $orderby
       const findUrl = fetchMock.mock.calls[3][0] as string;
       expect(findUrl).toContain('/me/mailFolders/sentitems/messages');
-      expect(findUrl).toContain('OtterSum-');
+      expect(findUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
       expect(findUrl).toContain(encodeURIComponent('$top') + '=1');
-      expect(findUrl).toContain(encodeURIComponent('$orderby') + '=sentDateTime+desc');
+      expect(findUrl).not.toContain('orderby');
 
       // Step 5: copy sent message to inbox
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -120,6 +125,7 @@ describe('OutlookProviderUtil', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const inboxUrl = fetchMock.mock.calls[0][0] as string;
       expect(inboxUrl).toContain('/me/mailFolders/inbox/messages');
+      expect(inboxUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
     });
 
     it('skips reply and only copies and deletes when summary already in sent items', async () => {

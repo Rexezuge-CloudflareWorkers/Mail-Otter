@@ -7,14 +7,16 @@ describe('OutlookProviderUtil', () => {
   });
 
   describe('sendSelfSummaryReply', () => {
-    it('creates a reply draft, copies it to inbox, and deletes the original draft', async () => {
+    it('sends summary to sink address, copies to inbox, and deletes sent copy', async () => {
       const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
+      const mockSendResponse = new Response(null, { status: 202 });
       const mockCopyResponse = new Response(JSON.stringify({ id: 'copy-id-456' }), { status: 201 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
+        .mockResolvedValueOnce(mockSendResponse)
         .mockResolvedValueOnce(mockCopyResponse)
         .mockResolvedValueOnce(mockDeleteResponse);
 
@@ -31,7 +33,9 @@ describe('OutlookProviderUtil', () => {
         htmlSummary,
       );
 
-      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+
+      // Step 1: createReply with sink address
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
         'https://graph.microsoft.com/v1.0/me/messages/original-msg-id/createReply',
@@ -52,7 +56,7 @@ describe('OutlookProviderUtil', () => {
           toRecipients: [
             {
               emailAddress: {
-                address: 'sender@example.com',
+                address: 'sender+sink@example.com',
               },
             },
           ],
@@ -62,9 +66,16 @@ describe('OutlookProviderUtil', () => {
         },
       });
 
-      // Verify copy to inbox
+      // Step 2: send the draft
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
+        'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/send',
+        expect.objectContaining({ method: 'POST' }),
+      );
+
+      // Step 3: copy sent message to inbox
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        3,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123/copy',
         expect.objectContaining({
           method: 'POST',
@@ -72,35 +83,9 @@ describe('OutlookProviderUtil', () => {
         }),
       );
 
-      // Verify delete original draft
+      // Step 4: delete sent copy
       expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
-        'https://graph.microsoft.com/v1.0/me/messages/draft-id-123',
-        expect.objectContaining({ method: 'DELETE' }),
-      );
-    });
-
-    it('skips deleting the draft when disable replacement is disabled', async () => {
-      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 201 });
-      const mockCopyResponse = new Response(JSON.stringify({ id: 'copy-id-456' }), { status: 201 });
-
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce(mockCreateReplyResponse)
-        .mockResolvedValueOnce(mockCopyResponse);
-
-      vi.stubGlobal('fetch', fetchMock);
-
-      await OutlookProviderUtil.sendSelfSummaryReply(
-        'test-access-token',
-        { id: 'original-msg-id' },
-        'sender@example.com',
-        'Summary text',
-        true,
-      );
-
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(fetchMock).not.toHaveBeenCalledWith(
+        4,
         'https://graph.microsoft.com/v1.0/me/messages/draft-id-123',
         expect.objectContaining({ method: 'DELETE' }),
       );
@@ -108,11 +93,13 @@ describe('OutlookProviderUtil', () => {
 
     it('throws when copy fails', async () => {
       const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
+      const mockSendResponse = new Response(null, { status: 202 });
       const mockCopyResponse = new Response('Copy failed', { status: 500 });
 
       const fetchMock = vi
         .fn()
         .mockResolvedValueOnce(mockCreateReplyResponse)
+        .mockResolvedValueOnce(mockSendResponse)
         .mockResolvedValueOnce(mockCopyResponse);
 
       vi.stubGlobal('fetch', fetchMock);
@@ -120,6 +107,22 @@ describe('OutlookProviderUtil', () => {
       await expect(
         OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
       ).rejects.toThrow('Microsoft Graph copy message failed (500): Copy failed');
+    });
+
+    it('throws when send fails', async () => {
+      const mockCreateReplyResponse = new Response(JSON.stringify({ id: 'draft-id-123' }), { status: 200 });
+      const mockSendResponse = new Response('Send failed', { status: 500 });
+
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(mockCreateReplyResponse)
+        .mockResolvedValueOnce(mockSendResponse);
+
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(
+        OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text'),
+      ).rejects.toThrow('Microsoft Graph send summary failed (500): Send failed');
     });
 
     it('throws when createReply fails', async () => {
@@ -143,3 +146,4 @@ describe('OutlookProviderUtil', () => {
     });
   });
 });
+

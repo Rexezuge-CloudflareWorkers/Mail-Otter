@@ -206,8 +206,11 @@ class OutlookProviderUtil {
     originalMessage: OutlookMessage,
     mailboxAddress: string,
     summary: string,
-    disableCleanup?: boolean,
   ): Promise<void> {
+    const atIndex: number = mailboxAddress.lastIndexOf('@');
+    const sinkAddress: string = atIndex !== -1
+      ? `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`
+      : mailboxAddress;
     const draft = await OutlookProviderUtil.fetchJson<{ id?: string | undefined }>(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/createReply`,
       accessToken,
@@ -223,7 +226,7 @@ class OutlookProviderUtil {
             toRecipients: [
               {
                 emailAddress: {
-                  address: mailboxAddress,
+                  address: sinkAddress,
                 },
               },
             ],
@@ -237,10 +240,18 @@ class OutlookProviderUtil {
     if (!draft.id) {
       throw new ProviderApiRetryableError('Microsoft Graph createReply did not return a draft id.');
     }
-    await OutlookProviderUtil.copyMessage(accessToken, draft.id, 'inbox');
-    if (!disableCleanup) {
-      await OutlookProviderUtil.deleteMessage(accessToken, draft.id);
+    const sendResponse: Response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!sendResponse.ok) {
+      throw OutlookProviderUtil.createApiError('send summary', sendResponse, await sendResponse.text());
     }
+    await OutlookProviderUtil.copyMessage(accessToken, draft.id, 'inbox');
+    await OutlookProviderUtil.deleteMessage(accessToken, draft.id);
   }
 
   public static isMessageNotFoundError(error: unknown): boolean {

@@ -31,7 +31,6 @@ import {
   DEFAULT_SERVE_SPA_FROM_WORKER,
   DEFAULT_STALE_CONTEXT_DOCUMENT_DELETED_GRACE_DAYS,
   DEFAULT_STALE_CONTEXT_DOCUMENT_ERROR_GRACE_DAYS,
-  DEFAULT_DISABLE_DELETE_AFTER_SEND,
 } from './ConfigurationDefaults';
 
 class ConfigurationManager {
@@ -197,10 +196,6 @@ class ConfigurationManager {
 
   public static getContextAuditLogRetentionDays(env: unknown): number {
     return ConfigurationManager.getPositiveInt(env, 'CONTEXT_AUDIT_LOG_RETENTION_DAYS', DEFAULT_CONTEXT_AUDIT_LOG_RETENTION_DAYS);
-  }
-
-  public static getDisableDeleteAfterSend(env: unknown): boolean {
-    return ConfigurationManager.getBoolean(env, 'DISABLE_DELETE_AFTER_SEND', DEFAULT_DISABLE_DELETE_AFTER_SEND);
   }
 
   private static getPositiveInt(env: unknown, key: string, defaultValue: string): number {

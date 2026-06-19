@@ -71,6 +71,5 @@
     "ACTION_CALLBACK_BASE_URL": "https://mail.example.com",
     "ACTION_DEFAULT_EXPIRY_HOURS": "168",
     "ACTION_RETENTION_DAYS": "90",
-    "DISABLE_DELETE_AFTER_SEND": "false",
   },
 }

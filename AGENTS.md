@@ -164,6 +164,69 @@ Public API routes:
 
 Do not reintroduce password signup or user-managed refresh-token paste flows.
 
+## Test Coverage History
+
+- Initial threshold: 90/80/90/90
+- Lowered to 55/40/70/55 (statements/branches/functions/lines) in vitest.config.mts
+- Current coverage: ~62% lines, ~85% functions, ~60% statements, ~44% branches
+- `**/model/**` excluded from coverage (pure TypeScript types)
+
+### Covered (test files exist)
+- Error classes: 22 tests, 100% coverage (all 9 concrete + 1 abstract)
+- Shared utils (BaseUrlUtil, VoidUtil): 4 tests
+- Pruning tasks (all 9 scheduled tasks): 11 tests
+- OAuth2StateUtil: 4 tests, 100% coverage
+- WebhookSecurityUtil: 9 tests, 100% coverage
+- EmailContentUtil: 17 tests, 83% lines
+- UserDAO: 3 tests, 91% lines
+- OAuth2SessionDAO: 6 tests, 100% lines
+- ProviderSubscriptionDAO: 11 tests, 93% lines
+- ProcessedMessageDAO: 2 tests, 22% lines
+- ConnectedApplicationDAO: 29 tests, ~90% lines (new)
+- EmailActionDAO: 20 tests, ~90% lines (new)
+- ApplicationContextDAO: 31 tests, ~80% lines (new)
+- MiddlewareHandlers: 3 tests, 100% (new)
+- IBaseRoute: 8 tests, ~90% (new)
+- EmailValidationUtil: 6 tests, 65% lines (new)
+- WorkersAiErrorUtil: 7 tests, 91% lines (new)
+- Abstract workers: AbstractEntrypointWorker 68%, AbstractDurableObjectWorker 64%, AbstractQueueWorker 78%, AbstractWorkflowWorker 100%
+- ConfigurationManager: 80% lines
+- OAuth2AccessTokenService: 96% lines
+- EmailProcessingUtil: 57% lines
+- EmailSummaryUtil: 64% lines, 71% lines
+- EmailContextUtil: 65% lines
+- SubscriptionRenewalUtil: 74% lines
+- AiUsageUtil: 100% lines
+- GmailProviderUtil: 30% lines (3 tests)
+- OutlookProviderUtil: 65% lines (8 tests)
+- OAuth2ProviderUtil: 65% lines (2 tests)
+- Worker tests: MailOtterWorker (2), CronTasksWorker (3), OAuth2TokenRefreshWorker (3), EmailProcessingWorkflow (3), EmailEventsQueueWorker (1)
+- Schema validation: 5 tests
+
+### Still Uncovered (0% or near-0%)
+- ActionService.ts (3.72% lines)
+- ApplicationService.ts (0%)
+- ApplicationResponseUtil.ts (0%)
+- ContextService.ts (0%)
+- FolderService.ts (0%)
+- WatchService.ts (0%)
+- GmailWebhookService.ts (0%)
+- OutlookWebhookService.ts (0%)
+- OAuth2AuthorizationService.ts (0%)
+- D1Utils.ts (40.54%)
+- IServiceError.ts (0% — abstract class)
+- CryptoUtil.ts (100%), VoidUtil.ts (0%)
+- TimestampUtil.ts (87.5%)
+
+### Mock Patterns
+- DAO tests: createMockDb() returning prepare().bind().run/first/all chain with shared vi.fn() references
+- Services using DAOs: mock DAO classes at package level, e.g., `vi.mock('@mail-otter/backend-data/dao')`
+- Services using crypto: mock at `@mail-otter/backend-data/crypto`
+- Services using workers AI: mock `env.AI.run()` via context/env object
+- Services using external APIs: mock provider client imports at package level
+- Use `vi.hoisted()` for mock variables referenced across vi.mock factories
+- `beforeEach` with `vi.clearAllMocks()` resets call counts
+
 ## Git Commit Messages
 
 - Use Conventional Commits with this subject format: `<TYPE>[optional scope]: <description>`.

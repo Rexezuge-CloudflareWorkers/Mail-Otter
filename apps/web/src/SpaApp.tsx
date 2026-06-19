@@ -1525,7 +1525,7 @@ function AuditLogsModal({
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-[#e5e7eb]">
                         {log.eventLabel || auditEventLabels[log.eventType] || log.eventType}
-                        {attemptNumber != null && <span className="ml-2 text-[#9ca3af]">(Attempt {attemptNumber})</span>}
+                        {attemptNumber != null && attemptNumber > 1 && <span className="ml-2 text-[#9ca3af]">(Attempt {attemptNumber})</span>}
                       </div>
                       <div className="text-xs text-[#9ca3af] mt-0.5">
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#2d3745] text-[#cbd5e1] text-[10px] font-medium mr-2 shrink-0">#{logs.length - index}</span>

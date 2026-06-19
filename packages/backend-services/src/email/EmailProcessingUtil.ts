@@ -545,7 +545,7 @@ class EmailProcessingUtil {
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_PROCESSING_STARTED,
       eventLabel: 'Email processing started',
-      eventData: retryAttempt !== undefined ? { attempt: retryAttempt } : undefined,
+      eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
   }
@@ -565,7 +565,7 @@ class EmailProcessingUtil {
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_SUMMARY_GENERATED,
       eventLabel: 'AI summary generated',
-      eventData: retryAttempt !== undefined ? { attempt: retryAttempt } : undefined,
+      eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
   }
@@ -589,7 +589,7 @@ class EmailProcessingUtil {
       eventData: {
         actionCount: actions.length,
         actionTypes: actions.map((a) => a.action.actionType),
-        ...(retryAttempt !== undefined ? { attempt: retryAttempt } : {}),
+        ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}),
       },
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
@@ -610,7 +610,7 @@ class EmailProcessingUtil {
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_SUMMARY_SENT,
       eventLabel: 'Summary email sent',
-      eventData: retryAttempt !== undefined ? { attempt: retryAttempt } : undefined,
+      eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
   }
@@ -634,7 +634,7 @@ class EmailProcessingUtil {
       eventData: {
         error: error.message,
         errorType: error.constructor?.name,
-        ...(retryAttempt !== undefined ? { attempt: retryAttempt } : {}),
+        ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}),
       },
       severity: error instanceof NonRetryableError ? CONTEXT_AUDIT_LOG_SEVERITY_ERROR : CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
     });

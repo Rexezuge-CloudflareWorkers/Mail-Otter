@@ -72,12 +72,12 @@ export function MailboxForm({
         <Input
           value={form.clientId}
           onChange={(e) => update({ clientId: e.target.value })}
-          placeholder={form.applicationId ? 'Leave blank to keep existing client ID' : 'OAuth2 client ID'}
+          placeholder={form.applicationId ? '(unchanged)' : 'OAuth2 client ID'}
         />
         <Input
           value={form.clientSecret}
           onChange={(e) => update({ clientSecret: e.target.value })}
-          placeholder={form.applicationId ? 'Leave blank to keep existing client secret' : 'OAuth2 client secret'}
+          placeholder={form.applicationId ? '(unchanged)' : 'OAuth2 client secret'}
           type="password"
         />
         {form.providerId === 'google-gmail' && (

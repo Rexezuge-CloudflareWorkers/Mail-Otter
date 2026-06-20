@@ -129,7 +129,7 @@ export function MailboxForm({
           )}
           {providerFeatures.length > 0 && (
             <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional features (requires re-authorization)</p>
+              <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional features{form.applicationId ? ' (requires re-authorization)' : ''}</p>
               {providerFeatures.map(([featureId, feature]) => (
                 <label key={featureId} className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
                   <input

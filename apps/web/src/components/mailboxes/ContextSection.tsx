@@ -34,7 +34,7 @@ export function ContextSection({
               disabled={busy}
               className="h-4 w-4 accent-[var(--color-accent)] rounded"
             />
-            Store documents
+            Index new emails
           </label>
           <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
             Max docs

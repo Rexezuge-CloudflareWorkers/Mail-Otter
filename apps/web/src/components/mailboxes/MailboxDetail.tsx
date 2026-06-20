@@ -76,8 +76,8 @@ export function MailboxDetail({
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <Button variant="primary" size="sm" onClick={onStartOAuth2} disabled={busy}>
-            Authorize OAuth2
+          <Button variant={application.status === 'connected' ? 'secondary' : 'primary'} size="sm" onClick={onStartOAuth2} disabled={busy}>
+            {application.status === 'connected' ? 'Re-authorize OAuth2' : 'Authorize OAuth2'}
           </Button>
           <Button
             variant="secondary"

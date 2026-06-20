@@ -10,6 +10,8 @@ import type {
 } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
+import { WatchService } from '../subscription/WatchService';
+import type { WatchServiceEnv } from '../subscription/WatchService';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
 import type { ApplicationResponse } from './ApplicationResponseUtil';
 
@@ -109,6 +111,13 @@ class ApplicationService {
   }
 
   public static async deleteUserApplication(userEmail: string, applicationId: string, env: DeleteUserApplicationEnv): Promise<void> {
+    try {
+      await WatchService.stopApplicationWatch(userEmail, applicationId, env);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[ApplicationService] Stop watch failed during application deletion, proceeding: ${message}`);
+    }
+
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
     const contextDAO = new ApplicationContextDAO(env.DB);
@@ -151,9 +160,8 @@ interface ApplicationServiceEnv {
   MAX_APPLICATIONS_PER_USER?: string | undefined;
 }
 
-interface DeleteUserApplicationEnv extends ApplicationServiceEnv {
+interface DeleteUserApplicationEnv extends ApplicationServiceEnv, WatchServiceEnv {
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
-  OAUTH2_TOKEN_CACHE: KVNamespace;
 }
 
 interface UpdateWatchedFolderIdsInput {

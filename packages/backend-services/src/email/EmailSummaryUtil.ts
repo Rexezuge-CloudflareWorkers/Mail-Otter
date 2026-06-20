@@ -123,13 +123,15 @@ class EmailSummaryUtil {
   }
 
   private static buildSummaryInstructions(): string {
+    const currentDate: string = new Date().toISOString().slice(0, 10);
     return [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
+      `Today is ${currentDate}.`,
       'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
       'Keep the gist to one sentence.',
       'Details must be short factual bullets copied from the email when possible.',
       'Actions are optional executable proposals; return an empty actions array when no safe action exists.',
-      'Use calendar.add_event only when start time, end time, and timezone are clear; parameters must include eventTitle, startTime, endTime, timeZone, and optional location or notes.',
+      "Use calendar.add_event when a calendar event is mentioned; resolve relative dates (e.g. 'tomorrow', 'next Friday') to absolute ISO 8601 datetimes using today's date; parameters must include eventTitle, startTime (ISO 8601), endTime (ISO 8601), timeZone, and optional location or notes.",
       'Use email.draft_reply when the owner should respond; parameters must include draftBody and optional draftSubject.',
       'Use external.open_link only for URLs present in the email; parameters must include url.',
       'Use manual.todo for useful actions that cannot be automated safely; parameters must include instructions.',

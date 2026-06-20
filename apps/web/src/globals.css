@@ -37,6 +37,7 @@
   --animate-stagger-1: fade-in-up 0.3s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-stagger-2: fade-in-up 0.3s 0.10s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-stagger-3: fade-in-up 0.3s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-highlight-pulse: highlight-pulse 1.4s ease-out both;
 }
 
 @keyframes fade-in {
@@ -79,6 +80,11 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  35% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent); }
 }
 
 ::-webkit-scrollbar {

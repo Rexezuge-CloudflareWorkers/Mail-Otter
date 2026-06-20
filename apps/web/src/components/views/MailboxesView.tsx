@@ -29,6 +29,8 @@ export function MailboxesView({
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
   onDeleteContextDocuments,
+  isFormExpanded,
+  setIsFormExpanded,
 }: {
   applications: ConnectedApplication[];
   selectedApplicationId: string;
@@ -53,6 +55,8 @@ export function MailboxesView({
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;
   onDeleteContextDocuments: (id: string) => void;
+  isFormExpanded: boolean;
+  setIsFormExpanded: (v: boolean) => void;
 }) {
   const selectedApplication = applications.find((a) => a.applicationId === selectedApplicationId);
 
@@ -93,6 +97,8 @@ export function MailboxesView({
           onSave={onSaveForm}
           onCancel={onCancelForm}
           busy={busy}
+          isExpanded={isFormExpanded}
+          onToggleExpand={() => setIsFormExpanded(!isFormExpanded)}
         />
       </section>
 

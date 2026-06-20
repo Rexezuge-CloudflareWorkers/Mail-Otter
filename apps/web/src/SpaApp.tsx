@@ -36,6 +36,7 @@ export default function SpaApp() {
   const [applications, setApplications] = useState<ConnectedApplication[]>([]);
   const [selectedApplicationId, setSelectedApplicationId] = useState('');
   const [applicationForm, setApplicationForm] = useState<ApplicationFormState>(emptyForm);
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(() => getInitialNotice());
   const [isBusy, setIsBusy] = useState(false);
   const [watchWebhookUrl, setWatchWebhookUrl] = useState('');
@@ -138,7 +139,10 @@ export default function SpaApp() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
-  const resetForm = () => setApplicationForm(emptyForm);
+  const resetForm = () => {
+    setApplicationForm(emptyForm);
+    setIsFormExpanded(false);
+  };
 
   const editApplication = (app: ConnectedApplication) => {
     setApplicationForm({
@@ -150,6 +154,7 @@ export default function SpaApp() {
       gmailPubsubTopicName: app.gmailPubsubTopicName || '',
       enabledFeatures: app.enabledFeatures || [],
     });
+    setIsFormExpanded(true);
   };
 
   const saveApplication = async () => {
@@ -526,6 +531,8 @@ export default function SpaApp() {
           onUpdateMaxContextDocuments={updateMaxContextDocuments}
           onOpenContextAudit={(id) => { setAuditApplicationId(id); setActiveView('context'); }}
           onDeleteContextDocuments={deleteContextDocuments}
+          isFormExpanded={isFormExpanded}
+          setIsFormExpanded={setIsFormExpanded}
         />
       )}
 

@@ -28,8 +28,6 @@
   },
   "assets": {
     "directory": "./apps/web/dist/",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/**"],
   },
   "durable_objects": {
     "bindings": [
@@ -117,7 +115,7 @@
   ],
   "vars": {
     "DEBUG_MODE": "false",
-    "SERVE_SPA_FROM_WORKER": "false",
+    "SERVE_SPA_FROM_WORKER": "true",
     "POLICY_AUD": "you-cloudflare-zero-trust-application-aud",
     "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
     "MAX_APPLICATIONS_PER_USER": "99",

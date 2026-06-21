@@ -7,6 +7,7 @@ export const DEFAULT_OUTLOOK_SUBSCRIPTION_TTL_DAYS = '6';
 export const DEFAULT_EMAIL_SUMMARY_MODEL = '@cf/openai/gpt-oss-120b';
 export const DEFAULT_EMAIL_SUMMARY_FALLBACK_MODEL = '@cf/openai/gpt-oss-20b';
 export const DEFAULT_AI_DAILY_NEURON_FALLBACK_THRESHOLD = '6000';
+export const DEFAULT_AI_DAILY_NEURON_FREE_TIER_LIMIT = '10000';
 export const DEFAULT_MAX_EMAIL_BODY_CHARS = '12000';
 export const DEFAULT_AI_EMBEDDING_MODEL = '@cf/baai/bge-m3';
 export const DEFAULT_RAG_TOP_K = '5';

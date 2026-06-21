@@ -11,6 +11,11 @@ export interface CurrentUser {
     maxApplicationsPerUser: number;
     maxContextDocumentsPerApplication: number;
   };
+  aiUsage: {
+    estimatedNeurons: number;
+    dailyNeuronLimit: number;
+    fallbackThreshold: number;
+  };
 }
 
 export interface ConnectedApplication {

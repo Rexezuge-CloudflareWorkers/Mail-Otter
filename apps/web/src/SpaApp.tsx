@@ -528,7 +528,7 @@ export default function SpaApp() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)] text-[var(--color-text-primary)]">
-      <Header activeView={activeView} onViewChange={setActiveView} userEmail={user.email} />
+      <Header activeView={activeView} onViewChange={setActiveView} userEmail={user.email} aiUsage={user.aiUsage} />
 
       {notice && <NoticeBar notice={notice} />}
 

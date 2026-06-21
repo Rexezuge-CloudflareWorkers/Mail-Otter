@@ -1,5 +1,6 @@
 import { cn } from '../../lib/utils';
 import type { ActiveView } from '../../types';
+import { AiUsageBar } from '../shared/AiUsageBar';
 
 const TABS: { id: ActiveView; label: string }[] = [
   { id: 'mailboxes', label: 'Mailboxes' },
@@ -11,10 +12,12 @@ export function Header({
   activeView,
   onViewChange,
   userEmail,
+  aiUsage,
 }: {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
   userEmail: string;
+  aiUsage?: { estimatedNeurons: number; dailyNeuronLimit: number; fallbackThreshold: number } | null;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface-base)]/95 backdrop-blur">
@@ -45,6 +48,14 @@ export function Header({
 
         <div className="text-sm text-[var(--color-text-muted)] truncate max-w-xs">{userEmail}</div>
       </div>
+
+      {aiUsage && (
+        <AiUsageBar
+          estimatedNeurons={aiUsage.estimatedNeurons}
+          dailyNeuronLimit={aiUsage.dailyNeuronLimit}
+          fallbackThreshold={aiUsage.fallbackThreshold}
+        />
+      )}
     </header>
   );
 }

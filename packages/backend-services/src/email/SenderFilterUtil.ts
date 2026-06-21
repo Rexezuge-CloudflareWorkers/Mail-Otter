@@ -2,8 +2,12 @@ import type { SenderDomainFilters } from '@mail-otter/shared/model';
 
 class SenderFilterUtil {
   public static extractEmailAddress(from: string): string {
-    const match = from.match(/<([^>]+)>/);
-    return (match ? match[1] : from).toLowerCase().trim();
+    const lt = from.indexOf('<');
+    const gt = lt !== -1 ? from.indexOf('>', lt + 1) : -1;
+    if (lt !== -1 && gt !== -1) {
+      return from.slice(lt + 1, gt).toLowerCase().trim();
+    }
+    return from.toLowerCase().trim();
   }
 
   public static matchesPattern(emailAddress: string, pattern: string): boolean {

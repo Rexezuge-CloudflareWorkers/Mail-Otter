@@ -194,6 +194,22 @@ The sink derivation is done in `OutlookProviderUtil.sendSelfSummaryReply` by spl
 
 Do not reintroduce password signup or user-managed refresh-token paste flows.
 
+## Web UI Text Conventions
+
+All user-visible text in `apps/web/` must use **Title Case** (capitalize the first letter of every word). This applies to:
+
+- Button labels, headings, card titles, section headers
+- Form labels, placeholders, and input hints
+- Empty-state messages, error/success toast notifications, and confirm dialog text
+- Tooltip `title` attributes, `aria-label` values, and `<option>` text
+- Inline metric labels and status suffixes
+
+**Exceptions — do not Title Case:**
+- Text already in ALL CAPS (e.g., from CSS `text-transform: uppercase`)
+- Content inside `<code>` tags (e.g., `@domain.com`, technical format strings)
+- Technical URI/path placeholders (e.g., `projects/{projectId}/topics/{topicName}`)
+- Dynamic content from API responses (provider names, user-supplied data)
+
 ## Test Coverage History
 
 - Initial threshold: 90/80/90/90

@@ -90,13 +90,13 @@ export function SenderFilterSection({
         <CardTitle>Sender Filters</CardTitle>
       </CardHeader>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        Include rules: only process emails from matching senders. Exclude rules: skip emails from matching senders.
-        Use <code className="font-mono">@domain.com</code> to match a domain or <code className="font-mono">user@domain.com</code> for an exact address.
-        Exclude rules are checked first.
+        Include Rules: Only Process Emails From Matching Senders. Exclude Rules: Skip Emails From Matching Senders.
+        Use <code className="font-mono">@domain.com</code> To Match A Domain Or <code className="font-mono">user@domain.com</code> For An Exact Address.
+        Exclude Rules Are Checked First.
       </p>
       <div className="flex flex-col gap-4">
-        <RuleList label="Include rules" rules={current.includeRules} busy={busy} onAdd={addInclude} onRemove={removeInclude} />
-        <RuleList label="Exclude rules" rules={current.excludeRules} busy={busy} onAdd={addExclude} onRemove={removeExclude} />
+        <RuleList label="Include Rules" rules={current.includeRules} busy={busy} onAdd={addInclude} onRemove={removeInclude} />
+        <RuleList label="Exclude Rules" rules={current.excludeRules} busy={busy} onAdd={addExclude} onRemove={removeExclude} />
       </div>
     </Card>
   );

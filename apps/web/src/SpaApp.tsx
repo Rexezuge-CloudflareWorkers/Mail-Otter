@@ -26,8 +26,8 @@ import { emptyForm } from './components/mailboxes/MailboxForm';
 
 function getInitialNotice(): { type: 'success' | 'error'; text: string } | null {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('oauth2') === 'connected') return { type: 'success', text: 'OAuth2 connection completed.' };
-  if (params.get('oauth2') === 'error') return { type: 'error', text: params.get('message') || 'OAuth2 connection failed.' };
+  if (params.get('oauth2') === 'connected') return { type: 'success', text: 'OAuth2 Connection Completed.' };
+  if (params.get('oauth2') === 'error') return { type: 'error', text: params.get('message') || 'OAuth2 Connection Failed.' };
   return null;
 }
 
@@ -128,13 +128,13 @@ export default function SpaApp() {
 
   useEffect(() => {
     if (authorized && activeView === 'context') {
-      loadContextAudit().catch((e: unknown) => showNotice('error', e instanceof Error ? e.message : 'Unable to load context.'));
+      loadContextAudit().catch((e: unknown) => showNotice('error', e instanceof Error ? e.message : 'Unable To Load Context.'));
     }
   }, [activeView, authorized, loadContextAudit, showNotice]);
 
   useEffect(() => {
     if (authorized && activeView === 'actions') {
-      loadActions().catch((e: unknown) => showNotice('error', e instanceof Error ? e.message : 'Unable to load actions.'));
+      loadActions().catch((e: unknown) => showNotice('error', e instanceof Error ? e.message : 'Unable To Load Actions.'));
     }
   }, [activeView, authorized, loadActions, showNotice]);
 
@@ -177,12 +177,12 @@ export default function SpaApp() {
         body: JSON.stringify(payload),
       });
       const data = await readJson<{ application: ConnectedApplication }>(res);
-      showNotice('success', applicationForm.applicationId ? 'Mailbox updated.' : 'Mailbox created.');
+      showNotice('success', applicationForm.applicationId ? 'Mailbox Updated.' : 'Mailbox Created.');
       resetForm();
       await loadApplications();
       setSelectedApplicationId(data.application.applicationId);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to save mailbox.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Save Mailbox.');
     } finally {
       setIsBusy(false);
     }
@@ -198,12 +198,12 @@ export default function SpaApp() {
           body: JSON.stringify({ applicationId }),
         }),
       );
-      showNotice('success', 'Mailbox deleted.');
+      showNotice('success', 'Mailbox Deleted.');
       setSelectedApplicationId('');
       setWatchWebhookUrl('');
       await loadApplications();
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to delete mailbox.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Mailbox.');
     } finally {
       setIsBusy(false);
     }
@@ -221,7 +221,7 @@ export default function SpaApp() {
       );
       window.location.assign(data.authorizationUrl);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to start OAuth2.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Start OAuth2.');
       setIsBusy(false);
     }
   };
@@ -240,7 +240,7 @@ export default function SpaApp() {
       await loadApplications();
       showNotice('success', data.message);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to start watch.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Start Watch.');
     } finally {
       setIsBusy(false);
     }
@@ -260,7 +260,7 @@ export default function SpaApp() {
       await loadApplications();
       showNotice('success', data.message);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to stop watch.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Stop Watch.');
     } finally {
       setIsBusy(false);
     }
@@ -277,10 +277,10 @@ export default function SpaApp() {
         }),
       );
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', contextIndexingEnabled ? 'Context indexing enabled.' : 'Context indexing disabled.');
+      showNotice('success', contextIndexingEnabled ? 'Context Indexing Enabled.' : 'Context Indexing Disabled.');
       if (activeView === 'context') await loadContextAudit();
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to update context setting.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Context Setting.');
     } finally {
       setIsBusy(false);
     }
@@ -297,9 +297,9 @@ export default function SpaApp() {
         }),
       );
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', maxContextDocuments != null ? `Document limit set to ${maxContextDocuments}.` : 'Document limit reset.');
+      showNotice('success', maxContextDocuments != null ? `Document Limit Set To ${maxContextDocuments}.` : 'Document Limit Reset.');
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to update document limit.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Document Limit.');
     } finally {
       setIsBusy(false);
     }
@@ -313,7 +313,7 @@ export default function SpaApp() {
       );
       setAvailableFolders(data.folders);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to load folders.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Folders.');
     } finally {
       setLoadingFolders(false);
     }
@@ -338,7 +338,7 @@ export default function SpaApp() {
       );
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to update watch folders.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Watch Folders.');
     } finally {
       setIsBusy(false);
     }
@@ -365,9 +365,9 @@ export default function SpaApp() {
         }),
       );
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', 'Sender filter rules updated.');
+      showNotice('success', 'Sender Filter Rules Updated.');
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to update sender filters.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Sender Filters.');
     } finally {
       setIsBusy(false);
     }
@@ -375,7 +375,7 @@ export default function SpaApp() {
 
   const deleteContextDocuments = async (applicationId: string) => {
     const app = applications.find((a) => a.applicationId === applicationId);
-    if (!window.confirm(`Delete all indexed documents for ${app?.displayName || 'this mailbox'}?`)) return;
+    if (!window.confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
     setIsBusy(true);
     try {
       const data = await readJson<{ deletionRun: ApplicationContextDeletionRun }>(
@@ -389,10 +389,10 @@ export default function SpaApp() {
       if (activeView === 'context') await loadContextAudit();
       showNotice(
         data.deletionRun.status === 'accepted' ? 'success' : 'error',
-        data.deletionRun.status === 'accepted' ? 'Context documents deletion accepted.' : data.deletionRun.errorMessage || 'Context deletion failed.',
+        data.deletionRun.status === 'accepted' ? 'Context Documents Deletion Accepted.' : data.deletionRun.errorMessage || 'Context Deletion Failed.',
       );
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to delete context documents.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Context Documents.');
     } finally {
       setIsBusy(false);
     }
@@ -431,7 +431,7 @@ export default function SpaApp() {
       );
       setActionExecutions(data.executions);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to load action audit.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Action Audit.');
     }
   };
 
@@ -445,7 +445,7 @@ export default function SpaApp() {
       await loadActionExecutions(actionId);
       showNotice(data.action.status === 'succeeded' ? 'success' : 'error', data.action.result?.summary || data.action.errorMessage || data.action.status);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to execute action.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Execute Action.');
     } finally {
       setIsBusy(false);
     }
@@ -458,7 +458,7 @@ export default function SpaApp() {
       );
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to open provider document.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Open Provider Document.');
     }
   };
 
@@ -472,7 +472,7 @@ export default function SpaApp() {
       setAuditLogs(data.logs);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to load audit logs.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Audit Logs.');
       setAuditLogDocumentId(null);
     } finally {
       setLoadingAuditLogs(false);
@@ -487,7 +487,7 @@ export default function SpaApp() {
       setAuditLogs((p) => [...p, ...data.logs]);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to load more audit logs.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load More Audit Logs.');
     } finally {
       setLoadingAuditLogs(false);
     }
@@ -501,7 +501,7 @@ export default function SpaApp() {
       setAuditLogs(data.logs);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable to refresh audit logs.');
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Refresh Audit Logs.');
     } finally {
       setLoadingAuditLogs(false);
     }

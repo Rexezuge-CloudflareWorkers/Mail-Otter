@@ -17,7 +17,7 @@ export function ContextDeletionRunRow({
             {application?.displayName || run.applicationId}
           </div>
           <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            {run.deletedVectorCount}/{run.requestedVectorCount} vectors deleted
+            {run.deletedVectorCount}/{run.requestedVectorCount} Vectors Deleted
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatTimestamp(run.createdAt)}</div>
         </div>

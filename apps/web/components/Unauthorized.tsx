@@ -12,7 +12,7 @@ export default function Unauthorized() {
           <span className="text-[var(--color-accent)]">Mail</span>-Otter
         </div>
         <h1 className="text-lg font-medium mt-4 mb-1">Access Required</h1>
-        <p className="text-[var(--color-text-secondary)] text-sm">You must authenticate to access this application.</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">You Must Authenticate To Access This Application.</p>
         <button
           type="button"
           onClick={authenticateWithZeroTrust}

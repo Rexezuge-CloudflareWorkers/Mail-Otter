@@ -36,7 +36,7 @@ export function ContextDocumentRow({
             Document {formatFingerprint(document.sourceDocumentFingerprint)}
           </div>
           <div className="text-sm text-[var(--color-text-secondary)] truncate mt-0.5">
-            {application?.displayName || document.applicationId} · {providerLabels[document.sourceProviderId]} · {document.indexedTextChars} chars
+            {application?.displayName || document.applicationId} · {providerLabels[document.sourceProviderId]} · {document.indexedTextChars} Chars
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-0.5">
             Indexed {formatTimestamp(document.indexedAt)} · Updated {formatTimestamp(document.updatedAt)}

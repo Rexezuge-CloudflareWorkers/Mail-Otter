@@ -88,7 +88,7 @@ export function MailboxesView({
           ))}
           {applications.length === 0 && (
             <Card className="text-center text-[var(--color-text-muted)] text-sm py-8">
-              No mailboxes yet. Add one below.
+              No Mailboxes Yet. Add One Below.
             </Card>
           )}
         </div>
@@ -129,7 +129,7 @@ export function MailboxesView({
           />
         ) : (
           <Card className="text-center text-[var(--color-text-muted)] py-16 text-sm">
-            Select or create a mailbox to get started.
+            Select Or Create A Mailbox To Get Started.
           </Card>
         )}
       </section>

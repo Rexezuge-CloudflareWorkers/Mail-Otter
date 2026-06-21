@@ -49,7 +49,7 @@ export function ActionsView({
         <div>
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Actions</h1>
           <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            Review AI-proposed actions, execution results, audit trail, and expiry.
+            Review AI-Proposed Actions, Execution Results, Audit Trail, And Expiry.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={onRefresh} disabled={busy}>
@@ -63,7 +63,7 @@ export function ActionsView({
         <div className="flex flex-col gap-1.5">
           <Label>Mailbox</Label>
           <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} className="min-w-[180px]">
-            <option value="">All mailboxes</option>
+            <option value="">All Mailboxes</option>
             {applications.map((app) => (
               <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
             ))}
@@ -72,7 +72,7 @@ export function ActionsView({
         <div className="flex flex-col gap-1.5">
           <Label>Status</Label>
           <Select value={status} onChange={(e) => setStatus(e.target.value as EmailActionStatus | '')} className="min-w-[140px]">
-            <option value="">All statuses</option>
+            <option value="">All Statuses</option>
             {(['pending', 'executing', 'succeeded', 'failed', 'expired', 'cancelled'] as EmailActionStatus[]).map((s) => (
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
@@ -86,7 +86,7 @@ export function ActionsView({
         <Card className="p-0 overflow-hidden">
           <CardHeader className="px-5 pt-5 pb-4 border-b border-[var(--color-border)] mb-0">
             <CardTitle>Action Items</CardTitle>
-            <span className="text-sm text-[var(--color-text-muted)]">{actions.length} loaded</span>
+            <span className="text-sm text-[var(--color-text-muted)]">{actions.length} Loaded</span>
           </CardHeader>
           <div className="divide-y divide-[var(--color-border)]">
             {actions.map((action) => (
@@ -105,7 +105,7 @@ export function ActionsView({
                     <div className="font-medium text-[var(--color-text-primary)] truncate">{action.title}</div>
                     <div className="text-sm text-[var(--color-text-secondary)] mt-0.5 line-clamp-1">{action.description}</div>
                     <div className="text-xs text-[var(--color-text-muted)] mt-1">
-                      {action.actionType} · expires {formatExpiryTimestamp(action.expiresAt)}
+                      {action.actionType} · Expires {formatExpiryTimestamp(action.expiresAt)}
                     </div>
                   </div>
                   <ActionStatusBadge status={action.status} />
@@ -113,7 +113,7 @@ export function ActionsView({
               </button>
             ))}
             {actions.length === 0 && (
-              <div className="px-5 py-12 text-center text-sm text-[var(--color-text-muted)]">No actions found.</div>
+              <div className="px-5 py-12 text-center text-sm text-[var(--color-text-muted)]">No Actions Found.</div>
             )}
           </div>
           {actionsCursor && (
@@ -153,7 +153,7 @@ export function ActionsView({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Open result →
+                        Open Result →
                       </a>
                     )}
                   </div>
@@ -198,14 +198,14 @@ export function ActionsView({
                     </div>
                   ))}
                   {executions.length === 0 && (
-                    <div className="text-sm text-[var(--color-text-muted)]">No execution attempts recorded.</div>
+                    <div className="text-sm text-[var(--color-text-muted)]">No Execution Attempts Recorded.</div>
                   )}
                 </div>
               </Card>
             </>
           ) : (
             <Card className="text-center text-[var(--color-text-muted)] text-sm py-16">
-              Select an action to view details.
+              Select An Action To View Details.
             </Card>
           )}
         </div>

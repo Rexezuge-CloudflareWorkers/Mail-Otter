@@ -98,7 +98,7 @@ export function MailboxForm({
           <Input
             value={form.displayName}
             onChange={(e) => update({ displayName: e.target.value })}
-            placeholder="Display name"
+            placeholder="Display Name"
           />
           <Select
             value={form.providerId}
@@ -112,12 +112,12 @@ export function MailboxForm({
           <Input
             value={form.clientId}
             onChange={(e) => update({ clientId: e.target.value })}
-            placeholder={form.applicationId ? '(unchanged)' : 'OAuth2 client ID'}
+            placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
           />
           <Input
             value={form.clientSecret}
             onChange={(e) => update({ clientSecret: e.target.value })}
-            placeholder={form.applicationId ? '(unchanged)' : 'OAuth2 client secret'}
+            placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
             type="password"
           />
           {form.providerId === 'google-gmail' && (
@@ -129,7 +129,7 @@ export function MailboxForm({
           )}
           {providerFeatures.length > 0 && (
             <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional features{form.applicationId ? ' (requires re-authorization)' : ''}</p>
+              <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional Features{form.applicationId ? ' (Requires Re-Authorization)' : ''}</p>
               {providerFeatures.map(([featureId, feature]) => (
                 <label key={featureId} className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
                   <input

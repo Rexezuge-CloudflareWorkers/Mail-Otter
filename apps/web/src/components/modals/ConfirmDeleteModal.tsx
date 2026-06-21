@@ -15,7 +15,7 @@ export function ConfirmDeleteModal({
     <div
       onClick={(e) => e.stopPropagation()}
       role="dialog"
-      aria-label="Confirm delete mailbox"
+      aria-label="Confirm Delete Mailbox"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center"
     >
@@ -25,7 +25,7 @@ export function ConfirmDeleteModal({
           <AlertTriangle className="h-5 w-5 text-[var(--color-error-text)]" />
         </div>
         <p className="text-sm text-[var(--color-text-secondary)] text-center mb-6">
-          Delete <span className="font-medium text-[var(--color-text-primary)]">{displayName}</span>? This cannot be undone.
+          Delete <span className="font-medium text-[var(--color-text-primary)]">{displayName}</span>? This Cannot Be Undone.
         </p>
         <div className="flex gap-3">
           <Button variant="ghost" className="flex-1" onClick={(e) => { e.stopPropagation(); onCancel(); }}>

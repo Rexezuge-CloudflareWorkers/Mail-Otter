@@ -1,6 +1,13 @@
+import { useState, useEffect } from 'react';
 import type { ConnectedApplication } from '../../../components/types';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
+
+const setsEqual = (a: string[] | null, b: string[] | null) => {
+  if (a === null && b === null) return true;
+  if (a === null || b === null) return false;
+  return a.length === b.length && a.every((id) => b.includes(id));
+};
 
 export function WatchSection({
   application,
@@ -18,6 +25,18 @@ export function WatchSection({
   onUpdateWatchedFolders: (folderIds: string[] | null) => void;
 }) {
   const isOutlook = application.providerId === 'microsoft-outlook';
+  const [pendingIds, setPendingIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (availableFolders !== null) {
+      setPendingIds(application.watchedFolders?.map((wf) => wf.id) ?? null);
+    } else {
+      setPendingIds(null);
+    }
+  }, [availableFolders, application.applicationId]);
+
+  const originalIds = application.watchedFolders?.map((wf) => wf.id) ?? null;
+  const isUnchanged = setsEqual(pendingIds, originalIds);
 
   return (
     <Card>
@@ -38,32 +57,48 @@ export function WatchSection({
         availableFolders.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">No Folders Found.</p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {availableFolders.map((folder) => {
-              const checked = application.watchedFolders?.some((wf) => wf.id === folder.id) ?? false;
-              return (
-                <label key={folder.id} className="inline-flex items-center gap-3 text-sm text-[var(--color-text-secondary)] cursor-pointer">
-                  <input
-                    type={isOutlook ? 'radio' : 'checkbox'}
-                    name={isOutlook ? `watch-folder-${application.applicationId}` : undefined}
-                    checked={checked}
-                    onChange={() => {
-                      const currentIds = (application.watchedFolders || []).map((wf) => wf.id);
-                      const next = isOutlook
-                        ? checked ? [] : [folder.id]
-                        : checked
-                          ? currentIds.filter((id) => id !== folder.id)
-                          : [...currentIds, folder.id];
-                      onUpdateWatchedFolders(next.length > 0 ? next : null);
-                    }}
-                    disabled={busy}
-                    className="h-4 w-4 accent-[var(--color-accent)]"
-                  />
-                  {folder.name}
-                </label>
-              );
-            })}
-          </div>
+          <>
+            <div className="flex flex-col gap-2">
+              {availableFolders.map((folder) => {
+                const effectiveIds = pendingIds ?? application.watchedFolders?.map((wf) => wf.id) ?? [];
+                const checked = effectiveIds.includes(folder.id);
+                return (
+                  <label key={folder.id} className="inline-flex items-center gap-3 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                    <input
+                      type={isOutlook ? 'radio' : 'checkbox'}
+                      name={isOutlook ? `watch-folder-${application.applicationId}` : undefined}
+                      checked={checked}
+                      onChange={() => {
+                        if (isOutlook) {
+                          const next = checked ? [] : [folder.id];
+                          setPendingIds(next.length > 0 ? next : null);
+                        } else {
+                          const currentIds = pendingIds ?? [];
+                          const next = checked
+                            ? currentIds.filter((id) => id !== folder.id)
+                            : [...currentIds, folder.id];
+                          setPendingIds(next.length > 0 ? next : null);
+                        }
+                      }}
+                      disabled={busy}
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                    />
+                    {folder.name}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-3">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onUpdateWatchedFolders(pendingIds)}
+                disabled={busy || isUnchanged}
+              >
+                Save Folders
+              </Button>
+            </div>
+          </>
         )
       ) : application.watchedFolders && application.watchedFolders.length > 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">

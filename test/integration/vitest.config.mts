@@ -47,6 +47,10 @@ export default defineConfig({
         '**/index.ts',
         '**/types.d.ts',
       ],
+      // NOTE: V8 coverage instrumentation is not functional with @cloudflare/vitest-pool-workers
+      // because the Cloudflare Workers sandbox does not expose node:inspector/promises.
+      // Run `pnpm run test:integration` (without --coverage) for integration testing.
+      // Coverage thresholds are omitted intentionally — they would always fail at 0%.
     },
     pool: cloudflarePool({
       wrangler: {

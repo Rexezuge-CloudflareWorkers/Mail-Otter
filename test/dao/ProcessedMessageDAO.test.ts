@@ -1,12 +1,14 @@
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import {
+  PROCESSED_MESSAGE_STATUS_ERROR,
   PROCESSED_MESSAGE_STATUS_PROCESSING,
+  PROCESSED_MESSAGE_STATUS_SKIPPED,
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
   type ProcessedMessageStatus,
   type ProviderId,
 } from '@mail-otter/shared/constants';
 import type { ProcessedMessageInternal } from '@mail-otter/shared/model';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 class FakeProcessedMessageStatement {
   private bindings: unknown[] = [];
@@ -138,3 +140,186 @@ function createProcessedMessageRow(overrides: Partial<ProcessedMessageInternal> 
     ...overrides,
   };
 }
+
+function makeDb(overrides?: { firstResult?: unknown; runChanges?: number }) {
+  const mockRun = vi.fn().mockResolvedValue({ success: true, meta: { changes: overrides?.runChanges ?? 1 } } as D1Result);
+  const mockFirst = vi.fn().mockResolvedValue(overrides?.firstResult ?? null);
+  return {
+    db: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          run: mockRun,
+          first: mockFirst,
+        })),
+      })),
+    } as unknown as D1Database,
+    mockRun,
+    mockFirst,
+  };
+}
+
+describe('ProcessedMessageDAO (mock-based)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('markSummarized', () => {
+    it('executes UPDATE with summarized status and sets summary_sent_at', async () => {
+      const { db, mockRun } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+
+      await dao.markSummarized('app-1', 'msg-1');
+
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const bindFn = (db.prepare as ReturnType<typeof vi.fn>).mock.results[0].value.bind as ReturnType<typeof vi.fn>;
+      const bindings = bindFn.mock.calls[0] as unknown[];
+      expect(bindings[0]).toBe(PROCESSED_MESSAGE_STATUS_SUMMARIZED);
+      expect(bindings[1]).toBe(1);
+    });
+  });
+
+  describe('markSkipped', () => {
+    it('executes UPDATE with skipped status and sets error_message', async () => {
+      const { db, mockRun } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+
+      await dao.markSkipped('app-1', 'msg-1', 'Already processed');
+
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const bindFn = (db.prepare as ReturnType<typeof vi.fn>).mock.results[0].value.bind as ReturnType<typeof vi.fn>;
+      const bindings = bindFn.mock.calls[0] as unknown[];
+      expect(bindings[0]).toBe(PROCESSED_MESSAGE_STATUS_SKIPPED);
+      expect(bindings[3]).toBe('Already processed');
+    });
+  });
+
+  describe('markError', () => {
+    it('executes UPDATE with error status and sets error_message', async () => {
+      const { db, mockRun } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+
+      await dao.markError('app-1', 'msg-1', 'Something went wrong');
+
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const bindFn = (db.prepare as ReturnType<typeof vi.fn>).mock.results[0].value.bind as ReturnType<typeof vi.fn>;
+      const bindings = bindFn.mock.calls[0] as unknown[];
+      expect(bindings[0]).toBe(PROCESSED_MESSAGE_STATUS_ERROR);
+      expect(bindings[3]).toBe('Something went wrong');
+    });
+
+    it('truncates error messages longer than 1024 chars', async () => {
+      const { db } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+      const longError = 'x'.repeat(2000);
+
+      await dao.markError('app-1', 'msg-1', longError);
+
+      const bindFn = (db.prepare as ReturnType<typeof vi.fn>).mock.results[0].value.bind as ReturnType<typeof vi.fn>;
+      const bindings = bindFn.mock.calls[0] as unknown[];
+      expect((bindings[3] as string).length).toBe(1024);
+    });
+  });
+
+  describe('deleteOlderThan', () => {
+    it('returns the number of deleted rows', async () => {
+      const { db } = makeDb({ runChanges: 7 });
+      const dao = new ProcessedMessageDAO(db);
+
+      const count = await dao.deleteOlderThan(1000000, [PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROCESSED_MESSAGE_STATUS_SKIPPED], 100);
+
+      expect(count).toBe(7);
+    });
+
+    it('passes the correct bindings (timestamp, statuses, limit)', async () => {
+      const { db } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+
+      await dao.deleteOlderThan(9999, [PROCESSED_MESSAGE_STATUS_ERROR], 50);
+
+      const bindFn = (db.prepare as ReturnType<typeof vi.fn>).mock.results[0].value.bind as ReturnType<typeof vi.fn>;
+      const bindings = bindFn.mock.calls[0] as unknown[];
+      expect(bindings[0]).toBe(9999);
+      expect(bindings[1]).toBe(PROCESSED_MESSAGE_STATUS_ERROR);
+      expect(bindings[2]).toBe(50);
+    });
+  });
+
+  describe('getLatestForApplication', () => {
+    it('returns undefined when no summarized message exists', async () => {
+      const { db } = makeDb({ firstResult: null });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getLatestForApplication('app-1');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('maps database row to ProcessedMessage shape', async () => {
+      const row = createProcessedMessageRow({ status: PROCESSED_MESSAGE_STATUS_SUMMARIZED });
+      const { db } = makeDb({ firstResult: row });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getLatestForApplication('app-1');
+
+      expect(result).toMatchObject({
+        processedMessageId: row.processed_message_id,
+        applicationId: row.application_id,
+        providerId: row.provider_id,
+        providerMessageId: row.provider_message_id,
+        status: PROCESSED_MESSAGE_STATUS_SUMMARIZED,
+        summarySentAt: row.summary_sent_at,
+      });
+    });
+  });
+
+  describe('getLatestErrorForApplication', () => {
+    it('returns undefined when no error message exists', async () => {
+      const { db } = makeDb({ firstResult: null });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getLatestErrorForApplication('app-1');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('maps error row to ProcessedMessage shape', async () => {
+      const row = createProcessedMessageRow({ status: PROCESSED_MESSAGE_STATUS_ERROR, error_message: 'fail', summary_sent_at: null });
+      const { db } = makeDb({ firstResult: row });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getLatestErrorForApplication('app-1');
+
+      expect(result).toMatchObject({
+        status: PROCESSED_MESSAGE_STATUS_ERROR,
+        errorMessage: 'fail',
+      });
+    });
+  });
+
+  describe('getByMessageId', () => {
+    it('returns undefined when message does not exist', async () => {
+      const { db } = makeDb({ firstResult: null });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getByMessageId('app-1', 'msg-x');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('maps row to ProcessedMessage including providerThreadId and fingerprint', async () => {
+      const row = createProcessedMessageRow({
+        provider_thread_id: 'thread-99',
+        provider_stable_message_fingerprint: 'fp-abc',
+      });
+      const { db } = makeDb({ firstResult: row });
+      const dao = new ProcessedMessageDAO(db);
+
+      const result = await dao.getByMessageId('app-1', 'provider-message-1');
+
+      expect(result).toMatchObject({
+        providerThreadId: 'thread-99',
+        providerStableMessageFingerprint: 'fp-abc',
+      });
+    });
+  });
+});

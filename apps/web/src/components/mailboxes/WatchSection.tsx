@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ConnectedApplication } from '../../../components/types';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 const setsEqual = (a: string[] | null, b: string[] | null) => {
   if (a === null && b === null) return true;
@@ -13,17 +14,12 @@ export function WatchSection({
   application,
   availableFolders,
   loadingFolders,
-  busy,
-  onLoadFolders,
-  onUpdateWatchedFolders,
 }: {
   application: ConnectedApplication;
   availableFolders: Array<{ id: string; name: string }> | null;
   loadingFolders: boolean;
-  busy: boolean;
-  onLoadFolders: () => void;
-  onUpdateWatchedFolders: (folderIds: string[] | null) => void;
 }) {
+  const { busy, onLoadFolders, onUpdateWatchedFolders } = useMailboxCallbacks();
   const isOutlook = application.providerId === 'microsoft-outlook';
   const [pendingIds, setPendingIds] = useState<string[] | null>(null);
 
@@ -45,7 +41,7 @@ export function WatchSection({
         <Button
           variant="secondary"
           size="sm"
-          onClick={onLoadFolders}
+          onClick={() => onLoadFolders(application.applicationId)}
           loading={loadingFolders}
           disabled={busy || loadingFolders || application.status !== 'connected'}
         >
@@ -92,7 +88,7 @@ export function WatchSection({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => onUpdateWatchedFolders(pendingIds)}
+                onClick={() => onUpdateWatchedFolders(application.applicationId, pendingIds)}
                 disabled={busy || isUnchanged}
               >
                 Save Folders

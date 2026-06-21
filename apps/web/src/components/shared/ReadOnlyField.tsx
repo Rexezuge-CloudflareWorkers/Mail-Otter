@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Label } from '../ui/Input';
 import { cn } from '../../lib/utils';
+import { COPY_FEEDBACK_TIMEOUT_MS } from '../../lib/constants';
 
 export function ReadOnlyField({ label, value, showCopy = false }: { label: string; value: string; showCopy?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -9,7 +10,7 @@ export function ReadOnlyField({ label, value, showCopy = false }: { label: strin
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_TIMEOUT_MS);
   };
 
   return (

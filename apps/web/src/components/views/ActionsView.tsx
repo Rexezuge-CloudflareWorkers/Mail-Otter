@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Select, Label } from '../ui/Input';
 import { Metric } from '../shared/Metric';
+import { FilterBar } from '../shared/FilterBar';
 import { ActionPayloadDetails } from '../actions/ActionPayloadDetails';
 import { cn } from '../../lib/utils';
 
@@ -44,7 +45,6 @@ export function ActionsView({
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5 animate-fade-in-up">
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Actions</h1>
@@ -58,8 +58,7 @@ export function ActionsView({
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card className="flex flex-col sm:flex-row gap-4 py-4">
+      <FilterBar>
         <div className="flex flex-col gap-1.5">
           <Label>Mailbox</Label>
           <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} className="min-w-[180px]">
@@ -78,11 +77,9 @@ export function ActionsView({
             ))}
           </Select>
         </div>
-      </Card>
+      </FilterBar>
 
-      {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-5">
-        {/* Action list */}
         <Card className="p-0 overflow-hidden">
           <CardHeader className="px-5 pt-5 pb-4 border-b border-[var(--color-border)] mb-0">
             <CardTitle>Action Items</CardTitle>
@@ -95,9 +92,7 @@ export function ActionsView({
                 onClick={() => onSelectAction(action.actionId)}
                 className={cn(
                   'w-full text-left px-5 py-4 transition-colors duration-150',
-                  selectedActionId === action.actionId
-                    ? 'bg-[#0e2d22]'
-                    : 'hover:bg-[var(--color-surface-2)]',
+                  selectedActionId === action.actionId ? 'bg-[#0e2d22]' : 'hover:bg-[var(--color-surface-2)]',
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -123,7 +118,6 @@ export function ActionsView({
           )}
         </Card>
 
-        {/* Detail panel */}
         <div className="space-y-4">
           {selectedAction ? (
             <>

@@ -10,6 +10,7 @@ import { ContextIndexBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Select } from '../ui/Input';
+import { FilterBar } from '../shared/FilterBar';
 import { ContextDocumentRow } from '../context/ContextDocumentRow';
 import { ContextDeletionRunRow } from '../context/ContextDeletionRunRow';
 
@@ -54,38 +55,29 @@ export function ContextAuditView({
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5 animate-fade-in-up">
-      {/* Toolbar */}
-      <Card className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
-        <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">RAG Context</h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <Select
-            value={applicationId}
-            onChange={(e) => setApplicationId(e.target.value)}
-            className="min-w-[180px]"
-          >
-            <option value="">All Mailboxes</option>
-            {applications.map((app) => (
-              <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
-            ))}
-          </Select>
-          <Select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as ApplicationContextDocumentStatus | '')}
-            className="min-w-[130px]"
-          >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="deleted">Deleted</option>
-            <option value="error">Error</option>
-          </Select>
-          <Button variant="secondary" size="sm" onClick={onRefresh} disabled={busy}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
-        </div>
-      </Card>
+      <FilterBar title="RAG Context">
+        <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} className="min-w-[180px]">
+          <option value="">All Mailboxes</option>
+          {applications.map((app) => (
+            <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
+          ))}
+        </Select>
+        <Select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as ApplicationContextDocumentStatus | '')}
+          className="min-w-[130px]"
+        >
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="deleted">Deleted</option>
+          <option value="error">Error</option>
+        </Select>
+        <Button variant="secondary" size="sm" onClick={onRefresh} disabled={busy}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Refresh
+        </Button>
+      </FilterBar>
 
-      {/* Selected mailbox quick-actions */}
       {selectedApplication && (
         <Card>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -122,9 +114,7 @@ export function ContextAuditView({
         </Card>
       )}
 
-      {/* Two-column content */}
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-5">
-        {/* Documents */}
         <div>
           <CardHeader className="mb-3 px-0">
             <CardTitle>Indexed Documents</CardTitle>
@@ -153,7 +143,6 @@ export function ContextAuditView({
           )}
         </div>
 
-        {/* Deletion history */}
         <div>
           <CardHeader className="mb-3 px-0">
             <CardTitle>Deletion History</CardTitle>

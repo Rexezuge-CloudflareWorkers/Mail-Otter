@@ -6,6 +6,7 @@ import type { OAuth2Feature } from '../../../components/constants';
 import { Input, Select } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
+import { FORM_HIGHLIGHT_TIMEOUT_MS } from '../../lib/constants';
 
 export interface ApplicationFormState {
   applicationId?: string;
@@ -51,7 +52,7 @@ export function MailboxForm({
     if (form.applicationId && form.applicationId !== prevApplicationId.current) {
       setIsHighlighted(true);
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      const t = window.setTimeout(() => setIsHighlighted(false), 1500);
+      const t = window.setTimeout(() => setIsHighlighted(false), FORM_HIGHLIGHT_TIMEOUT_MS);
       return () => window.clearTimeout(t);
     }
     prevApplicationId.current = form.applicationId;

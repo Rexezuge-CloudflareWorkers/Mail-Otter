@@ -1,0 +1,28 @@
+import { createContext, useContext } from 'react';
+import type { ConnectedApplication, SenderDomainFilters } from '../../components/types';
+
+export interface MailboxCallbacksContextValue {
+  busy: boolean;
+  onEdit: (app: ConnectedApplication) => void;
+  onDelete: () => void;
+  onStartOAuth2: (id: string) => void;
+  onStartWatch: (id: string) => void;
+  onStopWatch: (id: string) => void;
+  onLoadFolders: (id: string) => void;
+  onUpdateWatchedFolders: (id: string, folderIds: string[] | null) => void;
+  onUpdateSenderFilters: (id: string, filters: SenderDomainFilters) => void;
+  onUpdateContextIndexing: (id: string, enabled: boolean) => void;
+  onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
+  onOpenContextAudit: (id: string) => void;
+  onDeleteContextDocuments: (id: string) => void;
+  onDismissProcessingError: (id: string) => void;
+  onDismissContextError: (id: string) => void;
+}
+
+export const MailboxCallbacksContext = createContext<MailboxCallbacksContextValue | null>(null);
+
+export function useMailboxCallbacks(): MailboxCallbacksContextValue {
+  const ctx = useContext(MailboxCallbacksContext);
+  if (!ctx) throw new Error('useMailboxCallbacks must be used inside MailboxCallbacksContext.Provider');
+  return ctx;
+}

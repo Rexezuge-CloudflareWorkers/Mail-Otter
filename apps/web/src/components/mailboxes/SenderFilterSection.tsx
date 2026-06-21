@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { SenderDomainFilters } from '../../../components/types';
+import type { ConnectedApplication, SenderDomainFilters } from '../../../components/types';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Input } from '../ui/Input';
+import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 function RuleList({
   label,
@@ -68,21 +69,14 @@ function RuleList({
   );
 }
 
-export function SenderFilterSection({
-  filters,
-  busy,
-  onUpdate,
-}: {
-  filters: SenderDomainFilters | null | undefined;
-  busy: boolean;
-  onUpdate: (filters: SenderDomainFilters) => void;
-}) {
-  const current: SenderDomainFilters = filters ?? { includeRules: [], excludeRules: [] };
+export function SenderFilterSection({ application }: { application: ConnectedApplication }) {
+  const { busy, onUpdateSenderFilters } = useMailboxCallbacks();
+  const current: SenderDomainFilters = application.senderDomainFilters ?? { includeRules: [], excludeRules: [] };
 
-  const addInclude = (rule: string) => onUpdate({ ...current, includeRules: [...current.includeRules, rule] });
-  const removeInclude = (rule: string) => onUpdate({ ...current, includeRules: current.includeRules.filter((r) => r !== rule) });
-  const addExclude = (rule: string) => onUpdate({ ...current, excludeRules: [...current.excludeRules, rule] });
-  const removeExclude = (rule: string) => onUpdate({ ...current, excludeRules: current.excludeRules.filter((r) => r !== rule) });
+  const addInclude = (rule: string) => onUpdateSenderFilters(application.applicationId, { ...current, includeRules: [...current.includeRules, rule] });
+  const removeInclude = (rule: string) => onUpdateSenderFilters(application.applicationId, { ...current, includeRules: current.includeRules.filter((r) => r !== rule) });
+  const addExclude = (rule: string) => onUpdateSenderFilters(application.applicationId, { ...current, excludeRules: [...current.excludeRules, rule] });
+  const removeExclude = (rule: string) => onUpdateSenderFilters(application.applicationId, { ...current, excludeRules: current.excludeRules.filter((r) => r !== rule) });
 
   return (
     <Card>

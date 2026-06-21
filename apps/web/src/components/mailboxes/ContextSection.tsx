@@ -1,28 +1,15 @@
-import type { ConnectedApplication, CurrentUser } from '../../../components/types';
+import type { ConnectedApplication } from '../../../components/types';
 import { formatTimestamp } from '../../../components/utils';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Metric } from '../shared/Metric';
+import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
+import { useCurrentUserData } from '../../contexts/UserContext';
 
-export function ContextSection({
-  application,
-  user,
-  busy,
-  onUpdateContextIndexing,
-  onUpdateMaxContextDocuments,
-  onOpenContextAudit,
-  onDeleteContextDocuments,
-  onDismissContextError,
-}: {
-  application: ConnectedApplication;
-  user: CurrentUser;
-  busy: boolean;
-  onUpdateContextIndexing: (enabled: boolean) => void;
-  onUpdateMaxContextDocuments: (max: number | null) => void;
-  onOpenContextAudit: () => void;
-  onDeleteContextDocuments: () => void;
-  onDismissContextError: () => void;
-}) {
+export function ContextSection({ application }: { application: ConnectedApplication }) {
+  const user = useCurrentUserData();
+  const { busy, onUpdateContextIndexing, onUpdateMaxContextDocuments, onOpenContextAudit, onDeleteContextDocuments, onDismissContextError } = useMailboxCallbacks();
+
   return (
     <Card>
       <CardHeader>
@@ -32,7 +19,7 @@ export function ContextSection({
             <input
               type="checkbox"
               checked={application.contextIndexingEnabled}
-              onChange={(e) => onUpdateContextIndexing(e.target.checked)}
+              onChange={(e) => onUpdateContextIndexing(application.applicationId, e.target.checked)}
               disabled={busy}
               className="h-4 w-4 accent-[var(--color-accent)] rounded"
             />
@@ -48,7 +35,7 @@ export function ContextSection({
               value={application.maxContextDocuments ?? ''}
               onChange={(e) => {
                 const val = e.target.value === '' ? null : Number(e.target.value);
-                onUpdateMaxContextDocuments(val);
+                onUpdateMaxContextDocuments(application.applicationId, val);
               }}
               disabled={busy}
               className="w-28 px-2 py-1 rounded-lg bg-[var(--color-surface-base)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
@@ -66,18 +53,18 @@ export function ContextSection({
           value={application.contextLastError || 'None'}
           tone={application.contextLastError ? 'error' : 'muted'}
           subtitle={application.contextLastError ? formatTimestamp(application.contextLastErrorAt) : undefined}
-          onDismiss={application.contextLastError ? onDismissContextError : undefined}
+          onDismiss={application.contextLastError ? () => onDismissContextError(application.applicationId) : undefined}
         />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" onClick={onOpenContextAudit}>
+        <Button variant="secondary" size="sm" onClick={() => onOpenContextAudit(application.applicationId)}>
           View RAG Context
         </Button>
         <Button
           variant="danger"
           size="sm"
-          onClick={onDeleteContextDocuments}
+          onClick={() => onDeleteContextDocuments(application.applicationId)}
           disabled={busy || (application.contextDocumentCount || 0) === 0}
         >
           Delete Indexed Documents

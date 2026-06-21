@@ -54,7 +54,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     }>();
 
     app.get('/', (c) => c.redirect('/user/'));
-    app.get('/user', (c) => c.redirect('/user/'));
+    app.get('/user', (c) => c.redirect('/user/' + new URL(c.req.url).search));
     app.options('/user/*', (_c) => {
       return new Response(null, {
         status: 204,

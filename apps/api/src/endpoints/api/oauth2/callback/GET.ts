@@ -26,7 +26,7 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
     const url: URL = new URL(request.raw.url);
     const error: string | null = url.searchParams.get('error');
     if (error) {
-      return this.redirect(`/user?oauth2=error&message=${encodeURIComponent(error)}`);
+      return this.redirect(`/user/?oauth2=error&message=${encodeURIComponent(error)}`);
     }
     const code: string | null = url.searchParams.get('code');
     const state: string | null = url.searchParams.get('state');
@@ -42,7 +42,7 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
       },
       env,
     );
-    return this.redirect(`/user?oauth2=connected&applicationId=${encodeURIComponent(applicationId)}`);
+    return this.redirect(`/user/?oauth2=connected&applicationId=${encodeURIComponent(applicationId)}`);
   }
 
   private redirect(location: string): ExtendedResponse<OAuth2CallbackResponse> {

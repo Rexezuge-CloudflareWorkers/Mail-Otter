@@ -1,4 +1,4 @@
-import type { ConnectedApplication, CurrentUser } from '../../../components/types';
+import type { ConnectedApplication, CurrentUser, SenderDomainFilters } from '../../../components/types';
 import { MailboxCard } from '../mailboxes/MailboxCard';
 import { MailboxDetail } from '../mailboxes/MailboxDetail';
 import type { ApplicationFormState } from '../mailboxes/MailboxForm';
@@ -25,6 +25,7 @@ export function MailboxesView({
   onStopWatch,
   onLoadFolders,
   onUpdateWatchedFolders,
+  onUpdateSenderFilters,
   onUpdateContextIndexing,
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
@@ -51,6 +52,7 @@ export function MailboxesView({
   onStopWatch: (id: string) => void;
   onLoadFolders: (id: string) => void;
   onUpdateWatchedFolders: (id: string, folderIds: string[] | null) => void;
+  onUpdateSenderFilters: (id: string, filters: SenderDomainFilters) => void;
   onUpdateContextIndexing: (id: string, enabled: boolean) => void;
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;
@@ -119,6 +121,7 @@ export function MailboxesView({
             onStopWatch={() => onStopWatch(selectedApplication.applicationId)}
             onLoadFolders={() => onLoadFolders(selectedApplication.applicationId)}
             onUpdateWatchedFolders={(ids) => onUpdateWatchedFolders(selectedApplication.applicationId, ids)}
+            onUpdateSenderFilters={(filters) => onUpdateSenderFilters(selectedApplication.applicationId, filters)}
             onUpdateContextIndexing={(enabled) => onUpdateContextIndexing(selectedApplication.applicationId, enabled)}
             onUpdateMaxContextDocuments={(max) => onUpdateMaxContextDocuments(selectedApplication.applicationId, max)}
             onOpenContextAudit={() => onOpenContextAudit(selectedApplication.applicationId)}

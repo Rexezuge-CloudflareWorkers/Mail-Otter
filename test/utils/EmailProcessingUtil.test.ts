@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmailProcessingUtil, EmailSummaryUtil } from '@mail-otter/backend-services/email';
 import type { EmailProcessingEnv } from '@mail-otter/backend-services/email';
 import { AiDailyUsageDAO, ConnectedApplicationDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
+import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import { AiSummaryRetryableError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
@@ -327,15 +328,179 @@ describe('EmailProcessingUtil', () => {
       expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Workers AI daily free allocation was exceeded.');
     });
   });
+
+  describe('sender filter rules', () => {
+    describe('Outlook path', () => {
+      it('skips Outlook message when sender matches an exclude rule', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+        const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
+        vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+          createOutlookMessage({ from: { emailAddress: { address: 'newsletter@promotions.com' } } }),
+        );
+
+        await EmailProcessingUtil.processOutlookMessage(
+          createApplication({ senderDomainFilters: { includeRules: [], excludeRules: ['@promotions.com'] } }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Sender matches application exclude filter rules.');
+        expect(summarizeEmail).not.toHaveBeenCalled();
+      });
+
+      it('skips Outlook message when sender does not match any include rule', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+        const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
+        vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+          createOutlookMessage({ from: { emailAddress: { address: 'alice@other.com' } } }),
+        );
+
+        await EmailProcessingUtil.processOutlookMessage(
+          createApplication({ senderDomainFilters: { includeRules: ['@company.com'], excludeRules: [] } }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Sender does not match application include filter rules.');
+        expect(summarizeEmail).not.toHaveBeenCalled();
+      });
+
+      it('processes Outlook message when sender matches include rule', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped');
+        vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+          createOutlookMessage({ from: { emailAddress: { address: 'alice@company.com' } } }),
+        );
+        vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+        vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
+
+        await EmailProcessingUtil.processOutlookMessage(
+          createApplication({ senderDomainFilters: { includeRules: ['@company.com'], excludeRules: [] } }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).not.toHaveBeenCalled();
+      });
+
+      it('processes Outlook message normally when senderDomainFilters is null', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped');
+        vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage());
+        vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+        vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
+
+        await EmailProcessingUtil.processOutlookMessage(
+          createApplication({ senderDomainFilters: null }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Gmail path', () => {
+      it('skips Gmail message when sender matches an exclude rule', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+        const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
+        vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
+          createGmailMessage({ fromHeader: 'Newsletter <newsletter@promotions.com>' }),
+        );
+
+        await EmailProcessingUtil.processGmailMessage(
+          createApplication({ senderDomainFilters: { includeRules: [], excludeRules: ['@promotions.com'] } }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Sender matches application exclude filter rules.');
+        expect(summarizeEmail).not.toHaveBeenCalled();
+      });
+
+      it('skips Gmail message when sender does not match any include rule', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+        const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
+        vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
+          createGmailMessage({ fromHeader: 'Alice <alice@other.com>' }),
+        );
+
+        await EmailProcessingUtil.processGmailMessage(
+          createApplication({ senderDomainFilters: { includeRules: ['@company.com'], excludeRules: [] } }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Sender does not match application include filter rules.');
+        expect(summarizeEmail).not.toHaveBeenCalled();
+      });
+
+      it('processes Gmail message normally when senderDomainFilters is null', async () => {
+        vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+        vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+        const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped');
+        vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(createGmailMessage());
+        vi.spyOn(GmailProviderUtil, 'sendSummaryReply').mockResolvedValue();
+        vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
+
+        await EmailProcessingUtil.processGmailMessage(
+          createApplication({ senderDomainFilters: null }),
+          'access-token',
+          'message-1',
+          createEnv(),
+          [],
+        );
+
+        expect(markSkipped).not.toHaveBeenCalled();
+      });
+    });
+  });
 });
 
-function createApplication() {
+function createApplication(overrides: Record<string, unknown> = {}) {
   return {
     applicationId: 'app-1',
     userEmail: 'owner@example.com',
     providerId: 'microsoft-outlook',
     providerEmail: 'owner@example.com',
     credentials: { refreshToken: 'refresh-token' },
+    ...overrides,
+  } as never;
+}
+
+function createGmailMessage({ fromHeader = 'Sender <sender@example.com>' }: { fromHeader?: string } = {}) {
+  return {
+    id: 'message-1',
+    threadId: 'thread-1',
+    payload: {
+      headers: [
+        { name: 'Subject', value: 'Project update' },
+        { name: 'From', value: fromHeader },
+        { name: 'Message-ID', value: '<message-1@example.com>' },
+      ],
+      parts: [{ mimeType: 'text/plain', body: { data: btoa('Please review the project update.') } }],
+    },
   } as never;
 }
 

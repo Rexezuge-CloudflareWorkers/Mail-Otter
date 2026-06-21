@@ -32,6 +32,13 @@ const UpdateApplicationBodySchema = z
     clientSecret: z.string().max(2048).optional(),
     gmailPubsubTopicName: GmailPubsubTopicNameSchema.optional(),
     enabledFeatures: z.array(z.string()).optional(),
+    senderDomainFilters: z
+      .object({
+        includeRules: z.array(z.string().max(320)).max(100),
+        excludeRules: z.array(z.string().max(320)).max(100),
+      })
+      .optional()
+      .nullable(),
   })
   .refine(
     (input): boolean => SUPPORTED_PROVIDER_CONNECTIONS[input.providerId] === input.connectionMethod,

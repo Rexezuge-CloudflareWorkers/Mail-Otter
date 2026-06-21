@@ -10,6 +10,7 @@ import type {
   EmailAction,
   EmailActionExecution,
   EmailActionStatus,
+  SenderDomainFilters,
 } from '../components/types';
 import { apiFetch, fetchDocumentAuditLogs, readJson, providerMethod } from '../components/utils';
 import type { ActiveView } from './types';
@@ -343,6 +344,35 @@ export default function SpaApp() {
     }
   };
 
+  const updateSenderFilters = async (applicationId: string, filters: SenderDomainFilters) => {
+    const app = applications.find((a) => a.applicationId === applicationId);
+    if (!app) return;
+    setIsBusy(true);
+    try {
+      const data = await readJson<{ application: ConnectedApplication }>(
+        await apiFetch('/user/application', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicationId: app.applicationId,
+            displayName: app.displayName,
+            providerId: app.providerId,
+            connectionMethod: providerMethod[app.providerId],
+            enabledFeatures: app.enabledFeatures,
+            ...(app.providerId === 'google-gmail' ? { gmailPubsubTopicName: app.gmailPubsubTopicName } : {}),
+            senderDomainFilters: filters,
+          }),
+        }),
+      );
+      setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
+      showNotice('success', 'Sender filter rules updated.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable to update sender filters.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const deleteContextDocuments = async (applicationId: string) => {
     const app = applications.find((a) => a.applicationId === applicationId);
     if (!window.confirm(`Delete all indexed documents for ${app?.displayName || 'this mailbox'}?`)) return;
@@ -527,6 +557,7 @@ export default function SpaApp() {
           onStopWatch={stopWatch}
           onLoadFolders={loadFolders}
           onUpdateWatchedFolders={updateWatchedFolderIds}
+          onUpdateSenderFilters={updateSenderFilters}
           onUpdateContextIndexing={updateContextIndexing}
           onUpdateMaxContextDocuments={updateMaxContextDocuments}
           onOpenContextAudit={(id) => { setAuditApplicationId(id); setActiveView('context'); }}

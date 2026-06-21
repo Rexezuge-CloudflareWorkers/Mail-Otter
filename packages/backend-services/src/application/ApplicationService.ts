@@ -7,6 +7,7 @@ import type {
   ConnectedApplicationCredentials,
   ConnectedApplicationMetadata,
   OAuth2Credentials,
+  SenderDomainFilters,
 } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
@@ -84,6 +85,7 @@ class ApplicationService {
       CONNECTED_APPLICATION_STATUS_DRAFT,
       input.gmailPubsubTopicName || null,
       input.enabledFeatures,
+      input.senderDomainFilters,
     );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
@@ -145,6 +147,7 @@ interface CreateUserApplicationInput {
   clientSecret: string;
   gmailPubsubTopicName?: string | undefined;
   enabledFeatures?: string[] | null | undefined;
+  senderDomainFilters?: SenderDomainFilters | null | undefined;
 }
 
 interface UpdateUserApplicationInput extends Omit<CreateUserApplicationInput, 'clientId' | 'clientSecret'> {

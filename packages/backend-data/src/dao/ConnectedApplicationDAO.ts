@@ -14,6 +14,7 @@ import type {
   ConnectedApplicationInternal,
   ConnectedApplicationMetadata,
   OAuth2Credentials,
+  SenderDomainFilters,
 } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
@@ -141,6 +142,7 @@ class ConnectedApplicationDAO {
     status: string,
     gmailPubsubTopicName?: string | null,
     enabledFeatures?: string[] | null,
+    senderDomainFilters?: SenderDomainFilters | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
@@ -167,6 +169,11 @@ class ConnectedApplicationDAO {
       await this.setProviderConfig(applicationId, 'oauth2_enabled_features', JSON.stringify(enabledFeatures), now);
     } else if (enabledFeatures !== undefined) {
       await this.deleteProviderConfig(applicationId, 'oauth2_enabled_features');
+    }
+    if (senderDomainFilters != null && (senderDomainFilters.includeRules.length > 0 || senderDomainFilters.excludeRules.length > 0)) {
+      await this.setProviderConfig(applicationId, 'sender_domain_filters', JSON.stringify(senderDomainFilters), now);
+    } else if (senderDomainFilters !== undefined) {
+      await this.deleteProviderConfig(applicationId, 'sender_domain_filters');
     }
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
@@ -406,14 +413,16 @@ class ConnectedApplicationDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson]: [
+    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson]: [
       Array<{ folderPath: string; folderName: string }>,
+      string | null,
       string | null,
       string | null,
     ] = await Promise.all([
       this.getWatchedFolders(row.application_id),
       this.getProviderConfig(row.application_id, 'gmail_pubsub_topic_name'),
       this.getProviderConfig(row.application_id, 'oauth2_enabled_features'),
+      this.getProviderConfig(row.application_id, 'sender_domain_filters'),
     ]);
     return {
       applicationId: row.application_id,
@@ -426,6 +435,7 @@ class ConnectedApplicationDAO {
       contextIndexingEnabled: row.context_indexing_enabled !== 0,
       maxContextDocuments: row.max_context_documents ?? null,
       enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
+      senderDomainFilters: senderDomainFiltersJson ? (JSON.parse(senderDomainFiltersJson) as SenderDomainFilters) : null,
       watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

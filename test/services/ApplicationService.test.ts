@@ -185,6 +185,68 @@ describe('ApplicationService', () => {
       const [, , , calledCredentials] = mockUpdateForUser.mock.calls[0] as [unknown, unknown, unknown, { clientId: string; clientSecret: string; refreshToken: string }];
       expect(calledCredentials).toEqual({ clientId: 'existing-cid', clientSecret: 'existing-cs', refreshToken: 'rt' });
     });
+
+    it('passes senderDomainFilters to updateForUser when provided', async () => {
+      mockGetByIdForUser.mockResolvedValue({
+        applicationId: 'app-1',
+        providerId: 'google-gmail',
+        connectionMethod: 'oauth2',
+        credentials: { refreshToken: 'rt' },
+      });
+      mockUpdateForUser.mockResolvedValue({ applicationId: 'app-1' });
+      const filters = { includeRules: ['@company.com'], excludeRules: [] };
+
+      await ApplicationService.updateUserApplication(
+        'user@example.com',
+        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2', senderDomainFilters: filters },
+        makeEnv(),
+        new Request('https://example.com'),
+      );
+
+      expect(mockUpdateForUser).toHaveBeenCalledOnce();
+      const lastArg = mockUpdateForUser.mock.calls[0]?.at(-1);
+      expect(lastArg).toEqual(filters);
+    });
+
+    it('passes null senderDomainFilters to updateForUser when explicitly cleared', async () => {
+      mockGetByIdForUser.mockResolvedValue({
+        applicationId: 'app-1',
+        providerId: 'google-gmail',
+        connectionMethod: 'oauth2',
+        credentials: { refreshToken: 'rt' },
+      });
+      mockUpdateForUser.mockResolvedValue({ applicationId: 'app-1' });
+
+      await ApplicationService.updateUserApplication(
+        'user@example.com',
+        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2', senderDomainFilters: null },
+        makeEnv(),
+        new Request('https://example.com'),
+      );
+
+      const lastArg = mockUpdateForUser.mock.calls[0]?.at(-1);
+      expect(lastArg).toBeNull();
+    });
+
+    it('passes undefined senderDomainFilters when field is omitted from input', async () => {
+      mockGetByIdForUser.mockResolvedValue({
+        applicationId: 'app-1',
+        providerId: 'google-gmail',
+        connectionMethod: 'oauth2',
+        credentials: { refreshToken: 'rt' },
+      });
+      mockUpdateForUser.mockResolvedValue({ applicationId: 'app-1' });
+
+      await ApplicationService.updateUserApplication(
+        'user@example.com',
+        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2' },
+        makeEnv(),
+        new Request('https://example.com'),
+      );
+
+      const lastArg = mockUpdateForUser.mock.calls[0]?.at(-1);
+      expect(lastArg).toBeUndefined();
+    });
   });
 
   describe('updateWatchedFolderIds', () => {

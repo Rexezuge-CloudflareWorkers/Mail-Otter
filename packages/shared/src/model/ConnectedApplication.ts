@@ -1,5 +1,10 @@
 import type { ConnectedApplicationStatus, ConnectionMethod, ProviderId } from '../constants';
 
+interface SenderDomainFilters {
+  includeRules: string[];
+  excludeRules: string[];
+}
+
 interface OAuth2Credentials {
   clientId: string;
   clientSecret: string;
@@ -19,6 +24,7 @@ interface ConnectedApplicationMetadata {
   contextIndexingEnabled: boolean;
   maxContextDocuments?: number | null | undefined;
   enabledFeatures?: string[] | null | undefined;
+  senderDomainFilters?: SenderDomainFilters | null | undefined;
   gmailPubsubTopicName?: string | null | undefined;
   watchedFolders?: Array<{ id: string; name: string }> | null | undefined;
   oauth2RedirectUri?: string | undefined;
@@ -63,4 +69,5 @@ export type {
   ConnectedApplicationInternal,
   ConnectedApplicationMetadata,
   OAuth2Credentials,
+  SenderDomainFilters,
 };

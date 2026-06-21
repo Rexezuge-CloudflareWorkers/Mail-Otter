@@ -7,6 +7,8 @@ import { Metric } from '../shared/Metric';
 import { ReadOnlyField } from '../shared/ReadOnlyField';
 import { WatchSection } from './WatchSection';
 import { ContextSection } from './ContextSection';
+import { SenderFilterSection } from './SenderFilterSection';
+import type { SenderDomainFilters } from '../../../components/types';
 
 export function MailboxDetail({
   application,
@@ -22,6 +24,7 @@ export function MailboxDetail({
   onStopWatch,
   onLoadFolders,
   onUpdateWatchedFolders,
+  onUpdateSenderFilters,
   onUpdateContextIndexing,
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
@@ -40,6 +43,7 @@ export function MailboxDetail({
   onStopWatch: () => void;
   onLoadFolders: () => void;
   onUpdateWatchedFolders: (folderIds: string[] | null) => void;
+  onUpdateSenderFilters: (filters: SenderDomainFilters) => void;
   onUpdateContextIndexing: (enabled: boolean) => void;
   onUpdateMaxContextDocuments: (max: number | null) => void;
   onOpenContextAudit: () => void;
@@ -124,6 +128,13 @@ export function MailboxDetail({
         onUpdateMaxContextDocuments={onUpdateMaxContextDocuments}
         onOpenContextAudit={onOpenContextAudit}
         onDeleteContextDocuments={onDeleteContextDocuments}
+      />
+
+      {/* Sender filter rules */}
+      <SenderFilterSection
+        filters={application.senderDomainFilters}
+        busy={busy}
+        onUpdate={onUpdateSenderFilters}
       />
 
       {/* Watch folders */}

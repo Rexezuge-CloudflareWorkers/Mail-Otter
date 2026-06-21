@@ -3,6 +3,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
+import type { SenderDomainFilters } from '@mail-otter/shared/model';
 
 class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, UpdateApplicationResponse, UpdateApplicationEnv> {
   schema = {
@@ -35,6 +36,7 @@ interface UpdateApplicationRequest extends IRequest {
   clientSecret?: string | undefined;
   gmailPubsubTopicName?: string | undefined;
   enabledFeatures?: string[] | undefined;
+  senderDomainFilters?: SenderDomainFilters | null | undefined;
 }
 
 interface UpdateApplicationResponse extends IResponse {

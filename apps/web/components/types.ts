@@ -1,5 +1,10 @@
 export type ProviderId = 'google-gmail' | 'microsoft-outlook';
 
+export interface SenderDomainFilters {
+  includeRules: string[];
+  excludeRules: string[];
+}
+
 export interface CurrentUser {
   email: string;
   limits: {
@@ -17,6 +22,7 @@ export interface ConnectedApplication {
   connectionMethod: 'oauth2';
   status: 'draft' | 'connected' | 'error';
   enabledFeatures?: string[] | null;
+  senderDomainFilters?: SenderDomainFilters | null;
   gmailPubsubTopicName?: string | null;
   watchedFolders?: Array<{ id: string; name: string }> | null;
   oauth2RedirectUri?: string;

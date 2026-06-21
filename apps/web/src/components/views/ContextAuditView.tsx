@@ -63,7 +63,7 @@ export function ContextAuditView({
             onChange={(e) => setApplicationId(e.target.value)}
             className="min-w-[180px]"
           >
-            <option value="">All mailboxes</option>
+            <option value="">All Mailboxes</option>
             {applications.map((app) => (
               <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
             ))}
@@ -73,7 +73,7 @@ export function ContextAuditView({
             onChange={(e) => setStatus(e.target.value as ApplicationContextDocumentStatus | '')}
             className="min-w-[130px]"
           >
-            <option value="">All statuses</option>
+            <option value="">All Statuses</option>
             <option value="active">Active</option>
             <option value="deleted">Deleted</option>
             <option value="error">Error</option>
@@ -97,7 +97,7 @@ export function ContextAuditView({
                 <ContextIndexBadge enabled={selectedApplication.contextIndexingEnabled} />
               </div>
               <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-                {selectedApplication.contextDocumentCount || 0} active docs · last indexed {formatTimestamp(selectedApplication.contextLastIndexedAt)}
+                {selectedApplication.contextDocumentCount || 0} Active Docs · Last Indexed {formatTimestamp(selectedApplication.contextLastIndexedAt)}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -128,7 +128,7 @@ export function ContextAuditView({
         <div>
           <CardHeader className="mb-3 px-0">
             <CardTitle>Indexed Documents</CardTitle>
-            <span className="text-sm text-[var(--color-text-muted)]">{documents.length} loaded</span>
+            <span className="text-sm text-[var(--color-text-muted)]">{documents.length} Loaded</span>
           </CardHeader>
           <div className="space-y-2.5">
             {documents.map((doc) => (
@@ -142,7 +142,7 @@ export function ContextAuditView({
             ))}
             {documents.length === 0 && (
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-10 text-center text-sm text-[var(--color-text-muted)]">
-                No context documents found.
+                No Context Documents Found.
               </div>
             )}
           </div>
@@ -168,7 +168,7 @@ export function ContextAuditView({
             ))}
             {deletionRuns.length === 0 && (
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-10 text-center text-sm text-[var(--color-text-muted)]">
-                No deletion history.
+                No Deletion History.
               </div>
             )}
           </div>

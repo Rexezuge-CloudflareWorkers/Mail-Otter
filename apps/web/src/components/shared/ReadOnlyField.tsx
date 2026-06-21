@@ -29,7 +29,7 @@ export function ReadOnlyField({ label, value, showCopy = false }: { label: strin
             type="button"
             onClick={handleCopy}
             className="px-3 py-2 rounded-r-lg bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-4)] border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-colors duration-150"
-            title="Copy to clipboard"
+            title="Copy To Clipboard"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-[var(--color-success-text)]" /> : <Copy className="h-3.5 w-3.5" />}
           </button>

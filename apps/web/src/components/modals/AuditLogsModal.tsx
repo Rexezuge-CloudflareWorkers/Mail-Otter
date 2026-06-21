@@ -60,7 +60,7 @@ export function AuditLogsModal({
 
         <div className="overflow-y-auto p-5 space-y-2.5 max-h-[calc(82vh-4rem)]">
           {logs.length === 0 && !loading && (
-            <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">No audit logs found for this document.</div>
+            <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">No Audit Logs Found For This Document.</div>
           )}
           {logs.map((log, index) => {
             const dotClass =

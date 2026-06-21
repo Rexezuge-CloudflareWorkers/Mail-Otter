@@ -36,7 +36,7 @@ export function WatchSection({
 
       {availableFolders ? (
         availableFolders.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">No folders found.</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">No Folders Found.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {availableFolders.map((folder) => {
@@ -67,11 +67,11 @@ export function WatchSection({
         )
       ) : application.watchedFolders && application.watchedFolders.length > 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Watching: {application.watchedFolders.map((wf) => wf.name).join(', ')} — click &quot;Load Folders&quot; to change.
+          Watching: {application.watchedFolders.map((wf) => wf.name).join(', ')} — Click &quot;Load Folders&quot; To Change.
         </p>
       ) : (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Watching default folder (Inbox). Click &quot;Load Folders&quot; to customize.
+          Watching Default Folder (Inbox). Click &quot;Load Folders&quot; To Customize.
         </p>
       )}
     </Card>

@@ -61,7 +61,7 @@ export function MailboxDetail({
               {application.watchStatus && <WatchBadge status={application.watchStatus} />}
             </div>
             <div className="text-sm text-[var(--color-text-secondary)]">
-              {providerLabels[application.providerId]} · {application.providerEmail || 'Not authorized'}
+              {providerLabels[application.providerId]} · {application.providerEmail || 'Not Authorized'}
             </div>
             <div className="text-xs text-[var(--color-text-muted)] mt-1">Updated {formatTimestamp(application.updatedAt)}</div>
           </div>
@@ -72,16 +72,16 @@ export function MailboxDetail({
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3">
-          <ReadOnlyField label="OAuth2 redirect URI" value={application.oauth2RedirectUri || ''} showCopy />
+          <ReadOnlyField label="OAuth2 Redirect URI" value={application.oauth2RedirectUri || ''} showCopy />
           {application.providerId === 'google-gmail' && (
-            <ReadOnlyField label="Gmail Pub/Sub topic" value={application.gmailPubsubTopicName || ''} />
+            <ReadOnlyField label="Gmail Pub/Sub Topic" value={application.gmailPubsubTopicName || ''} />
           )}
-          <ReadOnlyField label="Webhook endpoint" value={watchWebhookUrl || application.webhookUrl || ''} showCopy />
+          <ReadOnlyField label="Webhook Endpoint" value={watchWebhookUrl || application.webhookUrl || ''} showCopy />
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant={application.status === 'connected' ? 'secondary' : 'primary'} size="sm" onClick={onStartOAuth2} disabled={busy}>
-            {application.status === 'connected' ? 'Re-authorize OAuth2' : 'Authorize OAuth2'}
+            {application.status === 'connected' ? 'Re-Authorize OAuth2' : 'Authorize OAuth2'}
           </Button>
           <Button
             variant="secondary"
@@ -108,10 +108,10 @@ export function MailboxDetail({
           <CardTitle>Processing</CardTitle>
         </CardHeader>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Metric label="Watch expires" value={formatExpiryTimestamp(application.watchExpiresAt)} />
-          <Metric label="Last summary" value={formatTimestamp(application.lastSummaryAt)} />
+          <Metric label="Watch Expires" value={formatExpiryTimestamp(application.watchExpiresAt)} />
+          <Metric label="Last Summary" value={formatTimestamp(application.lastSummaryAt)} />
           <Metric
-            label="Last error"
+            label="Last Error"
             value={application.lastError || 'None'}
             tone={application.lastError ? 'error' : 'muted'}
             subtitle={application.lastError ? formatTimestamp(application.lastErrorAt) : undefined}

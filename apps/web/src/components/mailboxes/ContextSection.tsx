@@ -34,10 +34,10 @@ export function ContextSection({
               disabled={busy}
               className="h-4 w-4 accent-[var(--color-accent)] rounded"
             />
-            Index new emails
+            Index New Emails
           </label>
           <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-            Max docs
+            Max Docs
             <input
               type="number"
               min={1}
@@ -56,11 +56,11 @@ export function ContextSection({
       </CardHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Metric label="Indexed docs" value={String(application.contextDocumentCount || 0)} />
-        <Metric label="Last indexed" value={formatTimestamp(application.contextLastIndexedAt)} />
-        <Metric label="Last deletion" value={formatTimestamp(application.contextLastDeleteAcceptedAt)} />
+        <Metric label="Indexed Docs" value={String(application.contextDocumentCount || 0)} />
+        <Metric label="Last Indexed" value={formatTimestamp(application.contextLastIndexedAt)} />
+        <Metric label="Last Deletion" value={formatTimestamp(application.contextLastDeleteAcceptedAt)} />
         <Metric
-          label="Context error"
+          label="Context Error"
           value={application.contextLastError || 'None'}
           tone={application.contextLastError ? 'error' : 'muted'}
           subtitle={application.contextLastError ? formatTimestamp(application.contextLastErrorAt) : undefined}

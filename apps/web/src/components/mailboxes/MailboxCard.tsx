@@ -29,11 +29,11 @@ export function MailboxCard({
             {providerLabels[application.providerId]}
           </div>
           <div className="text-xs text-[var(--color-text-muted)] truncate mt-0.5">
-            {application.providerEmail || 'Not authorized'}
+            {application.providerEmail || 'Not Authorized'}
           </div>
           <div className="mt-2 flex items-center gap-2">
             <ContextIndexBadge enabled={application.contextIndexingEnabled} />
-            <span className="text-xs text-[var(--color-text-muted)]">{application.contextDocumentCount || 0} docs</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{application.contextDocumentCount || 0} Docs</span>
           </div>
         </div>
         <ConnectionBadge status={application.status} />

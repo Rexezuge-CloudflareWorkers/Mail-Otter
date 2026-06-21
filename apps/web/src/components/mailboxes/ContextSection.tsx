@@ -12,6 +12,7 @@ export function ContextSection({
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
   onDeleteContextDocuments,
+  onDismissContextError,
 }: {
   application: ConnectedApplication;
   user: CurrentUser;
@@ -20,6 +21,7 @@ export function ContextSection({
   onUpdateMaxContextDocuments: (max: number | null) => void;
   onOpenContextAudit: () => void;
   onDeleteContextDocuments: () => void;
+  onDismissContextError: () => void;
 }) {
   return (
     <Card>
@@ -64,6 +66,7 @@ export function ContextSection({
           value={application.contextLastError || 'None'}
           tone={application.contextLastError ? 'error' : 'muted'}
           subtitle={application.contextLastError ? formatTimestamp(application.contextLastErrorAt) : undefined}
+          onDismiss={application.contextLastError ? onDismissContextError : undefined}
         />
       </div>
 

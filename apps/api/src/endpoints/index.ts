@@ -6,6 +6,7 @@ import { CreateApplicationRoute as OriginalCreateApplicationRoute } from './user
 import { UpdateApplicationRoute as OriginalUpdateApplicationRoute } from './user/application/PUT';
 import { DeleteApplicationRoute as OriginalDeleteApplicationRoute } from './user/application/DELETE';
 import { UpdateApplicationContextRoute as OriginalUpdateApplicationContextRoute } from './user/application/context/PUT';
+import { DismissApplicationErrorRoute as OriginalDismissApplicationErrorRoute } from './user/application/dismiss-error/POST';
 import { DeleteApplicationContextDocumentsRoute as OriginalDeleteApplicationContextDocumentsRoute } from './user/application/context/delete-documents/POST';
 import { ListApplicationContextDocumentsRoute as OriginalListApplicationContextDocumentsRoute } from './user/application/context/documents/GET';
 import { ListApplicationContextDeletionRunsRoute as OriginalListApplicationContextDeletionRunsRoute } from './user/application/context/deletions/GET';
@@ -32,6 +33,7 @@ export const CreateApplicationRoute: any = OriginalCreateApplicationRoute;
 export const UpdateApplicationRoute: any = OriginalUpdateApplicationRoute;
 export const DeleteApplicationRoute: any = OriginalDeleteApplicationRoute;
 export const UpdateApplicationContextRoute: any = OriginalUpdateApplicationContextRoute;
+export const DismissApplicationErrorRoute: any = OriginalDismissApplicationErrorRoute;
 export const DeleteApplicationContextDocumentsRoute: any = OriginalDeleteApplicationContextDocumentsRoute;
 export const ListApplicationContextDocumentsRoute: any = OriginalListApplicationContextDocumentsRoute;
 export const ListApplicationContextDeletionRunsRoute: any = OriginalListApplicationContextDeletionRunsRoute;

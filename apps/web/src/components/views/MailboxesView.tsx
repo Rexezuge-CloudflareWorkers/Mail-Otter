@@ -30,6 +30,8 @@ export function MailboxesView({
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
   onDeleteContextDocuments,
+  onDismissProcessingError,
+  onDismissContextError,
   isFormExpanded,
   setIsFormExpanded,
 }: {
@@ -57,6 +59,8 @@ export function MailboxesView({
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;
   onDeleteContextDocuments: (id: string) => void;
+  onDismissProcessingError: (id: string) => void;
+  onDismissContextError: (id: string) => void;
   isFormExpanded: boolean;
   setIsFormExpanded: (v: boolean) => void;
 }) {
@@ -126,6 +130,8 @@ export function MailboxesView({
             onUpdateMaxContextDocuments={(max) => onUpdateMaxContextDocuments(selectedApplication.applicationId, max)}
             onOpenContextAudit={() => onOpenContextAudit(selectedApplication.applicationId)}
             onDeleteContextDocuments={() => onDeleteContextDocuments(selectedApplication.applicationId)}
+            onDismissProcessingError={() => onDismissProcessingError(selectedApplication.applicationId)}
+            onDismissContextError={() => onDismissContextError(selectedApplication.applicationId)}
           />
         ) : (
           <Card className="text-center text-[var(--color-text-muted)] py-16 text-sm">

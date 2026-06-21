@@ -29,6 +29,8 @@ export function MailboxDetail({
   onUpdateMaxContextDocuments,
   onOpenContextAudit,
   onDeleteContextDocuments,
+  onDismissProcessingError,
+  onDismissContextError,
 }: {
   application: ConnectedApplication;
   watchWebhookUrl: string;
@@ -48,6 +50,8 @@ export function MailboxDetail({
   onUpdateMaxContextDocuments: (max: number | null) => void;
   onOpenContextAudit: () => void;
   onDeleteContextDocuments: () => void;
+  onDismissProcessingError: () => void;
+  onDismissContextError: () => void;
 }) {
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -115,6 +119,7 @@ export function MailboxDetail({
             value={application.lastError || 'None'}
             tone={application.lastError ? 'error' : 'muted'}
             subtitle={application.lastError ? formatTimestamp(application.lastErrorAt) : undefined}
+            onDismiss={application.lastError ? onDismissProcessingError : undefined}
           />
         </div>
       </Card>
@@ -128,6 +133,7 @@ export function MailboxDetail({
         onUpdateMaxContextDocuments={onUpdateMaxContextDocuments}
         onOpenContextAudit={onOpenContextAudit}
         onDeleteContextDocuments={onDeleteContextDocuments}
+        onDismissContextError={onDismissContextError}
       />
 
       {/* Sender filter rules */}

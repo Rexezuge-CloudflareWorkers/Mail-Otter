@@ -138,6 +138,21 @@ class ApplicationService {
     await applicationDAO.deleteForUser(applicationId, userEmail);
   }
 
+  public static async acknowledgeApplicationError(
+    userEmail: string,
+    applicationId: string,
+    errorType: 'processing' | 'context',
+    env: ApplicationServiceEnv,
+    raw: Request,
+  ): Promise<ApplicationResponse> {
+    const applicationDAO: ConnectedApplicationDAO = await ApplicationService.createApplicationDAO(env);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.acknowledgeErrorForUser(applicationId, userEmail, errorType);
+    if (!application) {
+      throw new BadRequestError('Connected application was not found.');
+    }
+    return ApplicationResponseUtil.decorateApplication(application, env, raw);
+  }
+
   private static async createApplicationDAO(env: ApplicationServiceEnv): Promise<ConnectedApplicationDAO> {
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     return new ConnectedApplicationDAO(env.DB, masterKey);

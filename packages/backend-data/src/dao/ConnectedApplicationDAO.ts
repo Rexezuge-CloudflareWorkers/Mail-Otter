@@ -84,7 +84,7 @@ class ConnectedApplicationDAO {
     const rows: ConnectedApplicationInternal[] = await this.database
       .prepare(
         `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, max_context_documents, created_at, updated_at
+          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
           FROM connected_applications
           WHERE user_email = ?
           ORDER BY updated_at DESC, created_at DESC
@@ -387,7 +387,7 @@ class ConnectedApplicationDAO {
     const row: ConnectedApplicationInternal | null = await this.database
       .prepare(
         `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, max_context_documents, created_at, updated_at
+          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
           FROM connected_applications
           WHERE application_id = ?${whereUser}
           LIMIT 1
@@ -437,10 +437,30 @@ class ConnectedApplicationDAO {
       enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
       senderDomainFilters: senderDomainFiltersJson ? (JSON.parse(senderDomainFiltersJson) as SenderDomainFilters) : null,
       watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
+      lastErrorAcknowledgedAt: row.last_error_acknowledged_at ?? null,
+      contextLastErrorAcknowledgedAt: row.context_last_error_acknowledged_at ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,
     };
+  }
+
+  public async acknowledgeErrorForUser(
+    applicationId: string,
+    userEmail: string,
+    errorType: 'processing' | 'context',
+  ): Promise<ConnectedApplicationMetadata | undefined> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const column: string = errorType === 'processing' ? 'last_error_acknowledged_at' : 'context_last_error_acknowledged_at';
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND user_email = ?`)
+          .bind(now, now, applicationId, userEmail)
+          .run(),
+      'acknowledge application error',
+    );
+    return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 }
 

@@ -1,0 +1,2 @@
+ALTER TABLE connected_applications ADD COLUMN last_error_acknowledged_at INTEGER;
+ALTER TABLE connected_applications ADD COLUMN context_last_error_acknowledged_at INTEGER;

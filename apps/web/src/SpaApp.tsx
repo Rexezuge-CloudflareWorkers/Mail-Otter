@@ -398,6 +398,24 @@ export default function SpaApp() {
     }
   };
 
+  const dismissError = async (applicationId: string, errorType: 'processing' | 'context') => {
+    setIsBusy(true);
+    try {
+      const data = await readJson<{ application: ConnectedApplication }>(
+        await apiFetch('/user/application/dismiss-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId, errorType }),
+        }),
+      );
+      setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Dismiss Error.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const loadMoreContextDocuments = async () => {
     if (!contextDocumentsCursor) return;
     const p = new URLSearchParams();
@@ -562,6 +580,8 @@ export default function SpaApp() {
           onUpdateMaxContextDocuments={updateMaxContextDocuments}
           onOpenContextAudit={(id) => { setAuditApplicationId(id); setActiveView('context'); }}
           onDeleteContextDocuments={deleteContextDocuments}
+          onDismissProcessingError={(id) => dismissError(id, 'processing')}
+          onDismissContextError={(id) => dismissError(id, 'context')}
           isFormExpanded={isFormExpanded}
           setIsFormExpanded={setIsFormExpanded}
         />

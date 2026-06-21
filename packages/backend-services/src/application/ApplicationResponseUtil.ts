@@ -22,6 +22,18 @@ class ApplicationResponseUtil {
     const latestError: ProcessedMessage | undefined = await processedMessageDAO.getLatestErrorForApplication(application.applicationId);
     const contextSummary: ApplicationContextSummary = await contextDAO.getSummaryByApplication(application.applicationId);
     const baseUrl: string = BaseUrlUtil.getBaseUrl(raw);
+    const processingErrorText: string | null | undefined = subscription?.lastError || latestError?.errorMessage;
+    const processingErrorAt: number | null = subscription?.lastError ? subscription.updatedAt : (latestError?.errorMessage ? latestError.updatedAt : null);
+    const processingAcknowledged: boolean =
+      application.lastErrorAcknowledgedAt != null &&
+      processingErrorAt != null &&
+      processingErrorAt <= application.lastErrorAcknowledgedAt;
+
+    const contextAcknowledged: boolean =
+      application.contextLastErrorAcknowledgedAt != null &&
+      contextSummary.lastErrorAt != null &&
+      contextSummary.lastErrorAt <= application.contextLastErrorAcknowledgedAt;
+
     return {
       ...application,
       oauth2RedirectUri: `${baseUrl}/api/oauth2/callback/${application.applicationId}`,
@@ -31,13 +43,13 @@ class ApplicationResponseUtil {
       watchStatus: subscription?.status,
       watchExpiresAt: subscription?.expiresAt,
       lastSummaryAt: latestMessage?.summarySentAt,
-      lastError: subscription?.lastError || latestError?.errorMessage,
-      lastErrorAt: subscription?.lastError ? subscription.updatedAt : (latestError?.errorMessage ? latestError.updatedAt : null),
+      lastError: processingAcknowledged ? null : processingErrorText,
+      lastErrorAt: processingAcknowledged ? null : processingErrorAt,
       contextDocumentCount: contextSummary.documentCount,
       contextLastIndexedAt: contextSummary.lastIndexedAt,
       contextLastDeleteAcceptedAt: contextSummary.lastDeleteAcceptedAt,
-      contextLastError: contextSummary.lastError,
-      contextLastErrorAt: contextSummary.lastErrorAt,
+      contextLastError: contextAcknowledged ? null : contextSummary.lastError,
+      contextLastErrorAt: contextAcknowledged ? null : contextSummary.lastErrorAt,
     };
   }
 }

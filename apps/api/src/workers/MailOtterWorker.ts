@@ -6,6 +6,7 @@ import {
   CreateOAuth2AuthorizationRoute,
   DeleteApplicationRoute,
   DeleteApplicationContextDocumentsRoute,
+  DismissApplicationErrorRoute,
   ExecuteActionCallbackRoute,
   ExecuteUserEmailActionRoute,
   GetActionConfirmationRoute,
@@ -84,6 +85,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.put('/user/application', UpdateApplicationRoute);
     openapi.delete('/user/application', DeleteApplicationRoute);
     openapi.put('/user/application/context', UpdateApplicationContextRoute);
+    openapi.post('/user/application/dismiss-error', DismissApplicationErrorRoute);
     openapi.post('/user/application/context/delete-documents', DeleteApplicationContextDocumentsRoute);
     openapi.get('/user/application/context/documents', ListApplicationContextDocumentsRoute);
     openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);

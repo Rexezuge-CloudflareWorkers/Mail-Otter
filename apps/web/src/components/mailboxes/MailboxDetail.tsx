@@ -112,7 +112,11 @@ export function MailboxDetail({
           <CardTitle>Processing</CardTitle>
         </CardHeader>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Metric label="Watch Expires" value={formatExpiryTimestamp(application.watchExpiresAt)} />
+          <Metric
+            label="Watch Expires"
+            value={formatExpiryTimestamp(application.watchExpiresAt)}
+            subtitle={application.watchExpiresAt ? 'Auto-Renews Automatically' : undefined}
+          />
           <Metric label="Last Summary" value={formatTimestamp(application.lastSummaryAt)} />
           <Metric
             label="Last Error"

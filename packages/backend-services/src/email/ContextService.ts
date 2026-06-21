@@ -210,7 +210,7 @@ class ContextService {
         userEmail,
         sourceDocumentId: doc.sourceDocumentId,
         eventType: CONTEXT_AUDIT_EVENT_DOCUMENT_DELETED,
-        eventLabel: 'Document deleted from context index',
+        eventLabel: 'Document Deleted From Context Index',
         severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
       })),
     );

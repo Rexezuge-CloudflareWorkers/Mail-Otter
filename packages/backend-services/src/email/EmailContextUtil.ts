@@ -45,7 +45,7 @@ class EmailContextUtil {
         userEmail: input.application.userEmail,
         sourceDocumentId: input.sourceDocumentId,
         eventType: CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
-        eventLabel: 'Email document indexed into context',
+        eventLabel: 'Email Document Indexed Into Context',
         eventData: {
           indexedTextChars: auditMetadata.indexedTextChars,
           sourceProviderId: input.application.providerId,
@@ -69,7 +69,7 @@ class EmailContextUtil {
           userEmail: input.application.userEmail,
           sourceDocumentId: input.sourceDocumentId,
           eventType: CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED,
-          eventLabel: 'AI embedding generated',
+          eventLabel: 'AI Embedding Generated',
           eventData: { embeddingModel },
           severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
         });
@@ -100,7 +100,7 @@ class EmailContextUtil {
           userEmail: input.application.userEmail,
           sourceDocumentId: input.sourceDocumentId,
           eventType: CONTEXT_AUDIT_EVENT_RAG_QUERIED,
-          eventLabel: 'Relevant context retrieved',
+          eventLabel: 'Relevant Context Retrieved',
           eventData: { ragChars: ragContext.length },
           severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
         });
@@ -116,7 +116,7 @@ class EmailContextUtil {
           userEmail: input.application.userEmail,
           sourceDocumentId: input.sourceDocumentId,
           eventType: CONTEXT_AUDIT_EVENT_ERROR,
-          eventLabel: 'Context indexing or retrieval failed',
+          eventLabel: 'Context Indexing Or Retrieval Failed',
           eventData: { error: error instanceof Error ? error.message : String(error) },
           severity: CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
         });

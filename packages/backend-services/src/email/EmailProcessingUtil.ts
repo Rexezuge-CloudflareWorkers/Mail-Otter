@@ -553,7 +553,7 @@ class EmailProcessingUtil {
       userEmail: application.userEmail,
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_PROCESSING_STARTED,
-      eventLabel: 'Email processing started',
+      eventLabel: 'Email Processing Started',
       eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
@@ -573,7 +573,7 @@ class EmailProcessingUtil {
       userEmail: application.userEmail,
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_SUMMARY_GENERATED,
-      eventLabel: 'AI summary generated',
+      eventLabel: 'AI Summary Generated',
       eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
@@ -594,7 +594,7 @@ class EmailProcessingUtil {
       userEmail: application.userEmail,
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_ACTION_CREATED,
-      eventLabel: `Actions created from AI summary`,
+      eventLabel: 'Actions Created From AI Summary',
       eventData: {
         actionCount: actions.length,
         actionTypes: actions.map((a) => a.action.actionType),
@@ -618,7 +618,7 @@ class EmailProcessingUtil {
       userEmail: application.userEmail,
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_SUMMARY_SENT,
-      eventLabel: 'Summary email sent',
+      eventLabel: 'Summary Email Sent',
       eventData: retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
       severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
     });
@@ -639,7 +639,7 @@ class EmailProcessingUtil {
       userEmail: application.userEmail,
       sourceDocumentId,
       eventType: CONTEXT_AUDIT_EVENT_ERROR,
-      eventLabel: 'Email processing error',
+      eventLabel: 'Email Processing Error',
       eventData: {
         error: error.message,
         errorType: error.constructor?.name,

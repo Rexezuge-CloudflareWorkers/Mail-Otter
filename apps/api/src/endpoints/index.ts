@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { GetAnalyticsRoute as OriginalGetAnalyticsRoute } from './user/analytics/GET';
 import { GetCurrentUserRoute as OriginalGetCurrentUserRoute } from './user/me/GET';
 import { ListApplicationsRoute as OriginalListApplicationsRoute } from './user/applications/GET';
 import { CreateApplicationRoute as OriginalCreateApplicationRoute } from './user/application/POST';
@@ -27,6 +28,7 @@ import { GmailWebhookRoute as OriginalGmailWebhookRoute } from './api/webhooks/g
 import { OutlookWebhookRoute as OriginalOutlookWebhookRoute } from './api/webhooks/outlook/POST';
 import { OutlookLifecycleWebhookRoute as OriginalOutlookLifecycleWebhookRoute } from './api/webhooks/outlook/lifecycle/POST';
 
+export const GetAnalyticsRoute: any = OriginalGetAnalyticsRoute;
 export const GetCurrentUserRoute: any = OriginalGetCurrentUserRoute;
 export const ListApplicationsRoute: any = OriginalListApplicationsRoute;
 export const CreateApplicationRoute: any = OriginalCreateApplicationRoute;

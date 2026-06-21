@@ -25,6 +25,23 @@ class AiDailyUsageDAO {
     return row ? this.toUsage(row) : undefined;
   }
 
+  public async getByDateRange(startDate: string, endDate: string): Promise<AiDailyUsage[]> {
+    const rows: AiDailyUsageInternal[] = await this.database
+      .prepare(
+        `
+          SELECT usage_date, estimated_neurons, prompt_tokens, completion_tokens,
+                 embedding_tokens, request_count, created_at, updated_at
+          FROM ai_daily_usage
+          WHERE usage_date >= ? AND usage_date <= ?
+          ORDER BY usage_date ASC
+        `,
+      )
+      .bind(startDate, endDate)
+      .all<AiDailyUsageInternal>()
+      .then((result: D1Result<AiDailyUsageInternal>): AiDailyUsageInternal[] => result.results || []);
+    return rows.map((row: AiDailyUsageInternal): AiDailyUsage => this.toUsage(row));
+  }
+
   public async deleteOlderThanDate(olderThanDate: string): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>

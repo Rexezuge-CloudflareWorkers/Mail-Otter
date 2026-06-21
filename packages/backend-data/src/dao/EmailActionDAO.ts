@@ -237,6 +237,41 @@ class EmailActionDAO {
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
   }
 
+  public async getCountsByUserAndDateRange(
+    userEmail: string,
+    sinceUnixSeconds: number,
+    untilUnixSeconds: number,
+    applicationId?: string,
+  ): Promise<EmailActionCounts> {
+    const conditions: string[] = ['user_email = ?', 'created_at >= ?', 'created_at <= ?'];
+    const bindings: Array<string | number> = [userEmail, sinceUnixSeconds, untilUnixSeconds];
+    if (applicationId) {
+      conditions.push('application_id = ?');
+      bindings.push(applicationId);
+    }
+    const where: string = conditions.join(' AND ');
+
+    const byStatusRows: Array<{ status: string; cnt: number }> = await this.database
+      .prepare(`SELECT status, COUNT(*) AS cnt FROM email_summary_actions WHERE ${where} GROUP BY status`)
+      .bind(...bindings)
+      .all<{ status: string; cnt: number }>()
+      .then((result: D1Result<{ status: string; cnt: number }>): Array<{ status: string; cnt: number }> => result.results || []);
+
+    const byTypeRows: Array<{ action_type: string; cnt: number }> = await this.database
+      .prepare(`SELECT action_type, COUNT(*) AS cnt FROM email_summary_actions WHERE ${where} GROUP BY action_type`)
+      .bind(...bindings)
+      .all<{ action_type: string; cnt: number }>()
+      .then((result: D1Result<{ action_type: string; cnt: number }>): Array<{ action_type: string; cnt: number }> => result.results || []);
+
+    const byStatus: Record<string, number> = {};
+    for (const row of byStatusRows) byStatus[row.status] = row.cnt;
+
+    const byType: Record<string, number> = {};
+    for (const row of byTypeRows) byType[row.action_type] = row.cnt;
+
+    return { byStatus, byType };
+  }
+
   public async deleteOlderThan(olderThan: number, limit: number): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>
@@ -478,5 +513,10 @@ interface RecordEmailActionExecutionInput {
   completedAt?: number | null | undefined;
 }
 
+interface EmailActionCounts {
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+}
+
 export { EmailActionDAO };
-export type { CreateEmailActionInput, ListEmailActionsInput, RecordEmailActionExecutionInput };
+export type { CreateEmailActionInput, EmailActionCounts, ListEmailActionsInput, RecordEmailActionExecutionInput };

@@ -2,6 +2,7 @@ import { AbstractEntrypointWorker } from '@mail-otter/backend-runtime/base';
 import { fromHono, HonoOpenAPIRouterType } from 'chanfana';
 import { Hono } from 'hono';
 import {
+  GetAnalyticsRoute,
   CreateApplicationRoute,
   CreateOAuth2AuthorizationRoute,
   DeleteApplicationRoute,
@@ -91,6 +92,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);
     openapi.get('/user/application/context/document/:contextDocumentId/provider-link', GetApplicationContextDocumentProviderLinkRoute);
     openapi.get('/user/application/context/document/:contextDocumentId/logs', ListContextDocumentAuditLogsRoute);
+    openapi.get('/user/analytics', GetAnalyticsRoute);
     openapi.get('/user/actions', ListEmailActionsRoute);
     openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);
     openapi.post('/user/actions/:actionId/execute', ExecuteUserEmailActionRoute);

@@ -135,6 +135,72 @@ class ProcessedMessageDAO {
     return row ? this.toProcessedMessage(row) : undefined;
   }
 
+  public async getStatusCountsByDateRange(
+    sinceUnixSeconds: number,
+    untilUnixSeconds: number,
+    applicationId?: string,
+  ): Promise<ProcessedMessageStatusCounts> {
+    const conditions: string[] = ['created_at >= ? AND created_at <= ?'];
+    const bindings: Array<string | number> = [sinceUnixSeconds, untilUnixSeconds];
+    if (applicationId) {
+      conditions.push('application_id = ?');
+      bindings.push(applicationId);
+    }
+    const where: string = conditions.join(' AND ');
+
+    const dailyRows: ProcessedMessageDailyCountInternal[] = await this.database
+      .prepare(
+        `
+          SELECT date(created_at, 'unixepoch') AS day,
+                 SUM(CASE WHEN status = 'summarized' THEN 1 ELSE 0 END) AS summarized,
+                 SUM(CASE WHEN status = 'skipped'    THEN 1 ELSE 0 END) AS skipped,
+                 SUM(CASE WHEN status = 'error'      THEN 1 ELSE 0 END) AS error
+          FROM processed_messages
+          WHERE ${where}
+          GROUP BY day
+          ORDER BY day ASC
+        `,
+      )
+      .bind(...bindings)
+      .all<ProcessedMessageDailyCountInternal>()
+      .then((result: D1Result<ProcessedMessageDailyCountInternal>): ProcessedMessageDailyCountInternal[] => result.results || []);
+
+    const totalRow: { summarized: number; skipped: number; error: number } | null = await this.database
+      .prepare(
+        `
+          SELECT SUM(CASE WHEN status = 'summarized' THEN 1 ELSE 0 END) AS summarized,
+                 SUM(CASE WHEN status = 'skipped'    THEN 1 ELSE 0 END) AS skipped,
+                 SUM(CASE WHEN status = 'error'      THEN 1 ELSE 0 END) AS error
+          FROM processed_messages
+          WHERE ${where}
+        `,
+      )
+      .bind(...bindings)
+      .first<{ summarized: number; skipped: number; error: number }>();
+
+    const summarized: number = totalRow?.summarized ?? 0;
+    const skipped: number = totalRow?.skipped ?? 0;
+    const error: number = totalRow?.error ?? 0;
+    const totalProcessed: number = summarized + skipped + error;
+
+    return {
+      daily: dailyRows.map(
+        (row: ProcessedMessageDailyCountInternal): { date: string; summarized: number; skipped: number; error: number } => ({
+          date: row.day,
+          summarized: row.summarized,
+          skipped: row.skipped,
+          error: row.error,
+        }),
+      ),
+      total: {
+        summarized,
+        skipped,
+        error,
+        successRate: totalProcessed > 0 ? Math.round((summarized / totalProcessed) * 100) / 100 : 0,
+      },
+    };
+  }
+
   public async getByMessageId(applicationId: string, providerMessageId: string): Promise<ProcessedMessage | undefined> {
     const row: ProcessedMessageInternal | null = await this.getInternalByMessageId(applicationId, providerMessageId);
     return row ? this.toProcessedMessage(row) : undefined;
@@ -257,4 +323,17 @@ interface TryStartProcessedMessageOptions {
   providerStableMessageFingerprint?: string | null | undefined;
 }
 
+interface ProcessedMessageDailyCountInternal {
+  day: string;
+  summarized: number;
+  skipped: number;
+  error: number;
+}
+
+interface ProcessedMessageStatusCounts {
+  daily: Array<{ date: string; summarized: number; skipped: number; error: number }>;
+  total: { summarized: number; skipped: number; error: number; successRate: number };
+}
+
 export { ProcessedMessageDAO };
+export type { ProcessedMessageStatusCounts };

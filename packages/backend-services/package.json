@@ -20,6 +20,8 @@
     "./subscription/*": "./src/subscription/*.ts",
     "./user": "./src/user/index.ts",
     "./user/*": "./src/user/*.ts",
+    "./analytics": "./src/analytics/index.ts",
+    "./analytics/*": "./src/analytics/*.ts",
     "./webhook": "./src/webhook/index.ts",
     "./webhook/*": "./src/webhook/*.ts"
   },

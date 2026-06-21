@@ -656,6 +656,37 @@ class ApplicationContextDAO {
     }
   }
 
+  public async getCountsByUserEmail(userEmail: string, applicationId?: string): Promise<ApplicationContextUserCounts> {
+    const conditions: string[] = ['user_email = ?'];
+    const bindings: Array<string | number> = [userEmail];
+    if (applicationId) {
+      conditions.push('application_id = ?');
+      bindings.push(applicationId);
+    }
+    const where: string = conditions.join(' AND ');
+
+    const row: { active: number; deleted: number; error: number; total_chars: number } | null = await this.database
+      .prepare(
+        `
+          SELECT SUM(CASE WHEN status = 'active'  THEN 1 ELSE 0 END) AS active,
+                 SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted,
+                 SUM(CASE WHEN status = 'error'   THEN 1 ELSE 0 END) AS error,
+                 SUM(CASE WHEN status = 'active'  THEN indexed_text_chars ELSE 0 END) AS total_chars
+          FROM application_context_documents
+          WHERE ${where}
+        `,
+      )
+      .bind(...bindings)
+      .first<{ active: number; deleted: number; error: number; total_chars: number }>();
+
+    return {
+      active: row?.active ?? 0,
+      deleted: row?.deleted ?? 0,
+      error: row?.error ?? 0,
+      totalCharsIndexed: row?.total_chars ?? 0,
+    };
+  }
+
   private async getDocumentById(contextDocumentId: string): Promise<ApplicationContextDocument | undefined> {
     const row: ApplicationContextDocumentInternal | null = await this.database
       .prepare(
@@ -892,5 +923,12 @@ interface ListAuditLogsOptions {
   limit?: number | undefined;
 }
 
+interface ApplicationContextUserCounts {
+  active: number;
+  deleted: number;
+  error: number;
+  totalCharsIndexed: number;
+}
+
 export { ApplicationContextDAO };
-export type { InsertAuditLogInput, ListAuditLogsOptions, ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertEmailDocumentInput };
+export type { ApplicationContextUserCounts, InsertAuditLogInput, ListAuditLogsOptions, ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertEmailDocumentInput };

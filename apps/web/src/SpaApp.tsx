@@ -6,6 +6,7 @@ import { NoticeBar } from './components/layout/NoticeBar';
 import { MailboxesView } from './components/views/MailboxesView';
 import { ContextAuditView } from './components/views/ContextAuditView';
 import { ActionsView } from './components/views/ActionsView';
+import { AnalyticsView } from './components/views/AnalyticsView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { NoticeContext } from './contexts/NoticeContext';
@@ -17,6 +18,7 @@ import { useMailboxes } from './hooks/useMailboxes';
 import { useContextAudit } from './hooks/useContextAudit';
 import { useActions } from './hooks/useActions';
 import { useAuditLogs } from './hooks/useAuditLogs';
+import { useAnalytics } from './hooks/useAnalytics';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
 
@@ -36,6 +38,7 @@ export default function SpaApp() {
 
   const contextAudit = useContextAudit({ showNotice });
   const actions = useActions({ setIsBusy, showNotice });
+  const analytics = useAnalytics({ showNotice });
 
   const mailboxes = useMailboxes({
     setIsBusy,
@@ -73,13 +76,21 @@ export default function SpaApp() {
     }
   }, [activeView, authorized]);
 
+  useEffect(() => {
+    if (authorized && activeView === 'analytics') {
+      analytics.loadAnalytics();
+    }
+  }, [activeView, authorized]);
+
   // Sync current state back to the URL
   const effectiveAppId =
     activeView === 'mailboxes'
       ? mailboxes.selectedApplicationId
       : activeView === 'context'
         ? contextAudit.auditApplicationId
-        : actions.actionApplicationId;
+        : activeView === 'analytics'
+          ? analytics.analyticsApplicationId
+          : actions.actionApplicationId;
 
   useSyncedUrl({
     view: activeView,
@@ -189,6 +200,19 @@ export default function SpaApp() {
               onSelectAction={actions.loadActionExecutions}
               onExecuteAction={actions.executeAction}
               busy={isBusy}
+            />
+          )}
+
+          {activeView === 'analytics' && (
+            <AnalyticsView
+              applications={mailboxes.applications}
+              days={analytics.analyticsDays}
+              setDays={(d) => { analytics.setAnalyticsDays(d); analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined); }}
+              applicationId={analytics.analyticsApplicationId}
+              setApplicationId={(id) => { analytics.setAnalyticsApplicationId(id); analytics.loadAnalytics(analytics.analyticsDays, id || undefined); }}
+              data={analytics.analyticsData}
+              loading={analytics.analyticsLoading}
+              onRefresh={() => analytics.loadAnalytics()}
             />
           )}
 

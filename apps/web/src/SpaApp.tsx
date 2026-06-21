@@ -25,6 +25,7 @@ const initialView = getUrlParam('view', 'mailboxes') as ActiveView;
 const initialAppId = getUrlParam('appId', '');
 const initialStatus = getUrlParam('status', '');
 const initialActionId = getUrlParam('actionId', '');
+const initialLogDocId = getUrlParam('logDocId', '');
 
 export default function SpaApp() {
   const [activeView, setActiveView] = useState<ActiveView>(initialView);
@@ -51,6 +52,7 @@ export default function SpaApp() {
     if (initialView === 'actions' && initialStatus) actions.setActionStatus(initialStatus as EmailActionStatus);
     if (initialView === 'actions' && initialActionId) actions.setSelectedActionId(initialActionId);
     if (initialView === 'mailboxes' && initialAppId) mailboxes.setSelectedApplicationId(initialAppId);
+    if (initialView === 'context' && initialLogDocId) auditLogs.openAuditLogs(initialLogDocId);
   }, []);
 
   // Load applications once the user is authorized
@@ -86,6 +88,7 @@ export default function SpaApp() {
     appId: effectiveAppId,
     status: activeView === 'context' ? contextAudit.auditStatus : activeView === 'actions' ? actions.actionStatus : '',
     actionId: activeView === 'actions' ? actions.selectedActionId : '',
+    logDocId: activeView === 'context' ? (auditLogs.auditLogDocumentId ?? '') : '',
   });
 
   if (authorized === null) {

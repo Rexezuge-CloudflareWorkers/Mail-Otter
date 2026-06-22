@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ZodTypeAny } from 'zod';
-import { ConnectedApplicationBaseSchema, GmailPubsubTopicNameSchema, ProviderIdSchema, ConnectionMethodSchema, UuidSchema, nonEmptyStringSchema } from './common';
+import { ConnectedApplicationBaseSchema, EmailProcessingRuleSchema, GmailPubsubTopicNameSchema, ProviderIdSchema, ConnectionMethodSchema, UuidSchema, nonEmptyStringSchema } from './common';
+import { MAX_EMAIL_PROCESSING_RULES } from '../constants';
 import {
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
   APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED,
@@ -166,6 +167,15 @@ const OutlookWebhookBodySchema = z.object({
   value: z.array(OutlookNotificationSchema).optional(),
 });
 
+const ApplicationRulesQuerySchema = z.object({
+  applicationId: UuidSchema,
+});
+
+const UpdateApplicationRulesBodySchema = z.object({
+  applicationId: UuidSchema,
+  rules: z.array(EmailProcessingRuleSchema).max(MAX_EMAIL_PROCESSING_RULES, `Maximum ${MAX_EMAIL_PROCESSING_RULES} rules per application.`),
+});
+
 const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'POST /user/application': { body: CreateApplicationBodySchema },
   'PUT /user/application': { body: UpdateApplicationBodySchema },
@@ -184,6 +194,8 @@ const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'PUT /user/application/watch-settings': { body: UpdateApplicationWatchSettingsBodySchema },
   'POST /user/application/watch': { body: WatchApplicationBodySchema },
   'POST /user/application/stop': { body: StopApplicationBodySchema },
+  'GET /user/application/rules': { query: ApplicationRulesQuerySchema },
+  'PUT /user/application/rules': { body: UpdateApplicationRulesBodySchema },
   'GET /api/oauth2/callback/:applicationId': { query: OAuth2CallbackQuerySchema },
   'GET /api/actions/:actionId': { query: EmailActionCallbackQuerySchema },
   'POST /api/actions/:actionId/execute': { query: EmailActionCallbackQuerySchema },
@@ -194,5 +206,5 @@ const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'POST /api/webhooks/outlook/lifecycle/:applicationId': { query: OutlookWebhookQuerySchema, body: OutlookWebhookBodySchema },
 };
 
-export { RequestInputSchemas };
+export { ApplicationRulesQuerySchema, RequestInputSchemas, UpdateApplicationRulesBodySchema };
 export type { RequestInputSchema };

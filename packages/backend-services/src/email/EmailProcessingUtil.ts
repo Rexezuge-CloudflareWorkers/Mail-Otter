@@ -14,6 +14,7 @@ import type { ProviderId } from '@mail-otter/shared/constants';
 import { ActionService } from '../action';
 import type { CreatedEmailAction } from '../action';
 import { EmailContextUtil } from './EmailContextUtil';
+import { EmailRulesUtil } from './EmailRulesUtil';
 import { SenderFilterUtil } from './SenderFilterUtil';
 import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
@@ -253,14 +254,23 @@ class EmailProcessingUtil {
         return null;
       }
     }
+    const matchedRule = application.emailProcessingRules?.length
+      ? EmailRulesUtil.evaluate(application.emailProcessingRules, { from, subject, body })
+      : null;
+    if (matchedRule?.action.type === 'skip') {
+      await processedDAO.markSkipped(application.applicationId, resolvedMessageId, `Matched rule: ${matchedRule.name}`);
+      return null;
+    }
+    const suppressActions: boolean = matchedRule?.action.type === 'skip_actions';
+    const customInstruction: string | undefined = matchedRule?.action.type === 'prepend_instruction' ? matchedRule.action.instruction : undefined;
     const ragContext: string | undefined = await EmailContextUtil.prepareEmailRagContext({
       env, application, enabledApplicationIds, subject, from, body,
       sourceDocumentId: resolvedMessageId, sourceThreadId: threadId,
     });
-    const summary: EmailProcessingSummary = await EmailProcessingUtil.summarize(env, application, subject, from, body, ragContext);
+    const summary: EmailProcessingSummary = await EmailProcessingUtil.summarize(env, application, subject, from, body, ragContext, customInstruction);
     await EmailProcessingUtil.logSummaryGenerated(contextDAO, application, resolvedMessageId, options.retryAttempt);
     const processedMessage = await processedDAO.getByMessageId(application.applicationId, resolvedMessageId);
-    const actions: CreatedEmailAction[] = processedMessage
+    const actions: CreatedEmailAction[] = !suppressActions && processedMessage
       ? await ActionService.createActionsForSummary(
           { application, processedMessage, subject, from, body, proposals: summary.actionProposals, callbackBaseUrl: options.callbackBaseUrl },
           env,
@@ -279,16 +289,17 @@ class EmailProcessingUtil {
     from: string,
     body: string,
     ragContext?: string | undefined,
+    customInstruction?: string | undefined,
   ): Promise<EmailProcessingSummary> {
     const maxChars: number = ConfigurationManager.getMaxEmailBodyChars(env);
     const bodyText: string = body || '(empty message body)';
     const input: string = EmailContentUtil.truncate(bodyText, maxChars);
     const timeZone: string | undefined = application.timeZone ?? undefined;
-    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext, timeZone);
+    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext, timeZone, customInstruction);
     let model: string = await EmailProcessingUtil.resolveSummaryModel(env, promptText);
     let result: EmailSummaryResult;
     try {
-      result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext, timeZone);
+      result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext, timeZone, customInstruction);
     } catch (error: unknown) {
       if (!(error instanceof AiSummaryRetryableError)) throw error;
       await EmailProcessingUtil.recordSummaryFailureUsage(env, model, error, promptText);
@@ -297,7 +308,7 @@ class EmailProcessingUtil {
       console.warn(`AI summary failed with primary model ${model}, retrying with fallback ${fallbackModel}:`, error);
       model = fallbackModel;
       try {
-        result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext, timeZone);
+        result = await EmailSummaryUtil.summarizeEmailWithUsage(env.AI, model, subject, from, input, ragContext, timeZone, customInstruction);
       } catch (fallbackError: unknown) {
         if (fallbackError instanceof AiSummaryRetryableError) {
           await EmailProcessingUtil.recordSummaryFailureUsage(env, model, fallbackError, promptText);

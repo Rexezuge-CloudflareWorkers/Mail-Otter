@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONNECTION_METHOD_OAUTH2, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, SUPPORTED_PROVIDER_CONNECTIONS } from '../constants';
+import { CONNECTION_METHOD_OAUTH2, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, SUPPORTED_PROVIDER_CONNECTIONS, MAX_RULE_MATCHERS } from '../constants';
 
 const UUID_PATTERN: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const GMAIL_PUBSUB_TOPIC_PATTERN: RegExp = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/topics\/[A-Za-z][A-Za-z0-9_.~+%-]{2,254}$/;
@@ -39,9 +39,47 @@ const ConnectedApplicationBaseSchema = z
 
 const positiveIntegerBodySchema = (fieldName: string) => z.number().int().min(1, `${fieldName} must be at least 1.`);
 
+const EmailRuleConditionMatcherSchema = z
+  .object({
+    field: z.enum(['from', 'subject', 'body']),
+    op: z.enum(['contains', 'not_contains', 'matches_sender']),
+    value: z.string().min(1, 'value is required.').max(200, 'value must be 200 characters or less.'),
+  })
+  .refine(
+    (matcher): boolean => matcher.op !== 'matches_sender' || matcher.field === 'from',
+    'matches_sender operator is only valid for the from field.',
+  );
+
+const EmailRuleConditionSchema = z.object({
+  operator: z.enum(['all', 'any']),
+  matchers: z.array(EmailRuleConditionMatcherSchema).min(1, 'At least one matcher is required.').max(MAX_RULE_MATCHERS, `Maximum ${MAX_RULE_MATCHERS} matchers per rule.`),
+});
+
+const EmailRuleActionSchema = z
+  .object({
+    type: z.enum(['skip', 'skip_actions', 'prepend_instruction']),
+    instruction: z.string().min(1).max(500).optional(),
+  })
+  .refine(
+    (action): boolean => action.type !== 'prepend_instruction' || Boolean(action.instruction?.trim()),
+    'instruction is required for prepend_instruction action.',
+  );
+
+const EmailProcessingRuleSchema = z.object({
+  ruleId: UuidSchema,
+  name: z.string().min(1, 'name is required.').max(100, 'name must be 100 characters or less.'),
+  enabled: z.boolean(),
+  conditions: EmailRuleConditionSchema,
+  action: EmailRuleActionSchema,
+});
+
 export {
   ConnectedApplicationBaseSchema,
   ConnectionMethodSchema,
+  EmailProcessingRuleSchema,
+  EmailRuleActionSchema,
+  EmailRuleConditionMatcherSchema,
+  EmailRuleConditionSchema,
   EmailSchema,
   GmailPubsubTopicNameSchema,
   ProviderIdSchema,

@@ -147,6 +147,7 @@ export default function SpaApp() {
       if (found) await mailboxes.deleteIntegration(integrationId, found.applicationId);
     },
     onTestIntegration: mailboxes.testIntegration,
+    onUpdateRules: mailboxes.updateRules,
   };
 
   return (

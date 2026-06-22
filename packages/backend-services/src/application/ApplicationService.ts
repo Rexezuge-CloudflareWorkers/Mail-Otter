@@ -6,6 +6,7 @@ import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
   ConnectedApplicationMetadata,
+  EmailProcessingRule,
   OAuth2Credentials,
   OutboundIntegration,
   OutboundIntegrationType,
@@ -222,6 +223,28 @@ class ApplicationService {
     const integration = await dao.getByIdForUser(integrationId, userEmail);
     if (!integration) throw new BadRequestError('Integration not found.');
     await IntegrationService.sendTestNotification(integration, env);
+  }
+
+  public static async getRules(userEmail: string, applicationId: string, env: ApplicationServiceEnv): Promise<EmailProcessingRule[]> {
+    await ApplicationService.assertApplicationOwnership(userEmail, applicationId, env);
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ConnectedApplicationDAO(env.DB, masterKey);
+    const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+    return app?.emailProcessingRules ?? [];
+  }
+
+  public static async updateRules(
+    userEmail: string,
+    applicationId: string,
+    rules: EmailProcessingRule[],
+    env: ApplicationServiceEnv,
+  ): Promise<ConnectedApplicationMetadata> {
+    await ApplicationService.assertApplicationOwnership(userEmail, applicationId, env);
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ConnectedApplicationDAO(env.DB, masterKey);
+    const updated = await dao.updateEmailProcessingRulesForUser(applicationId, userEmail, rules);
+    if (!updated) throw new BadRequestError('Connected application not found.');
+    return updated;
   }
 
   private static async assertApplicationOwnership(

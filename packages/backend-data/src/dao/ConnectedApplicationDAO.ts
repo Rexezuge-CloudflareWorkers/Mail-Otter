@@ -13,6 +13,7 @@ import type {
   ConnectedApplicationCredentials,
   ConnectedApplicationInternal,
   ConnectedApplicationMetadata,
+  EmailProcessingRule,
   OAuth2Credentials,
   SenderDomainFilters,
 } from '@mail-otter/shared/model';
@@ -423,8 +424,9 @@ class ConnectedApplicationDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone]: [
+    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson]: [
       Array<{ folderPath: string; folderName: string }>,
+      string | null,
       string | null,
       string | null,
       string | null,
@@ -435,6 +437,7 @@ class ConnectedApplicationDAO {
       this.getProviderConfig(row.application_id, 'oauth2_enabled_features'),
       this.getProviderConfig(row.application_id, 'sender_domain_filters'),
       this.getProviderConfig(row.application_id, 'calendar_time_zone'),
+      this.getProviderConfig(row.application_id, 'email_processing_rules'),
     ]);
     return {
       applicationId: row.application_id,
@@ -449,6 +452,7 @@ class ConnectedApplicationDAO {
       enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
       timeZone: timeZone ?? null,
       senderDomainFilters: senderDomainFiltersJson ? (JSON.parse(senderDomainFiltersJson) as SenderDomainFilters) : null,
+      emailProcessingRules: emailProcessingRulesJson ? (JSON.parse(emailProcessingRulesJson) as EmailProcessingRule[]) : null,
       watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
       lastErrorAcknowledgedAt: row.last_error_acknowledged_at ?? null,
       contextLastErrorAcknowledgedAt: row.context_last_error_acknowledged_at ?? null,
@@ -456,6 +460,19 @@ class ConnectedApplicationDAO {
       updatedAt: row.updated_at,
       gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,
     };
+  }
+
+  public async updateEmailProcessingRulesForUser(
+    applicationId: string,
+    userEmail: string,
+    rules: EmailProcessingRule[],
+  ): Promise<ConnectedApplicationMetadata | undefined> {
+    if (rules.length > 0) {
+      await this.setProviderConfig(applicationId, 'email_processing_rules', JSON.stringify(rules));
+    } else {
+      await this.deleteProviderConfig(applicationId, 'email_processing_rules');
+    }
+    return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
   public async acknowledgeErrorForUser(

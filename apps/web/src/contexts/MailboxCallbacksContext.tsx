@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { ConnectedApplication, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 
 export interface MailboxCallbacksContextValue {
   busy: boolean;
@@ -17,6 +17,7 @@ export interface MailboxCallbacksContextValue {
   onDeleteContextDocuments: (id: string) => void;
   onDismissProcessingError: (id: string) => void;
   onDismissContextError: (id: string) => void;
+  onUpdateRules: (applicationId: string, rules: EmailProcessingRule[]) => Promise<void>;
   onCreateIntegration: (applicationId: string, integrationType: OutboundIntegrationType, name: string, webhookUrl: string) => Promise<void>;
   onUpdateIntegration: (integrationId: string, patch: { name?: string; enabled?: boolean; webhookUrl?: string }) => Promise<void>;
   onDeleteIntegration: (integrationId: string) => Promise<void>;

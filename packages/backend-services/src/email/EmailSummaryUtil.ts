@@ -64,8 +64,9 @@ class EmailSummaryUtil {
     body: string,
     ragContext?: string | undefined,
     timeZone?: string | undefined,
+    customInstruction?: string | undefined,
   ): Promise<string> {
-    const result: EmailSummaryResult = await EmailSummaryUtil.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone);
+    const result: EmailSummaryResult = await EmailSummaryUtil.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone, customInstruction);
     return result.summary;
   }
 
@@ -77,8 +78,9 @@ class EmailSummaryUtil {
     body: string,
     ragContext?: string | undefined,
     timeZone?: string | undefined,
+    customInstruction?: string | undefined,
   ): Promise<EmailSummaryResult> {
-    const instructions: string = EmailSummaryUtil.buildSummaryInstructions(timeZone);
+    const instructions: string = EmailSummaryUtil.buildSummaryInstructions(timeZone, customInstruction);
     const input: string = EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext);
 
     const request: AiTextGenerationRequest = {
@@ -121,14 +123,14 @@ class EmailSummaryUtil {
     return { summary: EmailSummaryUtil.renderHtmlSummary(summary), emailSummary: summary, actionProposals: summary.actions, usage };
   }
 
-  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string | undefined, timeZone?: string | undefined): string {
-    return [EmailSummaryUtil.buildSummaryInstructions(timeZone), EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
+  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string | undefined, timeZone?: string | undefined, customInstruction?: string | undefined): string {
+    return [EmailSummaryUtil.buildSummaryInstructions(timeZone, customInstruction), EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
   }
 
-  private static buildSummaryInstructions(timeZone?: string | undefined): string {
+  private static buildSummaryInstructions(timeZone?: string | undefined, customInstruction?: string | undefined): string {
     const zone: string = TimeZoneUtil.normalize(timeZone);
     const currentDate: string = TimeZoneUtil.todayInZone(zone);
-    return [
+    const parts: string[] = [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
       `Today is ${currentDate} in the mailbox owner's time zone ${zone}.`,
       'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
@@ -141,7 +143,11 @@ class EmailSummaryUtil {
       'Use manual.todo for useful actions that cannot be automated safely; parameters must include instructions.',
       'Do not create callback URLs or invent links.',
       'Do not invent facts. Do not include a greeting.',
-    ].join(' ');
+    ];
+    if (customInstruction) {
+      parts.push(`Additional instructions: ${customInstruction}`);
+    }
+    return parts.join(' ');
   }
 
   private static buildSummaryInput(subject: string, from: string, body: string, ragContext?: string | undefined): string {

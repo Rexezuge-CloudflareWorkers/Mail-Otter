@@ -4,6 +4,8 @@ import { Hono } from 'hono';
 import {
   GetAnalyticsRoute,
   CreateApplicationRoute,
+  GetApplicationRulesRoute,
+  UpdateApplicationRulesRoute,
   ListIntegrationsRoute,
   CreateIntegrationRoute,
   UpdateIntegrationRoute,
@@ -106,6 +108,8 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.post('/user/application/oauth2/authorize', CreateOAuth2AuthorizationRoute);
     openapi.post('/user/application/watch', StartApplicationWatchRoute);
     openapi.post('/user/application/stop', StopApplicationWatchRoute);
+    openapi.get('/user/application/rules', GetApplicationRulesRoute);
+    openapi.put('/user/application/rules', UpdateApplicationRulesRoute);
     openapi.get('/user/application/integrations', ListIntegrationsRoute);
     openapi.post('/user/application/integration', CreateIntegrationRoute);
     openapi.put('/user/application/integration', UpdateIntegrationRoute);

@@ -1,5 +1,32 @@
 export type ProviderId = 'google-gmail' | 'microsoft-outlook';
 
+export type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body';
+export type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender';
+
+export interface EmailRuleConditionMatcher {
+  field: EmailRuleConditionMatcherField;
+  op: EmailRuleConditionMatcherOp;
+  value: string;
+}
+
+export interface EmailRuleCondition {
+  operator: 'all' | 'any';
+  matchers: EmailRuleConditionMatcher[];
+}
+
+export interface EmailRuleAction {
+  type: 'skip' | 'skip_actions' | 'prepend_instruction';
+  instruction?: string;
+}
+
+export interface EmailProcessingRule {
+  ruleId: string;
+  name: string;
+  enabled: boolean;
+  conditions: EmailRuleCondition;
+  action: EmailRuleAction;
+}
+
 export type OutboundIntegrationType = 'slack' | 'discord' | 'webhook';
 
 export interface OutboundIntegration {
@@ -42,6 +69,7 @@ export interface ConnectedApplication {
   enabledFeatures?: string[] | null;
   timeZone?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
+  emailProcessingRules?: EmailProcessingRule[] | null;
   gmailPubsubTopicName?: string | null;
   watchedFolders?: Array<{ id: string; name: string }> | null;
   oauth2RedirectUri?: string;

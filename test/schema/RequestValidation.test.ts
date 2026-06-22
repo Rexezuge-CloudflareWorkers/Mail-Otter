@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getRequestInputSchema, validateRequestInput } from '../../packages/shared/src/schema';
+import { EmailProcessingRuleSchema } from '../../packages/shared/src/schema/common';
 
 describe('Request input schemas', () => {
   it('finds schemas for provider webhook routes', () => {
@@ -75,5 +76,34 @@ describe('Request input schemas', () => {
         clientSecret: 'client-secret',
       }),
     ).resolves.toMatchObject({ success: false, scope: 'body' });
+  });
+
+  describe('EmailProcessingRuleSchema', () => {
+    const validRule = {
+      ruleId: '11111111-1111-4111-8111-111111111111',
+      name: 'Skip Newsletters',
+      enabled: true,
+      conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'newsletter' }] },
+      action: { type: 'skip' },
+    };
+
+    it('accepts a valid skip rule', () => {
+      expect(EmailProcessingRuleSchema.safeParse(validRule).success).toBe(true);
+    });
+
+    it('rejects matches_sender on non-from field', () => {
+      const invalid = { ...validRule, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'matches_sender', value: '@domain.com' }] } };
+      expect(EmailProcessingRuleSchema.safeParse(invalid).success).toBe(false);
+    });
+
+    it('rejects prepend_instruction without instruction text', () => {
+      const invalid = { ...validRule, action: { type: 'prepend_instruction' } };
+      expect(EmailProcessingRuleSchema.safeParse(invalid).success).toBe(false);
+    });
+
+    it('accepts prepend_instruction with instruction text', () => {
+      const valid = { ...validRule, action: { type: 'prepend_instruction', instruction: 'Extract invoice number.' } };
+      expect(EmailProcessingRuleSchema.safeParse(valid).success).toBe(true);
+    });
   });
 });

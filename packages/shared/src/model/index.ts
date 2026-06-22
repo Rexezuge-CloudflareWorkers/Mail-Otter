@@ -4,6 +4,7 @@ export * from './ApplicationContextDocument';
 export * from './ConnectedApplication';
 export * from './EmailAction';
 export * from './EmailQueueMessage';
+export * from './EmailRule';
 export * from './OAuth2AuthorizationSession';
 export * from './ProcessedMessage';
 export * from './ContextAuditLog';

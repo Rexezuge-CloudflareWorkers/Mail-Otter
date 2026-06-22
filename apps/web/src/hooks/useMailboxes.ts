@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ConnectedApplication, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
 import * as appSvc from '../services/applicationService';
@@ -307,6 +307,18 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const updateRules = async (applicationId: string, rules: EmailProcessingRule[]) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.updateRules(applicationId, rules);
+      setApplications((apps) => apps.map((a) => (a.applicationId === applicationId ? { ...a, emailProcessingRules: data.application.emailProcessingRules } : a)));
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Rules.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return {
     applications,
     selectedApplicationId,
@@ -343,5 +355,6 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     updateIntegration,
     deleteIntegration: (integrationId: string, applicationId: string) => deleteIntegration(integrationId, applicationId),
     testIntegration,
+    updateRules,
   };
 }

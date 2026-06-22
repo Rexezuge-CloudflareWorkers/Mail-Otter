@@ -192,6 +192,7 @@ describe('EmailProcessingUtil', () => {
         'Please review the project update.',
         undefined,
         undefined,
+        undefined,
       );
       expect(incrementUsage).toHaveBeenCalledWith({
         usageDate: expect.any(String),
@@ -228,6 +229,7 @@ describe('EmailProcessingUtil', () => {
         'Project update',
         'sender@example.com',
         'Please review the project update.',
+        undefined,
         undefined,
         undefined,
       );
@@ -270,6 +272,7 @@ describe('EmailProcessingUtil', () => {
         'Please review the project update.',
         undefined,
         undefined,
+        undefined,
       );
       expect(summarizeEmail).toHaveBeenNthCalledWith(
         2,
@@ -278,6 +281,7 @@ describe('EmailProcessingUtil', () => {
         'Project update',
         'sender@example.com',
         'Please review the project update.',
+        undefined,
         undefined,
         undefined,
       );
@@ -478,6 +482,97 @@ describe('EmailProcessingUtil', () => {
 
         expect(markSkipped).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('email processing rules', () => {
+    it('skips Outlook message when a skip rule matches', async () => {
+      vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+      const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage({ subject: 'Newsletter: Weekly Digest' }));
+
+      await EmailProcessingUtil.processOutlookMessage(
+        createApplication({
+          emailProcessingRules: [{
+            ruleId: 'rule-1',
+            name: 'Skip Newsletters',
+            enabled: true,
+            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Newsletter' }] },
+            action: { type: 'skip' },
+          }],
+        }),
+        'access-token',
+        'message-1',
+        createEnv(),
+        [],
+      );
+
+      expect(markSkipped).toHaveBeenCalledWith('app-1', 'message-1', 'Matched rule: Skip Newsletters');
+      expect(summarizeEmail).not.toHaveBeenCalled();
+    });
+
+    it('still summarizes Outlook message when a skip_actions rule matches', async () => {
+      vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage({ subject: 'Low priority note' }));
+      vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+      const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
+
+      await EmailProcessingUtil.processOutlookMessage(
+        createApplication({
+          emailProcessingRules: [{
+            ruleId: 'rule-2',
+            name: 'Skip Actions For Low Priority',
+            enabled: true,
+            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Low priority' }] },
+            action: { type: 'skip_actions' },
+          }],
+        }),
+        'access-token',
+        'message-1',
+        createEnv(),
+        [],
+      );
+
+      expect(summarizeEmail).toHaveBeenCalled();
+    });
+
+    it('passes custom instruction to summarizeEmailWithUsage when prepend_instruction rule matches', async () => {
+      vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markSummarized').mockResolvedValue();
+      vi.spyOn(ProcessedMessageDAO.prototype, 'markError').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage({ subject: 'Invoice #1234' }));
+      vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
+      const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
+
+      await EmailProcessingUtil.processOutlookMessage(
+        createApplication({
+          emailProcessingRules: [{
+            ruleId: 'rule-3',
+            name: 'Extract Invoice Details',
+            enabled: true,
+            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Invoice' }] },
+            action: { type: 'prepend_instruction', instruction: 'Always extract invoice number and due date.' },
+          }],
+        }),
+        'access-token',
+        'message-1',
+        createEnv(),
+        [],
+      );
+
+      expect(summarizeEmail).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        undefined,
+        undefined,
+        'Always extract invoice number and due date.',
+      );
     });
   });
 });

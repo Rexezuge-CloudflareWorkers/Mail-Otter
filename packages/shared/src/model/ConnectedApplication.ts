@@ -1,4 +1,5 @@
 import type { ConnectedApplicationStatus, ConnectionMethod, ProviderId } from '../constants';
+import type { EmailProcessingRule } from './EmailRule';
 
 interface SenderDomainFilters {
   includeRules: string[];
@@ -26,6 +27,7 @@ interface ConnectedApplicationMetadata {
   enabledFeatures?: string[] | null | undefined;
   timeZone?: string | null | undefined;
   senderDomainFilters?: SenderDomainFilters | null | undefined;
+  emailProcessingRules?: EmailProcessingRule[] | null | undefined;
   gmailPubsubTopicName?: string | null | undefined;
   watchedFolders?: Array<{ id: string; name: string }> | null | undefined;
   oauth2RedirectUri?: string | undefined;

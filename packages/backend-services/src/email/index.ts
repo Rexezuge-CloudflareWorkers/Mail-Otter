@@ -3,6 +3,7 @@ export * from './AiUsageUtil';
 export * from './EmailContextUtil';
 export * from './EmailProcessingUtil';
 export * from './EmailRulesUtil';
+export * from './EmailRuleSuggestionUtil';
 export * from './EmailSummaryUtil';
 export * from './SenderFilterUtil';
 export * from './WorkersAiErrorUtil';

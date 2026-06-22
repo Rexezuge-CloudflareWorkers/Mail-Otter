@@ -28,6 +28,7 @@ import { DeleteIntegrationRoute as OriginalDeleteIntegrationRoute } from './user
 import { TestIntegrationRoute as OriginalTestIntegrationRoute } from './user/application/integrations/test/POST';
 import { GetApplicationRulesRoute as OriginalGetApplicationRulesRoute } from './user/application/rules/GET';
 import { UpdateApplicationRulesRoute as OriginalUpdateApplicationRulesRoute } from './user/application/rules/PUT';
+import { SuggestApplicationRuleRoute as OriginalSuggestApplicationRuleRoute } from './user/application/rules/suggest/POST';
 import { OAuth2CallbackRoute as OriginalOAuth2CallbackRoute } from './api/oauth2/callback/GET';
 import { GetActionConfirmationRoute as OriginalGetActionConfirmationRoute } from './api/actions/GET';
 import { ExecuteActionCallbackRoute as OriginalExecuteActionCallbackRoute } from './api/actions/execute/POST';
@@ -69,3 +70,4 @@ export const DeleteIntegrationRoute: any = OriginalDeleteIntegrationRoute;
 export const TestIntegrationRoute: any = OriginalTestIntegrationRoute;
 export const GetApplicationRulesRoute: any = OriginalGetApplicationRulesRoute;
 export const UpdateApplicationRulesRoute: any = OriginalUpdateApplicationRulesRoute;
+export const SuggestApplicationRuleRoute: any = OriginalSuggestApplicationRuleRoute;

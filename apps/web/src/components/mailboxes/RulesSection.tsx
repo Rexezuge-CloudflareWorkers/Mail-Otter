@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
+import { suggestRule as apiSuggestRule } from '../../services/applicationService';
 
 const MAX_RULES = 20;
 const MAX_MATCHERS = 5;
@@ -220,6 +221,115 @@ function AddRuleForm({ onAdd, onCancel }: { onAdd: (rule: EmailProcessingRule) =
   );
 }
 
+type SuggestState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'preview'; rule: Omit<EmailProcessingRule, 'ruleId'>; description: string }
+  | { phase: 'error'; message: string; description: string };
+
+function SuggestRuleForm({
+  applicationId,
+  onAdd,
+  onCancel,
+}: {
+  applicationId: string;
+  onAdd: (rule: EmailProcessingRule) => void;
+  onCancel: () => void;
+}) {
+  const [description, setDescription] = useState('');
+  const [state, setState] = useState<SuggestState>({ phase: 'idle' });
+
+  const generate = async (desc: string) => {
+    setState({ phase: 'loading' });
+    try {
+      const { rule } = await apiSuggestRule(applicationId, desc);
+      setState({ phase: 'preview', rule, description: desc });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could Not Generate A Rule. Try Rephrasing Your Description.';
+      setState({ phase: 'error', message, description: desc });
+    }
+  };
+
+  const handleGenerate = () => {
+    if (!description.trim()) return;
+    generate(description.trim());
+  };
+
+  const handleRegenerate = () => {
+    if (state.phase === 'preview' || state.phase === 'error') {
+      generate(state.description);
+    }
+  };
+
+  const handleAccept = () => {
+    if (state.phase !== 'preview') return;
+    onAdd({ ...state.rule, ruleId: crypto.randomUUID() });
+  };
+
+  return (
+    <div className="border border-[var(--color-border)] rounded-lg p-4 flex flex-col gap-3 bg-[var(--color-surface-raised)]">
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Describe A Rule</label>
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="e.g. Skip newsletters from Substack"
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              if (state.phase === 'preview' || state.phase === 'error') setState({ phase: 'idle' });
+            }}
+            className="text-sm flex-1"
+            maxLength={500}
+            disabled={state.phase === 'loading'}
+            onKeyDown={(e) => { if (e.key === 'Enter' && description.trim() && state.phase !== 'loading') handleGenerate(); }}
+          />
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleGenerate}
+            disabled={!description.trim() || state.phase === 'loading'}
+          >
+            {state.phase === 'loading' ? 'Generating…' : 'Generate'}
+          </Button>
+        </div>
+      </div>
+
+      {state.phase === 'error' && (
+        <p className="text-xs text-red-500">{state.message}</p>
+      )}
+
+      {state.phase === 'preview' && (
+        <div className="border border-[var(--color-border)] rounded-lg p-3 flex flex-col gap-1 bg-[var(--color-surface-base)]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${ACTION_BADGE_COLORS[state.rule.action.type]}`}>
+              {ACTION_LABELS[state.rule.action.type]}
+            </span>
+            <span className="text-sm font-medium text-[var(--color-text-primary)]">{state.rule.name}</span>
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary({ ...state.rule, ruleId: '' })}</p>
+          {state.rule.action.type === 'prepend_instruction' && state.rule.action.instruction && (
+            <p className="text-xs text-[var(--color-text-secondary)] italic">"{state.rule.action.instruction}"</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 justify-end">
+        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
+        {state.phase === 'preview' && (
+          <>
+            <Button variant="secondary" size="sm" onClick={handleRegenerate}>Regenerate</Button>
+            <Button variant="primary" size="sm" onClick={handleAccept}>Add Rule</Button>
+          </>
+        )}
+        {state.phase === 'error' && (
+          <Button variant="secondary" size="sm" onClick={handleRegenerate}>Retry</Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RuleRow({
   rule,
   index,
@@ -293,15 +403,17 @@ function RuleRow({
   );
 }
 
+type FormMode = 'none' | 'manual' | 'suggest';
+
 export function RulesSection({ application }: { application: ConnectedApplication }) {
   const { busy, onUpdateRules } = useMailboxCallbacks();
-  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<FormMode>('none');
   const rules = application.emailProcessingRules ?? [];
 
   const save = (updated: EmailProcessingRule[]) => onUpdateRules(application.applicationId, updated);
 
   const addRule = (rule: EmailProcessingRule) => {
-    setShowForm(false);
+    setFormMode('none');
     save([...rules, rule]);
   };
 
@@ -317,6 +429,8 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
     [updated[index], updated[target]] = [updated[target], updated[index]];
     save(updated);
   };
+
+  const canAddMore = rules.length < MAX_RULES;
 
   return (
     <Card>
@@ -345,17 +459,32 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
           ))}
         </div>
       )}
-      {!showForm && rules.length === 0 && (
+      {formMode === 'none' && rules.length === 0 && (
         <p className="text-xs text-[var(--color-text-muted)] mb-3">No Rules Configured.</p>
       )}
-      {showForm ? (
-        <AddRuleForm onAdd={addRule} onCancel={() => setShowForm(false)} />
-      ) : rules.length < MAX_RULES ? (
-        <Button variant="secondary" size="sm" onClick={() => setShowForm(true)} disabled={busy}>
-          Add Rule
-        </Button>
-      ) : (
-        <p className="text-xs text-[var(--color-text-muted)]">Maximum {MAX_RULES} Rules Reached.</p>
+      {formMode === 'manual' && (
+        <AddRuleForm onAdd={addRule} onCancel={() => setFormMode('none')} />
+      )}
+      {formMode === 'suggest' && (
+        <SuggestRuleForm
+          applicationId={application.applicationId}
+          onAdd={addRule}
+          onCancel={() => setFormMode('none')}
+        />
+      )}
+      {formMode === 'none' && (
+        canAddMore ? (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setFormMode('manual')} disabled={busy}>
+              Add Rule
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setFormMode('suggest')} disabled={busy}>
+              Generate With AI
+            </Button>
+          </div>
+        ) : (
+          <p className="text-xs text-[var(--color-text-muted)]">Maximum {MAX_RULES} Rules Reached.</p>
+        )
       )}
     </Card>
   );

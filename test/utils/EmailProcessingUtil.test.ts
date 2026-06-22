@@ -337,6 +337,70 @@ describe('EmailProcessingUtil', () => {
     });
   });
 
+  describe('mailbox owner and self-summary skip', () => {
+    it('silently drops Outlook messages sent from the mailbox owner without recording a processed message', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+        createOutlookMessage({ from: { emailAddress: { address: 'owner@example.com' } } }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).not.toHaveBeenCalled();
+      expect(markSkipped).not.toHaveBeenCalled();
+    });
+
+    it('silently drops Outlook messages that are Mail-Otter summaries without recording a processed message', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+      vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(
+        createOutlookMessage({
+          internetMessageHeaders: [{ name: 'X-Mail-Otter-Summary', value: 'true' }],
+        }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).not.toHaveBeenCalled();
+      expect(markSkipped).not.toHaveBeenCalled();
+    });
+
+    it('silently drops Gmail messages sent from the mailbox owner without recording a processed message', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+      vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
+        createGmailMessage({ fromHeader: 'Owner <owner@example.com>' }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processGmailMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).not.toHaveBeenCalled();
+      expect(markSkipped).not.toHaveBeenCalled();
+    });
+
+    it('silently drops Gmail messages that are Mail-Otter summaries without recording a processed message', async () => {
+      const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
+      const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
+      vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
+        createGmailMessage({ fromHeader: 'Sender <sender@example.com>', xMailOtterSummary: 'true' }),
+      );
+
+      await expect(
+        EmailProcessingUtil.processGmailMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+      ).resolves.toBeUndefined();
+
+      expect(tryStart).not.toHaveBeenCalled();
+      expect(markSkipped).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sender filter rules', () => {
     describe('Outlook path', () => {
       it('skips Outlook message when sender does not match any include rule', async () => {
@@ -548,16 +612,18 @@ function createApplication(overrides: Record<string, unknown> = {}) {
   } as never;
 }
 
-function createGmailMessage({ fromHeader = 'Sender <sender@example.com>' }: { fromHeader?: string } = {}) {
+function createGmailMessage({ fromHeader = 'Sender <sender@example.com>', xMailOtterSummary }: { fromHeader?: string; xMailOtterSummary?: string } = {}) {
+  const headers: { name: string; value: string }[] = [
+    { name: 'Subject', value: 'Project update' },
+    { name: 'From', value: fromHeader },
+    { name: 'Message-ID', value: '<message-1@example.com>' },
+  ];
+  if (xMailOtterSummary) headers.push({ name: 'X-Mail-Otter-Summary', value: xMailOtterSummary });
   return {
     id: 'message-1',
     threadId: 'thread-1',
     payload: {
-      headers: [
-        { name: 'Subject', value: 'Project update' },
-        { name: 'From', value: fromHeader },
-        { name: 'Message-ID', value: '<message-1@example.com>' },
-      ],
+      headers,
       parts: [{ mimeType: 'text/plain', body: { data: btoa('Please review the project update.') } }],
     },
   } as never;

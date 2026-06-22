@@ -1,5 +1,5 @@
 import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
+import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type {
@@ -15,6 +15,8 @@ import type {
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
 import { EmailRuleSuggestionUtil } from '../email/EmailRuleSuggestionUtil';
+import { AiUsageUtil } from '../email/AiUsageUtil';
+import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { IntegrationService } from '../integration/IntegrationService';
 import type { IntegrationServiceEnv } from '../integration/IntegrationService';
 import { WatchService } from '../subscription/WatchService';
@@ -256,7 +258,29 @@ class ApplicationService {
   ): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
     await ApplicationService.assertApplicationOwnership(userEmail, applicationId, env);
     const model = ConfigurationManager.getEmailSummaryModel(env);
-    return EmailRuleSuggestionUtil.suggest(env.AI, model, description);
+    const { rule, usage } = await EmailRuleSuggestionUtil.suggestWithUsage(env.AI, model, description);
+    await ApplicationService.recordRuleSuggestionUsage(env, model, usage, description, rule);
+    return rule;
+  }
+
+  private static async recordRuleSuggestionUsage(
+    env: SuggestRuleEnv,
+    model: string,
+    usage: AiTextGenerationUsage | undefined,
+    description: string,
+    rule: Omit<EmailProcessingRule, 'ruleId'>,
+  ): Promise<void> {
+    try {
+      const estimate = AiUsageUtil.estimateTextGenerationUsage(model, usage, description, JSON.stringify(rule));
+      await new AiDailyUsageDAO(env.DB).incrementUsage({
+        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
+        estimatedNeurons: estimate.estimatedNeurons,
+        promptTokens: estimate.promptTokens,
+        completionTokens: estimate.completionTokens,
+      });
+    } catch (error: unknown) {
+      console.warn('Failed to record rule suggestion usage estimate:', error);
+    }
   }
 
   private static async assertApplicationOwnership(

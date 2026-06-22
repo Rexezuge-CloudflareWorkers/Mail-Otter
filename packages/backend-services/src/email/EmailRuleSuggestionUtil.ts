@@ -1,6 +1,8 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { EmailProcessingRule, EmailRuleAction, EmailRuleCondition } from '@mail-otter/shared/model';
 import { EmailRuleActionSchema, EmailRuleConditionSchema } from '@mail-otter/shared/schema';
+import { WorkersAiResponseUtil } from './WorkersAiResponseUtil';
+import type { AiTextGenerationUsage } from './WorkersAiResponseUtil';
 
 const SUGGESTION_JSON_SCHEMA = {
   type: 'object',
@@ -39,20 +41,6 @@ const SUGGESTION_JSON_SCHEMA = {
   },
 } as const;
 
-const JSON_MODE_SUPPORTED_MODELS: ReadonlySet<string> = new Set<string>([
-  '@cf/openai/gpt-oss-120b',
-  '@cf/openai/gpt-oss-20b',
-  '@cf/meta/llama-3.1-8b-instruct-fast',
-  '@cf/meta/llama-3.1-70b-instruct',
-  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  '@cf/meta/llama-3-8b-instruct',
-  '@cf/meta/llama-3.1-8b-instruct',
-  '@cf/meta/llama-3.2-11b-vision-instruct',
-  '@hf/nousresearch/hermes-2-pro-mistral-7b',
-  '@hf/thebloke/deepseek-coder-6.7b-instruct-awq',
-  '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
-]);
-
 const SYSTEM_PROMPT = `You are a rule configuration assistant for an email processing system.
 Generate a single email processing rule as JSON based on the user's description.
 
@@ -89,12 +77,26 @@ interface ValidatedSuggestedRule {
   action: EmailRuleAction;
 }
 
+interface EmailRuleSuggestionResult {
+  rule: Omit<EmailProcessingRule, 'ruleId'>;
+  usage: AiTextGenerationUsage | undefined;
+}
+
 class EmailRuleSuggestionUtil {
   public static async suggest(
     ai: Ai,
     model: string,
     description: string,
   ): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
+    const { rule } = await EmailRuleSuggestionUtil.suggestWithUsage(ai, model, description);
+    return rule;
+  }
+
+  public static async suggestWithUsage(
+    ai: Ai,
+    model: string,
+    description: string,
+  ): Promise<EmailRuleSuggestionResult> {
     const request: Record<string, unknown> = {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -104,7 +106,7 @@ class EmailRuleSuggestionUtil {
       temperature: 0.2,
     };
 
-    if (JSON_MODE_SUPPORTED_MODELS.has(model)) {
+    if (WorkersAiResponseUtil.supportsJsonMode(model)) {
       request['response_format'] = {
         type: 'json_schema',
         json_schema: {
@@ -116,13 +118,22 @@ class EmailRuleSuggestionUtil {
     }
 
     const result = await (ai as unknown as { run: (...args: unknown[]) => Promise<unknown> }).run(model, request);
-    const text = EmailRuleSuggestionUtil.extractText(result);
+    const usage: AiTextGenerationUsage | undefined = WorkersAiResponseUtil.extractUsage(result);
+
+    const text = WorkersAiResponseUtil.extractResponseText(result);
     if (!text) {
       throw new BadRequestError('Could not generate a rule from that description. Try rephrasing.');
     }
 
-    const parsed = EmailRuleSuggestionUtil.parseJson(text);
-    if (!parsed) {
+    const jsonText = WorkersAiResponseUtil.extractJsonObjectText(text);
+    if (!jsonText) {
+      throw new BadRequestError('Could not generate a rule from that description. Try rephrasing.');
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
       throw new BadRequestError('Could not generate a rule from that description. Try rephrasing.');
     }
 
@@ -131,7 +142,7 @@ class EmailRuleSuggestionUtil {
       throw new BadRequestError('Could not generate a valid rule from that description. Try rephrasing.');
     }
 
-    return validated;
+    return { rule: validated, usage };
   }
 
   private static validateRule(parsed: unknown): ValidatedSuggestedRule | undefined {
@@ -171,52 +182,7 @@ class EmailRuleSuggestionUtil {
       }),
     };
   }
-
-  private static extractText(result: unknown): string | undefined {
-    if (typeof result === 'string') return result;
-    if (!result || typeof result !== 'object') return undefined;
-    const r = result as Record<string, unknown>;
-    if (typeof r['response'] === 'string') return r['response'];
-    if (typeof r['output_text'] === 'string') return r['output_text'];
-    if (Array.isArray(r['choices'])) {
-      const first = r['choices'][0];
-      if (first && typeof first === 'object') {
-        const msg = (first as Record<string, unknown>)['message'];
-        if (msg && typeof msg === 'object' && typeof (msg as Record<string, unknown>)['content'] === 'string') {
-          return (msg as Record<string, unknown>)['content'] as string;
-        }
-      }
-    }
-    return undefined;
-  }
-
-  private static parseJson(text: string): unknown {
-    try {
-      return JSON.parse(text);
-    } catch {
-      // try to extract a JSON object embedded in prose
-    }
-    const start = text.indexOf('{');
-    if (start === -1) return undefined;
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-    for (let i = start; i < text.length; i++) {
-      const ch = text[i]!;
-      if (escaped) { escaped = false; continue; }
-      if (ch === '\\') { escaped = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === '{') depth++;
-      if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch { return undefined; }
-        }
-      }
-    }
-    return undefined;
-  }
 }
 
 export { EmailRuleSuggestionUtil };
+export type { EmailRuleSuggestionResult };

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmailRuleSuggestionUtil } from '@mail-otter/backend-services/email';
+import type { EmailRuleSuggestionResult } from '@mail-otter/backend-services/email';
 import { BadRequestError } from '@mail-otter/backend-errors';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
@@ -106,5 +107,46 @@ describe('EmailRuleSuggestionUtil.suggest', () => {
     const call = runFn.mock.calls[0];
     const req = call![1] as Record<string, unknown>;
     expect(req['response_format']).toBeUndefined();
+  });
+});
+
+describe('EmailRuleSuggestionUtil.suggestWithUsage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the rule and usage when the AI response includes token counts', async () => {
+    const runFn = vi.fn().mockResolvedValue({
+      response: JSON.stringify(validRule()),
+      usage: { prompt_tokens: 200, completion_tokens: 50, total_tokens: 250 },
+    });
+    const ai = { run: runFn } as unknown as Ai;
+    const result: EmailRuleSuggestionResult = await EmailRuleSuggestionUtil.suggestWithUsage(ai, MODEL, 'skip newsletters');
+    expect(result.rule.name).toBe('Skip Newsletters');
+    expect(result.usage).toEqual({ promptTokens: 200, completionTokens: 50, totalTokens: 250, reasoningTokens: undefined });
+  });
+
+  it('returns usage: undefined when the AI response has no usage metadata', async () => {
+    const ai = makeAi(validRule());
+    const result: EmailRuleSuggestionResult = await EmailRuleSuggestionUtil.suggestWithUsage(ai, MODEL, 'skip newsletters');
+    expect(result.usage).toBeUndefined();
+  });
+
+  it('suggest() delegates to suggestWithUsage() and returns only the rule', async () => {
+    const runFn = vi.fn().mockResolvedValue({
+      response: JSON.stringify(validRule()),
+      usage: { prompt_tokens: 100, completion_tokens: 30 },
+    });
+    const ai = { run: runFn } as unknown as Ai;
+    const rule = await EmailRuleSuggestionUtil.suggest(ai, MODEL, 'test');
+    expect(rule.name).toBe('Skip Newsletters');
+    expect((rule as unknown as Record<string, unknown>)['usage']).toBeUndefined();
+  });
+
+  it('extracts JSON object embedded in fenced code block', async () => {
+    const json = JSON.stringify(validRule());
+    const ai = { run: vi.fn().mockResolvedValue({ response: `\`\`\`json\n${json}\n\`\`\`` }) } as unknown as Ai;
+    const result = await EmailRuleSuggestionUtil.suggestWithUsage(ai, MODEL, 'test');
+    expect(result.rule.name).toBe('Skip Newsletters');
   });
 });

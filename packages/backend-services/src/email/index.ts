@@ -7,3 +7,4 @@ export * from './EmailRuleSuggestionUtil';
 export * from './EmailSummaryUtil';
 export * from './SenderFilterUtil';
 export * from './WorkersAiErrorUtil';
+export * from './WorkersAiResponseUtil';

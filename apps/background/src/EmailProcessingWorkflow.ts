@@ -2,9 +2,12 @@ import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
-import type { GmailMessageList, GmailSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
+import type { GmailMessageList, GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
-import type { EmailQueueMessage } from '@mail-otter/shared/model';
+import { CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
+import type { ConnectedApplication, EmailQueueMessage } from '@mail-otter/shared/model';
+import { ImapClient } from '@mail-otter/provider-clients/imap';
+import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepContext } from 'cloudflare:workers';
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';
 
@@ -154,12 +157,130 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           },
         );
       }
+    } else if (event.payload.type === 'jmap-notification') {
+      const jmapPayload = event.payload;
+      const summaryData = await step.do(
+        `Generate JMAP Summary for ${jmapPayload.emailId}`,
+        { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+        async (context: WorkflowStepContext): Promise<JmapSummaryData | null> => {
+          try {
+            return await EmailProcessingUtil.generateJmapSummary(
+              resolved.application,
+              resolved.accessToken,
+              jmapPayload.emailId,
+              createD1SessionEnv(this.env),
+              resolved.enabledApplicationIds,
+              { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+            );
+          } catch (error: unknown) {
+            throw EmailProcessingWorkflow.toWorkflowError(error);
+          }
+        },
+      );
+
+      if (summaryData) {
+        await step.do(
+          `Send JMAP Summary for ${jmapPayload.emailId}`,
+          { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+          async (): Promise<void> => {
+            try {
+              await EmailProcessingUtil.sendJmapSummary(summaryData, createD1SessionEnv(this.env));
+            } catch (error: unknown) {
+              throw EmailProcessingWorkflow.toWorkflowError(error);
+            }
+          },
+        );
+
+        await step.do(
+          `Send To Integrations for ${jmapPayload.emailId}`,
+          { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+          async (): Promise<void> => {
+            try {
+              await IntegrationService.sendToIntegrations(summaryData, createD1SessionEnv(this.env));
+            } catch (error: unknown) {
+              throw EmailProcessingWorkflow.toWorkflowError(error);
+            }
+          },
+        );
+      }
+    } else if (event.payload.type === 'imap-notification') {
+      const imapPayload = event.payload;
+      const isImapPassword = resolved.application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
+      const imapConnectOptions = EmailProcessingWorkflow.buildImapConnectOptions(resolved.application, resolved.accessToken, isImapPassword);
+      const imapClient = new ImapClient();
+      try {
+        await imapClient.connect(imapConnectOptions);
+
+        for (const uid of imapPayload.messageUids) {
+          const summaryData = await step.do(
+            `Generate IMAP Summary for UID ${uid}`,
+            { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+            async (context: WorkflowStepContext): Promise<ImapSummaryData | null> => {
+              try {
+                return await EmailProcessingUtil.generateImapSummary(
+                  resolved.application,
+                  uid,
+                  imapClient,
+                  createD1SessionEnv(this.env),
+                  resolved.enabledApplicationIds,
+                  { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+                );
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
+
+          if (summaryData) {
+            await step.do(
+              `Send IMAP Summary for UID ${uid}`,
+              { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+              async (): Promise<void> => {
+                try {
+                  await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
+
+            await step.do(
+              `Send To Integrations for UID ${uid}`,
+              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+              async (): Promise<void> => {
+                try {
+                  await IntegrationService.sendToIntegrations(summaryData, createD1SessionEnv(this.env));
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
+          }
+        }
+      } finally {
+        await imapClient.close();
+      }
     }
 
     return {
       processed: true,
       applicationId: event.payload.applicationId,
     };
+  }
+
+  private static buildImapConnectOptions(application: ConnectedApplication, accessToken: string, isImapPassword: boolean): ImapConnectOptions {
+    const PROVIDER_IMAP_DEFAULTS: Record<string, { host: string; port: number }> = {
+      'yahoo-mail': { host: 'imap.mail.yahoo.com', port: 993 },
+      'apple-icloud': { host: 'imap.mail.me.com', port: 993 },
+    };
+    const defaults = PROVIDER_IMAP_DEFAULTS[application.providerId];
+    const host = application.imapHost ?? defaults?.host ?? 'localhost';
+    const port = application.imapPort ?? defaults?.port ?? 993;
+    const username = application.imapUsername ?? application.providerEmail ?? '';
+    if (isImapPassword) {
+      return { host, port, username, auth: { method: 'PLAIN', password: application.imapPassword ?? '' } };
+    }
+    return { host, port, username, auth: { method: 'XOAUTH2', accessToken } };
   }
 
   private static toWorkflowError(error: unknown): Error {

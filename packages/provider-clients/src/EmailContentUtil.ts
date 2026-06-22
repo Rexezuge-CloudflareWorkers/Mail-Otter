@@ -122,6 +122,36 @@ class EmailContentUtil {
     return fromHeaderOrAddress.toLowerCase().includes(mailboxAddress.toLowerCase());
   }
 
+  public static extractTextFromRaw(raw: string): string {
+    const boundary = /boundary="?([^";\r\n]+)"?/i.exec(raw)?.[1];
+    if (!boundary) {
+      const headerEnd = raw.indexOf('\r\n\r\n');
+      const body = headerEnd >= 0 ? raw.slice(headerEnd + 4) : raw;
+      return EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(body)).trim();
+    }
+    const parts = raw.split(`--${boundary}`);
+    for (const part of parts) {
+      if (!part.trim() || part.trim() === '--') continue;
+      const partHeaderEnd = part.indexOf('\r\n\r\n');
+      if (partHeaderEnd < 0) continue;
+      const partHeaders = part.slice(0, partHeaderEnd).toLowerCase();
+      const partBody = part.slice(partHeaderEnd + 4);
+      if (partHeaders.includes('text/plain')) {
+        return EmailContentUtil.normalizeText(partBody.split(`\r\n--${boundary}`)[0]).trim();
+      }
+    }
+    for (const part of parts) {
+      const partHeaderEnd = part.indexOf('\r\n\r\n');
+      if (partHeaderEnd < 0) continue;
+      const partHeaders = part.slice(0, partHeaderEnd).toLowerCase();
+      const partBody = part.slice(partHeaderEnd + 4);
+      if (partHeaders.includes('text/html')) {
+        return EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(partBody.split(`\r\n--${boundary}`)[0])).trim();
+      }
+    }
+    return '';
+  }
+
   private static toCrlf(value: string): string {
     return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n');
   }

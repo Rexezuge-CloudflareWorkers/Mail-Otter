@@ -1,4 +1,3 @@
-import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ApplicationService } from '@mail-otter/backend-services/application';
@@ -30,11 +29,17 @@ class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, Update
 interface UpdateApplicationRequest extends IRequest {
   applicationId: string;
   displayName: string;
-  providerId: 'google-gmail' | 'microsoft-outlook';
-  connectionMethod: typeof CONNECTION_METHOD_OAUTH2;
+  providerId: 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
+  connectionMethod: 'oauth2' | 'imap-password';
   clientId?: string | undefined;
   clientSecret?: string | undefined;
   gmailPubsubTopicName?: string | undefined;
+  imapHost?: string | undefined;
+  imapPort?: number | undefined;
+  imapUsername?: string | undefined;
+  imapPassword?: string | undefined;
+  smtpHost?: string | undefined;
+  smtpPort?: number | undefined;
   enabledFeatures?: string[] | undefined;
   timeZone?: string | undefined;
   senderDomainFilters?: SenderDomainFilters | null | undefined;

@@ -1,10 +1,21 @@
 import { PROVIDER_GOOGLE_GMAIL } from '@mail-otter/shared/constants';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
+import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
-import type { IEmailProvider, ProviderFolder } from './IEmailProvider';
+import type {
+  AnyProviderCredentials,
+  IEmailProvider,
+  ProviderFolder,
+  ProviderMessageSummary,
+  ProviderWatchResult,
+  StartWatchInput,
+  WebhookWatchResult,
+} from './IEmailProvider';
 
 class GmailEmailProvider implements IEmailProvider {
   public readonly providerId = PROVIDER_GOOGLE_GMAIL;
+  public readonly supportsWebhooks = true;
 
   public async listFolders(accessToken: string): Promise<ProviderFolder[]> {
     const labels = await GmailProviderUtil.listLabels(accessToken);
@@ -13,6 +24,32 @@ class GmailEmailProvider implements IEmailProvider {
 
   public async stopWatch(accessToken: string): Promise<void> {
     await GmailProviderUtil.stopWatch(accessToken);
+  }
+
+  public async startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult> {
+    if (credentials.type !== 'oauth2') throw new BadRequestError('Gmail requires OAuth2 credentials.');
+    if (!input.gmailPubsubTopicName) throw new BadRequestError('Gmail Pub/Sub topic name is required before starting Gmail watch.');
+    const webhookSecret: string = WebhookSecurityUtil.generateSecret();
+    const watch = await GmailProviderUtil.watchInbox(credentials.accessToken, input.gmailPubsubTopicName, input.watchedFolderIds);
+    const result: WebhookWatchResult = {
+      type: 'webhook',
+      webhookSecretHash: await WebhookSecurityUtil.hashSecret(webhookSecret),
+      gmailHistoryId: watch.historyId,
+      resource: input.gmailPubsubTopicName,
+      expiresAt: watch.expiresAt,
+      webhookUrl: `${input.baseUrl}/api/webhooks/gmail/__APPLICATION_ID__?token=${encodeURIComponent(webhookSecret)}`,
+      message: 'Gmail watch started. Configure your Google Pub/Sub push subscription to use the webhook URL.',
+    };
+    return result;
+  }
+
+  public async renewWatch(credentials: AnyProviderCredentials, _subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
+    if (credentials.type !== 'oauth2') throw new BadRequestError('Gmail requires OAuth2 credentials.');
+    throw new BadRequestError('Gmail renewal must be triggered by the subscription renewal util with topic context.');
+  }
+
+  public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+    throw new BadRequestError('Gmail uses webhooks and does not support polling.');
   }
 
   public getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {

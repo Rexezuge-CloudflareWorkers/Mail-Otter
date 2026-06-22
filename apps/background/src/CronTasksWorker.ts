@@ -6,6 +6,7 @@ import {
   ContextDeletionRunPruningTask,
   ContextDocumentPruningTask,
   EmailActionPruningTask,
+  ImapPollingTask,
   OAuth2AccessTokenRefreshTask,
   OAuth2SessionPruningTask,
   ProcessedMessagePruningTask,
@@ -78,6 +79,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
     await Promise.all([
       new OAuth2AccessTokenRefreshTask().handle(event, this.env, ctx),
       new ContextDocumentPruningTask().handle(event, this.env, ctx),
+      new ImapPollingTask().handle(event, this.env, ctx),
       SubscriptionRenewalUtil.renewDueSubscriptions(createD1SessionEnv(this.env)),
     ]);
     await Promise.all([

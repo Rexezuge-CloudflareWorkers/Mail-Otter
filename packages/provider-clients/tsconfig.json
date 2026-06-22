@@ -22,6 +22,6 @@
       "@mail-otter/shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["../../worker-configuration.d.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

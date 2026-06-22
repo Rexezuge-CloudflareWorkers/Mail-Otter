@@ -1,2 +1,13 @@
 export { EmailProviderRegistry } from './EmailProviderRegistry';
-export type { IEmailProvider, ProviderFolder } from './IEmailProvider';
+export type {
+  AnyProviderCredentials,
+  IEmailProvider,
+  ImapCursorWatchResult,
+  ImapProviderCredentials,
+  ProviderCredentials,
+  ProviderFolder,
+  ProviderMessageSummary,
+  ProviderWatchResult,
+  StartWatchInput,
+  WebhookWatchResult,
+} from './IEmailProvider';

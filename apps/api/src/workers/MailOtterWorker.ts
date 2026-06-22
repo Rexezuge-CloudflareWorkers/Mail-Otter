@@ -22,6 +22,7 @@ import {
   GetCurrentUserRoute,
   GetApplicationContextDocumentProviderLinkRoute,
   GetApplicationFoldersRoute,
+  FastmailWebhookRoute,
   GmailWebhookRoute,
   ListApplicationContextDeletionRunsRoute,
   ListApplicationContextDocumentsRoute,
@@ -121,6 +122,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/api/oauth2/callback/:applicationId', OAuth2CallbackRoute);
     openapi.get('/api/actions/:actionId', GetActionConfirmationRoute);
     openapi.post('/api/actions/:actionId/execute', ExecuteActionCallbackRoute);
+    openapi.post('/api/webhooks/fastmail/:applicationId', FastmailWebhookRoute);
     openapi.post('/api/webhooks/gmail/:applicationId', GmailWebhookRoute);
     openapi.get('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);
     openapi.post('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);

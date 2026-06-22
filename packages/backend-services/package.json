@@ -24,6 +24,8 @@
     "./analytics/*": "./src/analytics/*.ts",
     "./integration": "./src/integration/index.ts",
     "./integration/*": "./src/integration/*.ts",
+    "./provider": "./src/provider/index.ts",
+    "./provider/*": "./src/provider/*.ts",
     "./webhook": "./src/webhook/index.ts",
     "./webhook/*": "./src/webhook/*.ts"
   },

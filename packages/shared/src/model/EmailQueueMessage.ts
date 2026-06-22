@@ -14,6 +14,31 @@ interface OutlookNotificationQueueMessage {
   callbackBaseUrl?: string | undefined;
 }
 
-type EmailQueueMessage = GmailNotificationQueueMessage | OutlookNotificationQueueMessage;
+interface JmapNotificationQueueMessage {
+  type: 'jmap-notification';
+  applicationId: string;
+  emailId: string;
+  callbackBaseUrl?: string | undefined;
+}
 
-export type { EmailQueueMessage, GmailNotificationQueueMessage, OutlookNotificationQueueMessage };
+interface ImapNotificationQueueMessage {
+  type: 'imap-notification';
+  applicationId: string;
+  messageUids: number[];
+  newCursor: string;
+  callbackBaseUrl?: string | undefined;
+}
+
+type EmailQueueMessage =
+  | GmailNotificationQueueMessage
+  | OutlookNotificationQueueMessage
+  | JmapNotificationQueueMessage
+  | ImapNotificationQueueMessage;
+
+export type {
+  EmailQueueMessage,
+  GmailNotificationQueueMessage,
+  ImapNotificationQueueMessage,
+  JmapNotificationQueueMessage,
+  OutlookNotificationQueueMessage,
+};

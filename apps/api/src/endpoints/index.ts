@@ -32,6 +32,7 @@ import { SuggestApplicationRuleRoute as OriginalSuggestApplicationRuleRoute } fr
 import { OAuth2CallbackRoute as OriginalOAuth2CallbackRoute } from './api/oauth2/callback/GET';
 import { GetActionConfirmationRoute as OriginalGetActionConfirmationRoute } from './api/actions/GET';
 import { ExecuteActionCallbackRoute as OriginalExecuteActionCallbackRoute } from './api/actions/execute/POST';
+import { FastmailWebhookRoute as OriginalFastmailWebhookRoute } from './api/webhooks/fastmail/POST';
 import { GmailWebhookRoute as OriginalGmailWebhookRoute } from './api/webhooks/gmail/POST';
 import { OutlookWebhookRoute as OriginalOutlookWebhookRoute } from './api/webhooks/outlook/POST';
 import { OutlookLifecycleWebhookRoute as OriginalOutlookLifecycleWebhookRoute } from './api/webhooks/outlook/lifecycle/POST';
@@ -60,6 +61,7 @@ export const StopApplicationWatchRoute: any = OriginalStopApplicationWatchRoute;
 export const OAuth2CallbackRoute: any = OriginalOAuth2CallbackRoute;
 export const GetActionConfirmationRoute: any = OriginalGetActionConfirmationRoute;
 export const ExecuteActionCallbackRoute: any = OriginalExecuteActionCallbackRoute;
+export const FastmailWebhookRoute: any = OriginalFastmailWebhookRoute;
 export const GmailWebhookRoute: any = OriginalGmailWebhookRoute;
 export const OutlookWebhookRoute: any = OriginalOutlookWebhookRoute;
 export const OutlookLifecycleWebhookRoute: any = OriginalOutlookLifecycleWebhookRoute;

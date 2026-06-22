@@ -1,4 +1,5 @@
 export { IScheduledTask } from './IScheduledTask';
+export { ImapPollingTask } from './ImapPollingTask';
 export { ContextDocumentPruningTask } from './ContextDocumentPruningTask';
 export { OAuth2AccessTokenRefreshTask } from './OAuth2AccessTokenRefreshTask';
 export { ProcessedMessagePruningTask } from './ProcessedMessagePruningTask';

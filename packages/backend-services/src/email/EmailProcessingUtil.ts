@@ -1,8 +1,10 @@
-import { PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROVIDER_SUBSCRIPTION_STATUS_ACTIVE, SOURCE_TYPE_EMAIL, CONTEXT_AUDIT_EVENT_PROCESSING_STARTED, CONTEXT_AUDIT_EVENT_SUMMARY_GENERATED, CONTEXT_AUDIT_EVENT_SUMMARY_SENT, CONTEXT_AUDIT_EVENT_ACTION_CREATED, CONTEXT_AUDIT_EVENT_ERROR, CONTEXT_AUDIT_LOG_SEVERITY_INFO, CONTEXT_AUDIT_LOG_SEVERITY_WARNING, CONTEXT_AUDIT_LOG_SEVERITY_ERROR } from '@mail-otter/shared/constants';
+import { PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROVIDER_SUBSCRIPTION_STATUS_ACTIVE, SOURCE_TYPE_EMAIL, CONTEXT_AUDIT_EVENT_PROCESSING_STARTED, CONTEXT_AUDIT_EVENT_SUMMARY_GENERATED, CONTEXT_AUDIT_EVENT_SUMMARY_SENT, CONTEXT_AUDIT_EVENT_ACTION_CREATED, CONTEXT_AUDIT_EVENT_ERROR, CONTEXT_AUDIT_LOG_SEVERITY_INFO, CONTEXT_AUDIT_LOG_SEVERITY_WARNING, CONTEXT_AUDIT_LOG_SEVERITY_ERROR, CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import { AiDailyUsageDAO, ApplicationContextDAO, ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
+import { FastmailProviderUtil } from '@mail-otter/provider-clients/fastmail';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
+import { ImapClient } from '@mail-otter/provider-clients/imap';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { GmailMessage } from '@mail-otter/provider-clients/gmail';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
@@ -31,10 +33,12 @@ class EmailProcessingUtil {
     if (!application) {
       throw new NonRetryableError('Connected application was not found for queued email event.');
     }
-    if (!application.providerEmail) {
+    if (!application.providerEmail && application.connectionMethod !== CONNECTION_METHOD_IMAP_PASSWORD) {
       throw new NonRetryableError('Connected application does not have a provider mailbox address.');
     }
-    const accessToken: string = await OAuth2AccessTokenService.getAccessToken(application.applicationId, env);
+    const accessToken: string = application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
+      ? ''
+      : await OAuth2AccessTokenService.getAccessToken(application.applicationId, env);
     const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
     return { application, accessToken, enabledApplicationIds };
   }
@@ -225,6 +229,130 @@ class EmailProcessingUtil {
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
       const processingError: Error = EmailProcessingUtil.classifyError(error);
+      await processedDAO.markError(data.application.applicationId, data.messageId, EmailProcessingUtil.formatError(processingError));
+      await EmailProcessingUtil.logProcessingError(contextDAO, data.application, data.messageId, processingError, data.options.retryAttempt);
+      throw processingError;
+    }
+  }
+
+  public static async generateJmapSummary(
+    application: ConnectedApplication,
+    accessToken: string,
+    emailId: string,
+    env: EmailProcessingEnv,
+    enabledApplicationIds: string[],
+    options: EmailProcessingOptions = {},
+  ): Promise<JmapSummaryData | null> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const processedDAO = new ProcessedMessageDAO(env.DB);
+    const email = await FastmailProviderUtil.getEmail(accessToken, emailId);
+    const subject = email.subject ?? '(no subject)';
+    const from = email.from?.[0] ? `${email.from[0].name ?? ''} <${email.from[0].email}>`.trim() : '';
+    const body = email.textBody
+      ?.map((part) => email.bodyValues?.[part.partId]?.value ?? '')
+      .join('\n')
+      .trim() ?? '';
+    const stableFingerprint = email.messageId?.[0] ?? null;
+    const stableFingerprintHash = stableFingerprint
+      ? await EmailProcessingUtil.getStableMessageFingerprint(env, application.providerId, stableFingerprint)
+      : null;
+    const started = await processedDAO.tryStart(application.applicationId, application.providerId, email.id, email.threadId ?? null, {
+      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      providerStableMessageFingerprint: stableFingerprintHash,
+    });
+    if (!started) return null;
+    await EmailProcessingUtil.logProcessingStarted(contextDAO, application, email.id, options.retryAttempt);
+    try {
+      const result = await EmailProcessingUtil.generateSummaryCore(
+        contextDAO, processedDAO, application, email.id,
+        from, subject, body, email.threadId ?? null, env, enabledApplicationIds, options,
+      );
+      if (!result) return null;
+      return { email, ...result, emailSubject: subject, emailFrom: from, application, accessToken, emailId: email.id, options };
+    } catch (error: unknown) {
+      const processingError = EmailProcessingUtil.classifyError(error);
+      await processedDAO.markError(application.applicationId, email.id, EmailProcessingUtil.formatError(processingError));
+      await EmailProcessingUtil.logProcessingError(contextDAO, application, email.id, processingError, options.retryAttempt);
+      throw processingError;
+    }
+  }
+
+  public static async sendJmapSummary(data: JmapSummaryData, env: EmailProcessingEnv): Promise<void> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const processedDAO = new ProcessedMessageDAO(env.DB);
+    const existing = await processedDAO.getByMessageId(data.application.applicationId, data.emailId);
+    if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
+    try {
+      await FastmailProviderUtil.createDraftReply(data.accessToken, data.emailId, data.summaryHtml);
+      await EmailProcessingUtil.logSummarySent(contextDAO, data.application, data.emailId, data.options.retryAttempt);
+      await processedDAO.markSummarized(data.application.applicationId, data.emailId);
+    } catch (error: unknown) {
+      const processingError = EmailProcessingUtil.classifyError(error);
+      await processedDAO.markError(data.application.applicationId, data.emailId, EmailProcessingUtil.formatError(processingError));
+      await EmailProcessingUtil.logProcessingError(contextDAO, data.application, data.emailId, processingError, data.options.retryAttempt);
+      throw processingError;
+    }
+  }
+
+  public static async generateImapSummary(
+    application: ConnectedApplication,
+    uid: number,
+    imapClient: ImapClient,
+    env: EmailProcessingEnv,
+    enabledApplicationIds: string[],
+    options: EmailProcessingOptions = {},
+  ): Promise<ImapSummaryData | null> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const processedDAO = new ProcessedMessageDAO(env.DB);
+    const [headerResult] = await imapClient.fetchHeaders([uid]);
+    if (!headerResult) return null;
+    const subject = headerResult.subject ?? '(no subject)';
+    const from = headerResult.from ?? '';
+    const rawBody = await imapClient.fetchBody(uid);
+    const body = EmailContentUtil.extractTextFromRaw(rawBody);
+    const resolvedMessageId = headerResult.messageId;
+    const stableFingerprintHash = await EmailProcessingUtil.getStableMessageFingerprint(env, application.providerId, headerResult.messageId);
+    const started = await processedDAO.tryStart(application.applicationId, application.providerId, resolvedMessageId, null, {
+      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      providerStableMessageFingerprint: stableFingerprintHash,
+    });
+    if (!started) return null;
+    await EmailProcessingUtil.logProcessingStarted(contextDAO, application, resolvedMessageId, options.retryAttempt);
+    try {
+      const result = await EmailProcessingUtil.generateSummaryCore(
+        contextDAO, processedDAO, application, resolvedMessageId,
+        from, subject, body, null, env, enabledApplicationIds, options,
+      );
+      if (!result) return null;
+      return { ...result, emailSubject: subject, emailFrom: from, application, messageId: resolvedMessageId, uid, options };
+    } catch (error: unknown) {
+      const processingError = EmailProcessingUtil.classifyError(error);
+      await processedDAO.markError(application.applicationId, resolvedMessageId, EmailProcessingUtil.formatError(processingError));
+      await EmailProcessingUtil.logProcessingError(contextDAO, application, resolvedMessageId, processingError, options.retryAttempt);
+      throw processingError;
+    }
+  }
+
+  public static async sendImapSummary(data: ImapSummaryData, imapClient: ImapClient, env: EmailProcessingEnv): Promise<void> {
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const processedDAO = new ProcessedMessageDAO(env.DB);
+    const existing = await processedDAO.getByMessageId(data.application.applicationId, data.messageId);
+    if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
+    try {
+      const summaryRfc2822 = [
+        `From: ${data.application.providerEmail ?? data.application.userEmail}`,
+        `To: ${data.application.providerEmail ?? data.application.userEmail}`,
+        `Subject: [Mail Otter Summary] ${data.emailSubject}`,
+        `X-Mail-Otter-Summary: true`,
+        `Content-Type: text/html; charset=utf-8`,
+        '',
+        data.summaryHtml,
+      ].join('\r\n');
+      await imapClient.append('INBOX', summaryRfc2822);
+      await EmailProcessingUtil.logSummarySent(contextDAO, data.application, data.messageId, data.options.retryAttempt);
+      await processedDAO.markSummarized(data.application.applicationId, data.messageId);
+    } catch (error: unknown) {
+      const processingError = EmailProcessingUtil.classifyError(error);
       await processedDAO.markError(data.application.applicationId, data.messageId, EmailProcessingUtil.formatError(processingError));
       await EmailProcessingUtil.logProcessingError(contextDAO, data.application, data.messageId, processingError, data.options.retryAttempt);
       throw processingError;
@@ -607,5 +735,30 @@ interface OutlookSummaryData {
   options: EmailProcessingOptions;
 }
 
+interface JmapSummaryData {
+  email: { id: string; subject?: string | null; from?: Array<{ email: string; name?: string }> | null; threadId?: string | null };
+  summaryHtml: string;
+  rawSummary: { gist: string; keyDetails: string[] };
+  emailSubject: string;
+  emailFrom: string;
+  actions: CreatedEmailAction[];
+  application: ConnectedApplication;
+  accessToken: string;
+  emailId: string;
+  options: EmailProcessingOptions;
+}
+
+interface ImapSummaryData {
+  summaryHtml: string;
+  rawSummary: { gist: string; keyDetails: string[] };
+  emailSubject: string;
+  emailFrom: string;
+  actions: CreatedEmailAction[];
+  application: ConnectedApplication;
+  messageId: string;
+  uid: number;
+  options: EmailProcessingOptions;
+}
+
 export { EmailProcessingUtil };
-export type { EmailProcessingEnv, EmailProcessingOptions, ResolvedApplication, GmailMessageList, GmailSummaryData, OutlookSummaryData };
+export type { EmailProcessingEnv, EmailProcessingOptions, ImapSummaryData, JmapSummaryData, ResolvedApplication, GmailMessageList, GmailSummaryData, OutlookSummaryData };

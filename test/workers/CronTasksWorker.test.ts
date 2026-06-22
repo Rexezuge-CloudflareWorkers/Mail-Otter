@@ -4,6 +4,7 @@ const { taskSpies } = vi.hoisted(() => ({
   taskSpies: {
     oauth2Refresh: vi.fn(),
     contextPruning: vi.fn(),
+    imapPolling: vi.fn(),
     processedMessagePruning: vi.fn(),
     staleContextDocumentPruning: vi.fn(),
     oauth2SessionPruning: vi.fn(),
@@ -21,6 +22,9 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
   ContextDocumentPruningTask: class {
     handle = taskSpies.contextPruning;
+  },
+  ImapPollingTask: class {
+    handle = taskSpies.imapPolling;
   },
   ProcessedMessagePruningTask: class {
     handle = taskSpies.processedMessagePruning;
@@ -87,6 +91,7 @@ describe('CronTasksWorker', () => {
     vi.restoreAllMocks();
     taskSpies.oauth2Refresh.mockReset().mockResolvedValue(undefined);
     taskSpies.contextPruning.mockReset().mockResolvedValue(undefined);
+    taskSpies.imapPolling.mockReset().mockResolvedValue(undefined);
     taskSpies.processedMessagePruning.mockReset().mockResolvedValue(undefined);
     taskSpies.staleContextDocumentPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.oauth2SessionPruning.mockReset().mockResolvedValue(undefined);

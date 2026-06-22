@@ -11,7 +11,11 @@ interface OAuth2Credentials {
   refreshToken?: string | undefined;
 }
 
-type ConnectedApplicationCredentials = OAuth2Credentials;
+interface ImapPasswordCredentials {
+  imapPassword: string;
+}
+
+type ConnectedApplicationCredentials = OAuth2Credentials | ImapPasswordCredentials;
 
 interface ConnectedApplicationMetadata {
   applicationId: string;
@@ -28,6 +32,12 @@ interface ConnectedApplicationMetadata {
   senderDomainFilters?: SenderDomainFilters | null | undefined;
   emailProcessingRules?: EmailProcessingRule[] | null | undefined;
   gmailPubsubTopicName?: string | null | undefined;
+  imapHost?: string | null | undefined;
+  imapPort?: number | null | undefined;
+  imapUsername?: string | null | undefined;
+  imapPassword?: string | null | undefined;
+  smtpHost?: string | null | undefined;
+  smtpPort?: number | null | undefined;
   watchedFolders?: Array<{ id: string; name: string }> | null | undefined;
   oauth2RedirectUri?: string | undefined;
   webhookUrl?: string | undefined;
@@ -74,6 +84,7 @@ export type {
   ConnectedApplicationCredentials,
   ConnectedApplicationInternal,
   ConnectedApplicationMetadata,
+  ImapPasswordCredentials,
   OAuth2Credentials,
   SenderDomainFilters,
 };

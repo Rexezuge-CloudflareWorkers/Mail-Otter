@@ -27,11 +27,17 @@ class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, Create
 
 interface CreateApplicationRequest extends IRequest {
   displayName: string;
-  providerId: 'google-gmail' | 'microsoft-outlook';
-  connectionMethod: 'oauth2';
-  clientId: string;
-  clientSecret: string;
+  providerId: 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
+  connectionMethod: 'oauth2' | 'imap-password';
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
   gmailPubsubTopicName?: string | undefined;
+  imapHost?: string | undefined;
+  imapPort?: number | undefined;
+  imapUsername?: string | undefined;
+  imapPassword?: string | undefined;
+  smtpHost?: string | undefined;
+  smtpPort?: number | undefined;
   enabledFeatures?: string[] | undefined;
   timeZone?: string | undefined;
 }

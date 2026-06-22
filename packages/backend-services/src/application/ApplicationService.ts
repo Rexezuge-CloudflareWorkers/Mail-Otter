@@ -1,4 +1,9 @@
-import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
+import {
+  CONNECTED_APPLICATION_STATUS_CONNECTED,
+  CONNECTED_APPLICATION_STATUS_DRAFT,
+  CONNECTION_METHOD_IMAP_PASSWORD,
+  CONNECTION_METHOD_OAUTH2,
+} from '@mail-otter/shared/constants';
 import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
@@ -47,20 +52,31 @@ class ApplicationService {
       throw new BadRequestError(`Maximum ${maxApplications} connected applications allowed per user.`);
     }
 
-    const credentials: ConnectedApplicationCredentials = {
-      clientId: input.clientId,
-      clientSecret: input.clientSecret,
-    };
+    const isImapPassword = input.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
+    const credentials: ConnectedApplicationCredentials = isImapPassword
+      ? { imapPassword: input.imapPassword ?? '' }
+      : { clientId: input.clientId ?? '', clientSecret: input.clientSecret ?? '' };
+    const status = isImapPassword ? CONNECTED_APPLICATION_STATUS_CONNECTED : CONNECTED_APPLICATION_STATUS_DRAFT;
+    const imapConfig = (input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort)
+      ? {
+          host: input.imapHost ?? null,
+          port: input.imapPort ?? null,
+          username: input.imapUsername ?? null,
+          smtpHost: input.smtpHost ?? null,
+          smtpPort: input.smtpPort ?? null,
+        }
+      : null;
     const application: ConnectedApplicationMetadata = await applicationDAO.create(
       userEmail,
       input.displayName,
       input.providerId,
-      CONNECTION_METHOD_OAUTH2,
+      input.connectionMethod ?? CONNECTION_METHOD_OAUTH2,
       credentials,
-      CONNECTED_APPLICATION_STATUS_DRAFT,
+      status,
       input.gmailPubsubTopicName || null,
       input.enabledFeatures || null,
       input.timeZone || null,
+      imapConfig,
     );
     return ApplicationResponseUtil.decorateApplication(application, env, raw);
   }
@@ -80,16 +96,35 @@ class ApplicationService {
       throw new BadRequestError('Provider and connection method cannot be changed after creation.');
     }
 
-    const existingOAuth2 = existing.credentials as OAuth2Credentials;
-    const newClientId = input.clientId || existingOAuth2.clientId;
-    const newClientSecret = input.clientSecret || existingOAuth2.clientSecret;
-    const credentials: ConnectedApplicationCredentials = {
-      clientId: newClientId,
-      clientSecret: newClientSecret,
-      refreshToken: existingOAuth2.refreshToken,
-    };
-    const credentialsChanged = newClientId !== existingOAuth2.clientId || newClientSecret !== existingOAuth2.clientSecret;
-    const newStatus = credentialsChanged ? CONNECTED_APPLICATION_STATUS_DRAFT : existing.status;
+    const isImapPassword = existing.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
+    let credentials: ConnectedApplicationCredentials;
+    let newStatus = existing.status;
+    if (isImapPassword) {
+      const existingPassword = (existing.credentials as { imapPassword?: string }).imapPassword ?? '';
+      const newPassword = input.imapPassword || existingPassword;
+      credentials = { imapPassword: newPassword };
+    } else {
+      const existingOAuth2 = existing.credentials as OAuth2Credentials;
+      const newClientId = input.clientId || existingOAuth2.clientId;
+      const newClientSecret = input.clientSecret || existingOAuth2.clientSecret;
+      credentials = {
+        clientId: newClientId,
+        clientSecret: newClientSecret,
+        refreshToken: existingOAuth2.refreshToken,
+      };
+      const credentialsChanged = newClientId !== existingOAuth2.clientId || newClientSecret !== existingOAuth2.clientSecret;
+      if (credentialsChanged) newStatus = CONNECTED_APPLICATION_STATUS_DRAFT;
+    }
+
+    const imapConfig = (input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort)
+      ? {
+          host: input.imapHost ?? null,
+          port: input.imapPort ?? null,
+          username: input.imapUsername ?? null,
+          smtpHost: input.smtpHost ?? null,
+          smtpPort: input.smtpPort ?? null,
+        }
+      : null;
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateForUser(
       input.applicationId,
       userEmail,
@@ -100,6 +135,7 @@ class ApplicationService {
       input.enabledFeatures,
       input.senderDomainFilters,
       input.timeZone,
+      imapConfig,
     );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
@@ -302,20 +338,25 @@ class ApplicationService {
 
 interface CreateUserApplicationInput {
   displayName: string;
-  providerId: 'google-gmail' | 'microsoft-outlook';
-  clientId: string;
-  clientSecret: string;
+  providerId: string;
+  connectionMethod?: string | undefined;
+  clientId?: string | undefined;
+  clientSecret?: string | undefined;
   gmailPubsubTopicName?: string | undefined;
+  imapHost?: string | undefined;
+  imapPort?: number | undefined;
+  imapUsername?: string | undefined;
+  imapPassword?: string | undefined;
+  smtpHost?: string | undefined;
+  smtpPort?: number | undefined;
   enabledFeatures?: string[] | null | undefined;
   timeZone?: string | null | undefined;
   senderDomainFilters?: SenderDomainFilters | null | undefined;
 }
 
-interface UpdateUserApplicationInput extends Omit<CreateUserApplicationInput, 'clientId' | 'clientSecret'> {
+interface UpdateUserApplicationInput extends CreateUserApplicationInput {
   applicationId: string;
-  connectionMethod: typeof CONNECTION_METHOD_OAUTH2;
-  clientId?: string | undefined;
-  clientSecret?: string | undefined;
+  connectionMethod: string;
 }
 
 interface ApplicationServiceEnv {

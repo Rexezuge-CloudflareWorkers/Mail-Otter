@@ -7,10 +7,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./email-content": "./src/email-content/index.ts",
+    "./fastmail": "./src/fastmail/index.ts",
     "./gmail": "./src/gmail/index.ts",
+    "./imap": "./src/imap/index.ts",
     "./oauth2": "./src/oauth2/index.ts",
     "./outlook": "./src/outlook/index.ts",
-    "./webhook": "./src/webhook/index.ts"
+    "./webhook": "./src/webhook/index.ts",
+    "./yahoo": "./src/yahoo/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

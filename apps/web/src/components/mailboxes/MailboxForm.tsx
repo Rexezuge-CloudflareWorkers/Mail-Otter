@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import type { ProviderId } from '../../../components/types';
 import { OAUTH2_FEATURES, OAUTH2_FEATURE_SCOPES } from '../../../components/constants';
 import type { OAuth2Feature } from '../../../components/constants';
+import { providerLabels, providerConnectionMethods, methodLabels } from '../../../components/utils';
 import { Input, Select } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -12,9 +13,16 @@ export interface ApplicationFormState {
   applicationId?: string;
   displayName: string;
   providerId: ProviderId;
+  connectionMethod: 'oauth2' | 'imap-password';
   clientId: string;
   clientSecret: string;
   gmailPubsubTopicName: string;
+  imapHost: string;
+  imapPort: string;
+  imapUsername: string;
+  imapPassword: string;
+  smtpHost: string;
+  smtpPort: string;
   enabledFeatures: string[];
   timeZone: string;
 }
@@ -29,12 +37,26 @@ function getDefaultFeatures(providerId: ProviderId): string[] {
     .map(([featureId]) => featureId);
 }
 
+function getDefaultConnectionMethod(providerId: ProviderId): 'oauth2' | 'imap-password' {
+  const methods = providerConnectionMethods[providerId];
+  return methods?.[0] ?? 'oauth2';
+}
+
+const IMAP_PROVIDERS = new Set(['yahoo-mail', 'custom-imap', 'apple-icloud']);
+
 export const emptyForm: ApplicationFormState = {
   displayName: '',
   providerId: 'google-gmail',
+  connectionMethod: 'oauth2',
   clientId: '',
   clientSecret: '',
   gmailPubsubTopicName: '',
+  imapHost: '',
+  imapPort: '993',
+  imapUsername: '',
+  imapPassword: '',
+  smtpHost: '',
+  smtpPort: '587',
   enabledFeatures: getDefaultFeatures('google-gmail'),
   timeZone: getBrowserTimeZone(),
 };
@@ -79,6 +101,13 @@ export function MailboxForm({
     update({ enabledFeatures: next });
   };
 
+  const availableMethods = providerConnectionMethods[form.providerId] ?? ['oauth2'];
+  const isImapProvider = IMAP_PROVIDERS.has(form.providerId);
+  const isImapPasswordMethod = form.connectionMethod === 'imap-password';
+  const isOAuth2Method = form.connectionMethod === 'oauth2';
+  const showImapFields = isImapProvider;
+  const showOAuth2Fields = isOAuth2Method && !isImapProvider;
+
   const providerFeatures: [string, OAuth2Feature][] = (Object.entries(OAUTH2_FEATURES) as [string, OAuth2Feature][]).filter(
     ([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[form.providerId] ?? []).length > 0,
   );
@@ -119,29 +148,72 @@ export function MailboxForm({
             onChange={(e) => update({ displayName: e.target.value })}
             placeholder="Display Name"
           />
+
+          {/* Provider selector */}
           <Select
             value={form.providerId}
             onChange={(e) => {
               const p = e.target.value as ProviderId;
-              update({ providerId: p, enabledFeatures: getDefaultFeatures(p) });
+              const defaultMethod = getDefaultConnectionMethod(p);
+              update({
+                providerId: p,
+                connectionMethod: defaultMethod,
+                enabledFeatures: getDefaultFeatures(p),
+              });
             }}
             disabled={Boolean(form.applicationId)}
             className="w-full"
           >
-            <option value="google-gmail">Google Gmail / OAuth2</option>
-            <option value="microsoft-outlook">Microsoft Outlook / OAuth2</option>
+            {(Object.keys(providerLabels) as ProviderId[]).map((pid) => (
+              <option key={pid} value={pid}>
+                {providerLabels[pid]}
+              </option>
+            ))}
           </Select>
-          <Input
-            value={form.clientId}
-            onChange={(e) => update({ clientId: e.target.value })}
-            placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
-          />
-          <Input
-            value={form.clientSecret}
-            onChange={(e) => update({ clientSecret: e.target.value })}
-            placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
-            type="password"
-          />
+
+          {/* Connection method selector — only shown when provider supports multiple methods */}
+          {availableMethods.length > 1 && (
+            <Select
+              value={form.connectionMethod}
+              onChange={(e) => update({ connectionMethod: e.target.value as 'oauth2' | 'imap-password' })}
+              disabled={Boolean(form.applicationId)}
+              className="w-full"
+            >
+              {availableMethods.map((method) => (
+                <option key={method} value={method}>
+                  {methodLabels[method] ?? method}
+                </option>
+              ))}
+            </Select>
+          )}
+
+          {/* OAuth2 credential fields — only for OAuth2 non-IMAP providers */}
+          {isOAuth2Method && !isImapPasswordMethod && (
+            <>
+              <Input
+                value={form.clientId}
+                onChange={(e) => update({ clientId: e.target.value })}
+                placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
+              />
+              <Input
+                value={form.clientSecret}
+                onChange={(e) => update({ clientSecret: e.target.value })}
+                placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
+                type="password"
+              />
+            </>
+          )}
+
+          {/* Yahoo OAuth2: also show IMAP username (must match mailbox address) */}
+          {form.providerId === 'yahoo-mail' && isOAuth2Method && (
+            <Input
+              value={form.imapUsername}
+              onChange={(e) => update({ imapUsername: e.target.value })}
+              placeholder="Yahoo Email Address (for IMAP)"
+            />
+          )}
+
+          {/* Gmail Pub/Sub topic */}
           {form.providerId === 'google-gmail' && (
             <Input
               value={form.gmailPubsubTopicName}
@@ -149,7 +221,77 @@ export function MailboxForm({
               placeholder="projects/{projectId}/topics/{topicName}"
             />
           )}
-          {providerFeatures.length > 0 && (
+
+          {/* IMAP fields for custom-imap and apple-icloud */}
+          {showImapFields && form.providerId !== 'yahoo-mail' && (
+            <div className="space-y-2">
+              {form.providerId === 'custom-imap' && (
+                <div className="flex gap-2">
+                  <Input
+                    value={form.imapHost}
+                    onChange={(e) => update({ imapHost: e.target.value })}
+                    placeholder="IMAP Host"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={form.imapPort}
+                    onChange={(e) => update({ imapPort: e.target.value })}
+                    placeholder="993"
+                    className="w-24"
+                    type="number"
+                  />
+                </div>
+              )}
+              <Input
+                value={form.imapUsername}
+                onChange={(e) => update({ imapUsername: e.target.value })}
+                placeholder="IMAP Username"
+              />
+              {isImapPasswordMethod && (
+                <Input
+                  value={form.imapPassword}
+                  onChange={(e) => update({ imapPassword: e.target.value })}
+                  placeholder={form.applicationId ? '(Unchanged)' : form.providerId === 'apple-icloud' ? 'App-Specific Password' : 'IMAP Password'}
+                  type="password"
+                />
+              )}
+              {isOAuth2Method && form.providerId === 'custom-imap' && (
+                <>
+                  <Input
+                    value={form.clientId}
+                    onChange={(e) => update({ clientId: e.target.value })}
+                    placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
+                  />
+                  <Input
+                    value={form.clientSecret}
+                    onChange={(e) => update({ clientSecret: e.target.value })}
+                    placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
+                    type="password"
+                  />
+                </>
+              )}
+              {form.providerId === 'custom-imap' && (
+                <div className="flex gap-2">
+                  <Input
+                    value={form.smtpHost}
+                    onChange={(e) => update({ smtpHost: e.target.value })}
+                    placeholder="SMTP Host"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={form.smtpPort}
+                    onChange={(e) => update({ smtpPort: e.target.value })}
+                    placeholder="587"
+                    className="w-24"
+                    type="number"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Optional features for OAuth2 providers */}
+          {providerFeatures.length > 0 && showOAuth2Fields && (
             <div className="space-y-2 pt-1">
               <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional Features{form.applicationId ? ' (Requires Re-Authorization)' : ''}</p>
               {providerFeatures.map(([featureId, feature]) => (
@@ -165,6 +307,7 @@ export function MailboxForm({
               ))}
             </div>
           )}
+
           <div className="space-y-1.5 pt-1">
             <p className="text-xs font-medium text-[var(--color-text-secondary)]">Time Zone</p>
             <Select value={form.timeZone} onChange={(e) => update({ timeZone: e.target.value })} className="w-full">

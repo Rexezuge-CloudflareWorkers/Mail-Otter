@@ -1,5 +1,5 @@
 import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
-import { apiFetch, readJson, providerMethod } from '../../components/utils';
+import { apiFetch, readJson } from '../../components/utils';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
 export async function loadApplications(): Promise<{ applications: ConnectedApplication[] }> {
@@ -7,16 +7,23 @@ export async function loadApplications(): Promise<{ applications: ConnectedAppli
 }
 
 export async function saveApplication(form: ApplicationFormState): Promise<{ application: ConnectedApplication }> {
+  const isImapPassword = form.connectionMethod === 'imap-password';
   const payload = {
     applicationId: form.applicationId,
     displayName: form.displayName,
     providerId: form.providerId,
-    connectionMethod: providerMethod[form.providerId],
-    ...(form.clientId ? { clientId: form.clientId } : {}),
-    ...(form.clientSecret ? { clientSecret: form.clientSecret } : {}),
+    connectionMethod: form.connectionMethod,
+    ...(form.clientId && !isImapPassword ? { clientId: form.clientId } : {}),
+    ...(form.clientSecret && !isImapPassword ? { clientSecret: form.clientSecret } : {}),
     enabledFeatures: form.enabledFeatures,
     timeZone: form.timeZone,
     ...(form.providerId === 'google-gmail' ? { gmailPubsubTopicName: form.gmailPubsubTopicName } : {}),
+    ...(form.imapHost ? { imapHost: form.imapHost } : {}),
+    ...(form.imapPort ? { imapPort: parseInt(form.imapPort, 10) } : {}),
+    ...(form.imapUsername ? { imapUsername: form.imapUsername } : {}),
+    ...(form.imapPassword && isImapPassword ? { imapPassword: form.imapPassword } : {}),
+    ...(form.smtpHost ? { smtpHost: form.smtpHost } : {}),
+    ...(form.smtpPort ? { smtpPort: parseInt(form.smtpPort, 10) } : {}),
   };
   return readJson<{ application: ConnectedApplication }>(
     await apiFetch('/user/application', {
@@ -132,7 +139,7 @@ export async function updateSenderFilters(
         applicationId: app.applicationId,
         displayName: app.displayName,
         providerId: app.providerId,
-        connectionMethod: providerMethod[app.providerId],
+        connectionMethod: app.connectionMethod,
         enabledFeatures: app.enabledFeatures,
         ...(app.providerId === 'google-gmail' ? { gmailPubsubTopicName: app.gmailPubsubTopicName } : {}),
         senderDomainFilters: filters,

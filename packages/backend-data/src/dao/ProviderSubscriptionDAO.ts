@@ -12,11 +12,12 @@ import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 
 interface UpsertProviderSubscriptionInput {
   applicationId: string;
-  providerId: ProviderId;
+  providerId?: ProviderId | undefined;
   externalSubscriptionId?: string | null | undefined;
   webhookSecretHash?: string | null | undefined;
   clientStateHash?: string | null | undefined;
   gmailHistoryId?: string | null | undefined;
+  imapCursor?: string | null | undefined;
   resource?: string | null | undefined;
   expiresAt?: number | null | undefined;
 }
@@ -39,7 +40,7 @@ class ProviderSubscriptionDAO {
               `
                 UPDATE provider_subscriptions
                 SET external_subscription_id = ?, webhook_secret_hash = ?, client_state_hash = ?, gmail_history_id = ?,
-                    resource = ?, status = ?, expires_at = ?, last_error = NULL, last_renewed_at = ?,
+                    imap_cursor = ?, resource = ?, status = ?, expires_at = ?, last_error = NULL, last_renewed_at = ?,
                     renewal_retry_count = 0, renewal_next_retry_at = NULL, updated_at = ?
                 WHERE subscription_id = ?
               `,
@@ -49,6 +50,7 @@ class ProviderSubscriptionDAO {
               input.webhookSecretHash || existing.webhookSecretHash || null,
               input.clientStateHash || null,
               input.gmailHistoryId || existing.gmailHistoryId || null,
+              input.imapCursor || existing.imapCursor || null,
               input.resource || null,
               PROVIDER_SUBSCRIPTION_STATUS_ACTIVE,
               input.expiresAt ?? null,
@@ -71,18 +73,19 @@ class ProviderSubscriptionDAO {
           .prepare(
             `
               INSERT INTO provider_subscriptions
-                (subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)
+                (subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?)
             `,
           )
           .bind(
             subscriptionId,
             input.applicationId,
-            input.providerId,
+            input.providerId ?? null,
             input.externalSubscriptionId || null,
             input.webhookSecretHash || null,
             input.clientStateHash || null,
             input.gmailHistoryId || null,
+            input.imapCursor || null,
             input.resource || null,
             PROVIDER_SUBSCRIPTION_STATUS_ACTIVE,
             input.expiresAt ?? null,
@@ -102,7 +105,7 @@ class ProviderSubscriptionDAO {
     const row: ProviderSubscriptionInternal | null = await this.database
       .prepare(
         `
-          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
+          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
           FROM provider_subscriptions
           WHERE application_id = ?
           LIMIT 1
@@ -117,7 +120,7 @@ class ProviderSubscriptionDAO {
     const row: ProviderSubscriptionInternal | null = await this.database
       .prepare(
         `
-          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
+          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
           FROM provider_subscriptions
           WHERE external_subscription_id = ?
           LIMIT 1
@@ -132,7 +135,7 @@ class ProviderSubscriptionDAO {
     const rows: ProviderSubscriptionInternal[] = await this.database
       .prepare(
         `
-          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
+          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
           FROM provider_subscriptions
           WHERE status IN (?, ?) AND expires_at IS NOT NULL AND expires_at <= ?
             AND (renewal_next_retry_at IS NULL OR renewal_next_retry_at <= ?)
@@ -157,6 +160,36 @@ class ProviderSubscriptionDAO {
           .run(),
       'update Gmail history cursor',
     );
+  }
+
+  public async updateImapCursor(subscriptionId: string, imapCursor: string, lastNotificationAt?: number): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            'UPDATE provider_subscriptions SET imap_cursor = ?, last_notification_at = COALESCE(?, last_notification_at), updated_at = ? WHERE subscription_id = ?',
+          )
+          .bind(imapCursor, lastNotificationAt ?? null, now, subscriptionId)
+          .run(),
+      'update IMAP cursor',
+    );
+  }
+
+  public async listActiveImapSubscriptions(): Promise<ProviderSubscription[]> {
+    const rows: ProviderSubscriptionInternal[] = await this.database
+      .prepare(
+        `
+          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
+          FROM provider_subscriptions
+          WHERE status = ? AND imap_cursor IS NOT NULL
+          ORDER BY last_notification_at ASC NULLS FIRST
+        `,
+      )
+      .bind(PROVIDER_SUBSCRIPTION_STATUS_ACTIVE)
+      .all<ProviderSubscriptionInternal>()
+      .then((result: D1Result<ProviderSubscriptionInternal>): ProviderSubscriptionInternal[] => result.results || []);
+    return rows.map((row: ProviderSubscriptionInternal): ProviderSubscription => this.toSubscription(row));
   }
 
   public async touchNotification(subscriptionId: string): Promise<void> {
@@ -215,7 +248,7 @@ class ProviderSubscriptionDAO {
     const row: ProviderSubscriptionInternal | null = await this.database
       .prepare(
         `
-          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
+          SELECT subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, gmail_history_id, imap_cursor, resource, status, expires_at, last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at, created_at, updated_at
           FROM provider_subscriptions
           WHERE subscription_id = ?
           LIMIT 1
@@ -235,6 +268,7 @@ class ProviderSubscriptionDAO {
       webhookSecretHash: row.webhook_secret_hash,
       clientStateHash: row.client_state_hash,
       gmailHistoryId: row.gmail_history_id,
+      imapCursor: row.imap_cursor,
       resource: row.resource,
       status: row.status,
       expiresAt: row.expires_at,

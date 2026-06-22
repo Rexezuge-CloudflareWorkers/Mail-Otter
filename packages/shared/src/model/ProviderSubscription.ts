@@ -8,6 +8,7 @@ interface ProviderSubscription {
   webhookSecretHash?: string | null | undefined;
   clientStateHash?: string | null | undefined;
   gmailHistoryId?: string | null | undefined;
+  imapCursor?: string | null | undefined;
   resource?: string | null | undefined;
   status: ProviderSubscriptionStatus;
   expiresAt?: number | null | undefined;
@@ -28,6 +29,7 @@ interface ProviderSubscriptionInternal {
   webhook_secret_hash: string | null;
   client_state_hash: string | null;
   gmail_history_id: string | null;
+  imap_cursor: string | null;
   resource: string | null;
   status: ProviderSubscriptionStatus;
   expires_at: number | null;

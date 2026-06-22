@@ -1,4 +1,4 @@
-import { OAUTH2_FEATURE_SCOPES, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
+import { OAUTH2_FEATURE_SCOPES, PROVIDER_FASTMAIL_JMAP, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, PROVIDER_YAHOO_MAIL } from '@mail-otter/shared/constants';
 import type { ProviderId } from '@mail-otter/shared/constants';
 import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
 import type { OAuth2Credentials } from '@mail-otter/shared/model';
@@ -44,6 +44,16 @@ const ProviderConfig = {
     requiredScopes:
       'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access',
   },
+  [PROVIDER_FASTMAIL_JMAP]: {
+    authorizationEndpoint: 'https://api.fastmail.com/oauth/authorize',
+    tokenEndpoint: 'https://api.fastmail.com/oauth/token',
+    requiredScopes: 'urn:ietf:params:jmap:core urn:ietf:params:jmap:mail urn:ietf:params:jmap:submission',
+  },
+  [PROVIDER_YAHOO_MAIL]: {
+    authorizationEndpoint: 'https://api.login.yahoo.com/oauth2/request_auth',
+    tokenEndpoint: 'https://api.login.yahoo.com/oauth2/get_token',
+    requiredScopes: 'mail-r mail-w',
+  },
 } as const;
 
 class OAuth2ProviderUtil {
@@ -65,6 +75,8 @@ class OAuth2ProviderUtil {
       url.searchParams.set('access_type', 'offline');
       url.searchParams.set('prompt', 'consent');
     } else if (input.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
+      url.searchParams.set('response_mode', 'query');
+    } else if (input.providerId === PROVIDER_YAHOO_MAIL) {
       url.searchParams.set('response_mode', 'query');
     }
     return url.toString();

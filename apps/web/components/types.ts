@@ -1,4 +1,4 @@
-export type ProviderId = 'google-gmail' | 'microsoft-outlook';
+export type ProviderId = 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
 
 export type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body';
 export type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender';
@@ -63,13 +63,18 @@ export interface ConnectedApplication {
   providerEmail?: string | null;
   displayName: string;
   providerId: ProviderId;
-  connectionMethod: 'oauth2';
+  connectionMethod: 'oauth2' | 'imap-password';
   status: 'draft' | 'connected' | 'error';
   enabledFeatures?: string[] | null;
   timeZone?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
   emailProcessingRules?: EmailProcessingRule[] | null;
   gmailPubsubTopicName?: string | null;
+  imapHost?: string | null;
+  imapPort?: number | null;
+  imapUsername?: string | null;
+  smtpHost?: string | null;
+  smtpPort?: number | null;
   watchedFolders?: Array<{ id: string; name: string }> | null;
   oauth2RedirectUri?: string;
   webhookUrl?: string;

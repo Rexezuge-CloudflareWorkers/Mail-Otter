@@ -1,10 +1,21 @@
 import { PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
+import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
-import type { IEmailProvider, ProviderFolder } from './IEmailProvider';
+import type {
+  AnyProviderCredentials,
+  IEmailProvider,
+  ProviderFolder,
+  ProviderMessageSummary,
+  ProviderWatchResult,
+  StartWatchInput,
+  WebhookWatchResult,
+} from './IEmailProvider';
 
 class OutlookEmailProvider implements IEmailProvider {
   public readonly providerId = PROVIDER_MICROSOFT_OUTLOOK;
+  public readonly supportsWebhooks = true;
 
   public async listFolders(accessToken: string): Promise<ProviderFolder[]> {
     const folders = await OutlookProviderUtil.listMailFolders(accessToken);
@@ -15,6 +26,49 @@ class OutlookEmailProvider implements IEmailProvider {
     if (externalSubscriptionId) {
       await OutlookProviderUtil.deleteSubscription(accessToken, externalSubscriptionId);
     }
+  }
+
+  public async startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult> {
+    if (credentials.type !== 'oauth2') throw new BadRequestError('Outlook requires OAuth2 credentials.');
+    if (!input.clientState) throw new BadRequestError('clientState is required to start an Outlook subscription.');
+    if (!input.expiresAt) throw new BadRequestError('expiresAt is required to start an Outlook subscription.');
+    const notificationUrl = `${input.baseUrl}/api/webhooks/outlook/__APPLICATION_ID__`;
+    const lifecycleNotificationUrl = `${input.baseUrl}/api/webhooks/outlook/lifecycle/__APPLICATION_ID__`;
+    const graphSubscription = await OutlookProviderUtil.createInboxSubscription(
+      credentials.accessToken,
+      notificationUrl,
+      lifecycleNotificationUrl,
+      input.clientState,
+      input.expiresAt,
+      input.watchedFolderIds?.[0],
+    );
+    const result: WebhookWatchResult = {
+      type: 'webhook',
+      externalSubscriptionId: graphSubscription.id,
+      clientStateHash: await WebhookSecurityUtil.hashSecret(input.clientState),
+      resource: graphSubscription.resource,
+      expiresAt: graphSubscription.expiresAt,
+      webhookUrl: notificationUrl,
+      message: 'Outlook subscription started.',
+    };
+    return result;
+  }
+
+  public async renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, expiresAt: number | null): Promise<ProviderWatchResult> {
+    if (credentials.type !== 'oauth2') throw new BadRequestError('Outlook requires OAuth2 credentials.');
+    if (!expiresAt) throw new BadRequestError('expiresAt is required to renew an Outlook subscription.');
+    const renewed = await OutlookProviderUtil.renewSubscription(credentials.accessToken, subscriptionId, expiresAt);
+    const result: WebhookWatchResult = {
+      type: 'webhook',
+      externalSubscriptionId: renewed.id,
+      resource: renewed.resource,
+      expiresAt: renewed.expiresAt,
+    };
+    return result;
+  }
+
+  public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+    throw new BadRequestError('Outlook uses webhooks and does not support polling.');
   }
 
   public getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {

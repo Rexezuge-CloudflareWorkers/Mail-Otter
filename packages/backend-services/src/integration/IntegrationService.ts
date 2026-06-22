@@ -1,7 +1,7 @@
 import { ApplicationIntegrationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
-import type { GmailSummaryData, OutlookSummaryData } from '../email/EmailProcessingUtil';
+import type { GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData } from '../email/EmailProcessingUtil';
 
 interface IntegrationServiceEnv {
   DB: D1Queryable;
@@ -26,7 +26,7 @@ interface EmailSummaryNotification {
 
 class IntegrationService {
   public static async sendToIntegrations(
-    summaryData: GmailSummaryData | OutlookSummaryData,
+    summaryData: GmailSummaryData | OutlookSummaryData | JmapSummaryData | ImapSummaryData,
     env: IntegrationServiceEnv,
   ): Promise<void> {
     const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();

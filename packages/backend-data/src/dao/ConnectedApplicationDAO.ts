@@ -2,6 +2,7 @@ import {
   CONNECTED_APPLICATION_STATUS_CONNECTED,
   CONNECTED_APPLICATION_STATUS_DRAFT,
   CONNECTED_APPLICATION_STATUS_ERROR,
+  CONNECTION_METHOD_IMAP_PASSWORD,
   CONNECTION_METHOD_OAUTH2,
 } from '@mail-otter/shared/constants';
 import { decryptData, encryptData } from '../crypto';
@@ -38,6 +39,7 @@ class ConnectedApplicationDAO {
     gmailPubsubTopicName?: string | null,
     enabledFeatures?: string[] | null,
     timeZone?: string | null,
+    imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
   ): Promise<ConnectedApplicationMetadata> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const applicationId: string = UUIDUtil.getRandomUUID();
@@ -77,6 +79,9 @@ class ConnectedApplicationDAO {
     }
     if (timeZone) {
       await this.setProviderConfig(applicationId, 'calendar_time_zone', TimeZoneUtil.normalize(timeZone), now);
+    }
+    if (imapConfig) {
+      await this.saveImapConfig(applicationId, imapConfig, now);
     }
     const application: ConnectedApplicationMetadata | undefined = await this.getMetadataByIdForUser(applicationId, userEmail);
     if (!application) {
@@ -149,6 +154,7 @@ class ConnectedApplicationDAO {
     enabledFeatures?: string[] | null,
     senderDomainFilters?: SenderDomainFilters | null,
     timeZone?: string | null,
+    imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
@@ -186,7 +192,45 @@ class ConnectedApplicationDAO {
     } else if (timeZone === null) {
       await this.deleteProviderConfig(applicationId, 'calendar_time_zone');
     }
+    if (imapConfig) {
+      await this.saveImapConfig(applicationId, imapConfig, now);
+    }
     return this.getMetadataByIdForUser(applicationId, userEmail);
+  }
+
+  public async markImapConnected(applicationId: string, providerEmail: string): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare(
+            `UPDATE connected_applications SET provider_email = ?, status = ?, updated_at = ? WHERE application_id = ? AND connection_method = ?`,
+          )
+          .bind(providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId, CONNECTION_METHOD_IMAP_PASSWORD)
+          .run(),
+      'mark IMAP application connected',
+    );
+  }
+
+  private async saveImapConfig(
+    applicationId: string,
+    config: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null },
+    now: number,
+  ): Promise<void> {
+    const entries: Array<[string, string | null]> = [
+      ['imap_host', config.host ?? null],
+      ['imap_port', config.port != null ? String(config.port) : null],
+      ['imap_username', config.username ?? null],
+      ['smtp_host', config.smtpHost ?? null],
+      ['smtp_port', config.smtpPort != null ? String(config.smtpPort) : null],
+    ];
+    for (const [key, value] of entries) {
+      if (value != null) {
+        await this.setProviderConfig(applicationId, key, value, now);
+      } else {
+        await this.deleteProviderConfig(applicationId, key);
+      }
+    }
   }
 
   public async markOAuth2Connected(applicationId: string, refreshToken: string, providerEmail: string): Promise<void> {
@@ -411,9 +455,15 @@ class ConnectedApplicationDAO {
 
   private async toApplication(row: ConnectedApplicationInternal): Promise<ConnectedApplication> {
     const decryptedCredentials: string = await decryptData(row.encrypted_credentials, row.credentials_iv, this.masterKey);
+    const credentials: ConnectedApplicationCredentials = JSON.parse(decryptedCredentials) as ConnectedApplicationCredentials;
+    const metadata = await this.toMetadata(row);
+    const imapPassword: string | null = row.connection_method === CONNECTION_METHOD_IMAP_PASSWORD
+      ? ((credentials as { imapPassword?: string }).imapPassword ?? null)
+      : null;
     return {
-      ...(await this.toMetadata(row)),
-      credentials: JSON.parse(decryptedCredentials) as ConnectedApplicationCredentials,
+      ...metadata,
+      ...(imapPassword != null ? { imapPassword } : {}),
+      credentials,
     };
   }
 
@@ -424,8 +474,13 @@ class ConnectedApplicationDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson]: [
+    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr]: [
       Array<{ folderPath: string; folderName: string }>,
+      string | null,
+      string | null,
+      string | null,
+      string | null,
+      string | null,
       string | null,
       string | null,
       string | null,
@@ -438,6 +493,11 @@ class ConnectedApplicationDAO {
       this.getProviderConfig(row.application_id, 'sender_domain_filters'),
       this.getProviderConfig(row.application_id, 'calendar_time_zone'),
       this.getProviderConfig(row.application_id, 'email_processing_rules'),
+      this.getProviderConfig(row.application_id, 'imap_host'),
+      this.getProviderConfig(row.application_id, 'imap_port'),
+      this.getProviderConfig(row.application_id, 'imap_username'),
+      this.getProviderConfig(row.application_id, 'smtp_host'),
+      this.getProviderConfig(row.application_id, 'smtp_port'),
     ]);
     // Lazily migrate legacy excludeRules (stored in sender_domain_filters) into email processing rules
     let senderDomainFilters: SenderDomainFilters | null = null;
@@ -489,6 +549,11 @@ class ConnectedApplicationDAO {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,
+      imapHost: imapHost ?? null,
+      imapPort: imapPortStr != null ? Number(imapPortStr) : null,
+      imapUsername: imapUsername ?? null,
+      smtpHost: smtpHost ?? null,
+      smtpPort: smtpPortStr != null ? Number(smtpPortStr) : null,
     };
   }
 

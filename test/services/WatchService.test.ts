@@ -150,7 +150,7 @@ describe('WatchService', () => {
 
       await expect(
         WatchService.startApplicationWatch('user@example.com', 'app-1', 'https://example.com', makeEnv()),
-      ).rejects.toThrow('Complete OAuth2 authorization');
+      ).rejects.toThrow('Complete authorization');
     });
 
     it('throws when missing provider email', async () => {
@@ -192,7 +192,7 @@ describe('WatchService', () => {
 
       await expect(
         WatchService.startApplicationWatch('user@example.com', 'app-1', 'https://example.com', makeEnv()),
-      ).rejects.toThrow('Unsupported provider.');
+      ).rejects.toThrow('Unsupported provider');
     });
   });
 

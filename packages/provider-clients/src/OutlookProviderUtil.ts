@@ -244,7 +244,7 @@ class OutlookProviderUtil {
         },
         body: JSON.stringify({
           message: {
-            subject: `[OtterSum-${marker}] Re: ${originalSubject}`,
+            subject: `[${marker}] Re: ${originalSubject}`,
             body: {
               contentType: 'html',
               content: summary,
@@ -276,8 +276,8 @@ class OutlookProviderUtil {
     url.searchParams.set(
       '$filter',
       marker
-        ? `startswith(subject, '[OtterSum-${marker}]')`
-        : `startswith(subject, '[OtterSum-')`,
+        ? `startswith(subject, '[${marker}]')`
+        : `startswith(subject, '[')`,
     );
     url.searchParams.set('$top', '1');
     url.searchParams.set('$select', 'id');

@@ -47,13 +47,13 @@ describe('OutlookProviderUtil', () => {
       // Step 1: inbox idempotency check uses deterministic marker, no $orderby
       const inboxUrl = fetchMock.mock.calls[0][0] as string;
       expect(inboxUrl).toContain('/me/mailFolders/inbox/messages');
-      expect(inboxUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(inboxUrl).toContain(encodeURIComponent(`[${EXPECTED_MARKER}]`));
       expect(inboxUrl).not.toContain('orderby');
 
       // Step 2: sent items idempotency check uses same deterministic marker
       const sentItemsCheckUrl = fetchMock.mock.calls[1][0] as string;
       expect(sentItemsCheckUrl).toContain('/me/mailFolders/sentitems/messages');
-      expect(sentItemsCheckUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(sentItemsCheckUrl).toContain(encodeURIComponent(`[${EXPECTED_MARKER}]`));
       expect(sentItemsCheckUrl).not.toContain('orderby');
 
       // Step 3: reply with sink address
@@ -69,7 +69,7 @@ describe('OutlookProviderUtil', () => {
 
       expect(replyHeaders['Content-Type']).toBe('application/json');
       expect(replyHeaders['Authorization']).toBe('Bearer test-access-token');
-      expect(parsedBody.message.subject).toBe(`[OtterSum-${EXPECTED_MARKER}] Re: `);
+      expect(parsedBody.message.subject).toBe(`[${EXPECTED_MARKER}] Re: `);
       expect(parsedBody.message.body).toEqual({
         contentType: 'html',
         content: htmlSummary,
@@ -84,7 +84,7 @@ describe('OutlookProviderUtil', () => {
       // Step 4: find sent summary message by same marker, no $orderby
       const findUrl = fetchMock.mock.calls[3][0] as string;
       expect(findUrl).toContain('/me/mailFolders/sentitems/messages');
-      expect(findUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(findUrl).toContain(encodeURIComponent(`[${EXPECTED_MARKER}]`));
       expect(findUrl).toContain(encodeURIComponent('$top') + '=1');
       expect(findUrl).not.toContain('orderby');
 
@@ -126,7 +126,7 @@ describe('OutlookProviderUtil', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
       const inboxUrl = fetchMock.mock.calls[0][0] as string;
       expect(inboxUrl).toContain('/me/mailFolders/inbox/messages');
-      expect(inboxUrl).toContain(encodeURIComponent(`[OtterSum-${EXPECTED_MARKER}]`));
+      expect(inboxUrl).toContain(encodeURIComponent(`[${EXPECTED_MARKER}]`));
     });
 
     it('deletes stale Sent Items copy when summary already exists in inbox', async () => {

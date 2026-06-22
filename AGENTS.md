@@ -164,12 +164,12 @@ Public API routes:
 
 The Microsoft Graph API returns `internetMessageHeaders` on messages when requested via `$select`, but **does not support `$filter`** on this property. Using `$filter=internetMessageHeaders/any(...)` returns a 400 error.
 
-This affects `OutlookProviderUtil.findSummaryMessageInFolder` in `packages/provider-clients/src/OutlookProviderUtil.ts`. The workaround is to embed a unique UUID marker in the reply subject (e.g., `[OtterSum-<uuid>]`) and filter on `contains(subject, 'OtterSum-<uuid>')` instead — `$filter` on `subject` IS supported.
+This affects `OutlookProviderUtil.findSummaryMessageInFolder` in `packages/provider-clients/src/OutlookProviderUtil.ts`. The workaround is to embed a unique hex marker in the reply subject (e.g., `[<marker>] Re: ...`) and filter on `startswith(subject, '[<marker>]')` instead — `$filter` on `subject` IS supported.
 
 When modifying `sendSelfSummaryReply` or related Outlook message-finding logic:
-- Use `crypto.randomUUID()` to generate a unique marker
-- Set the marker in the subject when sending replies
-- Use `contains(subject, ...)` for the `$filter` parameter
+- Derive the marker via `deriveMessageMarker` (SHA-256 of the message ID, first 8 bytes as hex)
+- Set the marker in the subject when sending replies as `[${marker}] Re: ${originalSubject}`
+- Use `startswith(subject, '[${marker}]')` for the `$filter` parameter
 - The `X-Mail-Otter-Summary` header is still set on outgoing messages for identification during message reads (via `$select`), just not for filtering
 
 ### Outlook Summary Email Sink Flow

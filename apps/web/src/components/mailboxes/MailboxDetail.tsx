@@ -90,7 +90,7 @@ export function MailboxDetail({
           <Metric
             label="Watch Expires"
             value={formatExpiryTimestamp(application.watchExpiresAt)}
-            subtitle={application.watchExpiresAt ? 'Auto-Renews Automatically' : undefined}
+            subtitle={application.watchExpiresAt ? 'Renews Automatically' : undefined}
           />
           <Metric label="Last Summary" value={formatTimestamp(application.lastSummaryAt)} />
           <Metric

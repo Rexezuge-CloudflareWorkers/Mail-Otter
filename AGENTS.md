@@ -4,7 +4,7 @@ Guidance for agents working in Mail-Otter.
 
 ## Overview
 
-Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. Users can define reply actions with a public confirmation/denial callback flow.
+Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. The AI can suggest structured email actions (add calendar event, draft reply, open link, manual to-do) that the user confirms or denies through a public callback flow or the management UI. Per-mailbox time zones keep calendar events correct, optional sender domain filters scope which senders are processed, and a usage analytics dashboard summarizes AI usage, processing, actions, and context indexing.
 
 ## Cloudflare Documentation
 
@@ -80,15 +80,14 @@ Run `volta run pnpm run typegen` after changing bindings in Wrangler config.
 - `apps/background/src/EmailEventsDispatcherWorker.ts` is the Queue consumer that dispatches events to `EmailProcessingWorkflow`.
 - `apps/background/src/EmailProcessingWorkflow.ts` is the Workflow that resolves applications, lists Gmail/Outlook messages, summarizes with Workers AI, and posts summary replies.
 - `apps/background/src/OAuth2TokenRefreshWorker.ts` is the Durable Object that handles OAuth2 token refresh and authorization code exchange.
-- `apps/web/` contains the Vite React SPA for `/user`.
-- `apps/web/components/` contains shared frontend UI helpers (`types.ts`, `constants.ts`, `utils.ts`, `Unauthorized.tsx`).
-- `packages/shared/src/` contains cross-package constants, models, schemas, and utilities.
+- `apps/web/` contains the Vite React SPA for `/user`. `apps/web/src/components/` is organized by feature area: `actions/`, `analytics/`, `context/`, `layout/`, `mailboxes/`, `modals/`, `shared/`, `ui/`, and `views/` (`ActionsView`, `AnalyticsView`, `ContextAuditView`, `MailboxesView`).
+- `packages/shared/src/` contains cross-package constants, models, schemas, and utilities (including `TimeZoneUtil`, `TimestampUtil`, `UUIDUtil`, `BaseUrlUtil`, `CryptoUtil`).
 - `packages/backend-errors/src/` owns a typed error hierarchy (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `InternalServerError`, `DatabaseError`, `EmailProcessingError` with retryable/non-retryable variants).
 - `packages/backend-runtime/src/` owns all environment variable access via `ConfigurationManager` static methods and defaults in `ConfigurationDefaults.ts`. Also provides abstract worker base classes (`AbstractEntrypointWorker`, `AbstractDurableObjectWorker`, `AbstractQueueWorker`, `AbstractWorkflowWorker`) and DO naming constants. Add new env vars in `ConfigurationDefaults.ts`, not inline.
-- `packages/backend-data/src/` owns all D1 access via DAO classes (`ConnectedApplicationDAO`, `ApplicationContextDAO`, `UserDAO`, `ProcessedMessageDAO`, `OAuth2AuthorizationSessionDAO`, `ProviderSubscriptionDAO`, `AiDailyUsageDAO`, `EmailActionDAO`, `OAuth2AccessTokenCacheDAO`, `OAuth2AccessTokenRefreshStatusDAO`), KV-based token cache, D1 session utility, and AES-GCM encryption.
+- `packages/backend-data/src/` owns all D1 access via DAO classes in `dao/` (`ConnectedApplicationDAO`, `ApplicationContextDAO`, `UserDAO`, `ProcessedMessageDAO`, `OAuth2AuthorizationSessionDAO`, `ProviderSubscriptionDAO`, `AiDailyUsageDAO`, `EmailActionDAO`, `OAuth2AccessTokenCacheDAO`, `OAuth2AccessTokenRefreshStatusDAO`), KV-based token cache, D1 session/cursor/error utilities in `utils/` (`D1SessionUtil`, `CursorUtil`, `D1ErrorClassifier`, `D1Utils`), and AES-GCM encryption in `crypto/` (`CryptoService`). Per-application settings without dedicated columns (e.g. `calendar_time_zone`, enabled features, sender domain filters) are stored as provider-config key/value rows.
 - `packages/provider-clients/src/` owns provider API clients (`GmailProviderUtil`, `OutlookProviderUtil`, `OAuth2ProviderUtil`), webhook security (`WebhookSecurityUtil`), and email content parsing (`EmailContentUtil`).
-- `packages/backend-services/src/` owns business logic services (`ApplicationService`, `ContextService`, `ActionService`, `FolderService`, `WatchService`, `GmailWebhookService`, `OutlookWebhookService`, `OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `SubscriptionRenewalUtil`, `EmailProcessingUtil`, `EmailSummaryUtil`, `EmailContextUtil`, `AiUsageUtil`, `EmailValidationUtil`).
-- `migrations/` contains D1 migrations.
+- `packages/backend-services/src/` owns business logic services, organized by domain subdirectory: `action/` (`ActionService`), `analytics/` (`AnalyticsService`), `application/` (`ApplicationService`, `ApplicationResponseUtil`, `FolderService`), `auth/` (`EmailValidationUtil`), `email/` (`EmailProcessingUtil`, `EmailSummaryUtil`, `EmailContextUtil`, `ContextService`, `AiUsageUtil`, `SenderFilterUtil`, `WorkersAiErrorUtil`), `oauth2/` (`OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `OAuth2StateUtil`), `provider/` (`EmailProviderRegistry` + `IEmailProvider`, `GmailEmailProvider`, `OutlookEmailProvider`), `subscription/` (`WatchService`, `SubscriptionRenewalUtil`), `user/` (`UserService`), and `webhook/` (`GmailWebhookService`, `OutlookWebhookService`). New provider-specific behavior should go behind `EmailProviderRegistry`/`IEmailProvider` rather than branching on provider id in callers.
+- `migrations/` contains D1 migrations (latest: `0015_application_error_acknowledgment.sql`).
 - `functions/[[path]].ts` proxies Cloudflare Pages requests to the API Worker through a service binding.
 - `test/` contains Vitest suites for workers, schemas, and utilities.
 
@@ -114,7 +113,7 @@ Enforced by ESLint `no-restricted-imports` rules in `eslint.config.mjs`.
 - `apps/web/vite.config.ts` proxies `/api` to `http://localhost:8787` during SPA development.
 - `apps/web/vite.config.ts` embeds `apps/web/dist/index.html` into `apps/api/src/generated/spa-shell.ts` during web builds.
 - `apps/api/wrangler.template.jsonc` is the Worker config template. Copy it to `wrangler.jsonc` for deployment; keep bindings and generated types in sync. There is no separate `wrangler.jsonc` committed — each deployer creates their own.
-- The SPA is served from Cloudflare assets (`assets.directory = "./apps/web/dist/"`) when deployed; `SERVE_SPA_FROM_WORKER` provides a fallback for non-Pages deployments.
+- The SPA is served from Cloudflare assets (`assets.directory = "./apps/web/dist/"`) when deployed; `SERVE_SPA_FROM_WORKER` (default `true`) serves the SPA from the Worker catch-all route so API routes are not intercepted by the assets handler.
 - Current Worker bindings include D1 binding `DB`, KV namespace `OAUTH2_TOKEN_CACHE`, Secrets Store secrets `AES_ENCRYPTION_KEY_SECRET`, `ACTION_ENCRYPTION_KEY_SECRET`, `ACTION_SIGNING_SECRET`, Workers AI binding `AI`, Vectorize index `EMAIL_CONTEXT_INDEX`, Queue `EMAIL_EVENTS_QUEUE`, Workflow `EMAIL_PROCESSING_WORKFLOW`, Durable Objects `CRON_TASKS` and `OAUTH2_TOKEN_REFRESHERS`, and a cron trigger `*/10 * * * *`.
 
 ## Auth And Routing
@@ -129,11 +128,13 @@ Enforced by ESLint `no-restricted-imports` rules in `eslint.config.mjs`.
 Protected user routes:
 
 - `GET /user/me`
+- `GET /user/analytics`
 - `GET /user/applications`
 - `POST /user/application`
 - `PUT /user/application`
 - `DELETE /user/application`
 - `PUT /user/application/context`
+- `POST /user/application/dismiss-error`
 - `POST /user/application/context/delete-documents`
 - `GET /user/application/context/documents`
 - `GET /user/application/context/deletions`
@@ -187,6 +188,17 @@ When modifying `sendSelfSummaryReply` or related Outlook message-finding logic:
 
 The sink derivation is done in `OutlookProviderUtil.sendSelfSummaryReply` by splitting `mailboxAddress` at the last `@` and inserting `+sink`. Callers pass the user's real email; the sink transformation is internal.
 
+## Email Actions And Calendar
+
+- During processing, the AI may emit structured actions persisted via `EmailActionDAO` and surfaced in the summary reply and the management UI. Action types are defined in `packages/shared/src/constants/Providers.ts`: `calendar.add_event`, `email.draft_reply`, `external.open_link`, and `manual.todo`. Each action carries a typed payload (`EmailActionPayload` in `packages/shared/src/model/EmailAction.ts`), a risk level (`low`/`medium`/`high`), a status, and an execution trigger (`email_callback`, `web_ui`, `system_expiry`).
+- Public callback links (`/api/actions/:actionId` and `/api/actions/:actionId/execute`) are encrypted with `ACTION_ENCRYPTION_KEY_SECRET` and signed with `ACTION_SIGNING_SECRET`. The same actions can be executed from the UI via `POST /user/actions/:actionId/execute`.
+- `calendar.add_event` requires the optional `calendar` feature: it is opt-in per application via `enabledFeatures`, which adds provider-specific OAuth scopes from `OAUTH2_FEATURE_SCOPES` in `packages/shared/src/constants/OAuth2Scopes.ts` (`calendar.events` for Gmail, `Calendars.ReadWrite` for Outlook). Enabling a feature changes the requested scopes, so the user must re-authorize.
+- Calendar events are rendered in each mailbox's own time zone. The per-mailbox zone is stored as the `calendar_time_zone` provider-config row, validated/normalized through `TimeZoneUtil` (defaults to `UTC`), and applied by `ActionService`/`EmailSummaryUtil`. Never assume the Worker's UTC clock for event-facing dates.
+
+## Sender Domain Filters
+
+Each application may define optional `senderDomainFilters` with `includeRules` and `excludeRules` (each capped at 100 entries). `SenderFilterUtil` (in `packages/backend-services/src/email/`) decides whether an incoming message is processed. Empty include rules mean "process all senders except excludes"; non-empty include rules restrict processing to matching senders. Filters are stored as a provider-config row.
+
 ## Provider Naming
 
 - `google-gmail` / `oauth2`
@@ -220,9 +232,9 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 ## Test Coverage History
 
 - Initial threshold: 90/80/90/90
-- Lowered to 55/40/70/55 (statements/branches/functions/lines) in vitest.config.mts
-- Current coverage: ~62% lines, ~85% functions, ~60% statements, ~44% branches
+- Lowered to 55/40/70/55, then raised to 72/55/83/74 (statements/branches/functions/lines) in vitest.config.mts as coverage grew
 - `**/model/**` excluded from coverage (pure TypeScript types)
+- Integration tests live under `test/integration/` with their own `vitest.config.mts` (`pnpm run test:integration`). They run on `@cloudflare/vitest-pool-workers`, which does not produce V8 coverage — do not add coverage thresholds to the integration config.
 
 ### Covered (test files exist)
 - Error classes: 22 tests, 100% coverage (all 9 concrete + 1 abstract)

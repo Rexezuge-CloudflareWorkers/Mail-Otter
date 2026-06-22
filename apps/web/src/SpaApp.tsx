@@ -136,6 +136,17 @@ export default function SpaApp() {
     onDeleteContextDocuments: mailboxes.deleteContextDocuments,
     onDismissProcessingError: (id: string) => mailboxes.dismissError(id, 'processing'),
     onDismissContextError: (id: string) => mailboxes.dismissError(id, 'context'),
+    integrationsByApplicationId: mailboxes.integrationsByApplicationId,
+    loadingIntegrations: mailboxes.loadingIntegrations,
+    onLoadIntegrations: mailboxes.loadIntegrations,
+    onCreateIntegration: mailboxes.createIntegration,
+    onUpdateIntegration: mailboxes.updateIntegration,
+    onDeleteIntegration: async (integrationId: string) => {
+      const allIntegrations = Object.values(mailboxes.integrationsByApplicationId).flat();
+      const found = allIntegrations.find((i) => i.integrationId === integrationId);
+      if (found) await mailboxes.deleteIntegration(integrationId, found.applicationId);
+    },
+    onTestIntegration: mailboxes.testIntegration,
   };
 
   return (

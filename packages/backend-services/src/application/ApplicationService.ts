@@ -1,5 +1,5 @@
 import { CONNECTED_APPLICATION_STATUS_DRAFT, CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
-import { ApplicationContextDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
+import { ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type {
@@ -7,10 +7,14 @@ import type {
   ConnectedApplicationCredentials,
   ConnectedApplicationMetadata,
   OAuth2Credentials,
+  OutboundIntegration,
+  OutboundIntegrationType,
   SenderDomainFilters,
 } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
+import { IntegrationService } from '../integration/IntegrationService';
+import type { IntegrationServiceEnv } from '../integration/IntegrationService';
 import { WatchService } from '../subscription/WatchService';
 import type { WatchServiceEnv } from '../subscription/WatchService';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
@@ -155,6 +159,82 @@ class ApplicationService {
     return ApplicationResponseUtil.decorateApplication(application, env, raw);
   }
 
+  public static async listIntegrations(
+    userEmail: string,
+    applicationId: string,
+    env: IntegrationServiceEnv,
+  ): Promise<OutboundIntegration[]> {
+    await ApplicationService.assertApplicationOwnership(userEmail, applicationId, env);
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    return new ApplicationIntegrationDAO(env.DB, masterKey).listByApplicationId(applicationId);
+  }
+
+  public static async createIntegration(
+    userEmail: string,
+    input: CreateIntegrationInput,
+    env: IntegrationServiceEnv,
+  ): Promise<OutboundIntegration> {
+    await ApplicationService.assertApplicationOwnership(userEmail, input.applicationId, env);
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    return new ApplicationIntegrationDAO(env.DB, masterKey).create(
+      input.applicationId,
+      input.integrationType,
+      input.name,
+      input.webhookUrl,
+    );
+  }
+
+  public static async updateIntegration(
+    userEmail: string,
+    input: UpdateIntegrationInput,
+    env: IntegrationServiceEnv,
+  ): Promise<OutboundIntegration> {
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ApplicationIntegrationDAO(env.DB, masterKey);
+    const existing = await dao.getByIdForUser(input.integrationId, userEmail);
+    if (!existing) throw new BadRequestError('Integration not found.');
+    return dao.update(input.integrationId, {
+      name: input.name,
+      enabled: input.enabled,
+      webhookUrl: input.webhookUrl,
+    });
+  }
+
+  public static async deleteIntegration(
+    userEmail: string,
+    integrationId: string,
+    env: IntegrationServiceEnv,
+  ): Promise<void> {
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ApplicationIntegrationDAO(env.DB, masterKey);
+    const existing = await dao.getByIdForUser(integrationId, userEmail);
+    if (!existing) throw new BadRequestError('Integration not found.');
+    await dao.deleteById(integrationId);
+  }
+
+  public static async testIntegration(
+    userEmail: string,
+    integrationId: string,
+    env: IntegrationServiceEnv,
+  ): Promise<void> {
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ApplicationIntegrationDAO(env.DB, masterKey);
+    const integration = await dao.getByIdForUser(integrationId, userEmail);
+    if (!integration) throw new BadRequestError('Integration not found.');
+    await IntegrationService.sendTestNotification(integration, env);
+  }
+
+  private static async assertApplicationOwnership(
+    userEmail: string,
+    applicationId: string,
+    env: { DB: D1Queryable; AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret },
+  ): Promise<void> {
+    const masterKey = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const dao = new ConnectedApplicationDAO(env.DB, masterKey);
+    const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+    if (!app) throw new BadRequestError('Connected application not found.');
+  }
+
   private static async createApplicationDAO(env: ApplicationServiceEnv): Promise<ConnectedApplicationDAO> {
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     return new ConnectedApplicationDAO(env.DB, masterKey);
@@ -195,11 +275,27 @@ interface UpdateWatchedFolderIdsInput {
   folderNames?: Record<string, string>;
 }
 
+interface CreateIntegrationInput {
+  applicationId: string;
+  integrationType: OutboundIntegrationType;
+  name: string;
+  webhookUrl: string;
+}
+
+interface UpdateIntegrationInput {
+  integrationId: string;
+  name?: string | undefined;
+  enabled?: boolean | undefined;
+  webhookUrl?: string | undefined;
+}
+
 export { ApplicationService };
 export type {
   ApplicationServiceEnv,
+  CreateIntegrationInput,
   CreateUserApplicationInput,
   DeleteUserApplicationEnv,
+  UpdateIntegrationInput,
   UpdateUserApplicationInput,
   UpdateWatchedFolderIdsInput,
 };

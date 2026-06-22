@@ -8,3 +8,4 @@ export * from './OAuth2AuthorizationSession';
 export * from './ProcessedMessage';
 export * from './ContextAuditLog';
 export * from './ProviderSubscription';
+export * from './Integration';

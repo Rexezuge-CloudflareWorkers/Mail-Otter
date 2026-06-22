@@ -17,6 +17,12 @@ vi.mock('@mail-otter/backend-services/email', async (importOriginal) => {
   };
 });
 
+vi.mock('@mail-otter/backend-services/integration', () => ({
+  IntegrationService: {
+    sendToIntegrations: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { EmailProcessingWorkflow } from '@mail-otter/background';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 
@@ -42,6 +48,9 @@ describe('EmailProcessingWorkflow', () => {
     vi.mocked(EmailProcessingUtil.generateOutlookSummary).mockResolvedValue({
       message: { id: 'message-1', conversationId: 'conv-1' },
       summaryHtml: '<p>Summary</p>',
+      rawSummary: { gist: 'Test gist.', keyDetails: [] },
+      emailSubject: 'Test Subject',
+      emailFrom: 'sender@example.com',
       actions: [],
       application: resolvedApplication.application,
       accessToken: resolvedApplication.accessToken,

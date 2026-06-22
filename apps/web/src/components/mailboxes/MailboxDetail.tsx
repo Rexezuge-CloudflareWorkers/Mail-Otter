@@ -7,6 +7,7 @@ import { Metric } from '../shared/Metric';
 import { ReadOnlyField } from '../shared/ReadOnlyField';
 import { WatchSection } from './WatchSection';
 import { ContextSection } from './ContextSection';
+import { IntegrationsSection } from './IntegrationsSection';
 import { SenderFilterSection } from './SenderFilterSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
@@ -102,6 +103,7 @@ export function MailboxDetail({
       </Card>
 
       <ContextSection application={application} />
+      <IntegrationsSection applicationId={application.applicationId} />
       <SenderFilterSection application={application} />
       <WatchSection application={application} availableFolders={availableFolders} loadingFolders={loadingFolders} />
     </div>

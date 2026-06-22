@@ -1,5 +1,18 @@
 export type ProviderId = 'google-gmail' | 'microsoft-outlook';
 
+export type OutboundIntegrationType = 'slack' | 'discord' | 'webhook';
+
+export interface OutboundIntegration {
+  integrationId: string;
+  applicationId: string;
+  integrationType: OutboundIntegrationType;
+  name: string;
+  maskedWebhookUrl: string;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface SenderDomainFilters {
   includeRules: string[];
   excludeRules: string[];
@@ -45,6 +58,7 @@ export interface ConnectedApplication {
   contextLastDeleteAcceptedAt?: number | null;
   contextLastError?: string | null;
   contextLastErrorAt?: number | null;
+  integrations?: OutboundIntegration[];
   updatedAt: number;
 }
 

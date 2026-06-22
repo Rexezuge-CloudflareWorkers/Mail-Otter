@@ -1,4 +1,4 @@
-import type { ConnectedApplication, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import { apiFetch, readJson, providerMethod } from '../../components/utils';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
@@ -160,6 +160,60 @@ export async function dismissError(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId, errorType }),
+    }),
+  );
+}
+
+export async function loadIntegrations(applicationId: string): Promise<{ integrations: OutboundIntegration[] }> {
+  return readJson<{ integrations: OutboundIntegration[] }>(
+    await apiFetch(`/user/application/integrations?applicationId=${encodeURIComponent(applicationId)}`),
+  );
+}
+
+export async function createIntegration(
+  applicationId: string,
+  integrationType: OutboundIntegrationType,
+  name: string,
+  webhookUrl: string,
+): Promise<{ integration: OutboundIntegration }> {
+  return readJson<{ integration: OutboundIntegration }>(
+    await apiFetch('/user/application/integration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, integrationType, name, webhookUrl }),
+    }),
+  );
+}
+
+export async function updateIntegration(
+  integrationId: string,
+  patch: { name?: string; enabled?: boolean; webhookUrl?: string },
+): Promise<{ integration: OutboundIntegration }> {
+  return readJson<{ integration: OutboundIntegration }>(
+    await apiFetch('/user/application/integration', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ integrationId, ...patch }),
+    }),
+  );
+}
+
+export async function deleteIntegration(integrationId: string): Promise<{ success: boolean }> {
+  return readJson<{ success: boolean }>(
+    await apiFetch('/user/application/integration', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ integrationId }),
+    }),
+  );
+}
+
+export async function testIntegration(integrationId: string): Promise<{ success: boolean }> {
+  return readJson<{ success: boolean }>(
+    await apiFetch('/user/application/integration/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ integrationId }),
     }),
   );
 }

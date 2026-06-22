@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ConnectedApplication, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
 import * as appSvc from '../services/applicationService';
@@ -222,6 +222,91 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const [integrationsByApplicationId, setIntegrationsByApplicationId] = useState<Record<string, OutboundIntegration[]>>({});
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+
+  const loadIntegrations = async (applicationId: string) => {
+    setLoadingIntegrations(true);
+    try {
+      const data = await appSvc.loadIntegrations(applicationId);
+      setIntegrationsByApplicationId((c) => ({ ...c, [applicationId]: data.integrations }));
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Integrations.');
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  };
+
+  const createIntegration = async (
+    applicationId: string,
+    integrationType: OutboundIntegrationType,
+    name: string,
+    webhookUrl: string,
+  ) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.createIntegration(applicationId, integrationType, name, webhookUrl);
+      setIntegrationsByApplicationId((c) => ({
+        ...c,
+        [applicationId]: [...(c[applicationId] ?? []), data.integration],
+      }));
+      showNotice('success', 'Integration Created.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Create Integration.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const updateIntegration = async (
+    integrationId: string,
+    patch: { name?: string; enabled?: boolean; webhookUrl?: string },
+  ) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.updateIntegration(integrationId, patch);
+      setIntegrationsByApplicationId((c) => {
+        const appId = data.integration.applicationId;
+        return {
+          ...c,
+          [appId]: (c[appId] ?? []).map((i) => (i.integrationId === data.integration.integrationId ? data.integration : i)),
+        };
+      });
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Integration.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const deleteIntegration = async (integrationId: string, applicationId: string) => {
+    setIsBusy(true);
+    try {
+      await appSvc.deleteIntegration(integrationId);
+      setIntegrationsByApplicationId((c) => ({
+        ...c,
+        [applicationId]: (c[applicationId] ?? []).filter((i) => i.integrationId !== integrationId),
+      }));
+      showNotice('success', 'Integration Deleted.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Integration.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const testIntegration = async (integrationId: string) => {
+    setIsBusy(true);
+    try {
+      await appSvc.testIntegration(integrationId);
+      showNotice('success', 'Test Notification Sent.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Send Test Notification.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return {
     applications,
     selectedApplicationId,
@@ -251,5 +336,12 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     updateSenderFilters,
     deleteContextDocuments,
     dismissError,
+    integrationsByApplicationId,
+    loadingIntegrations,
+    loadIntegrations,
+    createIntegration,
+    updateIntegration,
+    deleteIntegration: (integrationId: string, applicationId: string) => deleteIntegration(integrationId, applicationId),
+    testIntegration,
   };
 }

@@ -22,6 +22,8 @@
     "./user/*": "./src/user/*.ts",
     "./analytics": "./src/analytics/index.ts",
     "./analytics/*": "./src/analytics/*.ts",
+    "./integration": "./src/integration/index.ts",
+    "./integration/*": "./src/integration/*.ts",
     "./webhook": "./src/webhook/index.ts",
     "./webhook/*": "./src/webhook/*.ts"
   },

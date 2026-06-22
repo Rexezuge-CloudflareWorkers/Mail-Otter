@@ -13,3 +13,4 @@ export { OAuth2AuthorizationSessionDAO } from './OAuth2AuthorizationSessionDAO';
 export { ProcessedMessageDAO } from './ProcessedMessageDAO';
 export type { ProcessedMessageStatusCounts } from './ProcessedMessageDAO';
 export { ProviderSubscriptionDAO } from './ProviderSubscriptionDAO';
+export { ApplicationIntegrationDAO } from './ApplicationIntegrationDAO';

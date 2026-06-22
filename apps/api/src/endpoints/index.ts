@@ -21,6 +21,11 @@ import { UpdateApplicationWatchSettingsRoute as OriginalUpdateApplicationWatchSe
 import { CreateOAuth2AuthorizationRoute as OriginalCreateOAuth2AuthorizationRoute } from './user/application/oauth2/authorize/POST';
 import { StartApplicationWatchRoute as OriginalStartApplicationWatchRoute } from './user/application/watch/POST';
 import { StopApplicationWatchRoute as OriginalStopApplicationWatchRoute } from './user/application/stop/POST';
+import { ListIntegrationsRoute as OriginalListIntegrationsRoute } from './user/application/integrations/GET';
+import { CreateIntegrationRoute as OriginalCreateIntegrationRoute } from './user/application/integrations/POST';
+import { UpdateIntegrationRoute as OriginalUpdateIntegrationRoute } from './user/application/integrations/PUT';
+import { DeleteIntegrationRoute as OriginalDeleteIntegrationRoute } from './user/application/integrations/DELETE';
+import { TestIntegrationRoute as OriginalTestIntegrationRoute } from './user/application/integrations/test/POST';
 import { OAuth2CallbackRoute as OriginalOAuth2CallbackRoute } from './api/oauth2/callback/GET';
 import { GetActionConfirmationRoute as OriginalGetActionConfirmationRoute } from './api/actions/GET';
 import { ExecuteActionCallbackRoute as OriginalExecuteActionCallbackRoute } from './api/actions/execute/POST';
@@ -55,3 +60,8 @@ export const ExecuteActionCallbackRoute: any = OriginalExecuteActionCallbackRout
 export const GmailWebhookRoute: any = OriginalGmailWebhookRoute;
 export const OutlookWebhookRoute: any = OriginalOutlookWebhookRoute;
 export const OutlookLifecycleWebhookRoute: any = OriginalOutlookLifecycleWebhookRoute;
+export const ListIntegrationsRoute: any = OriginalListIntegrationsRoute;
+export const CreateIntegrationRoute: any = OriginalCreateIntegrationRoute;
+export const UpdateIntegrationRoute: any = OriginalUpdateIntegrationRoute;
+export const DeleteIntegrationRoute: any = OriginalDeleteIntegrationRoute;
+export const TestIntegrationRoute: any = OriginalTestIntegrationRoute;

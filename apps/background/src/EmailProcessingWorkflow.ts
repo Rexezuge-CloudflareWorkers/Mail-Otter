@@ -3,6 +3,7 @@ import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, GmailSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
+import { IntegrationService } from '@mail-otter/backend-services/integration';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepContext } from 'cloudflare:workers';
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';
@@ -76,6 +77,18 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
                 }
               },
             );
+
+            await step.do(
+              `Send To Integrations for ${messageId}`,
+              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+              async (): Promise<void> => {
+                try {
+                  await IntegrationService.sendToIntegrations(summaryData, createD1SessionEnv(this.env));
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
           }
         }
 
@@ -123,6 +136,18 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           async (): Promise<void> => {
             try {
               await EmailProcessingUtil.sendOutlookSummary(summaryData, createD1SessionEnv(this.env));
+            } catch (error: unknown) {
+              throw EmailProcessingWorkflow.toWorkflowError(error);
+            }
+          },
+        );
+
+        await step.do(
+          'Send To Integrations',
+          { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+          async (): Promise<void> => {
+            try {
+              await IntegrationService.sendToIntegrations(summaryData, createD1SessionEnv(this.env));
             } catch (error: unknown) {
               throw EmailProcessingWorkflow.toWorkflowError(error);
             }

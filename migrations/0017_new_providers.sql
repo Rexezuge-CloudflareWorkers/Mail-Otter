@@ -1,11 +1,13 @@
 -- Migration 0017: Add support for new email providers (Fastmail/JMAP, Yahoo Mail, Custom IMAP, Apple iCloud)
--- Updates provider_id CHECK constraints in all three tables, adds imap-password connection method,
--- and adds imap_cursor column to provider_subscriptions for polling-based providers.
+-- Updates provider_id CHECK constraints in connected_applications, provider_subscriptions,
+-- processed_messages, and email_summary_actions. Adds imap-password connection method and
+-- imap_cursor column to provider_subscriptions for polling-based providers.
 
 -- SQLite does not support ALTER COLUMN or DROP CONSTRAINT. We rebuild each affected table.
--- PRAGMA foreign_keys = OFF is required because DROP TABLE connected_applications would otherwise
--- fail: D1 enforces foreign keys by default and multiple tables reference connected_applications.
-PRAGMA foreign_keys = OFF;
+-- D1 enforces foreign keys at the API level and ignores PRAGMA foreign_keys = OFF, so we
+-- cannot DROP a parent table while child tables hold FK references to it by name. Instead we
+-- use a rename strategy: rename old → _old (freeing the original name), rename new → original,
+-- then drop _old. No FK constraint ever names the _old table, so the DROP always succeeds.
 
 -- 1. connected_applications: add new provider IDs and imap-password connection method
 -- Current column set (after migrations 0001–0015): application_id, user_email, provider_email,
@@ -40,8 +42,9 @@ INSERT INTO connected_applications_new
            context_indexing_enabled, max_context_documents, last_error_acknowledged_at,
            context_last_error_acknowledged_at
     FROM connected_applications;
-DROP TABLE connected_applications;
+ALTER TABLE connected_applications RENAME TO connected_applications_old;
 ALTER TABLE connected_applications_new RENAME TO connected_applications;
+DROP TABLE connected_applications_old;
 CREATE INDEX idx_connected_applications_user_email ON connected_applications(user_email);
 
 -- 2. provider_subscriptions: add new provider IDs and imap_cursor column
@@ -74,8 +77,9 @@ INSERT INTO provider_subscriptions_new
            last_notification_at, last_renewed_at, last_error, renewal_retry_count, renewal_next_retry_at,
            created_at, updated_at
     FROM provider_subscriptions;
-DROP TABLE provider_subscriptions;
+ALTER TABLE provider_subscriptions RENAME TO provider_subscriptions_old;
 ALTER TABLE provider_subscriptions_new RENAME TO provider_subscriptions;
+DROP TABLE provider_subscriptions_old;
 CREATE INDEX idx_provider_subscriptions_application_id ON provider_subscriptions(application_id);
 CREATE INDEX idx_provider_subscriptions_external_id ON provider_subscriptions(external_subscription_id);
 CREATE INDEX idx_provider_subscriptions_expires_at ON provider_subscriptions(expires_at);
@@ -110,8 +114,9 @@ INSERT INTO processed_messages_new
            status, summary_sent_at, error_message, created_at, updated_at,
            provider_stable_message_fingerprint
     FROM processed_messages;
-DROP TABLE processed_messages;
+ALTER TABLE processed_messages RENAME TO processed_messages_old;
 ALTER TABLE processed_messages_new RENAME TO processed_messages;
+DROP TABLE processed_messages_old;
 CREATE INDEX idx_processed_messages_application_id ON processed_messages(application_id);
 CREATE INDEX idx_processed_messages_status ON processed_messages(status);
 -- Recreate partial unique index from 0009 (enforces stable fingerprint deduplication)
@@ -160,8 +165,9 @@ INSERT INTO email_summary_actions_new
            token_hash, encrypted_payload, payload_iv, payload_salt, encrypted_result,
            result_iv, result_salt, error_message, expires_at, executed_at, created_at, updated_at
     FROM email_summary_actions;
-DROP TABLE email_summary_actions;
+ALTER TABLE email_summary_actions RENAME TO email_summary_actions_old;
 ALTER TABLE email_summary_actions_new RENAME TO email_summary_actions;
+DROP TABLE email_summary_actions_old;
 CREATE INDEX idx_email_summary_actions_user_sort
   ON email_summary_actions(user_email, updated_at, created_at);
 CREATE INDEX idx_email_summary_actions_application_status
@@ -170,5 +176,3 @@ CREATE INDEX idx_email_summary_actions_status_expires
   ON email_summary_actions(status, expires_at);
 CREATE INDEX idx_email_summary_actions_processed_message
   ON email_summary_actions(processed_message_id);
-
-PRAGMA foreign_keys = ON;

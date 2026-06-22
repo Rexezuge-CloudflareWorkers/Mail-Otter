@@ -14,6 +14,7 @@ import type {
 } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailContextUtil } from '../email/EmailContextUtil';
+import { EmailRuleSuggestionUtil } from '../email/EmailRuleSuggestionUtil';
 import { IntegrationService } from '../integration/IntegrationService';
 import type { IntegrationServiceEnv } from '../integration/IntegrationService';
 import { WatchService } from '../subscription/WatchService';
@@ -247,6 +248,17 @@ class ApplicationService {
     return updated;
   }
 
+  public static async suggestRule(
+    userEmail: string,
+    applicationId: string,
+    description: string,
+    env: SuggestRuleEnv,
+  ): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
+    await ApplicationService.assertApplicationOwnership(userEmail, applicationId, env);
+    const model = ConfigurationManager.getEmailSummaryModel(env);
+    return EmailRuleSuggestionUtil.suggest(env.AI, model, description);
+  }
+
   private static async assertApplicationOwnership(
     userEmail: string,
     applicationId: string,
@@ -288,6 +300,11 @@ interface ApplicationServiceEnv {
   MAX_APPLICATIONS_PER_USER?: string | undefined;
 }
 
+interface SuggestRuleEnv extends ApplicationServiceEnv {
+  AI: Ai;
+  AI_SUMMARY_MODEL?: string | undefined;
+}
+
 interface DeleteUserApplicationEnv extends ApplicationServiceEnv, WatchServiceEnv {
   EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
 }
@@ -318,6 +335,7 @@ export type {
   CreateIntegrationInput,
   CreateUserApplicationInput,
   DeleteUserApplicationEnv,
+  SuggestRuleEnv,
   UpdateIntegrationInput,
   UpdateUserApplicationInput,
   UpdateWatchedFolderIdsInput,

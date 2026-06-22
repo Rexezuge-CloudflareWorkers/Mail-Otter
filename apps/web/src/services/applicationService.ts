@@ -230,3 +230,16 @@ export async function updateRules(
     }),
   );
 }
+
+export async function suggestRule(
+  applicationId: string,
+  description: string,
+): Promise<{ rule: Omit<EmailProcessingRule, 'ruleId'> }> {
+  return readJson<{ rule: Omit<EmailProcessingRule, 'ruleId'> }>(
+    await apiFetch('/user/application/rules/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, description }),
+    }),
+  );
+}

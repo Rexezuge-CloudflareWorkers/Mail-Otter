@@ -171,7 +171,7 @@ export function MailboxForm({
               {form.applicationId ? 'Save Changes' : 'Create Mailbox'}
             </Button>
             <Button variant="ghost" onClick={onCancel} disabled={busy}>
-              Clear
+              Cancel
             </Button>
           </div>
         </div>

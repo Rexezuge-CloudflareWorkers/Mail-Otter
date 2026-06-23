@@ -33,14 +33,19 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
       throw new BadRequestError('OAuth2 callback is missing code or state.');
     }
 
-    await OAuth2AuthorizationService.completeCallback(
-      {
-        applicationId,
-        code,
-        state,
-      },
-      env,
-    );
+    try {
+      await OAuth2AuthorizationService.completeCallback(
+        {
+          applicationId,
+          code,
+          state,
+        },
+        env,
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'OAuth2 authorization failed.';
+      return this.redirect(`/user/?oauth2=error&message=${encodeURIComponent(message)}`);
+    }
     return this.redirect(`/user/?oauth2=connected&applicationId=${encodeURIComponent(applicationId)}`);
   }
 

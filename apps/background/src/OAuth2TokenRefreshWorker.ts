@@ -9,7 +9,7 @@ import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRe
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, ProviderApiNonRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
@@ -58,7 +58,7 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
           : await this.runExclusive((): Promise<OAuth2TokenWorkerResponse> => this.exchangeCode(payload as OAuth2TokenExchangeRequest));
       return Response.json(result);
     } catch (error: unknown) {
-      const status: number = error instanceof BadRequestError ? 400 : 500;
+      const status: number = error instanceof BadRequestError || error instanceof ProviderApiNonRetryableError ? 400 : 500;
       const message: string = error instanceof Error ? error.message : String(error);
       if (status >= 500) console.error('OAuth2 token operation failed:', error);
       return Response.json({ error: message }, { status });

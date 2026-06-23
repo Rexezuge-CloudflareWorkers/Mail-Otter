@@ -5,15 +5,7 @@ abstract class AbstractWorkflowWorker<
   TPayload extends Rpc.Serializable<TPayload>,
   TResult extends Rpc.Serializable<TResult>,
 > extends WorkflowEntrypoint<Env, TPayload> {
-  protected printExecId(): string {
-    const execId: string = crypto.randomUUID();
-    console.log('Workflow Execution ID:', execId);
-    return execId;
-  }
-
   public async run(event: Readonly<WorkflowEvent<TPayload>>, step: WorkflowStep): Promise<TResult> {
-    this.printExecId();
-    console.log('Worker triggered by Workflow instance:', event.instanceId);
     try {
       return await this.onWorkflow(event, step);
     } catch (err: unknown) {

@@ -1,10 +1,14 @@
 import {
   EMAIL_ACTION_RISK_LOW,
   EMAIL_ACTION_RISK_MEDIUM,
+  EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
   EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT,
+  EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
   EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK,
+  EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
   EMAIL_ACTION_TYPE_MANUAL_TODO,
+  EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type {
@@ -104,6 +108,10 @@ function getFallbackActionTitle(type: string): string {
   if (type === EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT) return 'Add event to calendar';
   if (type === EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY) return 'Draft a reply';
   if (type === EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK) return 'Open related link';
+  if (type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) return 'Track package';
+  if (type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) return 'Track flight';
+  if (type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) return 'Pay bill';
+  if (type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) return 'Appointment confirmation';
   return 'Review action item';
 }
 
@@ -196,6 +204,93 @@ function normalizeProposal(
 
   if (proposal.type === EMAIL_ACTION_TYPE_MANUAL_TODO) {
     return toManualTodo(base, cleanText(getString(parameters, 'instructions') || description), expiresAt);
+  }
+
+  if (proposal.type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
+    const trackingNumber = cleanText(getString(parameters, 'trackingNumber', 'tracking_number', 'parcelNumber') || '');
+    if (!trackingNumber) return toManualTodo(base, `Review delivery details manually: ${description}`, expiresAt);
+    const rawTrackingUrl = getString(parameters, 'trackingUrl', 'url', 'href');
+    const trackingUrl = rawTrackingUrl ? findAllowedUrl(rawTrackingUrl, allowedUrls) : undefined;
+    return {
+      actionType: EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
+      riskLevel: EMAIL_ACTION_RISK_LOW,
+      expiresAt,
+      payload: {
+        ...base,
+        type: EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
+        trackingNumber,
+        carrier: cleanOptionalText(getString(parameters, 'carrier', 'shippingCarrier')),
+        trackingUrl: trackingUrl ?? undefined,
+      },
+    };
+  }
+
+  if (proposal.type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
+    const flightNumber = cleanText(getString(parameters, 'flightNumber', 'flight', 'flightCode') || '');
+    if (!flightNumber) return toManualTodo(base, `Review flight details manually: ${description}`, expiresAt);
+    const rawTrackingUrl = getString(parameters, 'trackingUrl', 'url', 'href');
+    const trackingUrl = rawTrackingUrl ? findAllowedUrl(rawTrackingUrl, allowedUrls) : undefined;
+    return {
+      actionType: EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
+      riskLevel: EMAIL_ACTION_RISK_LOW,
+      expiresAt,
+      payload: {
+        ...base,
+        type: EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
+        flightNumber,
+        airline: cleanOptionalText(getString(parameters, 'airline')),
+        departureAirport: cleanOptionalText(getString(parameters, 'departureAirport', 'origin')),
+        arrivalAirport: cleanOptionalText(getString(parameters, 'arrivalAirport', 'destination')),
+        departureTime: cleanOptionalText(getString(parameters, 'departureTime', 'departure')),
+        trackingUrl: trackingUrl ?? undefined,
+      },
+    };
+  }
+
+  if (proposal.type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
+    const payee = cleanOptionalText(getString(parameters, 'payee', 'biller', 'merchant'));
+    const amount = cleanOptionalText(getString(parameters, 'amount', 'total'));
+    const currency = cleanOptionalText(getString(parameters, 'currency'));
+    const dueDate = cleanOptionalText(getString(parameters, 'dueDate', 'due_date', 'paymentDue'));
+    const invoiceNumber = cleanOptionalText(getString(parameters, 'invoiceNumber', 'invoice_number', 'invoiceId'));
+    if (!payee && !amount && !dueDate && !invoiceNumber) {
+      return toManualTodo(base, `Review bill details manually: ${description}`, expiresAt);
+    }
+    const rawPaymentUrl = getString(parameters, 'paymentUrl', 'url', 'href');
+    const paymentUrl = rawPaymentUrl ? findAllowedUrl(rawPaymentUrl, allowedUrls) : undefined;
+    return {
+      actionType: EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
+      riskLevel: EMAIL_ACTION_RISK_MEDIUM,
+      expiresAt,
+      payload: {
+        ...base,
+        type: EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
+        payee,
+        amount,
+        currency,
+        dueDate,
+        invoiceNumber,
+        paymentUrl: paymentUrl ?? undefined,
+      },
+    };
+  }
+
+  if (proposal.type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
+    return {
+      actionType: EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
+      riskLevel: EMAIL_ACTION_RISK_LOW,
+      expiresAt,
+      payload: {
+        ...base,
+        type: EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
+        serviceType: cleanOptionalText(getString(parameters, 'serviceType', 'service', 'type')),
+        providerName: cleanOptionalText(getString(parameters, 'providerName', 'provider', 'doctor', 'vendor')),
+        appointmentTime: cleanOptionalText(getString(parameters, 'appointmentTime', 'dateTime', 'scheduledAt')),
+        location: cleanOptionalText(getString(parameters, 'location', 'address', 'venue')),
+        confirmationNumber: cleanOptionalText(getString(parameters, 'confirmationNumber', 'confirmationCode', 'referenceNumber')),
+        notes: cleanOptionalText(getString(parameters, 'notes', 'instructions')),
+      },
+    };
   }
 
   return undefined;

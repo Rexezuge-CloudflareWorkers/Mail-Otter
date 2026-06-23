@@ -86,7 +86,11 @@ type EmailActionPayload =
   | CalendarAddEventActionPayload
   | EmailDraftReplyActionPayload
   | ExternalOpenLinkActionPayload
-  | ManualTodoActionPayload;
+  | ManualTodoActionPayload
+  | DeliveryTrackPackageActionPayload
+  | TravelTrackFlightActionPayload
+  | FinancePayBillActionPayload
+  | AppointmentConfirmActionPayload;
 
 interface EmailActionPayloadBase {
   title: string;
@@ -121,8 +125,53 @@ interface ManualTodoActionPayload extends EmailActionPayloadBase {
   instructions: string;
 }
 
+interface DeliveryTrackPackageActionPayload extends EmailActionPayloadBase {
+  type: 'delivery.track_package';
+  trackingNumber: string;
+  carrier?: string | undefined;
+  trackingUrl?: string | undefined;
+}
+
+interface TravelTrackFlightActionPayload extends EmailActionPayloadBase {
+  type: 'travel.track_flight';
+  flightNumber: string;
+  airline?: string | undefined;
+  departureAirport?: string | undefined;
+  arrivalAirport?: string | undefined;
+  departureTime?: string | undefined;
+  trackingUrl?: string | undefined;
+}
+
+interface FinancePayBillActionPayload extends EmailActionPayloadBase {
+  type: 'finance.pay_bill';
+  payee?: string | undefined;
+  amount?: string | undefined;
+  currency?: string | undefined;
+  dueDate?: string | undefined;
+  invoiceNumber?: string | undefined;
+  paymentUrl?: string | undefined;
+}
+
+interface AppointmentConfirmActionPayload extends EmailActionPayloadBase {
+  type: 'appointment.confirm';
+  serviceType?: string | undefined;
+  providerName?: string | undefined;
+  appointmentTime?: string | undefined;
+  location?: string | undefined;
+  confirmationNumber?: string | undefined;
+  notes?: string | undefined;
+}
+
 interface EmailActionProposal {
-  type: 'calendar.add_event' | 'email.draft_reply' | 'external.open_link' | 'manual.todo';
+  type:
+    | 'calendar.add_event'
+    | 'email.draft_reply'
+    | 'external.open_link'
+    | 'manual.todo'
+    | 'delivery.track_package'
+    | 'travel.track_flight'
+    | 'finance.pay_bill'
+    | 'appointment.confirm';
   title: string;
   description: string;
   confidence?: number | undefined;
@@ -137,7 +186,9 @@ interface EmailActionResult {
 }
 
 export type {
+  AppointmentConfirmActionPayload,
   CalendarAddEventActionPayload,
+  DeliveryTrackPackageActionPayload,
   EmailAction,
   EmailActionExecution,
   EmailActionExecutionInternal,
@@ -149,5 +200,7 @@ export type {
   EmailActionResult,
   EmailDraftReplyActionPayload,
   ExternalOpenLinkActionPayload,
+  FinancePayBillActionPayload,
   ManualTodoActionPayload,
+  TravelTrackFlightActionPayload,
 };

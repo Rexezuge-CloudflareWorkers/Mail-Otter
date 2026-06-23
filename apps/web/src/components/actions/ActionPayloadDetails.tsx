@@ -32,6 +32,77 @@ export function ActionPayloadDetails({ action }: { action: EmailAction }) {
       </div>
     );
   }
+  if (payload.type === 'delivery.track_package') {
+    return (
+      <div className={cardClass}>
+        <div className={titleClass}>Package Tracking</div>
+        <div><span className="font-medium">Tracking Number:</span> {String(payload.trackingNumber || '')}</div>
+        {payload.carrier ? <div><span className="font-medium">Carrier:</span> {String(payload.carrier)}</div> : null}
+        {payload.trackingUrl ? (
+          <div className="mt-1.5">
+            <a href={String(payload.trackingUrl)} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] underline">
+              Track Package
+            </a>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+  if (payload.type === 'travel.track_flight') {
+    return (
+      <div className={cardClass}>
+        <div className={titleClass}>Flight</div>
+        <div><span className="font-medium">Flight:</span> {String(payload.flightNumber || '')}</div>
+        {payload.airline ? <div><span className="font-medium">Airline:</span> {String(payload.airline)}</div> : null}
+        {(payload.departureAirport || payload.arrivalAirport) ? (
+          <div><span className="font-medium">Route:</span> {String(payload.departureAirport || '?')} → {String(payload.arrivalAirport || '?')}</div>
+        ) : null}
+        {payload.departureTime ? <div><span className="font-medium">Departure:</span> {String(payload.departureTime)}</div> : null}
+        {payload.trackingUrl ? (
+          <div className="mt-1.5">
+            <a href={String(payload.trackingUrl)} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] underline">
+              Track Flight
+            </a>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+  if (payload.type === 'finance.pay_bill') {
+    return (
+      <div className={cardClass}>
+        <div className={titleClass}>Bill Payment</div>
+        {payload.payee ? <div><span className="font-medium">Payee:</span> {String(payload.payee)}</div> : null}
+        {payload.amount ? (
+          <div>
+            <span className="font-medium">Amount:</span> {String(payload.amount)}{payload.currency ? ` ${String(payload.currency)}` : ''}
+          </div>
+        ) : null}
+        {payload.dueDate ? <div><span className="font-medium">Due:</span> {String(payload.dueDate)}</div> : null}
+        {payload.invoiceNumber ? <div><span className="font-medium">Invoice:</span> {String(payload.invoiceNumber)}</div> : null}
+        {payload.paymentUrl ? (
+          <div className="mt-1.5">
+            <a href={String(payload.paymentUrl)} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] underline">
+              Pay Now
+            </a>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+  if (payload.type === 'appointment.confirm') {
+    return (
+      <div className={cardClass}>
+        <div className={titleClass}>Appointment</div>
+        {payload.serviceType ? <div><span className="font-medium">Service:</span> {String(payload.serviceType)}</div> : null}
+        {payload.providerName ? <div><span className="font-medium">Provider:</span> {String(payload.providerName)}</div> : null}
+        {payload.appointmentTime ? <div><span className="font-medium">When:</span> {String(payload.appointmentTime)}</div> : null}
+        {payload.location ? <div><span className="font-medium">Location:</span> {String(payload.location)}</div> : null}
+        {payload.confirmationNumber ? <div><span className="font-medium">Confirmation:</span> {String(payload.confirmationNumber)}</div> : null}
+        {payload.notes ? <div><span className="font-medium">Notes:</span> {String(payload.notes)}</div> : null}
+      </div>
+    );
+  }
   return (
     <div className={cardClass}>
       <div className={titleClass}>Manual Todo</div>

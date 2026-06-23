@@ -26,7 +26,16 @@ const SUMMARY_JSON_SCHEMA = {
         properties: {
           type: {
             type: 'string',
-            enum: ['calendar.add_event', 'email.draft_reply', 'external.open_link', 'manual.todo'],
+            enum: [
+              'calendar.add_event',
+              'email.draft_reply',
+              'external.open_link',
+              'manual.todo',
+              'delivery.track_package',
+              'travel.track_flight',
+              'finance.pay_bill',
+              'appointment.confirm',
+            ],
           },
           title: { type: 'string' },
           description: { type: 'string' },
@@ -121,7 +130,7 @@ class EmailSummaryUtil {
     const parts: string[] = [
       'You are a helpful assistant that summarizes emails for a mailbox owner.',
       `Today is ${currentDate} in the mailbox owner's time zone ${zone}.`,
-      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
+      'Return only JSON with this exact shape: {"gist":"one sentence","keyDetails":["short fact"],"actions":[{"type":"calendar.add_event|email.draft_reply|external.open_link|manual.todo|delivery.track_package|travel.track_flight|finance.pay_bill|appointment.confirm","title":"short title","description":"what will happen","confidence":0.8,"parameters":{}}]}.',
       'Keep the gist to one sentence.',
       'Details must be short factual bullets copied from the email when possible.',
       'Actions are optional executable proposals; return an empty actions array when no safe action exists.',
@@ -129,6 +138,10 @@ class EmailSummaryUtil {
       'Use email.draft_reply when the owner should respond; parameters must include draftBody and optional draftSubject.',
       'Use external.open_link only for URLs present in the email; parameters must include url.',
       'Use manual.todo for useful actions that cannot be automated safely; parameters must include instructions.',
+      'Use delivery.track_package when a shipping or delivery notification contains a tracking number; parameters must include trackingNumber and optional carrier and trackingUrl (only if a tracking URL appears in the email).',
+      'Use travel.track_flight when a flight booking or confirmation email contains a flight number; parameters must include flightNumber and optional airline, departureAirport, arrivalAirport, departureTime (ISO 8601 if determinable), and trackingUrl (only if a flight-status URL appears in the email).',
+      'Use finance.pay_bill when an invoice, bill, or payment-due notice is detected; parameters must include at least one of payee, amount, currency, dueDate, or invoiceNumber, and optional paymentUrl (only if a payment URL appears in the email).',
+      'Use appointment.confirm when an appointment, booking, or service confirmation email is detected; parameters should include any available serviceType, providerName, appointmentTime (ISO 8601 if determinable), location, confirmationNumber, or notes.',
       'Do not create callback URLs or invent links.',
       'Do not invent facts. Do not include a greeting.',
     ];
@@ -249,7 +262,19 @@ class EmailSummaryUtil {
     for (const item of value) {
       if (!WorkersAiResponseUtil.isRecord(item)) continue;
       const type = typeof item.type === 'string' ? item.type : '';
-      if (!['calendar.add_event', 'email.draft_reply', 'external.open_link', 'manual.todo'].includes(type)) continue;
+      if (
+        ![
+          'calendar.add_event',
+          'email.draft_reply',
+          'external.open_link',
+          'manual.todo',
+          'delivery.track_package',
+          'travel.track_flight',
+          'finance.pay_bill',
+          'appointment.confirm',
+        ].includes(type)
+      )
+        continue;
       if (typeof item.title !== 'string' || typeof item.description !== 'string') continue;
       actions.push({
         type: type as EmailActionProposal['type'],

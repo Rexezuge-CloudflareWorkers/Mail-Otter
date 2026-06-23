@@ -7,6 +7,7 @@ const TABS: { id: ActiveView; label: string }[] = [
   { id: 'context', label: 'RAG Context' },
   { id: 'actions', label: 'Actions' },
   { id: 'analytics', label: 'Analytics' },
+  { id: 'help', label: 'Help' },
 ];
 
 export function Header({

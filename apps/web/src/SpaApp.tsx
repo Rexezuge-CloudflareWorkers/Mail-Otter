@@ -7,6 +7,7 @@ import { MailboxesView } from './components/views/MailboxesView';
 import { ContextAuditView } from './components/views/ContextAuditView';
 import { ActionsView } from './components/views/ActionsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
+import { HelpView } from './components/views/HelpView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { NoticeContext } from './contexts/NoticeContext';
@@ -230,6 +231,8 @@ export default function SpaApp() {
               onRefresh={() => analytics.loadAnalytics()}
             />
           )}
+
+          {activeView === 'help' && <HelpView />}
 
           {mailboxes.confirmDelete && typeof document !== 'undefined' && (
             <ConfirmDeleteModal

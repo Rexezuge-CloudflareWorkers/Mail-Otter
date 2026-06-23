@@ -114,7 +114,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   deploy-pages:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || github.event.workflow_run.conclusion == 'success') && vars.CLOUDFLARE_PAGES_PROJECT_NAME != '' }}
     name: Deploy Cloudflare Pages
     runs-on: ubuntu-latest
 
@@ -143,12 +143,7 @@ jobs:
         run: pnpm --filter @mail-otter/web build
 
       - name: Configure Pages Service Bindings
-        run: |
-          if [ -z "${CLOUDFLARE_PAGES_PROJECT_NAME}" ]; then
-            echo "CLOUDFLARE_PAGES_PROJECT_NAME repository variable is required"
-            exit 1
-          fi
-          cp apps/web/wrangler.template.jsonc wrangler.jsonc
+        run: cp apps/web/wrangler.template.jsonc wrangler.jsonc
         env:
           CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
 

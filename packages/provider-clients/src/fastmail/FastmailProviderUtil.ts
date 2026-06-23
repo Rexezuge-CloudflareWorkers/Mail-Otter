@@ -89,7 +89,7 @@ class FastmailProviderUtil {
     return email;
   }
 
-  public static async createDraftReply(accessToken: string, originalEmailId: string, draftBody: string, gist?: string): Promise<{ id: string }> {
+  public static async createDraftReply(accessToken: string, originalEmailId: string, draftBody: string): Promise<{ id: string }> {
     const session = await FastmailProviderUtil.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
     const original = await FastmailProviderUtil.getEmail(accessToken, originalEmailId);
@@ -104,7 +104,7 @@ class FastmailProviderUtil {
           create: {
             draft: {
               mailboxIds: { [draftMailboxId]: true },
-              subject: gist ?? `Re: ${original.subject ?? ''}`,
+              subject: `Re: ${original.subject ?? ''}`,
               keywords: { $draft: true },
               replyTo: original.from ?? [],
               textBody: [{ partId: 'body', type: 'text/plain' }],

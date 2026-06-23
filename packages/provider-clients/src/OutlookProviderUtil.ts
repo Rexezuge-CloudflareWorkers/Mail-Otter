@@ -206,7 +206,6 @@ class OutlookProviderUtil {
     originalMessage: OutlookMessage,
     mailboxAddress: string,
     summary: string,
-    gist: string,
   ): Promise<void> {
     const marker: string = await OutlookProviderUtil.deriveMessageMarker(originalMessage.id);
 
@@ -234,6 +233,7 @@ class OutlookProviderUtil {
     const sinkAddress: string = atIndex !== -1
       ? `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`
       : mailboxAddress;
+    const originalSubject: string = originalMessage.subject || '';
     const response: Response = await fetch(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/reply`,
       {
@@ -244,7 +244,7 @@ class OutlookProviderUtil {
         },
         body: JSON.stringify({
           message: {
-            subject: `[${marker}] ${gist}`,
+            subject: `[${marker}] Re: ${originalSubject}`,
             body: {
               contentType: 'html',
               content: summary,

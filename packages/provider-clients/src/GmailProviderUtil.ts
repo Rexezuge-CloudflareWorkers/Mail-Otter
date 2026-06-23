@@ -159,11 +159,12 @@ class GmailProviderUtil {
     });
   }
 
-  public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string, gist: string): Promise<void> {
+  public static async sendSummaryReply(accessToken: string, from: string, originalMessage: GmailMessage, summary: string): Promise<void> {
     const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
+    const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const originalMessageId: string | undefined = EmailContentUtil.getHeader(headers, 'Message-ID');
     const originalReferences: string | undefined = EmailContentUtil.getHeader(headers, 'References');
-    const replySubject: string = gist;
+    const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
     const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
     const boundary: string = GmailProviderUtil.createSummaryMimeBoundary(originalMessage.id);
     const textSummary: string = EmailContentUtil.stripHtml(summary);

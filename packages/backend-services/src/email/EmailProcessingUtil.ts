@@ -143,7 +143,7 @@ class EmailProcessingUtil {
       return;
     }
     try {
-      await GmailProviderUtil.sendSummaryReply(data.accessToken, data.application.providerEmail!, data.message, data.summaryHtml, EmailSummaryUtil.truncateGistForSubject(data.rawSummary.gist));
+      await GmailProviderUtil.sendSummaryReply(data.accessToken, data.application.providerEmail!, data.message, data.summaryHtml);
       await EmailProcessingUtil.logSummarySent(contextDAO, data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
@@ -224,7 +224,7 @@ class EmailProcessingUtil {
       return;
     }
     try {
-      await OutlookProviderUtil.sendSelfSummaryReply(data.accessToken, data.message, data.application.providerEmail!, data.summaryHtml, EmailSummaryUtil.truncateGistForSubject(data.rawSummary.gist));
+      await OutlookProviderUtil.sendSelfSummaryReply(data.accessToken, data.message, data.application.providerEmail!, data.summaryHtml);
       await EmailProcessingUtil.logSummarySent(contextDAO, data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
@@ -283,7 +283,7 @@ class EmailProcessingUtil {
     const existing = await processedDAO.getByMessageId(data.application.applicationId, data.emailId);
     if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
     try {
-      await FastmailProviderUtil.createDraftReply(data.accessToken, data.emailId, data.summaryHtml, EmailSummaryUtil.truncateGistForSubject(data.rawSummary.gist));
+      await FastmailProviderUtil.createDraftReply(data.accessToken, data.emailId, data.summaryHtml);
       await EmailProcessingUtil.logSummarySent(contextDAO, data.application, data.emailId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.emailId);
     } catch (error: unknown) {
@@ -342,7 +342,7 @@ class EmailProcessingUtil {
       const summaryRfc2822 = [
         `From: ${data.application.providerEmail ?? data.application.userEmail}`,
         `To: ${data.application.providerEmail ?? data.application.userEmail}`,
-        `Subject: [Mail Otter Summary] ${EmailSummaryUtil.truncateGistForSubject(data.rawSummary.gist)}`,
+        `Subject: [Mail Otter Summary] ${data.emailSubject}`,
         `X-Mail-Otter-Summary: true`,
         `Content-Type: text/html; charset=utf-8`,
         '',

@@ -43,8 +43,6 @@ const SUMMARY_JSON_SCHEMA = {
 
 const GPT_OSS_MODELS: ReadonlySet<string> = new Set<string>(['@cf/openai/gpt-oss-120b', '@cf/openai/gpt-oss-20b']);
 
-const GIST_SUBJECT_MAX_LENGTH = 100;
-
 class EmailSummaryUtil {
   public static async summarizeEmail(
     ai: Ai,
@@ -173,17 +171,13 @@ class EmailSummaryUtil {
     };
   }
 
-  static truncateGistForSubject(gist: string): string {
-    return gist.length > GIST_SUBJECT_MAX_LENGTH ? `${gist.slice(0, GIST_SUBJECT_MAX_LENGTH - 3)}...` : gist;
-  }
-
   static renderHtmlSummary(summary: EmailSummary): string {
     const gist: string = EmailSummaryUtil.normalizeSentence(summary.gist) || 'No clear gist available.';
     const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
-    const gistOverflows: boolean = gist.length > GIST_SUBJECT_MAX_LENGTH;
 
     return [
-      ...(gistOverflows ? [`<p><strong>Gist:</strong> ${EmailContentUtil.sanitizeHtml(gist)}</p>`, ''] : []),
+      `<p><strong>Gist:</strong> ${EmailContentUtil.sanitizeHtml(gist)}</p>`,
+      '',
       '<p><strong>Details:</strong></p>',
       '<ul>',
       ...EmailSummaryUtil.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),

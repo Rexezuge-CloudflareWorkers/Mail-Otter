@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 
 export interface MailboxCallbacksContextValue {
   busy: boolean;
@@ -25,6 +25,11 @@ export interface MailboxCallbacksContextValue {
   integrationsByApplicationId: Record<string, OutboundIntegration[]>;
   loadingIntegrations: boolean;
   onLoadIntegrations: (applicationId: string) => Promise<void>;
+  deliveryLogsByIntegrationId: Record<string, IntegrationDeliveryLog[]>;
+  loadingDeliveryLogs: boolean;
+  openDeliveryLogsIntegrationId: string | null;
+  onFetchDeliveryLogs: (integrationId: string) => Promise<void>;
+  onCloseDeliveryLogs: () => void;
 }
 
 export const MailboxCallbacksContext = createContext<MailboxCallbacksContextValue | null>(null);

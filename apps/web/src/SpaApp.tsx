@@ -10,6 +10,7 @@ import { AnalyticsView } from './components/views/AnalyticsView';
 import { HelpView } from './components/views/HelpView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
+import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
 import { NoticeContext } from './contexts/NoticeContext';
 import { UserContext } from './contexts/UserContext';
 import { MailboxCallbacksContext } from './contexts/MailboxCallbacksContext';
@@ -219,6 +220,14 @@ export default function SpaApp() {
               onClose={auditLogs.closeAuditLogs}
               onLoadMore={auditLogs.loadMoreAuditLogs}
               onRefresh={auditLogs.refreshAuditLogs}
+            />
+          )}
+
+          {mailboxes.openDeliveryLogsIntegrationId && typeof document !== 'undefined' && (
+            <IntegrationDeliveryLogsModal
+              logs={mailboxes.deliveryLogsByIntegrationId[mailboxes.openDeliveryLogsIntegrationId] ?? []}
+              loading={mailboxes.loadingDeliveryLogs}
+              onClose={mailboxes.closeDeliveryLogs}
             />
           )}
         </div>

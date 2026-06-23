@@ -9,3 +9,4 @@ export { ContextDeletionRunPruningTask } from './ContextDeletionRunPruningTask';
 export { AiDailyUsagePruningTask } from './AiDailyUsagePruningTask';
 export { EmailActionPruningTask } from './EmailActionPruningTask';
 export { AuditLogPruningTask } from './AuditLogPruningTask';
+export { IntegrationDeliveryLogPruningTask } from './IntegrationDeliveryLogPruningTask';

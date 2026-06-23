@@ -26,6 +26,7 @@ import { CreateIntegrationRoute as OriginalCreateIntegrationRoute } from './user
 import { UpdateIntegrationRoute as OriginalUpdateIntegrationRoute } from './user/application/integrations/PUT';
 import { DeleteIntegrationRoute as OriginalDeleteIntegrationRoute } from './user/application/integrations/DELETE';
 import { TestIntegrationRoute as OriginalTestIntegrationRoute } from './user/application/integrations/test/POST';
+import { ListIntegrationDeliveriesRoute as OriginalListIntegrationDeliveriesRoute } from './user/application/integrations/deliveries/GET';
 import { GetApplicationRulesRoute as OriginalGetApplicationRulesRoute } from './user/application/rules/GET';
 import { UpdateApplicationRulesRoute as OriginalUpdateApplicationRulesRoute } from './user/application/rules/PUT';
 import { SuggestApplicationRuleRoute as OriginalSuggestApplicationRuleRoute } from './user/application/rules/suggest/POST';
@@ -70,6 +71,7 @@ export const CreateIntegrationRoute: any = OriginalCreateIntegrationRoute;
 export const UpdateIntegrationRoute: any = OriginalUpdateIntegrationRoute;
 export const DeleteIntegrationRoute: any = OriginalDeleteIntegrationRoute;
 export const TestIntegrationRoute: any = OriginalTestIntegrationRoute;
+export const ListIntegrationDeliveriesRoute: any = OriginalListIntegrationDeliveriesRoute;
 export const GetApplicationRulesRoute: any = OriginalGetApplicationRulesRoute;
 export const UpdateApplicationRulesRoute: any = OriginalUpdateApplicationRulesRoute;
 export const SuggestApplicationRuleRoute: any = OriginalSuggestApplicationRuleRoute;

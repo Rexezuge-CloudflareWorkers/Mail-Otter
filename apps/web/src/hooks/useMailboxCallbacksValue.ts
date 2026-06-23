@@ -50,5 +50,10 @@ export function useMailboxCallbacksValue(
     },
     onTestIntegration: mailboxes.testIntegration,
     onUpdateRules: mailboxes.updateRules,
+    deliveryLogsByIntegrationId: mailboxes.deliveryLogsByIntegrationId,
+    loadingDeliveryLogs: mailboxes.loadingDeliveryLogs,
+    openDeliveryLogsIntegrationId: mailboxes.openDeliveryLogsIntegrationId,
+    onFetchDeliveryLogs: mailboxes.fetchDeliveryLogs,
+    onCloseDeliveryLogs: mailboxes.closeDeliveryLogs,
   };
 }

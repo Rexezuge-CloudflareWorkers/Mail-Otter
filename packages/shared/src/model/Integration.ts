@@ -1,5 +1,7 @@
 type OutboundIntegrationType = 'slack' | 'discord' | 'webhook';
 
+type IntegrationDeliveryStatus = 'success' | 'failure';
+
 interface OutboundIntegration {
   integrationId: string;
   applicationId: string;
@@ -9,6 +11,9 @@ interface OutboundIntegration {
   enabled: boolean;
   createdAt: number;
   updatedAt: number;
+  lastDeliveryAt: number | null;
+  lastDeliveryStatus: IntegrationDeliveryStatus | null;
+  consecutiveFailures: number;
 }
 
 interface OutboundIntegrationInternal {
@@ -22,6 +27,38 @@ interface OutboundIntegrationInternal {
   enabled: number;
   created_at: number;
   updated_at: number;
+  last_delivery_at: number | null;
+  last_delivery_status: string | null;
+  consecutive_failures: number;
 }
 
-export type { OutboundIntegration, OutboundIntegrationInternal, OutboundIntegrationType };
+interface IntegrationDeliveryLog {
+  logId: string;
+  integrationId: string;
+  applicationId: string;
+  status: IntegrationDeliveryStatus;
+  httpStatus: number | null;
+  errorMessage: string | null;
+  emailSubject: string | null;
+  createdAt: number;
+}
+
+interface IntegrationDeliveryLogInternal {
+  log_id: string;
+  integration_id: string;
+  application_id: string;
+  status: string;
+  http_status: number | null;
+  error_message: string | null;
+  email_subject: string | null;
+  created_at: number;
+}
+
+export type {
+  OutboundIntegration,
+  OutboundIntegrationInternal,
+  OutboundIntegrationType,
+  IntegrationDeliveryStatus,
+  IntegrationDeliveryLog,
+  IntegrationDeliveryLogInternal,
+};

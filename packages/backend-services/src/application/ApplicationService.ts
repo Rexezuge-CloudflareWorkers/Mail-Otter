@@ -4,7 +4,7 @@ import {
   CONNECTION_METHOD_IMAP_PASSWORD,
   CONNECTION_METHOD_OAUTH2,
 } from '@mail-otter/shared/constants';
-import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
+import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDeliveryLogDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type {
@@ -12,6 +12,7 @@ import type {
   ConnectedApplicationCredentials,
   ConnectedApplicationMetadata,
   EmailProcessingRule,
+  IntegrationDeliveryLog,
   OAuth2Credentials,
   OutboundIntegration,
   OutboundIntegrationType,
@@ -214,6 +215,15 @@ class ApplicationService {
     const integration = await dao.getByIdForUser(integrationId, userEmail);
     if (!integration) throw new BadRequestError('Integration not found.');
     await new IntegrationService(this.env).sendTestNotification(integration);
+  }
+
+  async listIntegrationDeliveries(userEmail: string, integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
+    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
+    const integrationDao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const integration = await integrationDao.getByIdForUser(integrationId, userEmail);
+    if (!integration) throw new BadRequestError('Integration not found.');
+    const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
+    return logDao.listByIntegrationId(integrationId, limit);
   }
 
   async getRules(userEmail: string, applicationId: string): Promise<EmailProcessingRule[]> {

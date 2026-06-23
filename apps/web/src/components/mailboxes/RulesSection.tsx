@@ -64,8 +64,18 @@ const emptyDraft = (): RuleDraft => ({
   instruction: '',
 });
 
-function AddRuleForm({ onAdd, onCancel }: { onAdd: (rule: EmailProcessingRule) => void; onCancel: () => void }) {
-  const [draft, setDraft] = useState<RuleDraft>(emptyDraft());
+function ruleToDraft(rule: EmailProcessingRule): RuleDraft {
+  return {
+    name: rule.name,
+    operator: rule.conditions.operator,
+    matchers: rule.conditions.matchers.map((m) => ({ field: m.field, op: m.op, value: m.value })),
+    actionType: rule.action.type,
+    instruction: rule.action.type === 'prepend_instruction' ? (rule.action.instruction ?? '') : '',
+  };
+}
+
+function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcessingRule; onAdd: (rule: EmailProcessingRule) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<RuleDraft>(initialRule ? ruleToDraft(initialRule) : emptyDraft());
 
   const setMatcher = (i: number, patch: Partial<MatcherDraft>) => {
     setDraft((d) => {
@@ -97,9 +107,9 @@ function AddRuleForm({ onAdd, onCancel }: { onAdd: (rule: EmailProcessingRule) =
   const handleAdd = () => {
     if (!isValid()) return;
     const rule: EmailProcessingRule = {
-      ruleId: crypto.randomUUID(),
+      ruleId: initialRule?.ruleId ?? crypto.randomUUID(),
       name: draft.name.trim(),
-      enabled: true,
+      enabled: initialRule?.enabled ?? true,
       conditions: {
         operator: draft.operator,
         matchers: draft.matchers.map((m): EmailRuleConditionMatcher => ({ field: m.field, op: m.op, value: m.value.trim() })),
@@ -109,7 +119,7 @@ function AddRuleForm({ onAdd, onCancel }: { onAdd: (rule: EmailProcessingRule) =
         : { type: draft.actionType },
     };
     onAdd(rule);
-    setDraft(emptyDraft());
+    if (!initialRule) setDraft(emptyDraft());
   };
 
   return (
@@ -215,7 +225,7 @@ function AddRuleForm({ onAdd, onCancel }: { onAdd: (rule: EmailProcessingRule) =
 
       <div className="flex gap-2 justify-end">
         <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>Add Rule</Button>
+        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>{initialRule ? 'Save Rule' : 'Add Rule'}</Button>
       </div>
     </div>
   );
@@ -337,6 +347,7 @@ function RuleRow({
   busy,
   onToggle,
   onDelete,
+  onEdit,
   onMoveUp,
   onMoveDown,
 }: {
@@ -346,6 +357,7 @@ function RuleRow({
   busy: boolean;
   onToggle: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
@@ -386,6 +398,15 @@ function RuleRow({
           </button>
           <button
             type="button"
+            onClick={onEdit}
+            disabled={busy}
+            className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-40 px-1"
+            aria-label="Edit Rule"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
             onClick={onDelete}
             disabled={busy}
             className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 px-1"
@@ -408,6 +429,7 @@ type FormMode = 'none' | 'manual' | 'suggest';
 export function RulesSection({ application }: { application: ConnectedApplication }) {
   const { busy, onUpdateRules } = useMailboxCallbacks();
   const [formMode, setFormMode] = useState<FormMode>('none');
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const rules = application.emailProcessingRules ?? [];
 
   const save = (updated: EmailProcessingRule[]) => onUpdateRules(application.applicationId, updated);
@@ -415,6 +437,11 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
   const addRule = (rule: EmailProcessingRule) => {
     setFormMode('none');
     save([...rules, rule]);
+  };
+
+  const saveEdit = (updated: EmailProcessingRule) => {
+    setEditingRuleId(null);
+    save(rules.map((r) => (r.ruleId === updated.ruleId ? updated : r)));
   };
 
   const toggleRule = (ruleId: string) =>
@@ -444,26 +471,36 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
       </p>
       {rules.length > 0 && (
         <div className="mb-3">
-          {rules.map((rule, index) => (
-            <RuleRow
-              key={rule.ruleId}
-              rule={rule}
-              index={index}
-              total={rules.length}
-              busy={busy}
-              onToggle={() => toggleRule(rule.ruleId)}
-              onDelete={() => deleteRule(rule.ruleId)}
-              onMoveUp={() => moveRule(index, -1)}
-              onMoveDown={() => moveRule(index, 1)}
-            />
-          ))}
+          {rules.map((rule, index) =>
+            rule.ruleId === editingRuleId ? (
+              <RuleForm
+                key={rule.ruleId}
+                initialRule={rule}
+                onAdd={saveEdit}
+                onCancel={() => setEditingRuleId(null)}
+              />
+            ) : (
+              <RuleRow
+                key={rule.ruleId}
+                rule={rule}
+                index={index}
+                total={rules.length}
+                busy={busy || editingRuleId !== null}
+                onToggle={() => toggleRule(rule.ruleId)}
+                onDelete={() => deleteRule(rule.ruleId)}
+                onEdit={() => { setEditingRuleId(rule.ruleId); setFormMode('none'); }}
+                onMoveUp={() => moveRule(index, -1)}
+                onMoveDown={() => moveRule(index, 1)}
+              />
+            )
+          )}
         </div>
       )}
       {formMode === 'none' && rules.length === 0 && (
         <p className="text-xs text-[var(--color-text-muted)] mb-3">No Rules Configured.</p>
       )}
       {formMode === 'manual' && (
-        <AddRuleForm onAdd={addRule} onCancel={() => setFormMode('none')} />
+        <RuleForm onAdd={addRule} onCancel={() => setFormMode('none')} />
       )}
       {formMode === 'suggest' && (
         <SuggestRuleForm
@@ -472,7 +509,7 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
           onCancel={() => setFormMode('none')}
         />
       )}
-      {formMode === 'none' && (
+      {formMode === 'none' && editingRuleId === null && (
         canAddMore ? (
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setFormMode('manual')} disabled={busy}>

@@ -1,4 +1,4 @@
-# $version: v7-1781710035
+# $version: v8-1782241313
 name: Backup Main Branch
 permissions:
   contents: read
@@ -11,77 +11,75 @@ on:
     - cron: '0 0 5 * *'
 
 jobs:
-  backup:
-    if: ${{ !github.event.repository.fork }}
-    name: ${{ matrix.destination.name }}
+  backup-azure-devops:
+    if: >-
+      ${{ !github.event.repository.fork &&
+          secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY != '' &&
+          secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL != '' }}
+    name: Azure DevOps
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        destination:
-          - id: azure-devops
-            name: Azure DevOps
-          - id: gitlab
-            name: GitLab
 
     steps:
-      - name: Check Destination Configuration
-        id: check-config
-        run: |
-          case "${{ matrix.destination.id }}" in
-            azure-devops)
-              if [ -n "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}" ] && [ -n "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}" ]; then
-                echo "configured=true" >> $GITHUB_OUTPUT
-              else
-                echo "configured=false" >> $GITHUB_OUTPUT
-              fi
-              ;;
-            gitlab)
-              if [ -n "${{ secrets.BACKUP_REPO_GITLAB_SSH_KEY }}" ] && [ -n "${{ secrets.BACKUP_REPO_GITLAB_REPO_URL }}" ]; then
-                echo "configured=true" >> $GITHUB_OUTPUT
-              else
-                echo "configured=false" >> $GITHUB_OUTPUT
-              fi
-              ;;
-          esac
-
       - name: Checkout Source Repository
-        if: steps.check-config.outputs.configured == 'true'
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Configure Git
-        if: steps.check-config.outputs.configured == 'true'
         run: |
           git config user.name "Actions"
           git config user.email "actions@github.com"
 
-      - name: Set Up SSH for ${{ matrix.destination.name }}
-        if: steps.check-config.outputs.configured == 'true'
+      - name: Set Up SSH for Azure DevOps
         run: |
           mkdir -p ~/.ssh
-          case "${{ matrix.destination.id }}" in
-            azure-devops)
-              echo "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}" > ~/.ssh/id_rsa
-              echo "REMOTE_URL=${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}" >> $GITHUB_ENV
-              ;;
-            gitlab)
-              echo "${{ secrets.BACKUP_REPO_GITLAB_SSH_KEY }}" > ~/.ssh/id_rsa
-              echo "REMOTE_URL=${{ secrets.BACKUP_REPO_GITLAB_REPO_URL }}" >> $GITHUB_ENV
-              ;;
-          esac
+          echo "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
 
       - name: Add SSH Remote
-        if: steps.check-config.outputs.configured == 'true'
-        run: git remote add backup "${REMOTE_URL}"
+        run: git remote add backup "${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}"
 
-      - name: Push main Branch to ${{ matrix.destination.name }}
-        if: steps.check-config.outputs.configured == 'true'
+      - name: Push main Branch to Azure DevOps
+        uses: ./.github/actions/retry-step
+        with:
+          command: git push --force backup main:main
+          max_attempts: '3'
+
+  backup-gitlab:
+    if: >-
+      ${{ !github.event.repository.fork &&
+          secrets.BACKUP_REPO_GITLAB_SSH_KEY != '' &&
+          secrets.BACKUP_REPO_GITLAB_REPO_URL != '' }}
+    name: GitLab
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "Actions"
+          git config user.email "actions@github.com"
+
+      - name: Set Up SSH for GitLab
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BACKUP_REPO_GITLAB_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Add SSH Remote
+        run: git remote add backup "${{ secrets.BACKUP_REPO_GITLAB_REPO_URL }}"
+
+      - name: Push main Branch to GitLab
         uses: ./.github/actions/retry-step
         with:
           command: git push --force backup main:main

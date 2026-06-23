@@ -113,7 +113,15 @@ export interface ConnectedApplication {
 export type ApplicationContextDocumentStatus = 'active' | 'deleted' | 'error';
 export type ApplicationContextDeletionStatus = 'accepted' | 'error';
 export type EmailActionStatus = 'pending' | 'executing' | 'succeeded' | 'failed' | 'expired' | 'cancelled';
-export type EmailActionType = 'calendar.add_event' | 'email.draft_reply' | 'external.open_link' | 'manual.todo';
+export type EmailActionType =
+  | 'calendar.add_event'
+  | 'email.draft_reply'
+  | 'external.open_link'
+  | 'manual.todo'
+  | 'delivery.track_package'
+  | 'travel.track_flight'
+  | 'finance.pay_bill'
+  | 'appointment.confirm';
 export type EmailActionExecutionTrigger = 'email_callback' | 'web_ui' | 'system_expiry';
 
 export interface ApplicationContextDocument {

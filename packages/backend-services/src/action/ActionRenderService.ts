@@ -1,12 +1,25 @@
 import {
   EMAIL_ACTION_STATUS_EXPIRED,
   EMAIL_ACTION_STATUS_PENDING,
+  EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
   EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT,
+  EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
   EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK,
+  EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
+  EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import type { EmailAction, EmailActionPayload, EmailActionResult, ManualTodoActionPayload } from '@mail-otter/shared/model';
+import type {
+  AppointmentConfirmActionPayload,
+  DeliveryTrackPackageActionPayload,
+  EmailAction,
+  EmailActionPayload,
+  EmailActionResult,
+  FinancePayBillActionPayload,
+  ManualTodoActionPayload,
+  TravelTrackFlightActionPayload,
+} from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 
 function escapeHtml(value: string): string {
@@ -83,6 +96,55 @@ function renderActionDetails(action: EmailAction): string {
   }
   if (payload.type === EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK) {
     return `<section><h2>Link</h2><p>${escapeHtml(payload.url)}</p></section>`;
+  }
+  if (payload.type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
+    const p = payload as DeliveryTrackPackageActionPayload;
+    return [
+      '<section><h2>Package Tracking</h2>',
+      `<p><strong>Tracking Number:</strong> ${escapeHtml(p.trackingNumber)}</p>`,
+      p.carrier ? `<p><strong>Carrier:</strong> ${escapeHtml(p.carrier)}</p>` : '',
+      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">Track package</a></p>` : '',
+      '</section>',
+    ].join('\n');
+  }
+  if (payload.type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
+    const p = payload as TravelTrackFlightActionPayload;
+    return [
+      '<section><h2>Flight</h2>',
+      `<p><strong>Flight:</strong> ${escapeHtml(p.flightNumber)}</p>`,
+      p.airline ? `<p><strong>Airline:</strong> ${escapeHtml(p.airline)}</p>` : '',
+      p.departureAirport || p.arrivalAirport
+        ? `<p><strong>Route:</strong> ${escapeHtml(p.departureAirport || '?')} → ${escapeHtml(p.arrivalAirport || '?')}</p>`
+        : '',
+      p.departureTime ? `<p><strong>Departure:</strong> ${escapeHtml(p.departureTime)}</p>` : '',
+      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">Track flight</a></p>` : '',
+      '</section>',
+    ].join('\n');
+  }
+  if (payload.type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
+    const p = payload as FinancePayBillActionPayload;
+    return [
+      '<section><h2>Bill Payment</h2>',
+      p.payee ? `<p><strong>Payee:</strong> ${escapeHtml(p.payee)}</p>` : '',
+      p.amount ? `<p><strong>Amount:</strong> ${escapeHtml(p.amount)}${p.currency ? ` ${escapeHtml(p.currency)}` : ''}</p>` : '',
+      p.dueDate ? `<p><strong>Due:</strong> ${escapeHtml(p.dueDate)}</p>` : '',
+      p.invoiceNumber ? `<p><strong>Invoice:</strong> ${escapeHtml(p.invoiceNumber)}</p>` : '',
+      p.paymentUrl ? `<p><a href="${escapeHtml(p.paymentUrl)}" rel="noopener noreferrer">Pay now</a></p>` : '',
+      '</section>',
+    ].join('\n');
+  }
+  if (payload.type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
+    const p = payload as AppointmentConfirmActionPayload;
+    return [
+      '<section><h2>Appointment</h2>',
+      p.serviceType ? `<p><strong>Service:</strong> ${escapeHtml(p.serviceType)}</p>` : '',
+      p.providerName ? `<p><strong>Provider:</strong> ${escapeHtml(p.providerName)}</p>` : '',
+      p.appointmentTime ? `<p><strong>When:</strong> ${escapeHtml(p.appointmentTime)}</p>` : '',
+      p.location ? `<p><strong>Location:</strong> ${escapeHtml(p.location)}</p>` : '',
+      p.confirmationNumber ? `<p><strong>Confirmation:</strong> ${escapeHtml(p.confirmationNumber)}</p>` : '',
+      p.notes ? `<p><strong>Notes:</strong> ${escapeHtml(p.notes)}</p>` : '',
+      '</section>',
+    ].join('\n');
   }
   const manualPayload = payload as ManualTodoActionPayload;
   return `<section><h2>Manual Task</h2><p>${escapeHtml(manualPayload.instructions)}</p></section>`;

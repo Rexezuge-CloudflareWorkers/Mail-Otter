@@ -4,21 +4,29 @@ import {
   EMAIL_ACTION_STATUS_SUCCEEDED,
   EMAIL_ACTION_TRIGGER_EMAIL_CALLBACK,
   EMAIL_ACTION_TRIGGER_WEB_UI,
+  EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
   EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT,
+  EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
   EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK,
+  EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
   EMAIL_ACTION_TYPE_MANUAL_TODO,
+  EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { CryptoUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import type {
+  AppointmentConfirmActionPayload,
   CalendarAddEventActionPayload,
   ConnectedApplication,
+  DeliveryTrackPackageActionPayload,
   EmailAction,
-  EmailDraftReplyActionPayload,
   EmailActionResult,
+  EmailDraftReplyActionPayload,
   ExternalOpenLinkActionPayload,
+  FinancePayBillActionPayload,
+  TravelTrackFlightActionPayload,
 } from '@mail-otter/shared/model';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
@@ -74,6 +82,27 @@ async function executeProviderOperation(action: EmailAction, env: ActionExecutio
   }
   if (action.actionType === EMAIL_ACTION_TYPE_MANUAL_TODO) {
     return { summary: 'Manual action acknowledged.' };
+  }
+  if (action.actionType === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
+    const payload = action.payload as DeliveryTrackPackageActionPayload;
+    if (payload.trackingUrl) return { summary: 'Package tracking link opened.', externalUrl: payload.trackingUrl };
+    const via = payload.carrier ? ` via ${payload.carrier}` : '';
+    return { summary: `Package tracking noted: ${payload.trackingNumber}${via}.` };
+  }
+  if (action.actionType === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
+    const payload = action.payload as TravelTrackFlightActionPayload;
+    if (payload.trackingUrl) return { summary: 'Flight tracking link opened.', externalUrl: payload.trackingUrl };
+    return { summary: `Flight ${payload.flightNumber} details noted.` };
+  }
+  if (action.actionType === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
+    const payload = action.payload as FinancePayBillActionPayload;
+    if (payload.paymentUrl) return { summary: 'Payment link opened.', externalUrl: payload.paymentUrl };
+    return { summary: 'Bill payment reminder noted.' };
+  }
+  if (action.actionType === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
+    const payload = action.payload as AppointmentConfirmActionPayload;
+    const when = payload.appointmentTime ? ` on ${payload.appointmentTime}` : '';
+    return { summary: `Appointment${when} details noted.` };
   }
 
   const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());

@@ -673,6 +673,255 @@ describe('ActionService', () => {
 
       expect(result).toHaveLength(1);
     });
+
+    it('creates delivery.track_package action with tracking number', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'delivery.track_package' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Your package has shipped',
+          from: 'shipping@example.com',
+          body: 'Track your package at https://track.example.com/1Z999AA10123456784',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'delivery.track_package',
+            title: 'Track package',
+            description: 'Package shipped',
+            parameters: { trackingNumber: '1Z999AA10123456784', carrier: 'UPS', trackingUrl: 'https://track.example.com/1Z999AA10123456784' },
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        actionType: 'delivery.track_package',
+        riskLevel: 'low',
+      }));
+    });
+
+    it('falls back delivery.track_package to manual.todo when tracking number is missing', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'manual.todo' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Shipment notification',
+          from: 'shipping@example.com',
+          body: '',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'delivery.track_package',
+            title: 'Track package',
+            description: 'Package on its way',
+            parameters: {},
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ actionType: 'manual.todo' }));
+    });
+
+    it('omits trackingUrl for delivery.track_package when URL is not in email body', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      let capturedPayload: unknown;
+      mockCreate.mockImplementation(async (input: Record<string, unknown>) => {
+        capturedPayload = input.payload;
+        return makeAction({ actionType: 'delivery.track_package', payload: input.payload });
+      });
+
+      await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Package shipped',
+          from: 'shipping@example.com',
+          body: 'Your package 1Z999 has shipped.',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'delivery.track_package',
+            title: 'Track package',
+            description: 'Package shipped',
+            parameters: { trackingNumber: '1Z999', trackingUrl: 'https://invented.example.com/track' },
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect((capturedPayload as Record<string, unknown>).trackingUrl).toBeUndefined();
+    });
+
+    it('creates travel.track_flight action with flight number', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'travel.track_flight' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Your flight booking confirmation',
+          from: 'airline@example.com',
+          body: 'Flight AA123 departs JFK to LAX',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'travel.track_flight',
+            title: 'Track flight AA123',
+            description: 'Flight from JFK to LAX',
+            parameters: { flightNumber: 'AA123', airline: 'American Airlines', departureAirport: 'JFK', arrivalAirport: 'LAX' },
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        actionType: 'travel.track_flight',
+        riskLevel: 'low',
+      }));
+    });
+
+    it('falls back travel.track_flight to manual.todo when flight number is missing', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'manual.todo' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Flight confirmation',
+          from: 'airline@example.com',
+          body: '',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'travel.track_flight',
+            title: 'Track flight',
+            description: 'Your flight details',
+            parameters: {},
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ actionType: 'manual.todo' }));
+    });
+
+    it('creates finance.pay_bill action with identifying info', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'finance.pay_bill' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Invoice #1234 due',
+          from: 'billing@example.com',
+          body: 'Pay at https://pay.example.com/inv1234',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'finance.pay_bill',
+            title: 'Pay invoice',
+            description: 'Invoice due',
+            parameters: { payee: 'Acme Corp', amount: '99.99', currency: 'USD', dueDate: '2026-07-01', invoiceNumber: 'INV-1234', paymentUrl: 'https://pay.example.com/inv1234' },
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        actionType: 'finance.pay_bill',
+        riskLevel: 'medium',
+      }));
+    });
+
+    it('falls back finance.pay_bill to manual.todo when no identifying info is present', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'manual.todo' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Bill notification',
+          from: 'billing@example.com',
+          body: '',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'finance.pay_bill',
+            title: 'Pay bill',
+            description: 'A bill is due',
+            parameters: {},
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ actionType: 'manual.todo' }));
+    });
+
+    it('creates appointment.confirm action and always succeeds normalization', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'appointment.confirm' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Appointment confirmed',
+          from: 'clinic@example.com',
+          body: 'Your appointment is confirmed.',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'appointment.confirm',
+            title: 'Appointment confirmed',
+            description: 'Dentist appointment',
+            parameters: { serviceType: 'Dentist', providerName: 'Dr. Smith', appointmentTime: '2026-07-15T09:00:00', location: '123 Main St', confirmationNumber: 'CONF-999' },
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        actionType: 'appointment.confirm',
+        riskLevel: 'low',
+      }));
+    });
+
+    it('creates appointment.confirm even with no parameters', async () => {
+      mockDeleteByProcessedMessageId.mockResolvedValue(undefined);
+      mockCreate.mockResolvedValue(makeAction({ actionType: 'appointment.confirm' }));
+
+      const result = await ActionService.createActionsForSummary(
+        {
+          application: { applicationId: 'app-1', userEmail: 'user@example.com', providerId: 'google-gmail' },
+          processedMessage: { processedMessageId: 'pm-1', providerMessageId: 'msg-1', providerThreadId: 'thread-1' } as never,
+          subject: 'Booking confirmed',
+          from: 'salon@example.com',
+          body: '',
+          callbackBaseUrl: 'https://example.com',
+          proposals: [{
+            type: 'appointment.confirm',
+            title: 'Booking confirmed',
+            description: 'Haircut booked',
+            parameters: {},
+          }],
+        },
+        makeEnv() as never,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ actionType: 'appointment.confirm' }));
+    });
   });
 
   describe('provider operations via executeActionWithToken', () => {
@@ -728,6 +977,111 @@ describe('ActionService', () => {
 
       expect(result.statusCode).toBe(200);
       expect(mockMarkFailed).toHaveBeenCalledWith('action-1', 'Calendar API error');
+    });
+
+    it('executes delivery.track_package with trackingUrl and returns link', async () => {
+      const payload = { type: 'delivery.track_package', trackingNumber: '1Z999', carrier: 'UPS', trackingUrl: 'https://track.example.com/1Z999' };
+      const action = makeAction({ actionType: 'delivery.track_package', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(result.statusCode).toBe(200);
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Package tracking link opened.',
+        externalUrl: 'https://track.example.com/1Z999',
+      }));
+    });
+
+    it('executes delivery.track_package without trackingUrl and acknowledges with tracking number', async () => {
+      const payload = { type: 'delivery.track_package', trackingNumber: '1Z999', carrier: 'UPS' };
+      const action = makeAction({ actionType: 'delivery.track_package', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Package tracking noted: 1Z999 via UPS.',
+      }));
+    });
+
+    it('executes travel.track_flight and returns flight acknowledgment', async () => {
+      const payload = { type: 'travel.track_flight', flightNumber: 'AA123', airline: 'American Airlines' };
+      const action = makeAction({ actionType: 'travel.track_flight', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Flight AA123 details noted.',
+      }));
+    });
+
+    it('executes finance.pay_bill with paymentUrl and returns link', async () => {
+      const payload = { type: 'finance.pay_bill', payee: 'Acme Corp', amount: '99.99', paymentUrl: 'https://pay.example.com/inv1' };
+      const action = makeAction({ actionType: 'finance.pay_bill', riskLevel: 'medium', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Payment link opened.',
+        externalUrl: 'https://pay.example.com/inv1',
+      }));
+    });
+
+    it('executes finance.pay_bill without paymentUrl and acknowledges reminder', async () => {
+      const payload = { type: 'finance.pay_bill', payee: 'Acme Corp', dueDate: '2026-07-01' };
+      const action = makeAction({ actionType: 'finance.pay_bill', riskLevel: 'medium', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Bill payment reminder noted.',
+      }));
+    });
+
+    it('executes appointment.confirm and acknowledges details', async () => {
+      const payload = { type: 'appointment.confirm', serviceType: 'Dentist', providerName: 'Dr. Smith', appointmentTime: '2026-07-15T09:00:00' };
+      const action = makeAction({ actionType: 'appointment.confirm', payload });
+      const doneAction = makeAction({ status: 'succeeded' });
+      mockGetByTokenHash.mockResolvedValue(action);
+      mockClaimForExecution.mockResolvedValue(true);
+      mockMarkSucceeded.mockResolvedValue(undefined);
+      mockRecordExecution.mockResolvedValue(undefined);
+      mockGetForUser.mockResolvedValue(doneAction);
+
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+
+      expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
+        summary: 'Appointment on 2026-07-15T09:00:00 details noted.',
+      }));
     });
   });
 });

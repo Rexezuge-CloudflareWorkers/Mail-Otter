@@ -235,6 +235,7 @@ type SuggestState =
   | { phase: 'idle' }
   | { phase: 'loading' }
   | { phase: 'preview'; rule: Omit<EmailProcessingRule, 'ruleId'>; description: string }
+  | { phase: 'edit'; rule: EmailProcessingRule; description: string }
   | { phase: 'error'; message: string; description: string };
 
 function SuggestRuleForm({
@@ -275,6 +276,19 @@ function SuggestRuleForm({
     if (state.phase !== 'preview') return;
     onAdd({ ...state.rule, ruleId: crypto.randomUUID() });
   };
+
+  if (state.phase === 'edit') {
+    return (
+      <RuleForm
+        initialRule={state.rule}
+        onAdd={onAdd}
+        onCancel={() => {
+          const { ruleId: _, ...ruleWithoutId } = state.rule;
+          setState({ phase: 'preview', rule: ruleWithoutId, description: state.description });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 flex flex-col gap-3 bg-[var(--color-surface-raised)]">
@@ -329,6 +343,7 @@ function SuggestRuleForm({
         {state.phase === 'preview' && (
           <>
             <Button variant="secondary" size="sm" onClick={handleRegenerate}>Regenerate</Button>
+            <Button variant="secondary" size="sm" onClick={() => setState({ phase: 'edit', rule: { ...state.rule, ruleId: crypto.randomUUID() }, description: state.description })}>Edit</Button>
             <Button variant="primary" size="sm" onClick={handleAccept}>Add Rule</Button>
           </>
         )}

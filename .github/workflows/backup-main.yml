@@ -11,11 +11,29 @@ on:
     - cron: '0 0 5 * *'
 
 jobs:
+  check-secrets:
+    name: Check Secrets
+    runs-on: ubuntu-latest
+    outputs:
+      azure-configured: ${{ steps.check.outputs.azure }}
+      gitlab-configured: ${{ steps.check.outputs.gitlab }}
+    steps:
+      - name: Detect Configured Destinations
+        id: check
+        env:
+          AZURE_KEY: ${{ secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY }}
+          AZURE_URL: ${{ secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL }}
+          GITLAB_KEY: ${{ secrets.BACKUP_REPO_GITLAB_SSH_KEY }}
+          GITLAB_URL: ${{ secrets.BACKUP_REPO_GITLAB_REPO_URL }}
+        run: |
+          [ -n "$AZURE_KEY" ] && [ -n "$AZURE_URL" ] && echo "azure=true" >> "$GITHUB_OUTPUT" || echo "azure=false" >> "$GITHUB_OUTPUT"
+          [ -n "$GITLAB_KEY" ] && [ -n "$GITLAB_URL" ] && echo "gitlab=true" >> "$GITHUB_OUTPUT" || echo "gitlab=false" >> "$GITHUB_OUTPUT"
+
   backup-azure-devops:
+    needs: check-secrets
     if: >-
       ${{ !github.event.repository.fork &&
-          secrets.BACKUP_REPO_AZURE_DEVOPS_SSH_KEY != '' &&
-          secrets.BACKUP_REPO_AZURE_DEVOPS_REPO_URL != '' }}
+          needs.check-secrets.outputs.azure-configured == 'true' }}
     name: Azure DevOps
     runs-on: ubuntu-latest
 
@@ -49,10 +67,10 @@ jobs:
           max_attempts: '3'
 
   backup-gitlab:
+    needs: check-secrets
     if: >-
       ${{ !github.event.repository.fork &&
-          secrets.BACKUP_REPO_GITLAB_SSH_KEY != '' &&
-          secrets.BACKUP_REPO_GITLAB_REPO_URL != '' }}
+          needs.check-secrets.outputs.gitlab-configured == 'true' }}
     name: GitLab
     runs-on: ubuntu-latest
 

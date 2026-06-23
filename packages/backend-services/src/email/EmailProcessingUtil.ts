@@ -102,7 +102,22 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<GmailSummaryData | null> {
-    const message: GmailMessage = await GmailProviderUtil.getMessage(accessToken, messageId);
+    const contextDAO = new ApplicationContextDAO(env.DB);
+    const processedDAO = new ProcessedMessageDAO(env.DB);
+    let message: GmailMessage;
+    try {
+      message = await GmailProviderUtil.getMessage(accessToken, messageId);
+    } catch (error: unknown) {
+      if (GmailProviderUtil.isMessageNotFoundError(error)) {
+        const started = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
+          allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+        });
+        if (!started) return null;
+        await processedDAO.markSkipped(application.applicationId, messageId, 'Gmail message was deleted before Mail-Otter could process it.');
+        return null;
+      }
+      throw error;
+    }
     const headers = message.payload?.headers;
     const subject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const from: string = EmailContentUtil.getHeader(headers, 'From') || '';
@@ -110,8 +125,6 @@ class EmailProcessingUtil {
     const stableMessageFingerprint: string | null = await EmailProcessingUtil.getStableMessageFingerprint(
       env, application.providerId, EmailContentUtil.getHeader(headers, 'Message-ID'),
     );
-    const contextDAO = new ApplicationContextDAO(env.DB);
-    const processedDAO = new ProcessedMessageDAO(env.DB);
     if (isSummary || EmailContentUtil.isFromMailbox(from, application.providerEmail)) return null;
     const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, message.id, message.threadId, {
       allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),

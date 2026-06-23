@@ -50,6 +50,8 @@ interface GmailDraftReplyResult {
 }
 
 class GmailProviderUtil {
+  private static readonly MESSAGE_NOT_FOUND_PATTERN: RegExp = /Gmail request failed \(404\)/;
+
   public static async getProfile(accessToken: string): Promise<GmailProfile> {
     return GmailProviderUtil.fetchJson<GmailProfile>('https://gmail.googleapis.com/gmail/v1/users/me/profile', accessToken);
   }
@@ -123,6 +125,11 @@ class GmailProviderUtil {
     const url: URL = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}`);
     url.searchParams.set('format', 'FULL');
     return GmailProviderUtil.fetchJson<GmailMessage>(url.toString(), accessToken);
+  }
+
+  public static isMessageNotFoundError(error: unknown): boolean {
+    const message: string = error instanceof Error ? error.message : String(error);
+    return GmailProviderUtil.MESSAGE_NOT_FOUND_PATTERN.test(message);
   }
 
   public static async createCalendarEvent(accessToken: string, input: GmailCalendarEventInput): Promise<GmailCalendarEventResult> {

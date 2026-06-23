@@ -70,9 +70,9 @@ export const providerLabels: Record<string, string> = {
 };
 
 export const providerConnectionMethods: Record<string, Array<'oauth2' | 'imap-password'>> = {
-  'google-gmail': ['oauth2'],
-  'microsoft-outlook': ['oauth2'],
-  'fastmail-jmap': ['oauth2'],
+  'google-gmail': ['oauth2', 'imap-password'],
+  'microsoft-outlook': ['oauth2', 'imap-password'],
+  'fastmail-jmap': ['oauth2', 'imap-password'],
   'yahoo-mail': ['oauth2'],
   'custom-imap': ['oauth2', 'imap-password'],
   'apple-icloud': ['imap-password'],

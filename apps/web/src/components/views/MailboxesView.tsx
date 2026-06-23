@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { ConnectedApplication } from '../../../components/types';
 import { MailboxCard } from '../mailboxes/MailboxCard';
 import { MailboxDetail } from '../mailboxes/MailboxDetail';
@@ -36,7 +37,10 @@ export function MailboxesView({
 }) {
   const user = useCurrentUserData();
   const { busy } = useMailboxCallbacks();
-  const selectedApplication = applications.find((a) => a.applicationId === selectedApplicationId);
+  const selectedApplication = useMemo(
+    () => applications.find((a) => a.applicationId === selectedApplicationId),
+    [applications, selectedApplicationId],
+  );
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6 animate-fade-in-up">

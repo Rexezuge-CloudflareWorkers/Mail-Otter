@@ -48,7 +48,7 @@ export function AnalyticsView({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Analytics</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Usage trends and processing stats</p>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Usage Trends And Processing Stats</p>
         </div>
         <Button variant="secondary" size="sm" onClick={onRefresh} loading={loading}>
           <RefreshCw className="h-3.5 w-3.5" />

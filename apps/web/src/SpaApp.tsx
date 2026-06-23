@@ -21,6 +21,7 @@ import { useActions } from './hooks/useActions';
 import { useAuditLogs } from './hooks/useAuditLogs';
 import { useAnalytics } from './hooks/useAnalytics';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
+import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
 
 // Read URL params synchronously before first render so useState initializers can use them
@@ -113,43 +114,7 @@ export default function SpaApp() {
 
   if (!authorized || !user) return <Unauthorized />;
 
-  // Mailbox callbacks object — stable per interaction (recreated when isBusy or selectedApplication change)
-  const mailboxCallbacksValue = {
-    busy: isBusy,
-    onEdit: mailboxes.editApplication,
-    onDelete: () => {
-      if (mailboxes.selectedApplication) {
-        mailboxes.setConfirmDelete({
-          applicationId: mailboxes.selectedApplication.applicationId,
-          displayName: mailboxes.selectedApplication.displayName,
-        });
-      }
-    },
-    onStartOAuth2: mailboxes.startOAuth2,
-    onStartWatch: mailboxes.startWatch,
-    onStopWatch: mailboxes.stopWatch,
-    onLoadFolders: mailboxes.loadFolders,
-    onUpdateWatchedFolders: mailboxes.updateWatchedFolderIds,
-    onUpdateSenderFilters: mailboxes.updateSenderFilters,
-    onUpdateContextIndexing: mailboxes.updateContextIndexing,
-    onUpdateMaxContextDocuments: mailboxes.updateMaxContextDocuments,
-    onOpenContextAudit: (id: string) => { contextAudit.setAuditApplicationId(id); setActiveView('context'); },
-    onDeleteContextDocuments: mailboxes.deleteContextDocuments,
-    onDismissProcessingError: (id: string) => mailboxes.dismissError(id, 'processing'),
-    onDismissContextError: (id: string) => mailboxes.dismissError(id, 'context'),
-    integrationsByApplicationId: mailboxes.integrationsByApplicationId,
-    loadingIntegrations: mailboxes.loadingIntegrations,
-    onLoadIntegrations: mailboxes.loadIntegrations,
-    onCreateIntegration: mailboxes.createIntegration,
-    onUpdateIntegration: mailboxes.updateIntegration,
-    onDeleteIntegration: async (integrationId: string) => {
-      const allIntegrations = Object.values(mailboxes.integrationsByApplicationId).flat();
-      const found = allIntegrations.find((i) => i.integrationId === integrationId);
-      if (found) await mailboxes.deleteIntegration(integrationId, found.applicationId);
-    },
-    onTestIntegration: mailboxes.testIntegration,
-    onUpdateRules: mailboxes.updateRules,
-  };
+  const mailboxCallbacksValue = useMailboxCallbacksValue(mailboxes, contextAudit, isBusy, setActiveView);
 
   return (
     <NoticeContext.Provider value={{ showNotice }}>

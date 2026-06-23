@@ -1,6 +1,6 @@
 import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
-import { DatabaseError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
@@ -287,7 +287,14 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
   }
 
   private static toWorkflowError(error: unknown): Error {
+    // OAuth2 4xx from the Durable Object can be transient (cold-start, network hiccup);
+    // let the step's configured retry policy handle it rather than killing the workflow immediately.
+    if (error instanceof OAuth2TokenNonRetryableError) {
+      console.error('[Workflow] OAuth2 token error (will retry via step policy):', error.message);
+      return new RetryableError(error.message);
+    }
     if (error instanceof NonRetryableError) {
+      console.error('[Workflow] Non-retryable error (permanent failure):', error.constructor.name, error.message);
       return new WorkflowNonRetryableError(error.message, error.name);
     }
     if (error instanceof RetryableError) {
@@ -295,6 +302,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     }
     if (error instanceof DatabaseError) {
       if (!error.retryable) {
+        console.error('[Workflow] Non-retryable database error (permanent failure):', error.message);
         return new WorkflowNonRetryableError(error.message, 'DatabaseError');
       }
       return new RetryableError(error.message);

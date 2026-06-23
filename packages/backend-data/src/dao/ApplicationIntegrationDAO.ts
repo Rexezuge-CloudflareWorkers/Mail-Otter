@@ -47,6 +47,9 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
       enabled: 1,
       created_at: now,
       updated_at: now,
+      last_delivery_at: null,
+      last_delivery_status: null,
+      consecutive_failures: 0,
     });
   }
 
@@ -171,6 +174,9 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
       enabled: row.enabled !== 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      lastDeliveryAt: row.last_delivery_at ?? null,
+      lastDeliveryStatus: (row.last_delivery_status as 'success' | 'failure' | null) ?? null,
+      consecutiveFailures: row.consecutive_failures ?? 0,
     };
   }
 

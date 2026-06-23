@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
 import * as appSvc from '../services/applicationService';
@@ -231,6 +231,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
 
   const [integrationsByApplicationId, setIntegrationsByApplicationId] = useState<Record<string, OutboundIntegration[]>>({});
   const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+  const [deliveryLogsByIntegrationId, setDeliveryLogsByIntegrationId] = useState<Record<string, IntegrationDeliveryLog[]>>({});
+  const [loadingDeliveryLogs, setLoadingDeliveryLogs] = useState(false);
+  const [openDeliveryLogsIntegrationId, setOpenDeliveryLogsIntegrationId] = useState<string | null>(null);
 
   const loadIntegrations = async (applicationId: string) => {
     setLoadingIntegrations(true);
@@ -314,6 +317,24 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const fetchDeliveryLogs = async (integrationId: string) => {
+    setOpenDeliveryLogsIntegrationId(integrationId);
+    setLoadingDeliveryLogs(true);
+    try {
+      const data = await appSvc.fetchIntegrationDeliveries(integrationId, 20);
+      setDeliveryLogsByIntegrationId((c) => ({ ...c, [integrationId]: data.logs }));
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Delivery History.');
+      setOpenDeliveryLogsIntegrationId(null);
+    } finally {
+      setLoadingDeliveryLogs(false);
+    }
+  };
+
+  const closeDeliveryLogs = () => {
+    setOpenDeliveryLogsIntegrationId(null);
+  };
+
   const updateRules = async (applicationId: string, rules: EmailProcessingRule[]) => {
     setIsBusy(true);
     try {
@@ -363,5 +384,10 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     deleteIntegration: (integrationId: string, applicationId: string) => deleteIntegration(integrationId, applicationId),
     testIntegration,
     updateRules,
+    deliveryLogsByIntegrationId,
+    loadingDeliveryLogs,
+    openDeliveryLogsIntegrationId,
+    fetchDeliveryLogs,
+    closeDeliveryLogs,
   };
 }

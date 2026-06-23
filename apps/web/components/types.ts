@@ -29,6 +29,8 @@ export interface EmailProcessingRule {
 
 export type OutboundIntegrationType = 'slack' | 'discord' | 'webhook';
 
+export type IntegrationDeliveryStatus = 'success' | 'failure';
+
 export interface OutboundIntegration {
   integrationId: string;
   applicationId: string;
@@ -38,6 +40,20 @@ export interface OutboundIntegration {
   enabled: boolean;
   createdAt: number;
   updatedAt: number;
+  lastDeliveryAt: number | null;
+  lastDeliveryStatus: IntegrationDeliveryStatus | null;
+  consecutiveFailures: number;
+}
+
+export interface IntegrationDeliveryLog {
+  logId: string;
+  integrationId: string;
+  applicationId: string;
+  status: IntegrationDeliveryStatus;
+  httpStatus: number | null;
+  errorMessage: string | null;
+  emailSubject: string | null;
+  createdAt: number;
 }
 
 export interface SenderDomainFilters {

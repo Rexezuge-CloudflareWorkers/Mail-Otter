@@ -7,6 +7,7 @@ import {
   DEFAULT_AI_DAILY_USAGE_RETENTION_DAYS,
   DEFAULT_AI_EMBEDDING_MODEL,
   DEFAULT_CONTEXT_AUDIT_LOG_RETENTION_DAYS,
+  DEFAULT_INTEGRATION_DELIVERY_LOG_RETENTION_DAYS,
   DEFAULT_CONTEXT_DELETION_RUN_RETENTION_DAYS,
   DEFAULT_DEBUG_MODE,
   DEFAULT_EMAIL_SUMMARY_FALLBACK_MODEL,
@@ -91,6 +92,10 @@ class ConfigurationManager {
     getProcessedMessageRetentionDays: (env: unknown): number => EnvParser.positiveInt(env, 'PROCESSED_MESSAGE_RETENTION_DAYS', DEFAULT_PROCESSED_MESSAGE_RETENTION_DAYS),
   };
 
+  public static readonly integrations = {
+    getDeliveryLogRetentionDays: (env: unknown): number => EnvParser.positiveInt(env, 'INTEGRATION_DELIVERY_LOG_RETENTION_DAYS', DEFAULT_INTEGRATION_DELIVERY_LOG_RETENTION_DAYS),
+  };
+
   // ─── Flat API (backward-compatible, delegates to namespace groups) ────────────
 
   public static getMaxApplicationsPerUser(env: unknown): number { return ConfigurationManager.limits.getMaxApplicationsPerUser(env); }
@@ -126,6 +131,7 @@ class ConfigurationManager {
   public static getActionDefaultExpiryHours(env: unknown): number { return ConfigurationManager.action.getDefaultExpiryHours(env); }
   public static getActionRetentionDays(env: unknown): number { return ConfigurationManager.action.getRetentionDays(env); }
   public static getContextAuditLogRetentionDays(env: unknown): number { return ConfigurationManager.context.getAuditLogRetentionDays(env); }
+  public static getIntegrationDeliveryLogRetentionDays(env: unknown): number { return ConfigurationManager.integrations.getDeliveryLogRetentionDays(env); }
 }
 
 export { ConfigurationManager };

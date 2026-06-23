@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   mockDeleteStaleErrorDocuments: vi.fn(),
   mockDeleteOldDeletionRuns: vi.fn(),
   mockDeleteOldAuditLogs: vi.fn(),
+  mockDeleteOldDeliveryLogs: vi.fn(),
   mockListDueApplicationIds: vi.fn(),
   mockListApplicationsOverDocumentLimit: vi.fn(),
   mockRefreshAccessToken: vi.fn(),
@@ -33,6 +34,9 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
     deleteOldDeletionRuns = mocks.mockDeleteOldDeletionRuns;
     deleteOldAuditLogs = mocks.mockDeleteOldAuditLogs;
     listApplicationsOverDocumentLimit = mocks.mockListApplicationsOverDocumentLimit;
+  },
+  IntegrationDeliveryLogDAO: class {
+    deleteOlderThan = mocks.mockDeleteOldDeliveryLogs;
   },
   OAuth2AccessTokenRefreshStatusDAO: class {
     listDueApplicationIds = mocks.mockListDueApplicationIds;
@@ -68,6 +72,7 @@ import { AuditLogPruningTask } from '@mail-otter/background/scheduled';
 import { ContextDocumentPruningTask } from '@mail-otter/background/scheduled';
 import { EmailActionPruningTask } from '@mail-otter/background/scheduled';
 import { OAuth2AccessTokenRefreshTask } from '@mail-otter/background/scheduled';
+import { IntegrationDeliveryLogPruningTask } from '@mail-otter/background/scheduled';
 
 function createMockEnv(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -174,6 +179,20 @@ describe('AuditLogPruningTask', () => {
   it('deletes old audit log entries', async () => {
     await new AuditLogPruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
     expect(mocks.mockDeleteOldAuditLogs).toHaveBeenCalled();
+  });
+});
+
+describe('IntegrationDeliveryLogPruningTask', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mocks.mockDeleteOldDeliveryLogs.mockResolvedValue(0);
+  });
+
+  it('deletes old delivery log entries', async () => {
+    await new IntegrationDeliveryLogPruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
+    expect(mocks.mockDeleteOldDeliveryLogs).toHaveBeenCalled();
+    const olderThan: number = mocks.mockDeleteOldDeliveryLogs.mock.calls[0][0] as number;
+    expect(olderThan).toBeLessThan(Date.now() / 1000);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   UpdateIntegrationRoute,
   DeleteIntegrationRoute,
   TestIntegrationRoute,
+  ListIntegrationDeliveriesRoute,
   CreateOAuth2AuthorizationRoute,
   DeleteApplicationRoute,
   DeleteApplicationContextDocumentsRoute,
@@ -137,6 +138,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.put('/user/application/integration', UpdateIntegrationRoute);
     openapi.delete('/user/application/integration', DeleteIntegrationRoute);
     openapi.post('/user/application/integration/test', TestIntegrationRoute);
+    openapi.get('/user/application/integration/deliveries', ListIntegrationDeliveriesRoute);
 
     openapi.get('/user/actions', ListEmailActionsRoute);
     openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);

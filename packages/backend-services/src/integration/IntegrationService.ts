@@ -1,4 +1,4 @@
-import { ApplicationIntegrationDAO } from '@mail-otter/backend-data/dao';
+import { ApplicationIntegrationDAO, IntegrationDeliveryLogDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
 import type { GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData } from '../email/EmailProcessingUtil';
@@ -22,6 +22,12 @@ interface EmailSummaryNotification {
     callbackUrl: string;
   }>;
   processedAt: number;
+}
+
+interface DispatchResult {
+  status: 'success' | 'failure';
+  httpStatus: number | null;
+  errorMessage: string | null;
 }
 
 class IntegrationService {
@@ -49,16 +55,35 @@ class IntegrationService {
       processedAt: Math.floor(Date.now() / 1000),
     };
 
+    const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
+    const emailSubject = summaryData.emailSubject?.slice(0, 255) ?? null;
+
     await Promise.allSettled(
       integrations.map(async (integration) => {
+        let result: DispatchResult;
         try {
           const webhookUrl = await dao.getDecryptedWebhookUrl(integration.integrationId);
-          await this.dispatchToIntegration(integration, webhookUrl, notification);
+          result = await this.dispatchToIntegration(integration, webhookUrl, notification);
         } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : String(error);
+          result = { status: 'failure', httpStatus: null, errorMessage: msg };
+        }
+        if (result.status === 'failure') {
           console.warn(
-            `[IntegrationService] Failed to dispatch to ${integration.integrationType} integration ${integration.integrationId}:`,
-            error,
+            `[IntegrationService] Failed to dispatch to ${integration.integrationType} integration ${integration.integrationId}: HTTP ${result.httpStatus ?? 'n/a'}`,
           );
+        }
+        try {
+          await logDao.create({
+            integrationId: integration.integrationId,
+            applicationId: integration.applicationId,
+            status: result.status,
+            httpStatus: result.httpStatus,
+            errorMessage: result.errorMessage?.slice(0, 500) ?? null,
+            emailSubject,
+          });
+        } catch (logError: unknown) {
+          console.warn('[IntegrationService] Failed to write delivery log:', logError);
         }
       }),
     );
@@ -79,32 +104,38 @@ class IntegrationService {
       processedAt: Math.floor(Date.now() / 1000),
     };
 
-    await this.dispatchToIntegration(integration, webhookUrl, testNotification);
-  }
-
-  private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification): Promise<void> {
-    switch (integration.integrationType) {
-      case 'slack':
-        await this.postJson(webhookUrl, this.buildSlackPayload(notification));
-        break;
-      case 'discord':
-        await this.postJson(webhookUrl, this.buildDiscordPayload(notification));
-        break;
-      case 'webhook':
-        await this.postJson(webhookUrl, this.buildWebhookPayload(notification));
-        break;
+    const result = await this.dispatchToIntegration(integration, webhookUrl, testNotification);
+    if (result.status === 'failure') {
+      throw new Error(result.errorMessage ?? `Webhook returned HTTP ${result.httpStatus ?? 'error'}`);
     }
   }
 
-  private async postJson(url: string, payload: unknown): Promise<void> {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) {
-      console.warn(`[IntegrationService] Webhook POST returned ${response.status}: ${url.slice(0, 50)}…`);
+  private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification): Promise<DispatchResult> {
+    switch (integration.integrationType) {
+      case 'slack':
+        return this.postJson(webhookUrl, this.buildSlackPayload(notification));
+      case 'discord':
+        return this.postJson(webhookUrl, this.buildDiscordPayload(notification));
+      case 'webhook':
+        return this.postJson(webhookUrl, this.buildWebhookPayload(notification));
+    }
+  }
+
+  private async postJson(url: string, payload: unknown): Promise<DispatchResult> {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        return { status: 'failure', httpStatus: response.status, errorMessage: `HTTP ${response.status}` };
+      }
+      return { status: 'success', httpStatus: response.status, errorMessage: null };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { status: 'failure', httpStatus: null, errorMessage: msg };
     }
   }
 

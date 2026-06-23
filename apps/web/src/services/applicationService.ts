@@ -1,4 +1,4 @@
-import type { ConnectedApplication, EmailProcessingRule, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import { apiFetch, readJson } from '../../components/utils';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
@@ -222,6 +222,12 @@ export async function testIntegration(integrationId: string): Promise<{ success:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ integrationId }),
     }),
+  );
+}
+
+export async function fetchIntegrationDeliveries(integrationId: string, limit = 20): Promise<{ logs: IntegrationDeliveryLog[] }> {
+  return readJson<{ logs: IntegrationDeliveryLog[] }>(
+    await apiFetch(`/user/application/integration/deliveries?integrationId=${encodeURIComponent(integrationId)}&limit=${limit}`),
   );
 }
 

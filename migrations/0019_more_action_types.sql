@@ -7,8 +7,17 @@
 -- unaffected and do not need to be touched.
 
 -- ============================================================
--- Phase A: Backup child table data
+-- Phase A: Backup parent and child table data
 -- ============================================================
+
+CREATE TABLE bak_email_summary_actions AS
+    SELECT action_id, processed_message_id, application_id, user_email,
+           provider_id, provider_message_id, provider_thread_id,
+           action_type, status, risk_level, token_hash,
+           encrypted_payload, payload_iv, payload_salt,
+           encrypted_result, result_iv, result_salt, error_message,
+           expires_at, executed_at, created_at, updated_at
+    FROM email_summary_actions;
 
 CREATE TABLE bak_email_action_executions AS
     SELECT execution_id, action_id, attempt, triggered_by, status,
@@ -66,6 +75,24 @@ CREATE TABLE email_summary_actions (
     CHECK (status IN ('pending', 'executing', 'succeeded', 'failed', 'expired', 'cancelled')),
     CHECK (risk_level IN ('low', 'medium', 'high'))
 );
+
+-- Restore email_summary_actions data (existing rows keep their original action_type)
+INSERT INTO email_summary_actions
+    (action_id, processed_message_id, application_id, user_email,
+     provider_id, provider_message_id, provider_thread_id,
+     action_type, status, risk_level, token_hash,
+     encrypted_payload, payload_iv, payload_salt,
+     encrypted_result, result_iv, result_salt, error_message,
+     expires_at, executed_at, created_at, updated_at)
+SELECT
+    action_id, processed_message_id, application_id, user_email,
+    provider_id, provider_message_id, provider_thread_id,
+    action_type, status, risk_level, token_hash,
+    encrypted_payload, payload_iv, payload_salt,
+    encrypted_result, result_iv, result_salt, error_message,
+    expires_at, executed_at, created_at, updated_at
+FROM bak_email_summary_actions;
+DROP TABLE bak_email_summary_actions;
 
 -- ============================================================
 -- Phase D: Recreate email_action_executions and restore backup

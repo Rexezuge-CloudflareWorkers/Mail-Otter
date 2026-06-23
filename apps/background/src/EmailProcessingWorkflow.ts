@@ -270,6 +270,9 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
 
   private static buildImapConnectOptions(application: ConnectedApplication, accessToken: string, isImapPassword: boolean): ImapConnectOptions {
     const PROVIDER_IMAP_DEFAULTS: Record<string, { host: string; port: number }> = {
+      'google-gmail': { host: 'imap.gmail.com', port: 993 },
+      'microsoft-outlook': { host: 'outlook.office365.com', port: 993 },
+      'fastmail-jmap': { host: 'imap.fastmail.com', port: 993 },
       'yahoo-mail': { host: 'imap.mail.yahoo.com', port: 993 },
       'apple-icloud': { host: 'imap.mail.me.com', port: 993 },
     };

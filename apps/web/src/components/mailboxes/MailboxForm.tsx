@@ -105,8 +105,9 @@ export function MailboxForm({
   const isImapProvider = IMAP_PROVIDERS.has(form.providerId);
   const isImapPasswordMethod = form.connectionMethod === 'imap-password';
   const isOAuth2Method = form.connectionMethod === 'oauth2';
-  const showImapFields = isImapProvider;
+  const showImapFields = isImapProvider || isImapPasswordMethod;
   const showOAuth2Fields = isOAuth2Method && !isImapProvider;
+  const isFixedHostImapProvider = isImapPasswordMethod && !isImapProvider;
 
   const providerFeatures: [string, OAuth2Feature][] = (Object.entries(OAUTH2_FEATURES) as [string, OAuth2Feature][]).filter(
     ([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[form.providerId] ?? []).length > 0,
@@ -213,8 +214,8 @@ export function MailboxForm({
             />
           )}
 
-          {/* Gmail Pub/Sub topic */}
-          {form.providerId === 'google-gmail' && (
+          {/* Gmail Pub/Sub topic — only for OAuth2 connections */}
+          {form.providerId === 'google-gmail' && isOAuth2Method && (
             <Input
               value={form.gmailPubsubTopicName}
               onChange={(e) => update({ gmailPubsubTopicName: e.target.value })}
@@ -222,9 +223,10 @@ export function MailboxForm({
             />
           )}
 
-          {/* IMAP fields for custom-imap and apple-icloud */}
+          {/* IMAP fields */}
           {showImapFields && form.providerId !== 'yahoo-mail' && (
             <div className="space-y-2">
+              {/* Host/port — only for custom-imap (user-provided server) */}
               {form.providerId === 'custom-imap' && (
                 <div className="flex gap-2">
                   <Input
@@ -245,13 +247,19 @@ export function MailboxForm({
               <Input
                 value={form.imapUsername}
                 onChange={(e) => update({ imapUsername: e.target.value })}
-                placeholder="IMAP Username"
+                placeholder={isFixedHostImapProvider ? 'Email Address' : 'IMAP Username'}
               />
               {isImapPasswordMethod && (
                 <Input
                   value={form.imapPassword}
                   onChange={(e) => update({ imapPassword: e.target.value })}
-                  placeholder={form.applicationId ? '(Unchanged)' : form.providerId === 'apple-icloud' ? 'App-Specific Password' : 'IMAP Password'}
+                  placeholder={
+                    form.applicationId
+                      ? '(Unchanged)'
+                      : isFixedHostImapProvider || form.providerId === 'apple-icloud'
+                        ? 'App Password'
+                        : 'IMAP Password'
+                  }
                   type="password"
                 />
               )}

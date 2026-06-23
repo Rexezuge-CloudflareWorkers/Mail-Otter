@@ -25,7 +25,7 @@ class WatchService {
       throw new BadRequestError('Connected application is missing provider mailbox metadata.');
     }
 
-    const provider = EmailProviderRegistry.get(application.providerId);
+    const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
     const credentials = await WatchService.resolveCredentials(application, env);
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
 
@@ -85,7 +85,7 @@ class WatchService {
       ? await OAuth2AccessTokenService.getAccessToken(application.applicationId, env)
       : '';
     try {
-      await EmailProviderRegistry.get(application.providerId).stopWatch(accessToken, subscription?.externalSubscriptionId ?? undefined);
+      await EmailProviderRegistry.get(application.providerId, application.connectionMethod).stopWatch(accessToken, subscription?.externalSubscriptionId ?? undefined);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[WatchService] Provider unsubscribe failed, proceeding with local stop: ${message}`);
@@ -107,14 +107,14 @@ class WatchService {
 
   private static async resolveCredentials(application: ConnectedApplication, env: WatchServiceEnv): Promise<AnyProviderCredentials> {
     if (application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) {
-      if (!application.imapHost || !application.imapUsername || !application.imapPassword) {
+      if (!application.imapUsername || !application.imapPassword) {
         throw new BadRequestError('IMAP credentials are incomplete.');
       }
       return {
         type: 'imap-password',
         username: application.imapUsername,
         password: application.imapPassword,
-        host: application.imapHost,
+        host: application.imapHost ?? '',
         port: application.imapPort ?? 993,
       };
     }

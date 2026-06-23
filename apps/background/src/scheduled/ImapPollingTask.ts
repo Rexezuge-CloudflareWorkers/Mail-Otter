@@ -43,7 +43,7 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
     if (!application) return;
 
     const credentials = await ImapPollingTask.resolveCredentials(application, env);
-    const provider = EmailProviderRegistry.get(application.providerId);
+    const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
     const { messages, newCursor } = await provider.pollNewMessages(credentials, subscription.imapCursor ?? null);
 
     if (messages.length > 0) {
@@ -54,14 +54,14 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
 
   private static async resolveCredentials(application: ConnectedApplication, env: ImapPollingTaskEnv): Promise<AnyProviderCredentials> {
     if (application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) {
-      if (!application.imapHost || !application.imapUsername || !application.imapPassword) {
+      if (!application.imapUsername || !application.imapPassword) {
         throw new Error('IMAP credentials are incomplete for application ' + application.applicationId);
       }
       return {
         type: 'imap-password',
         username: application.imapUsername,
         password: application.imapPassword,
-        host: application.imapHost,
+        host: application.imapHost ?? '',
         port: application.imapPort ?? 993,
       };
     }

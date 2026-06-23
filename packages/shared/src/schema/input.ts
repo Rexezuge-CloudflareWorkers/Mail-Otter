@@ -12,9 +12,11 @@ import {
   EMAIL_ACTION_STATUS_FAILED,
   EMAIL_ACTION_STATUS_PENDING,
   EMAIL_ACTION_STATUS_SUCCEEDED,
+  CONNECTION_METHOD_OAUTH2,
   PROVIDER_GOOGLE_GMAIL,
-  SUPPORTED_PROVIDER_CONNECTIONS,
+  PROVIDER_SUPPORTED_CONNECTION_METHODS,
 } from '../constants';
+import type { ConnectionMethod, ProviderId } from '../constants';
 
 interface RequestInputSchema {
   body?: ZodTypeAny | undefined;
@@ -41,12 +43,16 @@ const UpdateApplicationBodySchema = z
       .nullable(),
   })
   .refine(
-    (input): boolean => SUPPORTED_PROVIDER_CONNECTIONS[input.providerId] === input.connectionMethod,
+    (input): boolean =>
+      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId as ProviderId]?.includes(input.connectionMethod as ConnectionMethod)) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(
-    (input): boolean => input.providerId !== PROVIDER_GOOGLE_GMAIL || Boolean(input.gmailPubsubTopicName),
-    'gmailPubsubTopicName is required for Gmail applications.',
+    (input): boolean =>
+      input.providerId !== PROVIDER_GOOGLE_GMAIL ||
+      input.connectionMethod !== CONNECTION_METHOD_OAUTH2 ||
+      Boolean(input.gmailPubsubTopicName),
+    'gmailPubsubTopicName is required for Gmail OAuth2 applications.',
   );
 
 const DeleteApplicationBodySchema = z.object({

@@ -9,9 +9,10 @@ import {
   PROVIDER_GOOGLE_GMAIL,
   PROVIDER_MICROSOFT_OUTLOOK,
   PROVIDER_YAHOO_MAIL,
-  SUPPORTED_PROVIDER_CONNECTIONS,
+  PROVIDER_SUPPORTED_CONNECTION_METHODS,
   MAX_RULE_MATCHERS,
 } from '../constants';
+import type { ConnectionMethod, ProviderId } from '../constants';
 
 const UUID_PATTERN: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const GMAIL_PUBSUB_TOPIC_PATTERN: RegExp = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/topics\/[A-Za-z][A-Za-z0-9_.~+%-]{2,254}$/;
@@ -54,20 +55,26 @@ const ConnectedApplicationBaseSchema = z
     smtpPort: z.number().int().min(1).max(65535).optional(),
   })
   .refine(
-    (input): boolean => SUPPORTED_PROVIDER_CONNECTIONS[input.providerId] === input.connectionMethod,
+    (input): boolean =>
+      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId as ProviderId]?.includes(input.connectionMethod as ConnectionMethod)) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(
-    (input): boolean => input.providerId !== PROVIDER_GOOGLE_GMAIL || Boolean(input.gmailPubsubTopicName),
-    'gmailPubsubTopicName is required for Gmail applications.',
+    (input): boolean =>
+      input.providerId !== PROVIDER_GOOGLE_GMAIL ||
+      input.connectionMethod !== CONNECTION_METHOD_OAUTH2 ||
+      Boolean(input.gmailPubsubTopicName),
+    'gmailPubsubTopicName is required for Gmail OAuth2 applications.',
   )
   .refine(
     (input): boolean => !IMAP_PROVIDERS.has(input.providerId) || Boolean(input.imapHost),
     'imapHost is required for IMAP providers.',
   )
   .refine(
-    (input): boolean => !IMAP_PROVIDERS.has(input.providerId) || Boolean(input.imapUsername),
-    'imapUsername is required for IMAP providers.',
+    (input): boolean =>
+      !(IMAP_PROVIDERS.has(input.providerId) || input.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) ||
+      Boolean(input.imapUsername),
+    'imapUsername is required for IMAP providers and when using IMAP password authentication.',
   )
   .refine(
     (input): boolean => input.connectionMethod !== CONNECTION_METHOD_OAUTH2 || Boolean(input.clientId),

@@ -146,7 +146,7 @@ class EmailProcessingUtil {
     if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
     try {
       await GmailProviderUtil.sendSummaryReply(data.accessToken, data.application.providerEmail!, data.message, data.summaryHtml);
-      await auditLogger.logSummarySent(data.application, data.messageId, data.summaryModel, data.options.retryAttempt);
+      await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
       const processingError: Error = EmailProcessingUtil.classifyError(error);
@@ -223,7 +223,7 @@ class EmailProcessingUtil {
     if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
     try {
       await OutlookProviderUtil.sendSelfSummaryReply(data.accessToken, data.message, data.application.providerEmail!, data.summaryHtml);
-      await auditLogger.logSummarySent(data.application, data.messageId, data.summaryModel, data.options.retryAttempt);
+      await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
       const processingError: Error = EmailProcessingUtil.classifyError(error);
@@ -280,7 +280,7 @@ class EmailProcessingUtil {
     if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
     try {
       await FastmailProviderUtil.createDraftReply(data.accessToken, data.emailId, data.summaryHtml);
-      await auditLogger.logSummarySent(data.application, data.emailId, data.summaryModel, data.options.retryAttempt);
+      await auditLogger.logSummarySent(data.application, data.emailId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.emailId);
     } catch (error: unknown) {
       const processingError = EmailProcessingUtil.classifyError(error);
@@ -343,7 +343,7 @@ class EmailProcessingUtil {
         data.summaryHtml,
       ].join('\r\n');
       await imapClient.append('INBOX', summaryRfc2822);
-      await auditLogger.logSummarySent(data.application, data.messageId, data.summaryModel, data.options.retryAttempt);
+      await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
       const processingError = EmailProcessingUtil.classifyError(error);

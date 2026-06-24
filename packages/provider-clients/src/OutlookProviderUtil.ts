@@ -27,6 +27,7 @@ interface OutlookMessage {
   sender?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
   internetMessageHeaders?: Array<{ name: string; value: string }> | undefined;
   webLink?: string | undefined;
+  hasAttachments?: boolean | undefined;
 }
 
 interface OutlookCalendarEventInput {
@@ -155,7 +156,7 @@ class OutlookProviderUtil {
 
   public static async getMessage(accessToken: string, messageId: string): Promise<OutlookMessage> {
     const url: URL = new URL(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`);
-    url.searchParams.set('$select', 'id,subject,conversationId,internetMessageId,body,from,sender,internetMessageHeaders');
+    url.searchParams.set('$select', 'id,subject,conversationId,internetMessageId,body,from,sender,internetMessageHeaders,hasAttachments');
     return fetchJsonWithBearer<OutlookMessage>(url.toString(), accessToken, 'Microsoft Graph', {
       headers: { Prefer: 'outlook.body-content-type="text"' },
     });
@@ -348,6 +349,50 @@ class OutlookProviderUtil {
     url.searchParams.set('$top', '50');
     const data = await fetchJsonWithBearer<{ value?: OutlookCalendarEventListItem[] | undefined }>(url.toString(), accessToken, 'Microsoft Graph');
     return data.value || [];
+  }
+
+  public static async updateMessageProperties(
+    accessToken: string,
+    messageId: string,
+    updates: { categories?: string[]; isRead?: boolean; flag?: { flagStatus: 'flagged' | 'notFlagged' } },
+  ): Promise<void> {
+    await fetchJsonWithBearer<Record<string, unknown>>(
+      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`,
+      accessToken,
+      'Microsoft Graph',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      },
+    );
+  }
+
+  public static async moveToArchive(accessToken: string, messageId: string): Promise<void> {
+    const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/move`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ destinationId: 'archive' }),
+    });
+    if (!response.ok) {
+      throw createProviderApiError('Microsoft Graph', 'move to archive', response, await response.text());
+    }
+  }
+
+  public static async listOutlookCategories(accessToken: string): Promise<Array<{ id: string; displayName: string }>> {
+    try {
+      const data = await fetchJsonWithBearer<{ value?: Array<{ id: string; displayName: string }> | undefined }>(
+        'https://graph.microsoft.com/v1.0/me/outlook/masterCategories',
+        accessToken,
+        'Microsoft Graph',
+      );
+      return data.value || [];
+    } catch {
+      return [];
+    }
   }
 
   public static async sendStandaloneEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {

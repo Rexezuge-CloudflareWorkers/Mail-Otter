@@ -144,6 +144,53 @@ describe('EmailRulesUtil', () => {
     });
   });
 
+  describe('evaluatePreProcessing', () => {
+    it('returns null when no pre-processing rule matches', () => {
+      const r = rule({ action: { type: 'skip' }, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] } });
+      expect(EmailRulesUtil.evaluatePreProcessing([r], ctx)).toBeNull();
+    });
+
+    it('returns matching pre-processing rule', () => {
+      const r = rule({ action: { type: 'skip' } });
+      expect(EmailRulesUtil.evaluatePreProcessing([r], ctx)?.action.type).toBe('skip');
+    });
+
+    it('ignores post-processing rules', () => {
+      const r = rule({ action: { type: 'apply_label', labelName: 'Newsletters' } });
+      expect(EmailRulesUtil.evaluatePreProcessing([r], ctx)).toBeNull();
+    });
+  });
+
+  describe('evaluatePostProcessing', () => {
+    it('returns empty array when no rules match', () => {
+      const r = rule({ action: { type: 'archive_message' }, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] } });
+      expect(EmailRulesUtil.evaluatePostProcessing([r], ctx)).toHaveLength(0);
+    });
+
+    it('returns all matching post-processing rules', () => {
+      const r1 = rule({ action: { type: 'archive_message' } });
+      const r2 = rule({ action: { type: 'mark_read' } });
+      const result = EmailRulesUtil.evaluatePostProcessing([r1, r2], ctx);
+      expect(result).toHaveLength(2);
+      expect(result[0].action.type).toBe('archive_message');
+      expect(result[1].action.type).toBe('mark_read');
+    });
+
+    it('ignores pre-processing rules', () => {
+      const r = rule({ action: { type: 'skip' } });
+      expect(EmailRulesUtil.evaluatePostProcessing([r], ctx)).toHaveLength(0);
+    });
+
+    it('includes detected_action_type matcher match', () => {
+      const r = rule({
+        action: { type: 'star_message' },
+        conditions: { operator: 'any', matchers: [{ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }] },
+      });
+      const ctxWithActions = { ...ctx, detectedActionTypes: ['calendar.add_event'] };
+      expect(EmailRulesUtil.evaluatePostProcessing([r], ctxWithActions)).toHaveLength(1);
+    });
+  });
+
   describe('action types', () => {
     it('matched rule carries skip action', () => {
       const r = rule({ action: { type: 'skip' } });
@@ -162,6 +209,66 @@ describe('EmailRulesUtil', () => {
       const result = EmailRulesUtil.evaluate([r], ctx);
       expect(result?.action.type).toBe('prepend_instruction');
       expect(result?.action.instruction).toBe('Extract invoice number.');
+    });
+  });
+
+  describe('matchesMatcher — has_attachment', () => {
+    it('matches when email has attachment and value is true', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: true })).toBe(true);
+    });
+
+    it('does not match when email has no attachment and value is true', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: false })).toBe(false);
+    });
+
+    it('matches when email has no attachment and value is false', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'false' }, { ...ctx, hasAttachment: false })).toBe(true);
+    });
+
+    it('treats undefined hasAttachment as false', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'false' }, ctx)).toBe(true);
+    });
+  });
+
+  describe('matchesMatcher — detected_action_type', () => {
+    it('includes — returns true when action type is in detected list', () => {
+      const ctxWithActions = { ...ctx, detectedActionTypes: ['calendar.add_event', 'email.draft_reply'] };
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(true);
+    });
+
+    it('includes — returns false when action type not in detected list', () => {
+      const ctxWithActions = { ...ctx, detectedActionTypes: ['email.draft_reply'] };
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(false);
+    });
+
+    it('not_includes — returns true when action type is absent', () => {
+      const ctxWithActions = { ...ctx, detectedActionTypes: ['email.draft_reply'] };
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(true);
+    });
+
+    it('not_includes — returns false when action type is present', () => {
+      const ctxWithActions = { ...ctx, detectedActionTypes: ['calendar.add_event'] };
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(false);
+    });
+
+    it('treats undefined detectedActionTypes as empty list', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctx)).toBe(false);
+    });
+  });
+
+  describe('isPreProcessingRule / isPostProcessingRule', () => {
+    it('skip is a pre-processing rule', () => {
+      expect(EmailRulesUtil.isPreProcessingRule(rule({ action: { type: 'skip' } }))).toBe(true);
+      expect(EmailRulesUtil.isPostProcessingRule(rule({ action: { type: 'skip' } }))).toBe(false);
+    });
+
+    it('apply_label is a post-processing rule', () => {
+      expect(EmailRulesUtil.isPostProcessingRule(rule({ action: { type: 'apply_label', labelName: 'Work' } }))).toBe(true);
+      expect(EmailRulesUtil.isPreProcessingRule(rule({ action: { type: 'apply_label', labelName: 'Work' } }))).toBe(false);
+    });
+
+    it('star_message is a post-processing rule', () => {
+      expect(EmailRulesUtil.isPostProcessingRule(rule({ action: { type: 'star_message' } }))).toBe(true);
     });
   });
 

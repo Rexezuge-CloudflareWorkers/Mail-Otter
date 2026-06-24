@@ -1,5 +1,6 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { EmailProcessingRule, EmailRuleAction, EmailRuleCondition } from '@mail-otter/shared/model';
+import { PRE_PROCESSING_ACTION_TYPES } from '@mail-otter/shared/constants';
 import { EmailRuleActionSchema, EmailRuleConditionSchema } from '@mail-otter/shared/schema';
 import { WorkersAiResponseUtil } from './WorkersAiResponseUtil';
 import type { AiTextGenerationUsage } from './WorkersAiResponseUtil';
@@ -22,8 +23,8 @@ const SUGGESTION_JSON_SCHEMA = {
             type: 'object',
             required: ['field', 'op', 'value'],
             properties: {
-              field: { type: 'string', enum: ['from', 'subject', 'body'] },
-              op: { type: 'string', enum: ['contains', 'not_contains', 'matches_sender'] },
+              field: { type: 'string', enum: ['from', 'subject', 'body', 'has_attachment', 'detected_action_type'] },
+              op: { type: 'string', enum: ['contains', 'not_contains', 'matches_sender', 'is', 'includes', 'not_includes'] },
               value: { type: 'string' },
             },
           },
@@ -34,8 +35,9 @@ const SUGGESTION_JSON_SCHEMA = {
       type: 'object',
       required: ['type'],
       properties: {
-        type: { type: 'string', enum: ['skip', 'skip_actions', 'prepend_instruction'] },
+        type: { type: 'string', enum: ['skip', 'skip_actions', 'prepend_instruction', 'apply_label', 'archive_message', 'mark_read', 'star_message'] },
         instruction: { type: 'string' },
+        labelName: { type: 'string' },
       },
     },
   },
@@ -43,6 +45,10 @@ const SUGGESTION_JSON_SCHEMA = {
 
 const SYSTEM_PROMPT = `You are a rule configuration assistant for an email processing system.
 Generate a single email processing rule as JSON based on the user's description.
+
+The system has two phases of rule processing:
+- Pre-processing rules (action types: skip, skip_actions, prepend_instruction) run before AI summarization. First matching rule wins.
+- Post-processing rules (action types: apply_label, archive_message, mark_read, star_message) run after AI summarization and action storage. All matching rules execute.
 
 Rule schema:
 {
@@ -52,21 +58,31 @@ Rule schema:
     "operator": "all" | "any",
     "matchers": [
       { "field": "from" | "subject" | "body", "op": "contains" | "not_contains" | "matches_sender", "value": "string" }
+      { "field": "has_attachment", "op": "is", "value": "true" | "false" }
+      { "field": "detected_action_type", "op": "includes" | "not_includes", "value": "<action_type_string>" }
     ]
   },
   "action": {
-    "type": "skip" | "skip_actions" | "prepend_instruction",
-    "instruction": "string (only required for prepend_instruction)"
+    "type": "skip" | "skip_actions" | "prepend_instruction" | "apply_label" | "archive_message" | "mark_read" | "star_message",
+    "instruction": "string (only for prepend_instruction)",
+    "labelName": "string (only for apply_label)"
   }
 }
 
 Rules:
 - matches_sender is only valid on field "from". Use @domain.com to match all senders from a domain, or user@example.com to match a specific address.
-- contains / not_contains do case-insensitive substring matching on any field.
+- contains / not_contains do case-insensitive substring matching on from, subject, or body fields.
+- has_attachment field: op must be "is", value must be "true" or "false".
+- detected_action_type field: op is "includes" or "not_includes"; value is an action type string (e.g. "calendar.add_event", "email.draft_reply", "external.open_link", "manual.todo"). Only valid with post-processing action types.
 - operator "all" means ALL matchers must match (AND logic); "any" means at least one must match (OR logic).
-- skip: skip the email entirely, no AI summarization.
-- skip_actions: summarize the email but do not create action proposals.
-- prepend_instruction: add extra instructions to the AI summarization prompt.
+- skip: skip the email entirely, no AI summarization (pre-processing).
+- skip_actions: summarize the email but do not create action proposals (pre-processing).
+- prepend_instruction: add extra instructions to the AI summarization prompt (pre-processing).
+- apply_label: apply a label/category to the email (post-processing). Requires labelName.
+- archive_message: move email to archive (post-processing).
+- mark_read: mark email as read (post-processing).
+- star_message: star/flag the email (post-processing).
+- IMPORTANT: detected_action_type matcher requires a post-processing action type (apply_label, archive_message, mark_read, star_message).
 
 Return only the JSON object with no explanation or markdown.`;
 
@@ -154,19 +170,19 @@ class EmailRuleSuggestionUtil {
     if (typeof name !== 'string' || name.trim().length < 1 || name.length > 100) return undefined;
     if (typeof enabled !== 'boolean') return undefined;
 
-    // Coerce matches_sender on non-from fields before schema validation, since
-    // the shared schema enforces the constraint as a Zod refinement.
-    const conditions = EmailRuleSuggestionUtil.sanitizeConditions(p['conditions']);
-    const condResult = EmailRuleConditionSchema.safeParse(conditions);
-    if (!condResult.success) return undefined;
-
     const actionResult = EmailRuleActionSchema.safeParse(p['action']);
     if (!actionResult.success) return undefined;
 
-    return { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data };
+    // Coerce matches_sender on non-from fields and detected_action_type on pre-processing rules
+    // before schema validation (the shared schema enforces these as Zod refinements).
+    const conditions = EmailRuleSuggestionUtil.sanitizeConditions(p['conditions'], actionResult.data.type);
+    const condResult = EmailRuleConditionSchema.safeParse(conditions);
+    if (!condResult.success) return undefined;
+
+    return { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction };
   }
 
-  private static sanitizeConditions(conditions: unknown): unknown {
+  private static sanitizeConditions(conditions: unknown, actionType?: string): unknown {
     if (!conditions || typeof conditions !== 'object') return conditions;
     const c = conditions as Record<string, unknown>;
     if (!Array.isArray(c['matchers'])) return conditions;
@@ -177,6 +193,9 @@ class EmailRuleSuggestionUtil {
         const matcher = m as Record<string, unknown>;
         if (matcher['op'] === 'matches_sender' && matcher['field'] !== 'from') {
           return { ...matcher, op: 'contains' };
+        }
+        if (matcher['field'] === 'detected_action_type' && actionType && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
+          return { field: 'subject', op: 'contains', value: matcher['value'] ?? '' };
         }
         return matcher;
       }),

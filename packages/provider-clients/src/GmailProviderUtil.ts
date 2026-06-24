@@ -223,6 +223,41 @@ class GmailProviderUtil {
     return `mail-otter-summary-${safeSeed}`;
   }
 
+  public static async modifyMessage(
+    accessToken: string,
+    messageId: string,
+    addLabelIds?: string[],
+    removeLabelIds?: string[],
+  ): Promise<void> {
+    const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}/modify`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        addLabelIds: addLabelIds ?? [],
+        removeLabelIds: removeLabelIds ?? [],
+      }),
+    });
+    if (!response.ok) {
+      throw createProviderApiError('Gmail', 'modify message', response, await response.text());
+    }
+  }
+
+  public static async findOrCreateLabel(accessToken: string, labelName: string): Promise<string> {
+    const labels = await GmailProviderUtil.listLabels(accessToken);
+    const normalizedName = labelName.toLowerCase();
+    const existing = labels.find((l) => l.name.toLowerCase() === normalizedName);
+    if (existing) return existing.id;
+    const created = await fetchJsonWithBearer<GmailLabel>('https://gmail.googleapis.com/gmail/v1/users/me/labels', accessToken, 'Gmail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: labelName }),
+    });
+    return created.id;
+  }
+
   public static async listCalendarEventsByDateRange(
     accessToken: string,
     timeMinIso: string,

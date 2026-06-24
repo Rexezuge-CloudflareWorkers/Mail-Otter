@@ -92,6 +92,27 @@ class OutlookEmailProvider implements IEmailProvider {
     const result = await OutlookProviderUtil.createDraftReply(accessToken, messageId, payload.draftBody);
     return { summary: 'Draft reply created.', providerOperationId: result.id, providerUrl: result.webLink };
   }
+
+  public async applyLabel(accessToken: string, messageId: string, labelName: string): Promise<void> {
+    await OutlookProviderUtil.updateMessageProperties(accessToken, messageId, { categories: [labelName] });
+  }
+
+  public async archiveMessage(accessToken: string, messageId: string): Promise<void> {
+    await OutlookProviderUtil.moveToArchive(accessToken, messageId);
+  }
+
+  public async markRead(accessToken: string, messageId: string): Promise<void> {
+    await OutlookProviderUtil.updateMessageProperties(accessToken, messageId, { isRead: true });
+  }
+
+  public async starMessage(accessToken: string, messageId: string): Promise<void> {
+    await OutlookProviderUtil.updateMessageProperties(accessToken, messageId, { flag: { flagStatus: 'flagged' } });
+  }
+
+  public async listLabels(accessToken: string): Promise<Array<{ id: string; name: string }>> {
+    const categories = await OutlookProviderUtil.listOutlookCategories(accessToken);
+    return categories.map((c) => ({ id: c.id, name: c.displayName }));
+  }
 }
 
 export { OutlookEmailProvider };

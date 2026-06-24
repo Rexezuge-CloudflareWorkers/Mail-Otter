@@ -1,48 +1,90 @@
 import { useState } from 'react';
-import type { ConnectedApplication, EmailProcessingRule, EmailRuleConditionMatcher, EmailRuleConditionMatcherField, EmailRuleConditionMatcherOp } from '../../../components/types';
+import type {
+  ConnectedApplication,
+  EmailProcessingRule,
+  EmailRuleAction,
+  EmailRuleActionType,
+  EmailRuleConditionMatcher,
+  EmailRuleConditionMatcherField,
+} from '../../../components/types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
-import { suggestRule as apiSuggestRule } from '../../services/applicationService';
+import { suggestRule as apiSuggestRule, loadLabels as apiLoadLabels } from '../../services/applicationService';
 
 const MAX_RULES = 20;
 const MAX_MATCHERS = 5;
+
+const PRE_PROCESSING_ACTION_TYPES: ReadonlySet<EmailRuleActionType> = new Set(['skip', 'skip_actions', 'prepend_instruction']);
+const POST_PROCESSING_ACTION_TYPES: ReadonlySet<EmailRuleActionType> = new Set(['apply_label', 'archive_message', 'mark_read', 'star_message']);
 
 const FIELD_LABELS: Record<EmailRuleConditionMatcherField, string> = {
   from: 'From',
   subject: 'Subject',
   body: 'Body',
+  has_attachment: 'Has Attachment',
+  detected_action_type: 'Detected Action Type',
 };
 
-const OP_LABELS: Record<EmailRuleConditionMatcherOp, string> = {
-  contains: 'Contains',
-  not_contains: 'Does Not Contain',
-  matches_sender: 'Matches Sender',
-};
+const DETECTED_ACTION_TYPE_OPTIONS = [
+  'calendar.add_event',
+  'email.draft_reply',
+  'external.open_link',
+  'manual.todo',
+  'delivery.track_package',
+  'travel.track_flight',
+  'finance.pay_bill',
+  'appointment.confirm',
+];
 
-const ACTION_LABELS: Record<EmailProcessingRule['action']['type'], string> = {
+const ACTION_LABELS: Record<EmailRuleActionType, string> = {
   skip: 'Skip',
   skip_actions: 'Skip Actions',
   prepend_instruction: 'Custom Instruction',
+  apply_label: 'Apply Label',
+  archive_message: 'Archive',
+  mark_read: 'Mark Read',
+  star_message: 'Star',
 };
 
-const ACTION_BADGE_COLORS: Record<EmailProcessingRule['action']['type'], string> = {
+const ACTION_BADGE_COLORS: Record<EmailRuleActionType, string> = {
   skip: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   skip_actions: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   prepend_instruction: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  apply_label: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  archive_message: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+  mark_read: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400',
+  star_message: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
 };
+
+function getActionLabel(action: EmailRuleAction): string {
+  return ACTION_LABELS[action.type];
+}
+
+function getActionBadgeColor(action: EmailRuleAction): string {
+  return ACTION_BADGE_COLORS[action.type];
+}
 
 function formatConditionSummary(rule: EmailProcessingRule): string {
   const { operator, matchers } = rule.conditions;
   return matchers
-    .map((m) => `${FIELD_LABELS[m.field]} ${OP_LABELS[m.op].toLowerCase()} "${m.value}"`)
+    .map((m) => {
+      if (m.field === 'has_attachment') return `Has Attachment Is ${m.value === 'true' ? 'True' : 'False'}`;
+      if (m.field === 'detected_action_type') {
+        const opLabel = m.op === 'includes' ? 'Includes' : 'Does Not Include';
+        return `Detected Action Type ${opLabel} "${m.value}"`;
+      }
+      const fieldLabel = FIELD_LABELS[m.field];
+      const opLabel = m.op === 'contains' ? 'Contains' : m.op === 'not_contains' ? 'Does Not Contain' : 'Matches Sender';
+      return `${fieldLabel} ${opLabel.toLowerCase()} "${m.value}"`;
+    })
     .join(operator === 'any' ? ' OR ' : ' AND ');
 }
 
 interface MatcherDraft {
   field: EmailRuleConditionMatcherField;
-  op: EmailRuleConditionMatcherOp;
+  op: string;
   value: string;
 }
 
@@ -52,8 +94,9 @@ interface RuleDraft {
   name: string;
   operator: 'all' | 'any';
   matchers: MatcherDraft[];
-  actionType: EmailProcessingRule['action']['type'];
+  actionType: EmailRuleActionType;
   instruction: string;
+  labelName: string;
 }
 
 const emptyDraft = (): RuleDraft => ({
@@ -62,6 +105,7 @@ const emptyDraft = (): RuleDraft => ({
   matchers: [emptyMatcher()],
   actionType: 'skip',
   instruction: '',
+  labelName: '',
 });
 
 function ruleToDraft(rule: EmailProcessingRule): RuleDraft {
@@ -71,20 +115,109 @@ function ruleToDraft(rule: EmailProcessingRule): RuleDraft {
     matchers: rule.conditions.matchers.map((m) => ({ field: m.field, op: m.op, value: m.value })),
     actionType: rule.action.type,
     instruction: rule.action.type === 'prepend_instruction' ? (rule.action.instruction ?? '') : '',
+    labelName: rule.action.type === 'apply_label' ? rule.action.labelName : '',
   };
 }
 
-function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcessingRule; onAdd: (rule: EmailProcessingRule) => void; onCancel: () => void }) {
+function draftToMatcher(m: MatcherDraft): EmailRuleConditionMatcher {
+  if (m.field === 'has_attachment') {
+    return { field: 'has_attachment', op: 'is', value: (m.value === 'true' ? 'true' : 'false') };
+  }
+  if (m.field === 'detected_action_type') {
+    return { field: 'detected_action_type', op: (m.op === 'not_includes' ? 'not_includes' : 'includes'), value: m.value };
+  }
+  if (m.field === 'from') {
+    const op = (m.op === 'contains' || m.op === 'not_contains' || m.op === 'matches_sender') ? m.op : 'contains';
+    return { field: 'from', op, value: m.value };
+  }
+  const op = (m.op === 'contains' || m.op === 'not_contains') ? m.op : 'contains';
+  return { field: m.field as 'subject' | 'body', op, value: m.value };
+}
+
+function draftToAction(draft: RuleDraft): EmailRuleAction {
+  switch (draft.actionType) {
+    case 'prepend_instruction': return { type: 'prepend_instruction', instruction: draft.instruction.trim() };
+    case 'apply_label': return { type: 'apply_label', labelName: draft.labelName.trim() };
+    case 'archive_message': return { type: 'archive_message' };
+    case 'mark_read': return { type: 'mark_read' };
+    case 'star_message': return { type: 'star_message' };
+    case 'skip_actions': return { type: 'skip_actions' };
+    default: return { type: 'skip' };
+  }
+}
+
+type LabelState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'loaded'; labels: Array<{ id: string; name: string }> }
+  | { phase: 'error' };
+
+function RuleForm({
+  initialRule,
+  applicationId,
+  onAdd,
+  onCancel,
+}: {
+  initialRule?: EmailProcessingRule;
+  applicationId: string;
+  onAdd: (rule: EmailProcessingRule) => void;
+  onCancel: () => void;
+}) {
   const [draft, setDraft] = useState<RuleDraft>(initialRule ? ruleToDraft(initialRule) : emptyDraft());
+  const [labelState, setLabelState] = useState<LabelState>({ phase: 'idle' });
+
+  const loadLabelsForApplyLabel = async () => {
+    if (labelState.phase === 'loading' || labelState.phase === 'loaded') return;
+    setLabelState({ phase: 'loading' });
+    try {
+      const { labels } = await apiLoadLabels(applicationId);
+      setLabelState({ phase: 'loaded', labels });
+    } catch {
+      setLabelState({ phase: 'error' });
+    }
+  };
 
   const setMatcher = (i: number, patch: Partial<MatcherDraft>) => {
     setDraft((d) => {
-      const matchers = d.matchers.map((m, idx) => (idx === i ? { ...m, ...patch } : m));
-      if (patch.field && patch.field !== 'from' && matchers[i].op === 'matches_sender') {
-        matchers[i] = { ...matchers[i], op: 'contains' };
-      }
+      const matchers = d.matchers.map((m, idx) => {
+        if (idx !== i) return m;
+        const updated = { ...m, ...patch };
+        if (patch.field) {
+          if (patch.field === 'has_attachment') {
+            updated.op = 'is';
+            updated.value = 'true';
+          } else if (patch.field === 'detected_action_type') {
+            updated.op = 'includes';
+            updated.value = updated.value || DETECTED_ACTION_TYPE_OPTIONS[0];
+          } else if (patch.field === 'from') {
+            if (updated.op !== 'contains' && updated.op !== 'not_contains' && updated.op !== 'matches_sender') {
+              updated.op = 'contains';
+            }
+          } else {
+            if (updated.op !== 'contains' && updated.op !== 'not_contains') {
+              updated.op = 'contains';
+            }
+          }
+        }
+        return updated;
+      });
       return { ...d, matchers };
     });
+  };
+
+  const setActionType = (actionType: EmailRuleActionType) => {
+    setDraft((d) => {
+      const newMatchers = d.matchers.map((m) => {
+        if (m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
+          return { ...m, field: 'subject' as EmailRuleConditionMatcherField, op: 'contains' };
+        }
+        return m;
+      });
+      return { ...d, actionType, matchers: newMatchers };
+    });
+    if (actionType === 'apply_label') {
+      loadLabelsForApplyLabel();
+    }
   };
 
   const addMatcher = () => {
@@ -99,8 +232,13 @@ function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcess
 
   const isValid = (): boolean => {
     if (!draft.name.trim()) return false;
-    if (draft.matchers.some((m) => !m.value.trim())) return false;
+    if (draft.matchers.some((m) => {
+      if (m.field === 'has_attachment') return false;
+      return !m.value.trim();
+    })) return false;
     if (draft.actionType === 'prepend_instruction' && !draft.instruction.trim()) return false;
+    if (draft.actionType === 'apply_label' && !draft.labelName.trim()) return false;
+    if (POST_PROCESSING_ACTION_TYPES.has(draft.actionType) === false && draft.matchers.some((m) => m.field === 'detected_action_type')) return false;
     return true;
   };
 
@@ -112,14 +250,87 @@ function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcess
       enabled: initialRule?.enabled ?? true,
       conditions: {
         operator: draft.operator,
-        matchers: draft.matchers.map((m): EmailRuleConditionMatcher => ({ field: m.field, op: m.op, value: m.value.trim() })),
+        matchers: draft.matchers.map(draftToMatcher),
       },
-      action: draft.actionType === 'prepend_instruction'
-        ? { type: 'prepend_instruction', instruction: draft.instruction.trim() }
-        : { type: draft.actionType },
+      action: draftToAction(draft),
     };
     onAdd(rule);
     if (!initialRule) setDraft(emptyDraft());
+  };
+
+  const renderMatcherValueInput = (m: MatcherDraft, i: number) => {
+    if (m.field === 'has_attachment') {
+      return (
+        <select
+          value={m.value}
+          onChange={(e) => setMatcher(i, { value: e.target.value })}
+          className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex-1"
+        >
+          <option value="true">True</option>
+          <option value="false">False</option>
+        </select>
+      );
+    }
+    if (m.field === 'detected_action_type') {
+      return (
+        <select
+          value={m.value}
+          onChange={(e) => setMatcher(i, { value: e.target.value })}
+          className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex-1"
+        >
+          {DETECTED_ACTION_TYPE_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <Input
+        type="text"
+        value={m.value}
+        onChange={(e) => setMatcher(i, { value: e.target.value })}
+        placeholder={m.op === 'matches_sender' ? '@domain.com or user@example.com' : 'value'}
+        className="text-sm flex-1 min-w-0"
+        maxLength={200}
+      />
+    );
+  };
+
+  const renderOpSelect = (m: MatcherDraft, i: number) => {
+    if (m.field === 'has_attachment') {
+      return (
+        <select
+          value="is"
+          disabled
+          className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] opacity-60"
+        >
+          <option value="is">Is</option>
+        </select>
+      );
+    }
+    if (m.field === 'detected_action_type') {
+      return (
+        <select
+          value={m.op}
+          onChange={(e) => setMatcher(i, { op: e.target.value })}
+          className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
+        >
+          <option value="includes">Includes</option>
+          <option value="not_includes">Does Not Include</option>
+        </select>
+      );
+    }
+    return (
+      <select
+        value={m.op}
+        onChange={(e) => setMatcher(i, { op: e.target.value })}
+        className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
+      >
+        <option value="contains">Contains</option>
+        <option value="not_contains">Does Not Contain</option>
+        {m.field === 'from' && <option value="matches_sender">Matches Sender</option>}
+      </select>
+    );
   };
 
   return (
@@ -159,24 +370,11 @@ function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcess
               <option value="from">From</option>
               <option value="subject">Subject</option>
               <option value="body">Body</option>
+              <option value="has_attachment">Has Attachment</option>
+              <option value="detected_action_type">Detected Action Type</option>
             </select>
-            <select
-              value={m.op}
-              onChange={(e) => setMatcher(i, { op: e.target.value as EmailRuleConditionMatcherOp })}
-              className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
-            >
-              <option value="contains">Contains</option>
-              <option value="not_contains">Does Not Contain</option>
-              {m.field === 'from' && <option value="matches_sender">Matches Sender</option>}
-            </select>
-            <Input
-              type="text"
-              value={m.value}
-              onChange={(e) => setMatcher(i, { value: e.target.value })}
-              placeholder={m.op === 'matches_sender' ? '@domain.com or user@example.com' : 'value'}
-              className="text-sm flex-1 min-w-0"
-              maxLength={200}
-            />
+            {renderOpSelect(m, i)}
+            {renderMatcherValueInput(m, i)}
             {draft.matchers.length > 1 && (
               <button
                 type="button"
@@ -204,12 +402,20 @@ function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcess
         <label className="text-xs font-medium text-[var(--color-text-secondary)]">Action</label>
         <select
           value={draft.actionType}
-          onChange={(e) => setDraft((d) => ({ ...d, actionType: e.target.value as EmailProcessingRule['action']['type'] }))}
+          onChange={(e) => setActionType(e.target.value as EmailRuleActionType)}
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
         >
-          <option value="skip">Skip — Don't Summarize This Email</option>
-          <option value="skip_actions">Skip Actions — Summarize But Don't Create Action Proposals</option>
-          <option value="prepend_instruction">Custom Instruction — Add Extra Instructions To The AI Prompt</option>
+          <optgroup label="Pre-Processing (First Match Wins)">
+            <option value="skip">Skip — Don't Summarize This Email</option>
+            <option value="skip_actions">Skip Actions — Summarize But Don't Create Action Proposals</option>
+            <option value="prepend_instruction">Custom Instruction — Add Extra Instructions To The AI Prompt</option>
+          </optgroup>
+          <optgroup label="Post-Processing (All Matches Execute)">
+            <option value="apply_label">Apply Label — Add A Label Or Category</option>
+            <option value="archive_message">Archive — Move To Archive</option>
+            <option value="mark_read">Mark Read — Mark As Read</option>
+            <option value="star_message">Star — Star Or Flag The Email</option>
+          </optgroup>
         </select>
         {draft.actionType === 'prepend_instruction' && (
           <textarea
@@ -220,6 +426,35 @@ function RuleForm({ initialRule, onAdd, onCancel }: { initialRule?: EmailProcess
             rows={2}
             maxLength={500}
           />
+        )}
+        {draft.actionType === 'apply_label' && (
+          <div className="flex flex-col gap-1 mt-1">
+            <Input
+              type="text"
+              placeholder="Label name (e.g. Shopping)"
+              value={draft.labelName}
+              onChange={(e) => setDraft((d) => ({ ...d, labelName: e.target.value }))}
+              className="text-sm"
+              maxLength={100}
+            />
+            {labelState.phase === 'loading' && (
+              <p className="text-xs text-[var(--color-text-muted)]">Loading Labels…</p>
+            )}
+            {labelState.phase === 'loaded' && labelState.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {labelState.labels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => setDraft((d) => ({ ...d, labelName: label.name }))}
+                    className="text-xs px-2 py-0.5 rounded border border-[var(--color-border)] bg-[var(--color-surface-base)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text-primary)]"
+                  >
+                    {label.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -281,6 +516,7 @@ function SuggestRuleForm({
     return (
       <RuleForm
         initialRule={state.rule}
+        applicationId={applicationId}
         onAdd={onAdd}
         onCancel={() => {
           const { ruleId: _, ...ruleWithoutId } = state.rule;
@@ -326,14 +562,17 @@ function SuggestRuleForm({
       {state.phase === 'preview' && (
         <div className="border border-[var(--color-border)] rounded-lg p-3 flex flex-col gap-1 bg-[var(--color-surface-base)]">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${ACTION_BADGE_COLORS[state.rule.action.type]}`}>
-              {ACTION_LABELS[state.rule.action.type]}
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${getActionBadgeColor(state.rule.action)}`}>
+              {getActionLabel(state.rule.action)}
             </span>
             <span className="text-sm font-medium text-[var(--color-text-primary)]">{state.rule.name}</span>
           </div>
           <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary({ ...state.rule, ruleId: '' })}</p>
           {state.rule.action.type === 'prepend_instruction' && state.rule.action.instruction && (
             <p className="text-xs text-[var(--color-text-secondary)] italic">"{state.rule.action.instruction}"</p>
+          )}
+          {state.rule.action.type === 'apply_label' && (
+            <p className="text-xs text-[var(--color-text-secondary)]">Label: {state.rule.action.labelName}</p>
           )}
         </div>
       )}
@@ -379,8 +618,8 @@ function RuleRow({
   return (
     <div className={`flex flex-col gap-1 py-3 border-b border-[var(--color-border)] last:border-0 ${!rule.enabled ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${ACTION_BADGE_COLORS[rule.action.type]}`}>
-          {ACTION_LABELS[rule.action.type]}
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${getActionBadgeColor(rule.action)}`}>
+          {getActionLabel(rule.action)}
         </span>
         <span className="text-sm font-medium text-[var(--color-text-primary)] flex-1">{rule.name}</span>
         <div className="flex items-center gap-1 ml-auto">
@@ -435,6 +674,9 @@ function RuleRow({
       {rule.action.type === 'prepend_instruction' && rule.action.instruction && (
         <p className="text-xs text-[var(--color-text-secondary)] italic">"{rule.action.instruction}"</p>
       )}
+      {rule.action.type === 'apply_label' && (
+        <p className="text-xs text-[var(--color-text-secondary)]">Label: {rule.action.labelName}</p>
+      )}
     </div>
   );
 }
@@ -477,9 +719,9 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
   return (
     <CollapsibleSection title="Email Processing Rules">
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        Rules Are Evaluated In Order. The First Matching Rule Wins.
-        Skip Rules Prevent Summarization. Skip Actions Rules Summarize Without Creating Action Proposals.
-        Custom Instruction Rules Inject Extra Instructions Into The AI Prompt.
+        Rules Run In Two Phases.
+        Pre-Processing Rules (Skip, Skip Actions, Custom Instruction) Run Before AI Summarization — First Match Wins.
+        Post-Processing Rules (Apply Label, Archive, Mark Read, Star) Run After Summarization — All Matching Rules Execute.
       </p>
       {rules.length > 0 && (
         <div className="mb-3">
@@ -488,6 +730,7 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
               <RuleForm
                 key={rule.ruleId}
                 initialRule={rule}
+                applicationId={application.applicationId}
                 onAdd={saveEdit}
                 onCancel={() => setEditingRuleId(null)}
               />
@@ -512,7 +755,7 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
         <p className="text-xs text-[var(--color-text-muted)] mb-3">No Rules Configured.</p>
       )}
       {formMode === 'manual' && (
-        <RuleForm onAdd={addRule} onCancel={() => setFormMode('none')} />
+        <RuleForm applicationId={application.applicationId} onAdd={addRule} onCancel={() => setFormMode('none')} />
       )}
       {formMode === 'suggest' && (
         <SuggestRuleForm

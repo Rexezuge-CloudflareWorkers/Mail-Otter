@@ -37,7 +37,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         if (!isDue) continue;
 
         const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
-        const digestSvc = new DigestService(env, masterKey);
+        const digestSvc = new DigestService(sessionEnv, masterKey);
         await digestSvc.sendDigest(application, accessToken);
         sent++;
       } catch (error: unknown) {

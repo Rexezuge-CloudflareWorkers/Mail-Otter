@@ -1,5 +1,5 @@
 import { ConnectedApplicationDAO, EmailActionDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import {
@@ -31,7 +31,7 @@ import { DigestEmailUtil } from './DigestEmailUtil';
 import type { DigestSections } from './DigestEmailUtil';
 
 interface DigestServiceEnv {
-  DB: D1Database;
+  DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
@@ -39,16 +39,16 @@ interface DigestServiceEnv {
 }
 
 class DigestService {
-  private readonly sessionEnv: ReturnType<typeof createD1SessionEnv>;
+  private readonly db: D1Queryable;
   private readonly masterKey: string;
 
   constructor(private readonly env: DigestServiceEnv, masterKey: string) {
-    this.sessionEnv = createD1SessionEnv(env);
+    this.db = env.DB;
     this.masterKey = masterKey;
   }
 
   public async sendDigest(application: ConnectedApplicationMetadata, accessToken: string): Promise<void> {
-    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.sessionEnv.DB, this.masterKey));
+    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.db, this.masterKey));
     const config = await configSvc.getConfig(application.applicationId);
     if (!config.enabled) return;
 
@@ -56,7 +56,7 @@ class DigestService {
   }
 
   public async sendDigestForced(application: ConnectedApplicationMetadata, accessToken: string): Promise<void> {
-    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.sessionEnv.DB, this.masterKey));
+    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.db, this.masterKey));
     const config = await configSvc.getConfig(application.applicationId);
 
     await this.buildAndSend(application, accessToken, config.sections, configSvc);
@@ -95,8 +95,8 @@ class DigestService {
     now: Date,
     nowUnix: number,
   ): Promise<DigestSections> {
-    const actionDAO = new EmailActionDAO(this.sessionEnv.DB, this.masterKey);
-    const calendarDAO = new SyncedCalendarEventDAO(this.sessionEnv.DB);
+    const actionDAO = new EmailActionDAO(this.db, this.masterKey);
+    const calendarDAO = new SyncedCalendarEventDAO(this.db);
 
     const dayStartUnix = DigestService.getDayStartUnix(now, timeZone);
     const dayEndUnix = dayStartUnix + 86400;

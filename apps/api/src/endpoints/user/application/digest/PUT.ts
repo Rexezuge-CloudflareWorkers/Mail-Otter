@@ -1,7 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
@@ -23,9 +22,8 @@ class UpdateDigestConfigRoute extends IUserRoute<UpdateDigestConfigRequest, Upda
     cxt: RouteContext<UpdateDigestConfigEnv>,
   ): Promise<UpdateDigestConfigResponse> {
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
+    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
 
     const application = await applicationDAO.getByIdForUser(request.applicationId, userEmail);
     if (!application) throw new BadRequestError('Connected application not found.');

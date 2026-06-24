@@ -34,7 +34,7 @@ describe('OutlookProviderUtil', () => {
       const originalMessage = { id: 'original-msg-id' };
 
       const htmlSummary =
-        '<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
+        '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
       await OutlookProviderUtil.sendSelfSummaryReply(
         'test-access-token',
         originalMessage,

@@ -189,7 +189,7 @@ class EmailSummaryUtil {
     const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
 
     return [
-      `<p><strong>Gist:</strong> ${EmailContentUtil.sanitizeHtml(gist)}</p>`,
+      `<p>${EmailContentUtil.sanitizeHtml(gist)}</p>`,
       '',
       '<p><strong>Details:</strong></p>',
       '<ul>',

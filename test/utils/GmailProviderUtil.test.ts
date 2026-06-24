@@ -27,7 +27,7 @@ describe('GmailProviderUtil', () => {
       };
 
       const htmlSummary =
-        '<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
+        '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
       await GmailProviderUtil.sendSummaryReply(
         'test-access-token',
         'sender@example.com',
@@ -48,9 +48,9 @@ describe('GmailProviderUtil', () => {
       expect(rawMessage).toContain('X-Mail-Otter-Summary: true');
       expect(rawMessage).toContain(`Content-Type: multipart/alternative; boundary="${boundary}"`);
       expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/plain; charset=utf-8`);
-      expect(rawMessage).toContain('Gist: Summary <tag> & text');
+      expect(rawMessage).toContain('Summary <tag> & text');
       expect(rawMessage).toContain(`--${boundary}\r\nContent-Type: text/html; charset=utf-8`);
-      expect(rawMessage).toContain('<p><strong>Gist:</strong> Summary &lt;tag&gt; &amp; text</p>');
+      expect(rawMessage).toContain('<p>Summary &lt;tag&gt; &amp; text</p>');
       expect(rawMessage).toContain(`--${boundary}--`);
 
       const trashCall = fetchMock.mock.calls[1];

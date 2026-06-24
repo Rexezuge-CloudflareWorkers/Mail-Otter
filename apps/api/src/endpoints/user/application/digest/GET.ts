@@ -1,7 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
 
@@ -22,9 +21,8 @@ class GetDigestConfigRoute extends IUserRoute<GetDigestConfigRequest, GetDigestC
     cxt: RouteContext<GetDigestConfigEnv>,
   ): Promise<GetDigestConfigResponse> {
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
+    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
 
     await applicationDAO.getByIdForUser(request.applicationId, userEmail);
 

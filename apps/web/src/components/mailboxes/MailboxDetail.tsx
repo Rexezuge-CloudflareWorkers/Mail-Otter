@@ -52,7 +52,7 @@ export function MailboxDetail({
           {application.providerId === 'google-gmail' && (
             <ReadOnlyField label="Gmail Pub/Sub Topic" value={application.gmailPubsubTopicName || ''} />
           )}
-          {application.providerId !== 'microsoft-outlook' && (
+          {application.providerId === 'google-gmail' && (
             <ReadOnlyField label="Webhook Endpoint" value={watchWebhookUrl || application.webhookUrl || ''} showCopy />
           )}
         </div>

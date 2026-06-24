@@ -20,6 +20,7 @@ interface EmailProcessingSummary {
   actionProposals: EmailActionProposal[];
   rawSummary: { gist: string; keyDetails: string[] };
   summaryModel: string;
+  estimatedNeurons: number;
 }
 
 interface OrchestrationResult {
@@ -93,7 +94,7 @@ class EmailSummaryOrchestrator {
       sourceDocumentId: resolvedMessageId, sourceThreadId: threadId,
     });
     const summary: EmailProcessingSummary = await this.summarize(application, resolvedMessageId, subject, from, body, ragContext, customInstruction);
-    await this.auditLogger.logSummaryGenerated(application, resolvedMessageId, summary.summaryModel, options.retryAttempt);
+    await this.auditLogger.logSummaryGenerated(application, resolvedMessageId, summary.summaryModel, summary.estimatedNeurons, options.retryAttempt);
     const processedMessage = await this.processedDAO.getByMessageId(application.applicationId, resolvedMessageId);
     const actions: CreatedEmailAction[] = !suppressActions && processedMessage
       ? await ActionService.createActionsForSummary(
@@ -147,7 +148,7 @@ class EmailSummaryOrchestrator {
     }
     const usageEstimate: AiTextGenerationUsageEstimate | undefined = await this.recordSummaryUsage(model, result.usage, promptText, result.summary);
     const rawSummary = { gist: result.emailSummary?.gist ?? '', keyDetails: result.emailSummary?.keyDetails ?? [] };
-    if (!ConfigurationManager.getDebugMode(this.env)) return { html: result.summary, actionProposals: result.actionProposals ?? [], rawSummary, summaryModel: model };
+    if (!ConfigurationManager.getDebugMode(this.env)) return { html: result.summary, actionProposals: result.actionProposals ?? [], rawSummary, summaryModel: model, estimatedNeurons: usageEstimate?.estimatedNeurons ?? 0 };
 
     const applicationName: string = application.displayName || application.applicationId;
     return {
@@ -173,6 +174,7 @@ class EmailSummaryOrchestrator {
       actionProposals: result.actionProposals ?? [],
       rawSummary,
       summaryModel: model,
+      estimatedNeurons: usageEstimate?.estimatedNeurons ?? 0,
     };
   }
 

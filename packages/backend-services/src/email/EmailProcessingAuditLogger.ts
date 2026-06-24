@@ -29,7 +29,7 @@ class EmailProcessingAuditLogger {
     );
   }
 
-  async logSummaryGenerated(application: ConnectedApplication, sourceDocumentId: string, model: string, retryAttempt?: number | undefined): Promise<void> {
+  async logSummaryGenerated(application: ConnectedApplication, sourceDocumentId: string, model: string, estimatedNeurons: number, retryAttempt?: number | undefined): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
@@ -38,6 +38,7 @@ class EmailProcessingAuditLogger {
       CONTEXT_AUDIT_LOG_SEVERITY_INFO,
       {
         summaryModel: model,
+        estimatedNeurons,
         ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}),
       },
     );

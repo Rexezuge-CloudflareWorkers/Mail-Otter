@@ -27,7 +27,9 @@
     "./provider": "./src/provider/index.ts",
     "./provider/*": "./src/provider/*.ts",
     "./webhook": "./src/webhook/index.ts",
-    "./webhook/*": "./src/webhook/*.ts"
+    "./webhook/*": "./src/webhook/*.ts",
+    "./digest": "./src/digest/index.ts",
+    "./digest/*": "./src/digest/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

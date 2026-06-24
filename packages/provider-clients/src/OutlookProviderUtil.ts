@@ -48,6 +48,15 @@ interface OutlookDraftReplyResult {
   webLink?: string | undefined;
 }
 
+interface OutlookCalendarEventListItem {
+  id: string;
+  subject?: string | undefined;
+  body?: { contentType?: string | undefined; content?: string | undefined } | undefined;
+  start?: { dateTime?: string | undefined; timeZone?: string | undefined } | undefined;
+  end?: { dateTime?: string | undefined; timeZone?: string | undefined } | undefined;
+  location?: { displayName?: string | undefined } | undefined;
+}
+
 class OutlookProviderUtil {
   private static readonly MESSAGE_NOT_FOUND_PATTERNS: RegExp[] = [
     /specified object was not found in the store/i,
@@ -327,6 +336,42 @@ class OutlookProviderUtil {
     }
   }
 
+  public static async listCalendarEventsByDateRange(
+    accessToken: string,
+    startDateTimeIso: string,
+    endDateTimeIso: string,
+  ): Promise<OutlookCalendarEventListItem[]> {
+    const url = new URL('https://graph.microsoft.com/v1.0/me/calendarView');
+    url.searchParams.set('startDateTime', startDateTimeIso);
+    url.searchParams.set('endDateTime', endDateTimeIso);
+    url.searchParams.set('$select', 'id,subject,body,start,end,location');
+    url.searchParams.set('$top', '50');
+    const data = await fetchJsonWithBearer<{ value?: OutlookCalendarEventListItem[] | undefined }>(url.toString(), accessToken, 'Microsoft Graph');
+    return data.value || [];
+  }
+
+  public static async sendStandaloneEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {
+    const textBody: string = EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(htmlBody));
+    const response: Response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          subject,
+          body: { contentType: 'html', content: htmlBody },
+          toRecipients: [{ emailAddress: { address: to } }],
+          internetMessageHeaders: [{ name: 'X-Mail-Otter-Digest', value: 'true' }],
+        },
+        saveToSentItems: false,
+      }),
+    });
+    if (!response.ok) {
+      throw createProviderApiError('Microsoft Graph', 'send digest email', response, await response.text());
+    }
+    // sendMail returns 202 with no body — nothing to parse
+    void textBody;
+  }
+
   private static async deleteMessage(accessToken: string, messageId: string): Promise<void> {
     const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`, {
       method: 'DELETE',
@@ -350,6 +395,7 @@ class OutlookProviderUtil {
 export { OutlookProviderUtil };
 export type {
   OutlookCalendarEventInput,
+  OutlookCalendarEventListItem,
   OutlookCalendarEventResult,
   OutlookDraftReplyResult,
   OutlookMailboxProfile,

@@ -223,6 +223,46 @@ class GmailProviderUtil {
     return `mail-otter-summary-${safeSeed}`;
   }
 
+  public static async listCalendarEventsByDateRange(
+    accessToken: string,
+    timeMinIso: string,
+    timeMaxIso: string,
+  ): Promise<GmailCalendarEventListItem[]> {
+    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+    url.searchParams.set('timeMin', timeMinIso);
+    url.searchParams.set('timeMax', timeMaxIso);
+    url.searchParams.set('singleEvents', 'true');
+    url.searchParams.set('orderBy', 'startTime');
+    url.searchParams.set('maxResults', '50');
+    const data = await fetchJsonWithBearer<{ items?: GmailCalendarEventListItem[] | undefined }>(url.toString(), accessToken, 'Gmail');
+    return data.items || [];
+  }
+
+  public static async sendStandaloneEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {
+    const textBody: string = EmailContentUtil.stripHtml(htmlBody);
+    const boundary: string = `mail-otter-digest-${Date.now()}`;
+    const message: string = [
+      `From: ${to}`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'X-Mail-Otter-Digest: true',
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+      EmailContentUtil.buildAlternativeMimeBody(textBody, htmlBody, boundary),
+    ].join('\r\n');
+    const response: Response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw: WebhookSecurityUtil.base64UrlEncodeString(message) }),
+    });
+    if (!response.ok) {
+      throw createProviderApiError('Gmail', 'send digest email', response, await response.text());
+    }
+    const sent = (await response.json()) as { id: string };
+    await GmailProviderUtil.trashGmailMessage(sent.id, accessToken);
+  }
+
   private static createDraftReplyMimeMessage(
     from: string,
     originalMessage: GmailMessage,
@@ -250,6 +290,15 @@ class GmailProviderUtil {
   }
 }
 
+interface GmailCalendarEventListItem {
+  id: string;
+  summary?: string | undefined;
+  description?: string | undefined;
+  location?: string | undefined;
+  start?: { dateTime?: string | undefined; date?: string | undefined; timeZone?: string | undefined } | undefined;
+  end?: { dateTime?: string | undefined; date?: string | undefined; timeZone?: string | undefined } | undefined;
+}
+
 interface GmailHistoryListResponse {
   history?:
     | Array<{
@@ -267,6 +316,7 @@ interface GmailHistoryListResponse {
 export { GmailProviderUtil };
 export type {
   GmailCalendarEventInput,
+  GmailCalendarEventListItem,
   GmailCalendarEventResult,
   GmailDraftReplyResult,
   GmailHistoryResult,

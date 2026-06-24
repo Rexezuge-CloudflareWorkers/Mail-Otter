@@ -86,6 +86,7 @@ export interface ConnectedApplication {
   senderDomainFilters?: SenderDomainFilters | null;
   emailProcessingRules?: EmailProcessingRule[] | null;
   autoExecuteActionTypes?: string[] | null;
+  digestConfig?: DigestConfig | null;
   gmailPubsubTopicName?: string | null;
   imapHost?: string | null;
   imapPort?: number | null;
@@ -109,6 +110,13 @@ export interface ConnectedApplication {
   contextLastErrorAt?: number | null;
   integrations?: OutboundIntegration[];
   updatedAt: number;
+}
+
+export interface DigestConfig {
+  enabled: boolean;
+  sendTime: string;
+  sections: string[];
+  lastSentAt: string | null;
 }
 
 export type ApplicationContextDocumentStatus = 'active' | 'deleted' | 'error';

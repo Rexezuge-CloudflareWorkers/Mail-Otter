@@ -265,6 +265,46 @@ class EmailActionDAO extends EncryptedDAO {
     return { byStatus, byType };
   }
 
+  public async listPendingActionsByTypes(applicationId: string, actionTypes: string[], limit: number = 100): Promise<EmailAction[]> {
+    if (actionTypes.length === 0) return [];
+    const placeholders: string = actionTypes.map(() => '?').join(', ');
+    const rows: EmailActionInternal[] = await this.database
+      .prepare(
+        `
+          SELECT ${EmailActionDAO.actionColumns}
+          FROM email_summary_actions
+          WHERE application_id = ? AND status = ? AND action_type IN (${placeholders})
+          ORDER BY created_at ASC
+          LIMIT ?
+        `,
+      )
+      .bind(applicationId, EMAIL_ACTION_STATUS_PENDING, ...actionTypes, limit)
+      .all<EmailActionInternal>()
+      .then((result: D1Result<EmailActionInternal>): EmailActionInternal[] => result.results || []);
+    return Promise.all(rows.map((row: EmailActionInternal): Promise<EmailAction> => this.toAction(row)));
+  }
+
+  public async updateSyncStatus(actionId: string, syncStatus: string): Promise<void> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('UPDATE email_summary_actions SET sync_status = ?, sync_updated_at = ? WHERE action_id = ?')
+          .bind(syncStatus, now, actionId)
+          .run(),
+      'update action sync status',
+    );
+  }
+
+  public async getSyncStatus(actionId: string): Promise<{ syncStatus: string | null; syncUpdatedAt: number | null } | undefined> {
+    const row: { sync_status: string | null; sync_updated_at: number | null } | null = await this.database
+      .prepare('SELECT sync_status, sync_updated_at FROM email_summary_actions WHERE action_id = ?')
+      .bind(actionId)
+      .first<{ sync_status: string | null; sync_updated_at: number | null }>();
+    if (!row) return undefined;
+    return { syncStatus: row.sync_status, syncUpdatedAt: row.sync_updated_at };
+  }
+
   public async deleteOlderThan(olderThan: number, limit: number): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>

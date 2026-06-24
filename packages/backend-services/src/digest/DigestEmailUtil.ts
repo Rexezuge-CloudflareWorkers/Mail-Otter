@@ -121,14 +121,17 @@ class DigestEmailUtil {
       const payload = a.payload as DeliveryTrackPackageActionPayload;
       let syncStatus: PackageSyncStatus | null = null;
       try {
-        if ((a as EmailAction & { syncStatus?: string }).syncStatus) {
-          syncStatus = JSON.parse((a as EmailAction & { syncStatus?: string }).syncStatus!) as PackageSyncStatus;
+        if (a.syncStatus) {
+          syncStatus = JSON.parse(a.syncStatus) as PackageSyncStatus;
         }
       } catch { /* ignore parse errors */ }
-      const status = syncStatus?.status ? `<span style="color:#666"> — ${EmailContentUtil.sanitizeHtml(syncStatus.status)}</span>` : '';
+      const statusLabel = syncStatus?.statusLabel ?? syncStatus?.status;
+      const status = statusLabel ? ` — ${EmailContentUtil.sanitizeHtml(statusLabel)}` : '';
+      const location = syncStatus?.location ? ` · ${EmailContentUtil.sanitizeHtml(syncStatus.location)}` : '';
+      const eta = syncStatus?.expectedDelivery ? `<br><span style="color:#666;font-size:13px">Expected: ${EmailContentUtil.sanitizeHtml(syncStatus.expectedDelivery)}</span>` : '';
       const carrier = payload.carrier ? ` (${EmailContentUtil.sanitizeHtml(payload.carrier)})` : '';
       const link = payload.trackingUrl ? ` <a href="${EmailContentUtil.sanitizeHtml(payload.trackingUrl)}" style="color:#2563eb">Track</a>` : '';
-      return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(a.title)}</strong>${status}<br><span style="color:#666;font-size:13px">${EmailContentUtil.sanitizeHtml(payload.trackingNumber)}${carrier}</span>${link}</li>`;
+      return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(a.title)}</strong><span style="color:#666">${status}${location}</span><br><span style="color:#666;font-size:13px">${EmailContentUtil.sanitizeHtml(payload.trackingNumber)}${carrier}</span>${link}${eta}</li>`;
     });
     return DigestEmailUtil.buildSection('📦 Package Deliveries', rows.join(''));
   }
@@ -138,8 +141,8 @@ class DigestEmailUtil {
       const payload = a.payload as TravelTrackFlightActionPayload;
       let syncStatus: FlightSyncStatus | null = null;
       try {
-        if ((a as EmailAction & { syncStatus?: string }).syncStatus) {
-          syncStatus = JSON.parse((a as EmailAction & { syncStatus?: string }).syncStatus!) as FlightSyncStatus;
+        if (a.syncStatus) {
+          syncStatus = JSON.parse(a.syncStatus) as FlightSyncStatus;
         }
       } catch { /* ignore parse errors */ }
       const status = syncStatus?.status ? ` — ${EmailContentUtil.sanitizeHtml(syncStatus.status)}` : '';

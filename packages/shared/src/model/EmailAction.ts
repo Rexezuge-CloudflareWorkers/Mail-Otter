@@ -16,6 +16,7 @@ interface EmailAction {
   payload: EmailActionPayload;
   result?: EmailActionResult | null | undefined;
   errorMessage?: string | null | undefined;
+  syncStatus?: string | null | undefined;
   expiresAt: number;
   executedAt?: number | null | undefined;
   createdAt: number;
@@ -41,6 +42,7 @@ interface EmailActionInternal {
   result_iv: string | null;
   result_salt: string | null;
   error_message: string | null;
+  sync_status: string | null;
   expires_at: number;
   executed_at: number | null;
   created_at: number;

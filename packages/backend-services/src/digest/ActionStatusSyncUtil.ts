@@ -5,11 +5,15 @@ import {
 } from '@mail-otter/shared/constants';
 import type { DeliveryTrackPackageActionPayload, EmailAction, TravelTrackFlightActionPayload } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { formatExpectedDelivery, TAG_LABELS } from '../action/PackageTrackingService';
 
 interface PackageSyncStatus {
   carrier?: string;
   trackingNumber: string;
   status?: string;
+  statusLabel?: string;
+  location?: string;
+  expectedDelivery?: string;
   lastUpdate?: string;
 }
 
@@ -54,7 +58,7 @@ class ActionStatusSyncUtil {
     const payload = action.payload as DeliveryTrackPackageActionPayload;
     if (!payload.trackingNumber || !apiKey) return;
 
-    const url = new URL('https://api.aftership.com/tracking/2024-07/trackings');
+    const url = new URL('https://api.aftership.com/tracking/2024-10/trackings');
     url.searchParams.set('tracking_numbers', payload.trackingNumber);
     const response = await fetch(url.toString(), {
       headers: { 'as-api-key': apiKey, 'Content-Type': 'application/json' },
@@ -62,17 +66,27 @@ class ActionStatusSyncUtil {
     if (!response.ok) return;
 
     const data = (await response.json()) as {
-      data?: { trackings?: Array<{ slug?: string; tag?: string; checkpoints?: Array<{ message?: string; created_at?: string }> }> };
+      data?: {
+        trackings?: Array<{
+          tag?: string;
+          expected_delivery?: string;
+          checkpoints?: Array<{ message?: string; city?: string; state?: string; created_at?: string }>;
+        }>;
+      };
     };
     const tracking = data.data?.trackings?.[0];
     if (!tracking) return;
 
-    const lastCheckpoint = tracking.checkpoints?.[0];
+    const latestCheckpoint = tracking.checkpoints?.[0];
+    const location = [latestCheckpoint?.city, latestCheckpoint?.state].filter(Boolean).join(', ') || undefined;
     const syncStatus: PackageSyncStatus = {
       carrier: payload.carrier,
       trackingNumber: payload.trackingNumber,
       status: tracking.tag,
-      lastUpdate: lastCheckpoint?.message,
+      statusLabel: tracking.tag ? (TAG_LABELS[tracking.tag] ?? tracking.tag) : undefined,
+      location,
+      expectedDelivery: tracking.expected_delivery ? formatExpectedDelivery(tracking.expected_delivery) : undefined,
+      lastUpdate: latestCheckpoint?.message,
     };
     await this.actionDAO.updateSyncStatus(action.actionId, JSON.stringify(syncStatus));
   }

@@ -116,4 +116,4 @@ async function fetchStatus(trackingNumber: string, carrier: string | undefined, 
 }
 
 export type { PackageTrackingStatus };
-export { fetchStatus, resolveSlug };
+export { fetchStatus, formatExpectedDelivery, resolveSlug, TAG_LABELS };

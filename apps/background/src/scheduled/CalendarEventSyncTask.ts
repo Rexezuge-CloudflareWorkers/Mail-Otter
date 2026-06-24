@@ -5,6 +5,7 @@ import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import {
   BACKGROUND_TASK_TYPE_CALENDAR_SYNC,
   CONNECTED_APPLICATION_STATUS_CONNECTED,
+  DIGEST_CALENDAR_SYNC_DAYS,
   DIGEST_CONFIG_KEY_ENABLED,
   PROVIDER_GOOGLE_GMAIL,
   PROVIDER_MICROSOFT_OUTLOOK,
@@ -28,7 +29,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
     const syncUtil = new CalendarEventSyncUtil(sessionEnv.DB);
     const now = new Date();
     const windowStartIso = now.toISOString();
-    const windowEndIso = new Date(now.getTime() + 48 * 3600 * 1000).toISOString();
+    const windowEndIso = new Date(now.getTime() + DIGEST_CALENDAR_SYNC_DAYS * 86400 * 1000).toISOString();
 
     let synced = 0;
     let failed = 0;

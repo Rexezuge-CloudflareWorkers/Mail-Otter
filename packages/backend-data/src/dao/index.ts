@@ -1,4 +1,13 @@
 export { BaseDAO, EncryptedDAO } from './BaseDAO';
+export { BackgroundTaskRunDAO } from './BackgroundTaskRunDAO';
+export type {
+  BackgroundTaskRun,
+  BackgroundTaskRunList,
+  BackgroundTaskRunStatus,
+  ListTaskRunsOptions,
+  StartTaskRunInput,
+  CompleteTaskRunInput,
+} from './BackgroundTaskRunDAO';
 export { UserDAO } from './UserDAO';
 export { AiDailyUsageDAO } from './AiDailyUsageDAO';
 export type { AiDailyUsage, IncrementAiDailyUsageInput } from './AiDailyUsageDAO';
@@ -12,10 +21,10 @@ export { OAuth2AccessTokenCacheDAO } from './OAuth2AccessTokenCacheDAO';
 export { OAuth2AccessTokenRefreshStatusDAO } from './OAuth2AccessTokenRefreshStatusDAO';
 export { OAuth2AuthorizationSessionDAO } from './OAuth2AuthorizationSessionDAO';
 export { ProcessedMessageDAO } from './ProcessedMessageDAO';
-export type { ProcessedMessageStatusCounts } from './ProcessedMessageDAO';
+export type { ProcessedMessageStatusCounts, ListProcessedMessagesOptions } from './ProcessedMessageDAO';
 export { ProviderSubscriptionDAO } from './ProviderSubscriptionDAO';
 export { ApplicationIntegrationDAO } from './ApplicationIntegrationDAO';
 export { IntegrationDeliveryLogDAO } from './IntegrationDeliveryLogDAO';
 export type { CreateDeliveryLogInput } from './IntegrationDeliveryLogDAO';
 export { SyncedCalendarEventDAO } from './SyncedCalendarEventDAO';
-export type { UpsertCalendarEventInput } from './SyncedCalendarEventDAO';
+export type { UpsertCalendarEventInput, ListCalendarEventsOptions } from './SyncedCalendarEventDAO';

@@ -8,6 +8,7 @@ import { ContextAuditView } from './components/views/ContextAuditView';
 import { ActionsView } from './components/views/ActionsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { HelpView } from './components/views/HelpView';
+import { ProcessingView } from './components/views/ProcessingView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
@@ -21,6 +22,7 @@ import { useContextAudit } from './hooks/useContextAudit';
 import { useActions } from './hooks/useActions';
 import { useAuditLogs } from './hooks/useAuditLogs';
 import { useAnalytics } from './hooks/useAnalytics';
+import { useProcessing } from './hooks/useProcessing';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
@@ -43,6 +45,7 @@ export default function SpaApp() {
   const contextAudit = useContextAudit({ showNotice });
   const actions = useActions({ setIsBusy, showNotice });
   const analytics = useAnalytics({ showNotice });
+  const processing = useProcessing({ showNotice });
 
   const mailboxes = useMailboxes({
     setIsBusy,
@@ -87,6 +90,12 @@ export default function SpaApp() {
     }
   }, [activeView, authorized]);
 
+  useEffect(() => {
+    if (authorized && activeView === 'processing') {
+      processing.loadProcessing();
+    }
+  }, [activeView, authorized]);
+
   // Sync current state back to the URL
   const effectiveAppId =
     activeView === 'mailboxes'
@@ -95,7 +104,9 @@ export default function SpaApp() {
         ? contextAudit.auditApplicationId
         : activeView === 'analytics'
           ? analytics.analyticsApplicationId
-          : actions.actionApplicationId;
+          : activeView === 'processing'
+            ? processing.processingApplicationId
+            : actions.actionApplicationId;
 
   useSyncedUrl({
     view: activeView,
@@ -195,6 +206,33 @@ export default function SpaApp() {
               data={analytics.analyticsData}
               loading={analytics.analyticsLoading}
               onRefresh={() => analytics.loadAnalytics()}
+            />
+          )}
+
+          {activeView === 'processing' && (
+            <ProcessingView
+              applications={mailboxes.applications}
+              applicationId={processing.processingApplicationId}
+              setApplicationId={processing.setProcessingApplicationId}
+              taskType={processing.processingTaskType}
+              setTaskType={processing.setProcessingTaskType}
+              runStatus={processing.processingRunStatus}
+              setRunStatus={processing.setProcessingRunStatus}
+              messageStatus={processing.processingMessageStatus}
+              setMessageStatus={processing.setProcessingMessageStatus}
+              taskRuns={processing.taskRuns}
+              taskRunsCursor={processing.taskRunsCursor}
+              taskRunsLoading={processing.taskRunsLoading}
+              calendarEvents={processing.calendarEvents}
+              calendarEventsCursor={processing.calendarEventsCursor}
+              calendarEventsLoading={processing.calendarEventsLoading}
+              processedMessages={processing.processedMessages}
+              processedMessagesCursor={processing.processedMessagesCursor}
+              processedMessagesLoading={processing.processedMessagesLoading}
+              onRefresh={() => processing.loadProcessing()}
+              onLoadMoreTaskRuns={() => processing.loadTaskRuns(true, processing.taskRunsCursor)}
+              onLoadMoreCalendarEvents={() => processing.loadCalendarEvents(true, processing.calendarEventsCursor)}
+              onLoadMoreProcessedMessages={() => processing.loadProcessedMessages(true, processing.processedMessagesCursor)}
             />
           )}
 

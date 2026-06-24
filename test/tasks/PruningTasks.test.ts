@@ -19,6 +19,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  BackgroundTaskRunDAO: class {
+    startRun = vi.fn().mockResolvedValue('run-id');
+    succeedRun = vi.fn().mockResolvedValue(undefined);
+    failRun = vi.fn().mockResolvedValue(undefined);
+  },
   ProcessedMessageDAO: class {
     deleteOlderThan = mocks.mockDeleteOlderThan;
   },

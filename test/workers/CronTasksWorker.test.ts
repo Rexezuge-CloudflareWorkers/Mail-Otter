@@ -17,6 +17,7 @@ const { taskSpies } = vi.hoisted(() => ({
     integrationDeliveryLogPruning: vi.fn(),
     scheduledDigest: vi.fn(),
     syncedCalendarEventPruning: vi.fn(),
+    backgroundTaskRunPruning: vi.fn(),
     subscriptionRenewal: vi.fn(),
   },
 }));
@@ -66,6 +67,9 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
   SyncedCalendarEventPruningTask: class {
     handle = taskSpies.syncedCalendarEventPruning;
+  },
+  BackgroundTaskRunPruningTask: class {
+    handle = taskSpies.backgroundTaskRunPruning;
   },
 }));
 
@@ -120,6 +124,7 @@ describe('CronTasksWorker', () => {
     taskSpies.integrationDeliveryLogPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.scheduledDigest.mockReset().mockResolvedValue(undefined);
     taskSpies.syncedCalendarEventPruning.mockReset().mockResolvedValue(undefined);
+    taskSpies.backgroundTaskRunPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.subscriptionRenewal.mockReset().mockResolvedValue(undefined);
   });
 

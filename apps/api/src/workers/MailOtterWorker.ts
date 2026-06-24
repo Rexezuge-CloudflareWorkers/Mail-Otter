@@ -3,6 +3,9 @@ import { fromHono, HonoOpenAPIRouterType } from 'chanfana';
 import { Hono } from 'hono';
 import {
   GetAnalyticsRoute,
+  ListBackgroundTaskRunsRoute,
+  ListProcessingCalendarEventsRoute,
+  ListProcessedMessagesRoute,
   CreateApplicationRoute,
   GetApplicationRulesRoute,
   UpdateApplicationRulesRoute,
@@ -150,6 +153,10 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/user/actions', ListEmailActionsRoute);
     openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);
     openapi.post('/user/actions/:actionId/execute', ExecuteUserEmailActionRoute);
+
+    openapi.get('/user/processing/task-runs', ListBackgroundTaskRunsRoute);
+    openapi.get('/user/processing/calendar-events', ListProcessingCalendarEventsRoute);
+    openapi.get('/user/processing/messages', ListProcessedMessagesRoute);
   }
 
   private registerPublicApiRoutes(openapi: AppRouter): void {

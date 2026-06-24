@@ -4,6 +4,7 @@ import {
   ActionStatusSyncTask,
   AiDailyUsagePruningTask,
   AuditLogPruningTask,
+  BackgroundTaskRunPruningTask,
   CalendarEventSyncTask,
   ContextDeletionRunPruningTask,
   ContextDocumentPruningTask,
@@ -100,6 +101,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
       new IntegrationDeliveryLogPruningTask().handle(event, this.env, ctx),
       new ScheduledDigestTask().handle(event, this.env, ctx),
       new SyncedCalendarEventPruningTask().handle(event, this.env, ctx),
+      new BackgroundTaskRunPruningTask().handle(event, this.env, ctx),
     ]);
   }
 }

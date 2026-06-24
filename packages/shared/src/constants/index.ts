@@ -1,3 +1,4 @@
+export * from './BackgroundTasks';
 export * from './Context';
 export * from './Digest';
 export * from './EmailRules';

@@ -1,6 +1,7 @@
 import { UUIDUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import { executeD1WithRetry } from '../utils';
-import type { SyncedCalendarEvent, SyncedCalendarEventInternal } from '@mail-otter/shared/model';
+import { CursorUtil } from '../utils';
+import type { SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEventList } from '@mail-otter/shared/model';
 import { BaseDAO } from './BaseDAO';
 
 class SyncedCalendarEventDAO extends BaseDAO {
@@ -55,6 +56,49 @@ class SyncedCalendarEventDAO extends BaseDAO {
     return rows.map(SyncedCalendarEventDAO.toEvent);
   }
 
+  public async listForUser(userEmail: string, options: ListCalendarEventsOptions = {}): Promise<SyncedCalendarEventList> {
+    const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
+    const conditions: string[] = ['ca.user_email = ?'];
+    const bindings: Array<string | number> = [userEmail];
+
+    if (options.applicationId) {
+      conditions.push('sce.application_id = ?');
+      bindings.push(options.applicationId);
+    }
+
+    const cursor = SyncedCalendarEventDAO.parseCursor(options.cursor);
+    if (cursor) {
+      conditions.push('(sce.synced_at < ? OR (sce.synced_at = ? AND sce.sync_event_id < ?))');
+      bindings.push(cursor.syncedAt, cursor.syncedAt, cursor.syncEventId);
+    }
+
+    const rows: SyncedCalendarEventInternal[] = await this.database
+      .prepare(
+        `SELECT sce.sync_event_id, sce.application_id, sce.provider_event_id, sce.event_title,
+                sce.start_time, sce.end_time, sce.time_zone, sce.location, sce.notes, sce.synced_at
+         FROM synced_calendar_events sce
+         INNER JOIN connected_applications ca ON ca.application_id = sce.application_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY sce.synced_at DESC, sce.sync_event_id DESC
+         LIMIT ?`,
+      )
+      .bind(...bindings, limit + 1)
+      .all<SyncedCalendarEventInternal>()
+      .then((result: D1Result<SyncedCalendarEventInternal>): SyncedCalendarEventInternal[] => result.results || []);
+
+    const pageRows = rows.slice(0, limit);
+    return {
+      events: pageRows.map(SyncedCalendarEventDAO.toEvent),
+      nextCursor:
+        rows.length > limit
+          ? SyncedCalendarEventDAO.encodeCursor(
+              pageRows[pageRows.length - 1].synced_at,
+              pageRows[pageRows.length - 1].sync_event_id,
+            )
+          : undefined,
+    };
+  }
+
   public async pruneOldEvents(beforeUnixSeconds: number, limit: number): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>
@@ -74,6 +118,16 @@ class SyncedCalendarEventDAO extends BaseDAO {
       'prune old synced calendar events',
     );
     return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  }
+
+  private static encodeCursor(syncedAt: number, syncEventId: string): string {
+    return CursorUtil.encode({ syncedAt, syncEventId });
+  }
+
+  private static parseCursor(cursor: string | undefined): { syncedAt: number; syncEventId: string } | undefined {
+    const parsed = CursorUtil.decode<{ syncedAt?: unknown; syncEventId?: unknown }>(cursor);
+    if (!parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string') return undefined;
+    return { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };
   }
 
   private static toEvent(row: SyncedCalendarEventInternal): SyncedCalendarEvent {
@@ -102,5 +156,11 @@ interface UpsertCalendarEventInput {
   notes?: string | null;
 }
 
+interface ListCalendarEventsOptions {
+  applicationId?: string | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
+}
+
 export { SyncedCalendarEventDAO };
-export type { UpsertCalendarEventInput };
+export type { UpsertCalendarEventInput, ListCalendarEventsOptions };

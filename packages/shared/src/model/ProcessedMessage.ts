@@ -28,4 +28,9 @@ interface ProcessedMessageInternal {
   updated_at: number;
 }
 
-export type { ProcessedMessage, ProcessedMessageInternal };
+interface ProcessedMessageList {
+  messages: ProcessedMessage[];
+  nextCursor?: string | undefined;
+}
+
+export type { ProcessedMessage, ProcessedMessageInternal, ProcessedMessageList };

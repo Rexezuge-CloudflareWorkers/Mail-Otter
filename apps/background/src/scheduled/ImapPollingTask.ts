@@ -2,18 +2,18 @@ import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/ba
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
-import { CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
+import { BACKGROUND_TASK_TYPE_IMAP_POLLING, CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import type { AnyProviderCredentials, ProviderMessageSummary } from '@mail-otter/backend-services/provider';
 import { IScheduledTask } from './IScheduledTask';
-import type { IEnv } from './IScheduledTask';
+import type { IEnv, TaskRunSummary } from './IScheduledTask';
 
 class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
   protected async handleScheduledTask(
     _event: ScheduledController,
     env: ImapPollingTaskEnv,
     _ctx: ExecutionContext,
-  ): Promise<void> {
+  ): Promise<TaskRunSummary> {
     const sessionEnv = createD1SessionEnv(env);
     const subscriptionDAO = new ProviderSubscriptionDAO(sessionEnv.DB);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
@@ -21,15 +21,27 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
     const subscriptions: ProviderSubscription[] = await subscriptionDAO.listActiveImapSubscriptions();
 
     const baseUrl = env.CALLBACK_BASE_URL ?? '';
+    let polled = 0;
+    let failed = 0;
 
     for (const subscription of subscriptions) {
+      const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_IMAP_POLLING, subscription.applicationId, sessionEnv.DB);
       try {
         await ImapPollingTask.pollSubscription(subscription, applicationDAO, subscriptionDAO, env, baseUrl);
+        polled++;
+        await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'IMAP mailbox polled' });
       } catch (error: unknown) {
+        failed++;
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[ImapPollingTask] Failed to poll subscription ${subscription.subscriptionId}: ${message}`);
+        await run.fail(message);
       }
     }
+    return {
+      itemsProcessed: polled,
+      itemsFailed: failed,
+      summary: `Polled ${polled} of ${subscriptions.length} IMAP subscriptions`,
+    };
   }
 
   private static async pollSubscription(

@@ -29,7 +29,9 @@
     "./webhook": "./src/webhook/index.ts",
     "./webhook/*": "./src/webhook/*.ts",
     "./digest": "./src/digest/index.ts",
-    "./digest/*": "./src/digest/*.ts"
+    "./digest/*": "./src/digest/*.ts",
+    "./processing": "./src/processing/index.ts",
+    "./processing/*": "./src/processing/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -41,6 +41,10 @@ import { GmailWebhookRoute as OriginalGmailWebhookRoute } from './api/webhooks/g
 import { OutlookWebhookRoute as OriginalOutlookWebhookRoute } from './api/webhooks/outlook/POST';
 import { OutlookLifecycleWebhookRoute as OriginalOutlookLifecycleWebhookRoute } from './api/webhooks/outlook/lifecycle/POST';
 
+import { ListBackgroundTaskRunsRoute as OriginalListBackgroundTaskRunsRoute } from './user/processing/task-runs/GET';
+import { ListProcessingCalendarEventsRoute as OriginalListProcessingCalendarEventsRoute } from './user/processing/calendar-events/GET';
+import { ListProcessedMessagesRoute as OriginalListProcessedMessagesRoute } from './user/processing/messages/GET';
+
 export const GetAnalyticsRoute: any = OriginalGetAnalyticsRoute;
 export const GetCurrentUserRoute: any = OriginalGetCurrentUserRoute;
 export const ListApplicationsRoute: any = OriginalListApplicationsRoute;
@@ -81,3 +85,6 @@ export const SuggestApplicationRuleRoute: any = OriginalSuggestApplicationRuleRo
 export const GetDigestConfigRoute: any = OriginalGetDigestConfigRoute;
 export const UpdateDigestConfigRoute: any = OriginalUpdateDigestConfigRoute;
 export const SendDigestNowRoute: any = OriginalSendDigestNowRoute;
+export const ListBackgroundTaskRunsRoute: any = OriginalListBackgroundTaskRunsRoute;
+export const ListProcessingCalendarEventsRoute: any = OriginalListProcessingCalendarEventsRoute;
+export const ListProcessedMessagesRoute: any = OriginalListProcessedMessagesRoute;

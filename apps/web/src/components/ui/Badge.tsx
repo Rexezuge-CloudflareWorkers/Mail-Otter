@@ -78,3 +78,40 @@ export function DeletionStatusBadge({ status }: { status: DeletionStatus }) {
 export function ActionStatusBadge({ status }: { status: ActionStatus }) {
   return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
 }
+
+type TaskRunStatus = 'running' | 'success' | 'partial_success' | 'error' | 'skipped';
+type ProcessedMessageStatus = 'processing' | 'summarized' | 'skipped' | 'error';
+
+function taskRunVariant(status: TaskRunStatus): BadgeVariant {
+  switch (status) {
+    case 'success': return 'success';
+    case 'partial_success': return 'warning';
+    case 'error': return 'error';
+    case 'running': return 'info';
+    case 'skipped': return 'neutral';
+    default: return 'neutral';
+  }
+}
+
+function taskRunLabel(status: TaskRunStatus): string {
+  if (status === 'partial_success') return 'Partial';
+  return label(status);
+}
+
+function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
+  switch (status) {
+    case 'summarized': return 'success';
+    case 'error': return 'error';
+    case 'processing': return 'info';
+    case 'skipped': return 'neutral';
+    default: return 'neutral';
+  }
+}
+
+export function TaskRunStatusBadge({ status }: { status: TaskRunStatus }) {
+  return <Badge variant={taskRunVariant(status)}>{taskRunLabel(status)}</Badge>;
+}
+
+export function ProcessedMessageStatusBadge({ status }: { status: ProcessedMessageStatus }) {
+  return <Badge variant={processedMsgVariant(status)}>{label(status)}</Badge>;
+}

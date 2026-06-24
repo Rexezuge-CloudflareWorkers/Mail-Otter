@@ -5,7 +5,8 @@ import {
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
 } from '@mail-otter/shared/constants';
 import { executeD1WithRetry } from '../utils';
-import type { ProcessedMessage, ProcessedMessageInternal } from '@mail-otter/shared/model';
+import { CursorUtil } from '../utils';
+import type { ProcessedMessage, ProcessedMessageInternal, ProcessedMessageList } from '@mail-otter/shared/model';
 import type { ProcessedMessageStatus, ProviderId } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
@@ -298,6 +299,67 @@ class ProcessedMessageDAO extends BaseDAO {
     };
   }
 
+  public async listForUser(
+    userEmail: string,
+    options: ListProcessedMessagesOptions = {},
+  ): Promise<ProcessedMessageList> {
+    const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
+    const conditions: string[] = ['ca.user_email = ?'];
+    const bindings: Array<string | number> = [userEmail];
+
+    if (options.applicationId) {
+      conditions.push('pm.application_id = ?');
+      bindings.push(options.applicationId);
+    }
+    if (options.status) {
+      conditions.push('pm.status = ?');
+      bindings.push(options.status);
+    }
+
+    const cursor = ProcessedMessageDAO.parseListCursor(options.cursor);
+    if (cursor) {
+      conditions.push('(pm.created_at < ? OR (pm.created_at = ? AND pm.processed_message_id < ?))');
+      bindings.push(cursor.createdAt, cursor.createdAt, cursor.processedMessageId);
+    }
+
+    const rows: ProcessedMessageInternal[] = await this.database
+      .prepare(
+        `SELECT pm.processed_message_id, pm.application_id, pm.provider_id, pm.provider_message_id,
+                pm.provider_thread_id, pm.provider_stable_message_fingerprint,
+                pm.status, pm.summary_sent_at, pm.error_message, pm.created_at, pm.updated_at
+         FROM processed_messages pm
+         INNER JOIN connected_applications ca ON ca.application_id = pm.application_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY pm.created_at DESC, pm.processed_message_id DESC
+         LIMIT ?`,
+      )
+      .bind(...bindings, limit + 1)
+      .all<ProcessedMessageInternal>()
+      .then((result: D1Result<ProcessedMessageInternal>): ProcessedMessageInternal[] => result.results || []);
+
+    const pageRows = rows.slice(0, limit);
+    return {
+      messages: pageRows.map((row) => this.toProcessedMessage(row)),
+      nextCursor:
+        rows.length > limit
+          ? ProcessedMessageDAO.encodeListCursor(
+              pageRows[pageRows.length - 1].created_at,
+              pageRows[pageRows.length - 1].processed_message_id,
+            )
+          : undefined,
+    };
+  }
+
+  private static encodeListCursor(createdAt: number, processedMessageId: string): string {
+    return CursorUtil.encode({ createdAt, processedMessageId });
+  }
+
+  private static parseListCursor(cursor: string | undefined): { createdAt: number; processedMessageId: string } | undefined {
+    const parsed = CursorUtil.decode<{ createdAt?: unknown; processedMessageId?: unknown }>(cursor);
+    if (!parsed || typeof parsed.createdAt !== 'number' || typeof parsed.processedMessageId !== 'string') return undefined;
+    return { createdAt: parsed.createdAt, processedMessageId: parsed.processedMessageId };
+  }
+
   private static readonly processedMessageColumns: string = [
     'processed_message_id',
     'application_id',
@@ -330,5 +392,12 @@ interface ProcessedMessageStatusCounts {
   total: { summarized: number; skipped: number; error: number; successRate: number };
 }
 
+interface ListProcessedMessagesOptions {
+  applicationId?: string | undefined;
+  status?: ProcessedMessageStatus | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
+}
+
 export { ProcessedMessageDAO };
-export type { ProcessedMessageStatusCounts };
+export type { ProcessedMessageStatusCounts, ListProcessedMessagesOptions };

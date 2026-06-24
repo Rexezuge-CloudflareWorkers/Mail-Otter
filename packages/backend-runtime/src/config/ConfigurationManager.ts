@@ -10,6 +10,7 @@ import {
   DEFAULT_INTEGRATION_DELIVERY_LOG_RETENTION_DAYS,
   DEFAULT_PACKAGE_TRACKING_API_KEY,
   DEFAULT_FLIGHT_TRACKING_API_KEY,
+  DEFAULT_BACKGROUND_TASK_RUN_RETENTION_DAYS,
   DEFAULT_CONTEXT_DELETION_RUN_RETENTION_DAYS,
   DEFAULT_DEBUG_MODE,
   DEFAULT_EMAIL_SUMMARY_FALLBACK_MODEL,
@@ -101,6 +102,10 @@ class ConfigurationManager {
   public static readonly digest = {
     getPackageTrackingApiKey: (env: unknown): string => EnvParser.string(env, 'PACKAGE_TRACKING_API_KEY', DEFAULT_PACKAGE_TRACKING_API_KEY),
     getFlightTrackingApiKey: (env: unknown): string => EnvParser.string(env, 'FLIGHT_TRACKING_API_KEY', DEFAULT_FLIGHT_TRACKING_API_KEY),
+  };
+
+  public static readonly processing = {
+    getTaskRunRetentionDays: (env: unknown): number => EnvParser.positiveInt(env, 'BACKGROUND_TASK_RUN_RETENTION_DAYS', DEFAULT_BACKGROUND_TASK_RUN_RETENTION_DAYS),
   };
 
   // ─── Flat API (backward-compatible, delegates to namespace groups) ────────────

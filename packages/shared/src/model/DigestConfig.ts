@@ -31,4 +31,9 @@ interface SyncedCalendarEventInternal {
   synced_at: number;
 }
 
-export type { DigestConfig, SyncedCalendarEvent, SyncedCalendarEventInternal };
+interface SyncedCalendarEventList {
+  events: SyncedCalendarEvent[];
+  nextCursor?: string | undefined;
+}
+
+export type { DigestConfig, SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEventList };

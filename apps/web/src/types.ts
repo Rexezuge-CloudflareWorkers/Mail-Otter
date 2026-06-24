@@ -1,4 +1,4 @@
-export type ActiveView = 'mailboxes' | 'context' | 'actions' | 'analytics' | 'help';
+export type ActiveView = 'mailboxes' | 'context' | 'actions' | 'analytics' | 'processing' | 'help';
 
 export interface AnalyticsData {
   aiUsage: {

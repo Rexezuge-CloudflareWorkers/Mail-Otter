@@ -29,26 +29,28 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
     let sent = 0;
     let failed = 0;
     for (const applicationId of applicationIds) {
+      const application = await applicationDAO.getById(applicationId);
+
+      if (!application || application.status !== CONNECTED_APPLICATION_STATUS_CONNECTED) {
+        const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
+        await run.skip('Application not connected');
+        continue;
+      }
+      if (application.providerId !== PROVIDER_GOOGLE_GMAIL && application.providerId !== PROVIDER_MICROSOFT_OUTLOOK) {
+        const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
+        await run.skip('Provider does not support digest');
+        continue;
+      }
+
+      const configSvc = new DigestConfigService(applicationDAO);
+      const timeZone = application.timeZone || 'UTC';
+      const isDue = await configSvc.isDueToSend(applicationId, timeZone);
+      if (!isDue) {
+        continue;
+      }
+
       const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
       try {
-        const application = await applicationDAO.getById(applicationId);
-        if (!application || application.status !== CONNECTED_APPLICATION_STATUS_CONNECTED) {
-          await run.skip('Application not connected');
-          continue;
-        }
-        if (application.providerId !== PROVIDER_GOOGLE_GMAIL && application.providerId !== PROVIDER_MICROSOFT_OUTLOOK) {
-          await run.skip('Provider does not support digest');
-          continue;
-        }
-
-        const configSvc = new DigestConfigService(applicationDAO);
-        const timeZone = application.timeZone || 'UTC';
-        const isDue = await configSvc.isDueToSend(applicationId, timeZone);
-        if (!isDue) {
-          await run.skip('Not due to send');
-          continue;
-        }
-
         const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
         const digestSvc = new DigestService(sessionEnv, masterKey, actionKey);
         await digestSvc.sendDigest(application, accessToken);

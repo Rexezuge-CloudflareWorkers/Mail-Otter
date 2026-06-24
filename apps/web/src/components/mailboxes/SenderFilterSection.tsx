@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ConnectedApplication, SenderDomainFilters } from '../../../components/types';
 import { Button } from '../ui/Button';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
@@ -22,10 +22,7 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sender Allowlist</CardTitle>
-      </CardHeader>
+    <CollapsibleSection title="Sender Allowlist">
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
         When set, only emails from matching senders are processed. Leave empty to process all senders.
         Use <code className="font-mono">@domain.com</code> to match a domain or <code className="font-mono">user@domain.com</code> for an exact address.
@@ -66,6 +63,6 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
           Add
         </Button>
       </div>
-    </Card>
+    </CollapsibleSection>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ConnectedApplication, EmailProcessingRule, EmailRuleConditionMatcher, EmailRuleConditionMatcherField, EmailRuleConditionMatcherOp } from '../../../components/types';
 import { Button } from '../ui/Button';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 import { suggestRule as apiSuggestRule } from '../../services/applicationService';
@@ -475,10 +475,7 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
   const canAddMore = rules.length < MAX_RULES;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Email Processing Rules</CardTitle>
-      </CardHeader>
+    <CollapsibleSection title="Email Processing Rules">
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
         Rules Are Evaluated In Order. The First Matching Rule Wins.
         Skip Rules Prevent Summarization. Skip Actions Rules Summarize Without Creating Action Proposals.
@@ -538,6 +535,6 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
           <p className="text-xs text-[var(--color-text-muted)]">Maximum {MAX_RULES} Rules Reached.</p>
         )
       )}
-    </Card>
+    </CollapsibleSection>
   );
 }

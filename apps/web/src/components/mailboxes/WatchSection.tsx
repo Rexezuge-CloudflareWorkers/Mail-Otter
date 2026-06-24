@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ConnectedApplication } from '../../../components/types';
 import { Button } from '../ui/Button';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 const setsEqual = (a: string[] | null, b: string[] | null) => {
@@ -35,9 +35,8 @@ export function WatchSection({
   const isUnchanged = setsEqual(pendingIds, originalIds);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Watch Folders</CardTitle>
+    <CollapsibleSection title="Watch Folders">
+      <div className="mb-4">
         <Button
           variant="secondary"
           size="sm"
@@ -47,7 +46,7 @@ export function WatchSection({
         >
           Load Folders
         </Button>
-      </CardHeader>
+      </div>
 
       {availableFolders ? (
         availableFolders.length === 0 ? (
@@ -105,6 +104,6 @@ export function WatchSection({
           Watching Default Folder (Inbox). Click &quot;Load Folders&quot; To Customize.
         </p>
       )}
-    </Card>
+    </CollapsibleSection>
   );
 }

@@ -1,5 +1,5 @@
 import type { ConnectedApplication, EmailActionType } from '../../../components/types';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 interface ActionTypeConfig {
@@ -42,10 +42,7 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Action Auto-Execution</CardTitle>
-      </CardHeader>
+    <CollapsibleSection title="Action Auto-Execution">
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
         Automatically execute these action types when a matching email is processed. Results appear in the Actions view without requiring a manual click.
       </p>
@@ -82,6 +79,6 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
           );
         })}
       </div>
-    </Card>
+    </CollapsibleSection>
   );
 }

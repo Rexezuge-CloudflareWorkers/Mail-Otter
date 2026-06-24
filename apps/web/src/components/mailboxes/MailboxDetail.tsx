@@ -2,7 +2,7 @@ import type { ConnectedApplication } from '../../../components/types';
 import { formatTimestamp, formatExpiryTimestamp, providerLabels } from '../../../components/utils';
 import { ConnectionBadge, WatchBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { Card } from '../ui/Card';
 import { Metric } from '../shared/Metric';
 import { ReadOnlyField } from '../shared/ReadOnlyField';
 import { WatchSection } from './WatchSection';
@@ -12,6 +12,7 @@ import { RulesSection } from './RulesSection';
 import { SenderFilterSection } from './SenderFilterSection';
 import { AutoExecuteSection } from './AutoExecuteSection';
 import { DigestSection } from './DigestSection';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 export function MailboxDetail({
@@ -86,10 +87,7 @@ export function MailboxDetail({
         </div>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Processing</CardTitle>
-        </CardHeader>
+      <CollapsibleSection title="Processing">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Metric
             label="Watch Expires"
@@ -105,7 +103,7 @@ export function MailboxDetail({
             onDismiss={application.lastError ? () => onDismissProcessingError(application.applicationId) : undefined}
           />
         </div>
-      </Card>
+      </CollapsibleSection>
 
       <ContextSection application={application} />
       <IntegrationsSection applicationId={application.applicationId} />

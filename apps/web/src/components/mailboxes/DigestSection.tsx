@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ConnectedApplication } from '../../../components/types';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Button } from '../ui/Button';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
@@ -47,10 +47,7 @@ export function DigestSection({ application }: { application: ConnectedApplicati
     : 'Never';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Daily Digest</CardTitle>
-      </CardHeader>
+    <CollapsibleSection title="Daily Digest">
 
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
         Receive a daily digest email summarizing your pending tasks, calendar events, package deliveries, and more.
@@ -133,6 +130,6 @@ export function DigestSection({ application }: { application: ConnectedApplicati
           </div>
         </div>
       </div>
-    </Card>
+    </CollapsibleSection>
   );
 }

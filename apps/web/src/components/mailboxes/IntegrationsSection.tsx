@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { OutboundIntegration, OutboundIntegrationType } from '../../../components/types';
 import { Button } from '../ui/Button';
-import { Card, CardHeader, CardTitle } from '../ui/Card';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
@@ -160,13 +160,10 @@ export function IntegrationsSection({ applicationId }: { applicationId: string }
   const atLimit = integrations.length >= 5;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Outbound Integrations</CardTitle>
-        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-          Forward email summaries to Slack, Discord, or a custom webhook.
-        </p>
-      </CardHeader>
+    <CollapsibleSection title="Outbound Integrations">
+      <p className="text-xs text-[var(--color-text-muted)] mb-3">
+        Forward email summaries to Slack, Discord, or a custom webhook.
+      </p>
       <div className="px-4 pb-4">
         {loadingIntegrations && integrations.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
@@ -191,6 +188,6 @@ export function IntegrationsSection({ applicationId }: { applicationId: string }
           <AddIntegrationForm applicationId={applicationId} onCancel={() => setShowAddForm(false)} />
         )}
       </div>
-    </Card>
+    </CollapsibleSection>
   );
 }

@@ -1,4 +1,5 @@
 export * from './ContextService';
+export * from './ProviderOrganizationService';
 export * from './EmailProcessingAuditLogger';
 export * from './EmailSummaryOrchestrator';
 export * from './AiUsageUtil';

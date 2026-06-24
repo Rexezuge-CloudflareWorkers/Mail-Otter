@@ -74,6 +74,28 @@ class GmailEmailProvider implements IEmailProvider {
     const result = await GmailProviderUtil.createDraftReply(accessToken, fromEmail, message, payload.draftBody, payload.draftSubject);
     return { summary: 'Draft reply created.', providerOperationId: result.id || result.message?.id };
   }
+
+  public async applyLabel(accessToken: string, messageId: string, labelName: string): Promise<void> {
+    const labelId = await GmailProviderUtil.findOrCreateLabel(accessToken, labelName);
+    await GmailProviderUtil.modifyMessage(accessToken, messageId, [labelId], []);
+  }
+
+  public async archiveMessage(accessToken: string, messageId: string): Promise<void> {
+    await GmailProviderUtil.modifyMessage(accessToken, messageId, [], ['INBOX']);
+  }
+
+  public async markRead(accessToken: string, messageId: string): Promise<void> {
+    await GmailProviderUtil.modifyMessage(accessToken, messageId, [], ['UNREAD']);
+  }
+
+  public async starMessage(accessToken: string, messageId: string): Promise<void> {
+    await GmailProviderUtil.modifyMessage(accessToken, messageId, ['STARRED'], []);
+  }
+
+  public async listLabels(accessToken: string): Promise<Array<{ id: string; name: string }>> {
+    const labels = await GmailProviderUtil.listLabels(accessToken);
+    return labels.map((l) => ({ id: l.id, name: l.name }));
+  }
 }
 
 export { GmailEmailProvider };

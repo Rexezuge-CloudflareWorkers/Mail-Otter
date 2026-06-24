@@ -9,6 +9,7 @@ import type { ActionExecutionEnv, CreatedEmailAction } from '../action';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailProcessingAuditLogger } from './EmailProcessingAuditLogger';
 import { EmailRulesUtil } from './EmailRulesUtil';
+import { ProviderOrganizationService } from './ProviderOrganizationService';
 import { SenderFilterUtil } from './SenderFilterUtil';
 import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
@@ -72,6 +73,7 @@ class EmailSummaryOrchestrator {
     body: string,
     threadId: string | null,
     options: { retryAttempt?: number | undefined; callbackBaseUrl?: string | undefined },
+    hasAttachment?: boolean | undefined,
   ): Promise<OrchestrationResult | null> {
     if (application.senderDomainFilters) {
       const filterResult = SenderFilterUtil.shouldSkip(from, application.senderDomainFilters);
@@ -80,8 +82,9 @@ class EmailSummaryOrchestrator {
         return null;
       }
     }
-    const matchedRule = application.emailProcessingRules?.length
-      ? EmailRulesUtil.evaluate(application.emailProcessingRules, { from, subject, body })
+    const rules = application.emailProcessingRules ?? [];
+    const matchedRule = rules.length
+      ? EmailRulesUtil.evaluatePreProcessing(rules, { from, subject, body, hasAttachment })
       : null;
     if (matchedRule?.action.type === 'skip') {
       await this.processedDAO.markSkipped(application.applicationId, resolvedMessageId, `Matched rule: ${matchedRule.name}`);
@@ -107,6 +110,21 @@ class EmailSummaryOrchestrator {
     }
     if (application.autoExecuteActionTypes?.length && actions.length) {
       await ActionService.autoExecuteCreatedActions(application.autoExecuteActionTypes, actions, this.env as ActionExecutionEnv);
+    }
+    if (rules.length && this.env.OAUTH2_TOKEN_CACHE && this.env.OAUTH2_TOKEN_REFRESHERS) {
+      const detectedActionTypes = summary.actionProposals.map((p) => p.type);
+      const matchedPostRules = EmailRulesUtil.evaluatePostProcessing(rules, {
+        from, subject, body, hasAttachment, detectedActionTypes,
+      });
+      if (matchedPostRules.length > 0) {
+        try {
+          await new ProviderOrganizationService(this.env as OrchestratorEnv & { OAUTH2_TOKEN_CACHE: KVNamespace; OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace }).executePostProcessingRules(
+            application, resolvedMessageId, matchedPostRules,
+          );
+        } catch (error: unknown) {
+          console.error('[EmailSummaryOrchestrator] Post-processing rules failed:', error);
+        }
+      }
     }
     return { summaryHtml: this.withActionSection(summary.html, actions), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
   }

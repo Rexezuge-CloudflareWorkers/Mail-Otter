@@ -127,8 +127,11 @@ class EmailProcessingUtil {
     await auditLogger.logProcessingStarted(application, message.id, options.retryAttempt);
     try {
       const extracted = EmailContentUtil.extractGmailText(message.payload);
+      const hasAttachment: boolean = message.payload?.parts?.some(
+        (p: { filename?: string | undefined }) => Boolean(p.filename && p.filename.length > 0),
+      ) ?? false;
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
-      const result = await orchestrator.orchestrate(application, message.id, from, subject, extracted.text, message.threadId, options);
+      const result = await orchestrator.orchestrate(application, message.id, from, subject, extracted.text, message.threadId, options, hasAttachment);
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {
@@ -204,8 +207,9 @@ class EmailProcessingUtil {
     await auditLogger.logProcessingStarted(application, message.id, options.retryAttempt);
     try {
       const body: string = OutlookProviderUtil.getMessageText(message);
+      const hasAttachment: boolean = message.hasAttachments ?? false;
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
-      const result = await orchestrator.orchestrate(application, message.id, from, subject, body, message.conversationId || null, options);
+      const result = await orchestrator.orchestrate(application, message.id, from, subject, body, message.conversationId || null, options, hasAttachment);
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {

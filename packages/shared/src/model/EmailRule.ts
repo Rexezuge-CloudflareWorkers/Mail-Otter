@@ -1,21 +1,35 @@
-type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body';
-type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender';
+type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body' | 'has_attachment' | 'detected_action_type';
+type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender' | 'is' | 'includes' | 'not_includes';
 
-interface EmailRuleConditionMatcher {
-  field: EmailRuleConditionMatcherField;
-  op: EmailRuleConditionMatcherOp;
-  value: string;
-}
+type EmailRuleConditionMatcher =
+  | { field: 'from'; op: 'contains' | 'not_contains' | 'matches_sender'; value: string }
+  | { field: 'subject'; op: 'contains' | 'not_contains'; value: string }
+  | { field: 'body'; op: 'contains' | 'not_contains'; value: string }
+  | { field: 'has_attachment'; op: 'is'; value: 'true' | 'false' }
+  | { field: 'detected_action_type'; op: 'includes' | 'not_includes'; value: string };
 
 interface EmailRuleCondition {
   operator: 'all' | 'any';
   matchers: EmailRuleConditionMatcher[];
 }
 
-interface EmailRuleAction {
-  type: 'skip' | 'skip_actions' | 'prepend_instruction';
-  instruction?: string;
-}
+type EmailRuleActionType =
+  | 'skip'
+  | 'skip_actions'
+  | 'prepend_instruction'
+  | 'apply_label'
+  | 'archive_message'
+  | 'mark_read'
+  | 'star_message';
+
+type EmailRuleAction =
+  | { type: 'skip' }
+  | { type: 'skip_actions' }
+  | { type: 'prepend_instruction'; instruction?: string }
+  | { type: 'apply_label'; labelName: string }
+  | { type: 'archive_message' }
+  | { type: 'mark_read' }
+  | { type: 'star_message' };
 
 interface EmailProcessingRule {
   ruleId: string;
@@ -25,4 +39,12 @@ interface EmailProcessingRule {
   action: EmailRuleAction;
 }
 
-export type { EmailProcessingRule, EmailRuleAction, EmailRuleCondition, EmailRuleConditionMatcher, EmailRuleConditionMatcherField, EmailRuleConditionMatcherOp };
+export type {
+  EmailProcessingRule,
+  EmailRuleAction,
+  EmailRuleActionType,
+  EmailRuleCondition,
+  EmailRuleConditionMatcher,
+  EmailRuleConditionMatcherField,
+  EmailRuleConditionMatcherOp,
+};

@@ -74,6 +74,12 @@ interface IEmailProvider {
   createCalendarEvent(accessToken: string, payload: CalendarAddEventActionPayload): Promise<EmailActionResult>;
 
   createDraftReply(accessToken: string, messageId: string, fromEmail: string, payload: EmailDraftReplyActionPayload): Promise<EmailActionResult>;
+
+  applyLabel?(accessToken: string, messageId: string, labelName: string): Promise<void>;
+  archiveMessage?(accessToken: string, messageId: string): Promise<void>;
+  markRead?(accessToken: string, messageId: string): Promise<void>;
+  starMessage?(accessToken: string, messageId: string): Promise<void>;
+  listLabels?(accessToken: string): Promise<Array<{ id: string; name: string }>>;
 }
 
 export type {

@@ -291,6 +291,12 @@ export async function suggestRule(
   );
 }
 
+export async function loadLabels(applicationId: string): Promise<{ labels: Array<{ id: string; name: string }> }> {
+  return readJson<{ labels: Array<{ id: string; name: string }> }>(
+    await apiFetch(`/user/application/labels?applicationId=${encodeURIComponent(applicationId)}`),
+  );
+}
+
 export async function saveDigestConfig(
   applicationId: string,
   config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>,

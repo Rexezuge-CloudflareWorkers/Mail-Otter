@@ -26,6 +26,9 @@ import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { IntegrationService } from '../integration/IntegrationService';
 import { WatchService } from '../subscription/WatchService';
 import type { WatchServiceEnv } from '../subscription/WatchService';
+import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
+import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
+import type { OAuth2AccessTokenServiceEnv } from '../oauth2/OAuth2AccessTokenService';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
 import type { ApplicationResponse } from './ApplicationResponseUtil';
 
@@ -225,6 +228,23 @@ class ApplicationService {
     if (!integration) throw new BadRequestError('Integration not found.');
     const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
     return logDao.listByIntegrationId(integrationId, limit);
+  }
+
+  async listLabels(userEmail: string, applicationId: string): Promise<Array<{ id: string; name: string }>> {
+    await this.assertApplicationOwnership(userEmail, applicationId);
+    if (!this.env.OAUTH2_TOKEN_CACHE || !this.env.OAUTH2_TOKEN_REFRESHERS) return [];
+    try {
+      const accessToken = await new OAuth2AccessTokenService(this.env as OAuth2AccessTokenServiceEnv).getAccessToken(applicationId);
+      const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
+      const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
+      const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+      if (!app) return [];
+      const provider = EmailProviderRegistry.get(app.providerId, app.connectionMethod);
+      return (await provider.listLabels?.(accessToken)) ?? [];
+    } catch (error: unknown) {
+      console.warn('[ApplicationService] listLabels failed:', error);
+      return [];
+    }
   }
 
   async getRules(userEmail: string, applicationId: string): Promise<EmailProcessingRule[]> {

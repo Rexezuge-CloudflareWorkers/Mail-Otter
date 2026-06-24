@@ -11,6 +11,7 @@ import {
   PROVIDER_YAHOO_MAIL,
   PROVIDER_SUPPORTED_CONNECTION_METHODS,
   MAX_RULE_MATCHERS,
+  PRE_PROCESSING_ACTION_TYPES,
 } from '../constants';
 import type { ConnectionMethod, ProviderId } from '../constants';
 
@@ -87,16 +88,28 @@ const ConnectedApplicationBaseSchema = z
 
 const positiveIntegerBodySchema = (fieldName: string) => z.number().int().min(1, `${fieldName} must be at least 1.`);
 
-const EmailRuleConditionMatcherSchema = z
-  .object({
-    field: z.enum(['from', 'subject', 'body']),
+const EmailRuleConditionMatcherSchema = z.union([
+  z.object({
+    field: z.enum(['from']),
     op: z.enum(['contains', 'not_contains', 'matches_sender']),
     value: z.string().min(1, 'value is required.').max(200, 'value must be 200 characters or less.'),
-  })
-  .refine(
-    (matcher): boolean => matcher.op !== 'matches_sender' || matcher.field === 'from',
-    'matches_sender operator is only valid for the from field.',
-  );
+  }),
+  z.object({
+    field: z.enum(['subject', 'body']),
+    op: z.enum(['contains', 'not_contains']),
+    value: z.string().min(1, 'value is required.').max(200, 'value must be 200 characters or less.'),
+  }),
+  z.object({
+    field: z.literal('has_attachment'),
+    op: z.literal('is'),
+    value: z.enum(['true', 'false']),
+  }),
+  z.object({
+    field: z.literal('detected_action_type'),
+    op: z.enum(['includes', 'not_includes']),
+    value: z.string().min(1, 'value is required.').max(200, 'value must be 200 characters or less.'),
+  }),
+]);
 
 const EmailRuleConditionSchema = z.object({
   operator: z.enum(['all', 'any']),
@@ -105,21 +118,34 @@ const EmailRuleConditionSchema = z.object({
 
 const EmailRuleActionSchema = z
   .object({
-    type: z.enum(['skip', 'skip_actions', 'prepend_instruction']),
+    type: z.enum(['skip', 'skip_actions', 'prepend_instruction', 'apply_label', 'archive_message', 'mark_read', 'star_message']),
     instruction: z.string().min(1).max(500).optional(),
+    labelName: z.string().min(1).max(100).optional(),
   })
   .refine(
     (action): boolean => action.type !== 'prepend_instruction' || Boolean(action.instruction?.trim()),
     'instruction is required for prepend_instruction action.',
+  )
+  .refine(
+    (action): boolean => action.type !== 'apply_label' || Boolean(action.labelName?.trim()),
+    'labelName is required for apply_label action.',
   );
 
-const EmailProcessingRuleSchema = z.object({
-  ruleId: UuidSchema,
-  name: z.string().min(1, 'name is required.').max(100, 'name must be 100 characters or less.'),
-  enabled: z.boolean(),
-  conditions: EmailRuleConditionSchema,
-  action: EmailRuleActionSchema,
-});
+const EmailProcessingRuleSchema = z
+  .object({
+    ruleId: UuidSchema,
+    name: z.string().min(1, 'name is required.').max(100, 'name must be 100 characters or less.'),
+    enabled: z.boolean(),
+    conditions: EmailRuleConditionSchema,
+    action: EmailRuleActionSchema,
+  })
+  .refine(
+    (rule): boolean => {
+      if (!PRE_PROCESSING_ACTION_TYPES.has(rule.action.type)) return true;
+      return !rule.conditions.matchers.some((m) => m.field === 'detected_action_type');
+    },
+    'detected_action_type matcher is only valid with post-processing action types (apply_label, archive_message, mark_read, star_message).',
+  );
 
 export {
   ConnectedApplicationBaseSchema,

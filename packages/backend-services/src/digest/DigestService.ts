@@ -33,6 +33,7 @@ import type { DigestSections } from './DigestEmailUtil';
 interface DigestServiceEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+  ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
@@ -41,10 +42,12 @@ interface DigestServiceEnv {
 class DigestService {
   private readonly db: D1Queryable;
   private readonly masterKey: string;
+  private readonly actionKey: string;
 
-  constructor(private readonly env: DigestServiceEnv, masterKey: string) {
+  constructor(private readonly env: DigestServiceEnv, masterKey: string, actionKey: string) {
     this.db = env.DB;
     this.masterKey = masterKey;
+    this.actionKey = actionKey;
   }
 
   public async sendDigest(application: ConnectedApplicationMetadata, accessToken: string): Promise<void> {
@@ -95,7 +98,7 @@ class DigestService {
     now: Date,
     nowUnix: number,
   ): Promise<DigestSections> {
-    const actionDAO = new EmailActionDAO(this.db, this.masterKey);
+    const actionDAO = new EmailActionDAO(this.db, this.actionKey);
     const calendarDAO = new SyncedCalendarEventDAO(this.db);
 
     const dayStartUnix = DigestService.getDayStartUnix(now, timeZone);

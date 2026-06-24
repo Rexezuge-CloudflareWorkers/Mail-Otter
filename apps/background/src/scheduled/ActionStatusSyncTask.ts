@@ -18,12 +18,13 @@ class ActionStatusSyncTask extends IScheduledTask<ActionStatusSyncTaskEnv> {
 
     const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const actionKey: string = await env.ACTION_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
 
     const applicationIds = await applicationDAO.listApplicationIdsWithProviderConfig(DIGEST_CONFIG_KEY_ENABLED, 'true');
     if (applicationIds.length === 0) return;
 
-    const syncUtil = new ActionStatusSyncUtil(sessionEnv.DB, masterKey);
+    const syncUtil = new ActionStatusSyncUtil(sessionEnv.DB, actionKey);
     for (const applicationId of applicationIds) {
       try {
         if (packageApiKey) await syncUtil.syncPackageActions(applicationId, packageApiKey);
@@ -39,6 +40,7 @@ class ActionStatusSyncTask extends IScheduledTask<ActionStatusSyncTaskEnv> {
 interface ActionStatusSyncTaskEnv extends IEnv {
   DB: D1Database;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+  ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   PACKAGE_TRACKING_API_KEY?: string | undefined;
   FLIGHT_TRACKING_API_KEY?: string | undefined;
 }

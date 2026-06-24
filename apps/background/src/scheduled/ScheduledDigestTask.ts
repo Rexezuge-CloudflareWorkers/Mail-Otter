@@ -19,6 +19,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
   ): Promise<void> {
     const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    const actionKey: string = await env.ACTION_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
 
     const applicationIds = await applicationDAO.listApplicationIdsWithProviderConfig(DIGEST_CONFIG_KEY_ENABLED, 'true');
@@ -37,7 +38,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         if (!isDue) continue;
 
         const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
-        const digestSvc = new DigestService(sessionEnv, masterKey);
+        const digestSvc = new DigestService(sessionEnv, masterKey, actionKey);
         await digestSvc.sendDigest(application, accessToken);
         sent++;
       } catch (error: unknown) {
@@ -51,6 +52,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
 interface ScheduledDigestTaskEnv extends IEnv {
   DB: D1Database;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
+  ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;

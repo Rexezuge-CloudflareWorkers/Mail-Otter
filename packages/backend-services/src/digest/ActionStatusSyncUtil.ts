@@ -24,8 +24,8 @@ interface FlightSyncStatus {
 class ActionStatusSyncUtil {
   private readonly actionDAO: EmailActionDAO;
 
-  constructor(db: D1Queryable, masterKey: string) {
-    this.actionDAO = new EmailActionDAO(db, masterKey);
+  constructor(db: D1Queryable, actionKey: string) {
+    this.actionDAO = new EmailActionDAO(db, actionKey);
   }
 
   public async syncPackageActions(applicationId: string, packageTrackingApiKey: string): Promise<void> {

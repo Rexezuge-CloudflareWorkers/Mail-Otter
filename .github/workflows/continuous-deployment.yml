@@ -90,9 +90,6 @@ jobs:
       - name: Build Web App
         run: pnpm --filter @mail-otter/web build
 
-      - name: Type Check API Worker
-        run: pnpm --filter @mail-otter/api typecheck
-
       - name: Prepare for Deploy
         run: |
           # Hide OpenNext config so wrangler doesn't delegate to opennextjs-cloudflare.

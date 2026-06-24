@@ -179,7 +179,7 @@ class EmailRuleSuggestionUtil {
     const condResult = EmailRuleConditionSchema.safeParse(conditions);
     if (!condResult.success) return undefined;
 
-    return { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data };
+    return { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction };
   }
 
   private static sanitizeConditions(conditions: unknown, actionType?: string): unknown {

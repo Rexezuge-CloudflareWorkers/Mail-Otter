@@ -4,7 +4,7 @@ import type { IEmailProvider } from '../provider/IEmailProvider';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import type { OAuth2AccessTokenServiceEnv } from '../oauth2/OAuth2AccessTokenService';
 
-interface ProviderOrganizationEnv extends OAuth2AccessTokenServiceEnv {}
+type ProviderOrganizationEnv = OAuth2AccessTokenServiceEnv;
 
 class ProviderOrganizationService {
   constructor(private readonly env: ProviderOrganizationEnv) {}

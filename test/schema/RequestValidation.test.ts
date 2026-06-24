@@ -64,6 +64,35 @@ describe('Request input schemas', () => {
     ).resolves.toMatchObject({ success: false, scope: 'body' });
   });
 
+  it('passes autoExecuteActionTypes through PUT /user/application schema', async () => {
+    const request = new Request('https://mail.example.com/user/application', { method: 'PUT' });
+    const result = await validateRequestInput(request, {
+      applicationId: '11111111-1111-4111-8111-111111111111',
+      displayName: 'Outlook inbox',
+      providerId: 'microsoft-outlook',
+      connectionMethod: 'oauth2',
+      autoExecuteActionTypes: ['delivery.track_package', 'manual.todo'],
+    });
+    expect(result).toMatchObject({ success: true });
+    expect((result as { success: true; data: Record<string, unknown> }).data.autoExecuteActionTypes).toEqual([
+      'delivery.track_package',
+      'manual.todo',
+    ]);
+  });
+
+  it('passes timeZone through PUT /user/application schema', async () => {
+    const request = new Request('https://mail.example.com/user/application', { method: 'PUT' });
+    const result = await validateRequestInput(request, {
+      applicationId: '11111111-1111-4111-8111-111111111111',
+      displayName: 'Outlook inbox',
+      providerId: 'microsoft-outlook',
+      connectionMethod: 'oauth2',
+      timeZone: 'America/New_York',
+    });
+    expect(result).toMatchObject({ success: true });
+    expect((result as { success: true; data: Record<string, unknown> }).data.timeZone).toBe('America/New_York');
+  });
+
   it('rejects unsupported providers', async () => {
     const request = new Request('https://mail.example.com/user/application', { method: 'POST' });
 

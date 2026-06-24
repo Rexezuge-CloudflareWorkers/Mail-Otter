@@ -41,6 +41,14 @@ const UpdateApplicationBodySchema = z
       })
       .optional()
       .nullable(),
+    timeZone: z.string().max(64).optional().nullable(),
+    autoExecuteActionTypes: z.array(z.string()).optional().nullable(),
+    imapHost: z.string().max(253).optional(),
+    imapPort: z.number().int().min(1).max(65535).optional(),
+    imapUsername: z.string().max(512).optional(),
+    imapPassword: z.string().max(2048).optional(),
+    smtpHost: z.string().max(253).optional(),
+    smtpPort: z.number().int().min(1).max(65535).optional(),
   })
   .refine(
     (input): boolean =>

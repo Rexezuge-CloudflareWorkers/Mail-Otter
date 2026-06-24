@@ -87,6 +87,19 @@ export async function updateContextIndexing(
   );
 }
 
+export async function updateRagRetrieval(
+  applicationId: string,
+  ragRetrievalEnabled: boolean,
+): Promise<{ application: ConnectedApplication }> {
+  return readJson<{ application: ConnectedApplication }>(
+    await apiFetch('/user/application/context', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, ragRetrievalEnabled }),
+    }),
+  );
+}
+
 export async function updateMaxContextDocuments(
   applicationId: string,
   maxContextDocuments: number | null,

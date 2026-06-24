@@ -102,6 +102,7 @@ export interface ConnectedApplication {
   lastError?: string | null;
   lastErrorAt?: number | null;
   contextIndexingEnabled: boolean;
+  ragRetrievalEnabled: boolean;
   maxContextDocuments?: number | null;
   contextDocumentCount?: number;
   contextLastIndexedAt?: number | null;

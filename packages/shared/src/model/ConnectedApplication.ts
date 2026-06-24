@@ -27,6 +27,7 @@ interface ConnectedApplicationMetadata {
   connectionMethod: ConnectionMethod;
   status: ConnectedApplicationStatus;
   contextIndexingEnabled: boolean;
+  ragRetrievalEnabled: boolean;
   maxContextDocuments?: number | null | undefined;
   enabledFeatures?: string[] | null | undefined;
   timeZone?: string | null | undefined;
@@ -75,6 +76,7 @@ interface ConnectedApplicationInternal {
   credentials_iv: string;
   status: ConnectedApplicationStatus;
   context_indexing_enabled: number;
+  rag_retrieval_enabled: number;
   max_context_documents: number | null;
   last_error_acknowledged_at: number | null;
   context_last_error_acknowledged_at: number | null;

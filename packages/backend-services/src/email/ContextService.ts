@@ -33,6 +33,11 @@ class ContextService {
       if (!application) throw new BadRequestError('Connected application was not found.');
     }
 
+    if (input.ragRetrievalEnabled !== undefined) {
+      application = await applicationDAO.updateRagRetrievalForUser(input.applicationId, userEmail, input.ragRetrievalEnabled);
+      if (!application) throw new BadRequestError('Connected application was not found.');
+    }
+
     if ('maxContextDocuments' in input) {
       application = await applicationDAO.updateMaxContextDocumentsForUser(input.applicationId, userEmail, input.maxContextDocuments ?? null);
       if (!application) throw new BadRequestError('Connected application was not found.');
@@ -203,6 +208,7 @@ class ContextServiceFactory {
 interface UpdateContextSettingsInput {
   applicationId: string;
   contextIndexingEnabled?: boolean | undefined;
+  ragRetrievalEnabled?: boolean | undefined;
   maxContextDocuments?: number | null | undefined;
 }
 

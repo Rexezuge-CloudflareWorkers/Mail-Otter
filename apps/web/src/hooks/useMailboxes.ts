@@ -146,6 +146,19 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const updateRagRetrieval = async (applicationId: string, enabled: boolean) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.updateRagRetrieval(applicationId, enabled);
+      setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
+      showNotice('success', enabled ? 'Context Retrieval Enabled.' : 'Context Retrieval Disabled.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Context Retrieval Setting.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const updateMaxContextDocuments = async (applicationId: string, maxContextDocuments: number | null) => {
     setIsBusy(true);
     try {
@@ -410,6 +423,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     startWatch,
     stopWatch,
     updateContextIndexing,
+    updateRagRetrieval,
     updateMaxContextDocuments,
     loadFolders,
     updateWatchedFolderIds,

@@ -8,7 +8,7 @@ import { useCurrentUserData } from '../../contexts/UserContext';
 
 export function ContextSection({ application }: { application: ConnectedApplication }) {
   const user = useCurrentUserData();
-  const { busy, onUpdateContextIndexing, onUpdateMaxContextDocuments, onOpenContextAudit, onDeleteContextDocuments, onDismissContextError } = useMailboxCallbacks();
+  const { busy, onUpdateContextIndexing, onUpdateRagRetrieval, onUpdateMaxContextDocuments, onOpenContextAudit, onDeleteContextDocuments, onDismissContextError } = useMailboxCallbacks();
 
   return (
     <CollapsibleSection title="RAG Context">
@@ -22,6 +22,16 @@ export function ContextSection({ application }: { application: ConnectedApplicat
             className="h-4 w-4 accent-[var(--color-accent)] rounded"
           />
           Index New Emails
+        </label>
+        <label className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={application.ragRetrievalEnabled}
+            onChange={(e) => onUpdateRagRetrieval(application.applicationId, e.target.checked)}
+            disabled={busy}
+            className="h-4 w-4 accent-[var(--color-accent)] rounded"
+          />
+          Retrieve Context For Summaries
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
           Max Docs

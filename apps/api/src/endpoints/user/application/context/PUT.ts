@@ -43,6 +43,7 @@ class UpdateApplicationContextRoute extends IUserRoute<
 interface UpdateApplicationContextRequest extends IRequest {
   applicationId: string;
   contextIndexingEnabled?: boolean | undefined;
+  ragRetrievalEnabled?: boolean | undefined;
   maxContextDocuments?: number | null | undefined;
 }
 

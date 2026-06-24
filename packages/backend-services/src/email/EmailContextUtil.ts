@@ -19,7 +19,7 @@ class EmailContextUtil {
   public static async prepareEmailRagContext(input: PrepareEmailRagContextInput): Promise<string | undefined> {
     if (!input.env.EMAIL_CONTEXT_INDEX) return undefined;
     const enabledApplicationIds: Set<string> = new Set(input.enabledApplicationIds);
-    const shouldRetrieve: boolean = enabledApplicationIds.size > 0;
+    const shouldRetrieve: boolean = input.application.ragRetrievalEnabled !== false && enabledApplicationIds.size > 0;
     const shouldStore: boolean = input.application.contextIndexingEnabled;
     if (!shouldRetrieve && !shouldStore) return undefined;
     if (await EmailContextUtil.shouldSkipWorkersAiForDailyUsage(input.env)) return undefined;

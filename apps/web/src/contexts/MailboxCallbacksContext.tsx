@@ -15,6 +15,7 @@ export interface MailboxCallbacksContextValue {
   onSaveDigestConfig: (id: string, config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>) => Promise<void>;
   onSendDigestNow: (id: string) => Promise<void>;
   onUpdateContextIndexing: (id: string, enabled: boolean) => void;
+  onUpdateRagRetrieval: (id: string, enabled: boolean) => void;
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;
   onDeleteContextDocuments: (id: string) => void;

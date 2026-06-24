@@ -2,6 +2,7 @@ export * from './User';
 export * from './ApplicationContextDeletionRun';
 export * from './ApplicationContextDocument';
 export * from './ConnectedApplication';
+export * from './DigestConfig';
 export * from './EmailAction';
 export * from './EmailQueueMessage';
 export * from './EmailRule';

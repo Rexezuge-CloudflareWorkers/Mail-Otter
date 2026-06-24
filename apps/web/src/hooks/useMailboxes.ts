@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
 import * as appSvc from '../services/applicationService';
@@ -213,6 +213,31 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const saveDigestConfig = async (applicationId: string, config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.saveDigestConfig(applicationId, config);
+      setApplications((c) => c.map((a) => (a.applicationId === applicationId ? { ...a, digestConfig: data.digestConfig } : a)));
+      showNotice('success', 'Digest Settings Saved.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Save Digest Settings.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const sendDigestNow = async (applicationId: string) => {
+    setIsBusy(true);
+    try {
+      await appSvc.sendDigestNow(applicationId);
+      showNotice('success', 'Digest Sent.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Send Digest.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const deleteContextDocuments = async (applicationId: string) => {
     const app = applications.find((a) => a.applicationId === applicationId);
     if (!window.confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
@@ -390,6 +415,8 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     updateWatchedFolderIds,
     updateSenderFilters,
     updateAutoExecuteActionTypes,
+    saveDigestConfig,
+    sendDigestNow,
     deleteContextDocuments,
     dismissError,
     integrationsByApplicationId,

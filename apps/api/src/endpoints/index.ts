@@ -30,6 +30,9 @@ import { ListIntegrationDeliveriesRoute as OriginalListIntegrationDeliveriesRout
 import { GetApplicationRulesRoute as OriginalGetApplicationRulesRoute } from './user/application/rules/GET';
 import { UpdateApplicationRulesRoute as OriginalUpdateApplicationRulesRoute } from './user/application/rules/PUT';
 import { SuggestApplicationRuleRoute as OriginalSuggestApplicationRuleRoute } from './user/application/rules/suggest/POST';
+import { GetDigestConfigRoute as OriginalGetDigestConfigRoute } from './user/application/digest/GET';
+import { UpdateDigestConfigRoute as OriginalUpdateDigestConfigRoute } from './user/application/digest/PUT';
+import { SendDigestNowRoute as OriginalSendDigestNowRoute } from './user/application/digest/send/POST';
 import { OAuth2CallbackRoute as OriginalOAuth2CallbackRoute } from './api/oauth2/callback/GET';
 import { GetActionConfirmationRoute as OriginalGetActionConfirmationRoute } from './api/actions/GET';
 import { ExecuteActionCallbackRoute as OriginalExecuteActionCallbackRoute } from './api/actions/execute/POST';
@@ -75,3 +78,6 @@ export const ListIntegrationDeliveriesRoute: any = OriginalListIntegrationDelive
 export const GetApplicationRulesRoute: any = OriginalGetApplicationRulesRoute;
 export const UpdateApplicationRulesRoute: any = OriginalUpdateApplicationRulesRoute;
 export const SuggestApplicationRuleRoute: any = OriginalSuggestApplicationRuleRoute;
+export const GetDigestConfigRoute: any = OriginalGetDigestConfigRoute;
+export const UpdateDigestConfigRoute: any = OriginalUpdateDigestConfigRoute;
+export const SendDigestNowRoute: any = OriginalSendDigestNowRoute;

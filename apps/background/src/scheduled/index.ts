@@ -10,3 +10,7 @@ export { AiDailyUsagePruningTask } from './AiDailyUsagePruningTask';
 export { EmailActionPruningTask } from './EmailActionPruningTask';
 export { AuditLogPruningTask } from './AuditLogPruningTask';
 export { IntegrationDeliveryLogPruningTask } from './IntegrationDeliveryLogPruningTask';
+export { CalendarEventSyncTask } from './CalendarEventSyncTask';
+export { ActionStatusSyncTask } from './ActionStatusSyncTask';
+export { ScheduledDigestTask } from './ScheduledDigestTask';
+export { SyncedCalendarEventPruningTask } from './SyncedCalendarEventPruningTask';

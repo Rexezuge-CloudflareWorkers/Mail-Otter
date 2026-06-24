@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 
 export interface MailboxCallbacksContextValue {
   busy: boolean;
@@ -12,6 +12,8 @@ export interface MailboxCallbacksContextValue {
   onUpdateWatchedFolders: (id: string, folderIds: string[] | null) => void;
   onUpdateSenderFilters: (id: string, filters: SenderDomainFilters) => void;
   onUpdateAutoExecuteActionTypes: (id: string, types: string[]) => void;
+  onSaveDigestConfig: (id: string, config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>) => Promise<void>;
+  onSendDigestNow: (id: string) => Promise<void>;
   onUpdateContextIndexing: (id: string, enabled: boolean) => void;
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;

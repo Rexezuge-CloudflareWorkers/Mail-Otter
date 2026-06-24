@@ -5,6 +5,8 @@ const { taskSpies } = vi.hoisted(() => ({
     oauth2Refresh: vi.fn(),
     contextPruning: vi.fn(),
     imapPolling: vi.fn(),
+    calendarEventSync: vi.fn(),
+    actionStatusSync: vi.fn(),
     processedMessagePruning: vi.fn(),
     staleContextDocumentPruning: vi.fn(),
     oauth2SessionPruning: vi.fn(),
@@ -13,6 +15,8 @@ const { taskSpies } = vi.hoisted(() => ({
     emailActionPruning: vi.fn(),
     auditLogPruning: vi.fn(),
     integrationDeliveryLogPruning: vi.fn(),
+    scheduledDigest: vi.fn(),
+    syncedCalendarEventPruning: vi.fn(),
     subscriptionRenewal: vi.fn(),
   },
 }));
@@ -26,6 +30,12 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
   ImapPollingTask: class {
     handle = taskSpies.imapPolling;
+  },
+  CalendarEventSyncTask: class {
+    handle = taskSpies.calendarEventSync;
+  },
+  ActionStatusSyncTask: class {
+    handle = taskSpies.actionStatusSync;
   },
   ProcessedMessagePruningTask: class {
     handle = taskSpies.processedMessagePruning;
@@ -50,6 +60,12 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   },
   IntegrationDeliveryLogPruningTask: class {
     handle = taskSpies.integrationDeliveryLogPruning;
+  },
+  ScheduledDigestTask: class {
+    handle = taskSpies.scheduledDigest;
+  },
+  SyncedCalendarEventPruningTask: class {
+    handle = taskSpies.syncedCalendarEventPruning;
   },
 }));
 
@@ -92,6 +108,8 @@ describe('CronTasksWorker', () => {
     taskSpies.oauth2Refresh.mockReset().mockResolvedValue(undefined);
     taskSpies.contextPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.imapPolling.mockReset().mockResolvedValue(undefined);
+    taskSpies.calendarEventSync.mockReset().mockResolvedValue(undefined);
+    taskSpies.actionStatusSync.mockReset().mockResolvedValue(undefined);
     taskSpies.processedMessagePruning.mockReset().mockResolvedValue(undefined);
     taskSpies.staleContextDocumentPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.oauth2SessionPruning.mockReset().mockResolvedValue(undefined);
@@ -100,6 +118,8 @@ describe('CronTasksWorker', () => {
     taskSpies.emailActionPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.auditLogPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.integrationDeliveryLogPruning.mockReset().mockResolvedValue(undefined);
+    taskSpies.scheduledDigest.mockReset().mockResolvedValue(undefined);
+    taskSpies.syncedCalendarEventPruning.mockReset().mockResolvedValue(undefined);
     taskSpies.subscriptionRenewal.mockReset().mockResolvedValue(undefined);
   });
 

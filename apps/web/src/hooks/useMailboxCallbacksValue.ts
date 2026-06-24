@@ -30,6 +30,8 @@ export function useMailboxCallbacksValue(
     onUpdateWatchedFolders: mailboxes.updateWatchedFolderIds,
     onUpdateSenderFilters: mailboxes.updateSenderFilters,
     onUpdateAutoExecuteActionTypes: mailboxes.updateAutoExecuteActionTypes,
+    onSaveDigestConfig: mailboxes.saveDigestConfig,
+    onSendDigestNow: mailboxes.sendDigestNow,
     onUpdateContextIndexing: mailboxes.updateContextIndexing,
     onUpdateMaxContextDocuments: mailboxes.updateMaxContextDocuments,
     onOpenContextAudit: (id: string) => {

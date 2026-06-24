@@ -17,3 +17,5 @@ export { ProviderSubscriptionDAO } from './ProviderSubscriptionDAO';
 export { ApplicationIntegrationDAO } from './ApplicationIntegrationDAO';
 export { IntegrationDeliveryLogDAO } from './IntegrationDeliveryLogDAO';
 export type { CreateDeliveryLogInput } from './IntegrationDeliveryLogDAO';
+export { SyncedCalendarEventDAO } from './SyncedCalendarEventDAO';
+export type { UpsertCalendarEventInput } from './SyncedCalendarEventDAO';

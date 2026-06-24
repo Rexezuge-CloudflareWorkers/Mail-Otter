@@ -11,6 +11,7 @@ import { IntegrationsSection } from './IntegrationsSection';
 import { RulesSection } from './RulesSection';
 import { SenderFilterSection } from './SenderFilterSection';
 import { AutoExecuteSection } from './AutoExecuteSection';
+import { DigestSection } from './DigestSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 export function MailboxDetail({
@@ -110,6 +111,7 @@ export function MailboxDetail({
       <IntegrationsSection applicationId={application.applicationId} />
       <SenderFilterSection application={application} />
       <AutoExecuteSection application={application} />
+      <DigestSection application={application} />
       <RulesSection application={application} />
       <WatchSection application={application} availableFolders={availableFolders} loadingFolders={loadingFolders} />
     </div>

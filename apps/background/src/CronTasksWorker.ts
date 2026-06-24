@@ -1,8 +1,10 @@
 import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import {
+  ActionStatusSyncTask,
   AiDailyUsagePruningTask,
   AuditLogPruningTask,
+  CalendarEventSyncTask,
   ContextDeletionRunPruningTask,
   ContextDocumentPruningTask,
   EmailActionPruningTask,
@@ -11,7 +13,9 @@ import {
   OAuth2AccessTokenRefreshTask,
   OAuth2SessionPruningTask,
   ProcessedMessagePruningTask,
+  ScheduledDigestTask,
   StaleContextDocumentPruningTask,
+  SyncedCalendarEventPruningTask,
 } from '@mail-otter/background/scheduled';
 import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
 
@@ -81,6 +85,8 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
       new OAuth2AccessTokenRefreshTask().handle(event, this.env, ctx),
       new ContextDocumentPruningTask().handle(event, this.env, ctx),
       new ImapPollingTask().handle(event, this.env, ctx),
+      new CalendarEventSyncTask().handle(event, this.env, ctx),
+      new ActionStatusSyncTask().handle(event, this.env, ctx),
       new SubscriptionRenewalUtil(createD1SessionEnv(this.env)).renewDueSubscriptions(),
     ]);
     await Promise.all([
@@ -92,6 +98,8 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
       new EmailActionPruningTask().handle(event, this.env, ctx),
       new AuditLogPruningTask().handle(event, this.env, ctx),
       new IntegrationDeliveryLogPruningTask().handle(event, this.env, ctx),
+      new ScheduledDigestTask().handle(event, this.env, ctx),
+      new SyncedCalendarEventPruningTask().handle(event, this.env, ctx),
     ]);
   }
 }

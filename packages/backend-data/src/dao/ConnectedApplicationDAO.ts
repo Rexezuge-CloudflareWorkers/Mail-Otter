@@ -375,6 +375,22 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
+  public async listApplicationIdsWithProviderConfig(configKey: string, configValue: string): Promise<string[]> {
+    const rows: Array<{ application_id: string }> = await this.database
+      .prepare(
+        `
+          SELECT pac.application_id
+          FROM provider_application_configs pac
+          JOIN connected_applications ca ON ca.application_id = pac.application_id
+          WHERE pac.config_key = ? AND pac.config_value = ? AND ca.status = 'connected'
+        `,
+      )
+      .bind(configKey, configValue)
+      .all<{ application_id: string }>()
+      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
+    return rows.map((row) => row.application_id);
+  }
+
   public async deleteForUser(applicationId: string, userEmail: string): Promise<void> {
     await executeD1WithRetry(
       (): Promise<D1Result> =>

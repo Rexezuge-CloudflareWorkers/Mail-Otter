@@ -1,4 +1,4 @@
-import type { ConnectedApplication, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
 import { apiFetch, readJson } from '../../components/utils';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
@@ -274,6 +274,29 @@ export async function suggestRule(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId, description }),
+    }),
+  );
+}
+
+export async function saveDigestConfig(
+  applicationId: string,
+  config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>,
+): Promise<{ digestConfig: DigestConfig }> {
+  return readJson<{ digestConfig: DigestConfig }>(
+    await apiFetch('/user/application/digest', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, ...config }),
+    }),
+  );
+}
+
+export async function sendDigestNow(applicationId: string): Promise<{ sent: boolean }> {
+  return readJson<{ sent: boolean }>(
+    await apiFetch('/user/application/digest/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId }),
     }),
   );
 }

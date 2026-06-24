@@ -7,6 +7,9 @@ import {
   GetApplicationRulesRoute,
   UpdateApplicationRulesRoute,
   SuggestApplicationRuleRoute,
+  GetDigestConfigRoute,
+  UpdateDigestConfigRoute,
+  SendDigestNowRoute,
   ListIntegrationsRoute,
   CreateIntegrationRoute,
   UpdateIntegrationRoute,
@@ -132,6 +135,10 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.get('/user/application/rules', GetApplicationRulesRoute);
     openapi.put('/user/application/rules', UpdateApplicationRulesRoute);
     openapi.post('/user/application/rules/suggest', SuggestApplicationRuleRoute);
+
+    openapi.get('/user/application/digest', GetDigestConfigRoute);
+    openapi.put('/user/application/digest', UpdateDigestConfigRoute);
+    openapi.post('/user/application/digest/send', SendDigestNowRoute);
 
     openapi.get('/user/application/integrations', ListIntegrationsRoute);
     openapi.post('/user/application/integration', CreateIntegrationRoute);

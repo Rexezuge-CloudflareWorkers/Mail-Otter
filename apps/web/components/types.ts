@@ -117,6 +117,7 @@ export interface ConnectedApplication {
   lastErrorAt?: number | null;
   contextIndexingEnabled: boolean;
   ragRetrievalEnabled: boolean;
+  attachmentVisionEnabled: boolean;
   maxContextDocuments?: number | null;
   contextDocumentCount?: number;
   contextLastIndexedAt?: number | null;
@@ -256,6 +257,7 @@ export type ContextAuditEventType =
   | 'embedding_generated'
   | 'rag_queried'
   | 'summary_generated'
+  | 'attachment_analyzed'
   | 'summary_sent'
   | 'action_created'
   | 'action_executed'

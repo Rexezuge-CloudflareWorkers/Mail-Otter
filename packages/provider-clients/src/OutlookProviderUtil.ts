@@ -1,6 +1,8 @@
 import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from './EmailContentUtil';
 import { fetchJsonWithBearer, createProviderApiError } from './BaseProviderHttp';
+import { SUPPORTED_IMAGE_MIME_TYPES } from './AttachmentTypes';
+import type { ProviderImageAttachment } from './AttachmentTypes';
 
 interface OutlookMailboxProfile {
   emailAddress: string;
@@ -56,6 +58,14 @@ interface OutlookCalendarEventListItem {
   start?: { dateTime?: string; timeZone?: string };
   end?: { dateTime?: string; timeZone?: string };
   location?: { displayName?: string };
+}
+
+interface OutlookAttachmentItem {
+  id: string;
+  name?: string;
+  contentType: string;
+  contentBytes?: string;
+  size?: number;
 }
 
 class OutlookProviderUtil {
@@ -423,6 +433,31 @@ class OutlookProviderUtil {
     if (!response.ok && response.status !== 404) {
       throw createProviderApiError('Microsoft Graph', 'delete message', response, await response.text());
     }
+  }
+
+  public static async getImageAttachments(
+    accessToken: string,
+    messageId: string,
+    maxSizeBytes: number,
+    maxCount: number,
+  ): Promise<ProviderImageAttachment[]> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,contentBytes,size`;
+    const data = await fetchJsonWithBearer<{ value?: OutlookAttachmentItem[] }>(url, accessToken, 'Outlook');
+    const items = data.value ?? [];
+    const results: ProviderImageAttachment[] = [];
+    for (const item of items) {
+      if (!SUPPORTED_IMAGE_MIME_TYPES.has(item.contentType)) continue;
+      if ((item.size ?? 0) > maxSizeBytes) continue;
+      if (!item.contentBytes) continue;
+      results.push({
+        filename: item.name ?? 'attachment',
+        mimeType: item.contentType,
+        base64Data: item.contentBytes,
+        sizeBytes: item.size ?? 0,
+      });
+      if (results.length >= maxCount) break;
+    }
+    return results;
   }
 
   private static async deriveMessageMarker(messageId: string): Promise<string> {

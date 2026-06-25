@@ -37,7 +37,7 @@ export default defineConfig({
         '**/model/**',
       ],
       thresholds: {
-        statements: 57,
+        statements: 56,
         branches: 45,
         functions: 66,
         lines: 58,

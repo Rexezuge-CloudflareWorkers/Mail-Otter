@@ -45,6 +45,7 @@ interface UpdateApplicationContextRequest extends IRequest {
   contextIndexingEnabled?: boolean;
   ragRetrievalEnabled?: boolean;
   maxContextDocuments?: number | null;
+  attachmentVisionEnabled?: boolean;
 }
 
 interface UpdateApplicationContextResponse extends IResponse {

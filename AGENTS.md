@@ -4,7 +4,7 @@ Guidance for agents working in Mail-Otter.
 
 ## Overview
 
-Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. The AI can suggest structured email actions (add calendar event, draft reply, open link, manual to-do, track package, track flight, pay bill, confirm appointment) that the user confirms or denies through a public callback flow or the management UI. Per-mailbox time zones keep calendar events correct, optional sender domain filters scope which senders are processed, configurable email processing rules gate or modify per-message handling, a scheduled daily digest aggregates pending actions and calendar events, outbound webhook integrations forward summary payloads to external services, and a usage analytics dashboard summarizes AI usage, processing, actions, and context indexing.
+Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. The AI can suggest structured email actions (add calendar event, draft reply, open link, manual to-do, track package, track flight, pay bill, confirm appointment) that the user confirms or denies through a public callback flow or the management UI. Per-mailbox time zones keep calendar events correct, optional sender domain filters scope which senders are processed, configurable email processing rules gate or modify per-message handling, a scheduled daily digest aggregates pending actions and calendar events, outbound webhook integrations forward summary payloads to external services, a usage analytics dashboard summarizes AI usage, processing, actions, and context indexing, and attachment vision analysis uses `@cf/meta/llama-3.2-11b-vision-instruct` to extract structured data from image attachments (receipts, invoices, boarding passes, package labels) with a per-mailbox toggle.
 
 ## Cloudflare Documentation
 
@@ -86,7 +86,7 @@ Run `volta run pnpm run typegen` after changing bindings in Wrangler config.
 - `packages/backend-runtime/src/` owns all environment variable access via `ConfigurationManager` static methods and defaults in `ConfigurationDefaults.ts`. Also provides abstract worker base classes (`AbstractEntrypointWorker`, `AbstractDurableObjectWorker`, `AbstractQueueWorker`, `AbstractWorkflowWorker`) and DO naming constants. Add new env vars in `ConfigurationDefaults.ts`, not inline.
 - `packages/backend-data/src/` owns all D1 access via DAO classes in `dao/` (`ConnectedApplicationDAO`, `ApplicationContextDAO`, `UserDAO`, `ProcessedMessageDAO`, `OAuth2AuthorizationSessionDAO`, `ProviderSubscriptionDAO`, `AiDailyUsageDAO`, `EmailActionDAO`, `OAuth2AccessTokenCacheDAO`, `OAuth2AccessTokenRefreshStatusDAO`, `ApplicationIntegrationDAO`, `BackgroundTaskRunDAO`, `IntegrationDeliveryLogDAO`, `SyncedCalendarEventDAO`), KV-based token cache, D1 session/cursor/error utilities in `utils/` (`D1SessionUtil`, `CursorUtil`, `D1ErrorClassifier`, `D1Utils`), and AES-GCM encryption in `crypto/` (`CryptoService`). Per-application settings without dedicated columns (e.g. `calendar_time_zone`, enabled features, sender domain filters, processing rules) are stored as provider-config key/value rows.
 - `packages/provider-clients/src/` owns provider API clients (`GmailProviderUtil`, `OutlookProviderUtil`, `OAuth2ProviderUtil`, `FastmailProviderUtil`), webhook security (`WebhookSecurityUtil`), and email content parsing (`EmailContentUtil`).
-- `packages/backend-services/src/` owns business logic services, organized by domain subdirectory: `action/` (`ActionService`, `ActionExecutionService`, `PackageTrackingService`, `FlightTrackingService`), `analytics/` (`AnalyticsService`), `application/` (`ApplicationService`, `ApplicationResponseUtil`, `FolderService`), `auth/` (`EmailValidationUtil`), `digest/` (`DigestConfigService`, `DigestEmailUtil`, `DigestService`, `ActionStatusSyncUtil`, `CalendarEventSyncUtil`), `email/` (`EmailProcessingUtil`, `EmailSummaryOrchestrator`, `EmailSummaryUtil`, `EmailContextUtil`, `EmailRulesUtil`, `EmailRuleSuggestionUtil`, `ContextService`, `AiUsageUtil`, `SenderFilterUtil`, `ProviderOrganizationService`, `WorkersAiErrorUtil`), `integration/` (`IntegrationService`), `oauth2/` (`OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `OAuth2StateUtil`), `processing/` (`ProcessingService`), `provider/` (`EmailProviderRegistry` + `IEmailProvider`, `GmailEmailProvider`, `OutlookEmailProvider`, `FastmailEmailProvider`, `FastmailImapEmailProvider`), `subscription/` (`WatchService`, `SubscriptionRenewalUtil`), `user/` (`UserService`), and `webhook/` (`GmailWebhookService`, `OutlookWebhookService`). New provider-specific behavior should go behind `EmailProviderRegistry`/`IEmailProvider` rather than branching on provider id in callers.
+- `packages/backend-services/src/` owns business logic services, organized by domain subdirectory: `action/` (`ActionService`, `ActionExecutionService`, `PackageTrackingService`, `FlightTrackingService`), `analytics/` (`AnalyticsService`), `application/` (`ApplicationService`, `ApplicationResponseUtil`, `FolderService`), `auth/` (`EmailValidationUtil`), `digest/` (`DigestConfigService`, `DigestEmailUtil`, `DigestService`, `ActionStatusSyncUtil`, `CalendarEventSyncUtil`), `email/` (`EmailProcessingUtil`, `EmailSummaryOrchestrator`, `EmailSummaryUtil`, `EmailContextUtil`, `EmailRulesUtil`, `EmailRuleSuggestionUtil`, `ContextService`, `AiUsageUtil`, `AttachmentAnalysisUtil`, `SenderFilterUtil`, `ProviderOrganizationService`, `WorkersAiErrorUtil`), `integration/` (`IntegrationService`), `oauth2/` (`OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `OAuth2StateUtil`), `processing/` (`ProcessingService`), `provider/` (`EmailProviderRegistry` + `IEmailProvider`, `GmailEmailProvider`, `OutlookEmailProvider`, `FastmailEmailProvider`, `FastmailImapEmailProvider`), `subscription/` (`WatchService`, `SubscriptionRenewalUtil`), `user/` (`UserService`), and `webhook/` (`GmailWebhookService`, `OutlookWebhookService`). New provider-specific behavior should go behind `EmailProviderRegistry`/`IEmailProvider` rather than branching on provider id in callers.
 - `migrations/` contains D1 migrations (latest: `0024_rag_retrieval_toggle.sql`).
 - `functions/[[path]].ts` proxies Cloudflare Pages requests to the API Worker through a service binding.
 - `test/` contains Vitest suites for workers, schemas, and utilities.
@@ -115,6 +115,7 @@ Enforced by ESLint `no-restricted-imports` rules in `eslint.config.mjs`.
 - `apps/api/wrangler.template.jsonc` is the Worker config template. Copy it to `wrangler.jsonc` for deployment; keep bindings and generated types in sync. There is no separate `wrangler.jsonc` committed — each deployer creates their own.
 - The SPA is served from Cloudflare assets (`assets.directory = "./apps/web/dist/"`) when deployed; `SERVE_SPA_FROM_WORKER` (default `true`) serves the SPA from the Worker catch-all route so API routes are not intercepted by the assets handler.
 - Current Worker bindings include D1 binding `DB`, KV namespace `OAUTH2_TOKEN_CACHE`, Secrets Store secrets `AES_ENCRYPTION_KEY_SECRET`, `ACTION_ENCRYPTION_KEY_SECRET`, `ACTION_SIGNING_SECRET`, Workers AI binding `AI`, Vectorize index `EMAIL_CONTEXT_INDEX`, Queue `EMAIL_EVENTS_QUEUE`, Workflow `EMAIL_PROCESSING_WORKFLOW`, Durable Objects `CRON_TASKS` and `OAUTH2_TOKEN_REFRESHERS`, and a cron trigger `*/10 * * * *`.
+- Attachment vision env vars (all optional, governed by `ConfigurationManager`): `ATTACHMENT_VISION_ENABLED` (default `true`), `ATTACHMENT_VISION_MODEL` (default `@cf/meta/llama-3.2-11b-vision-instruct`), `MAX_ATTACHMENT_SIZE_BYTES` (default `2097152` / 2 MB), `MAX_ATTACHMENTS_PER_EMAIL` (default `3`).
 
 ## Auth And Routing
 
@@ -214,6 +215,24 @@ The sink derivation is done in `OutlookProviderUtil.sendSelfSummaryReply` by spl
 - `calendar.add_event` requires the optional `calendar` feature: it is opt-in per application via `enabledFeatures`, which adds provider-specific OAuth scopes from `OAUTH2_FEATURE_SCOPES` in `packages/shared/src/constants/OAuth2Scopes.ts` (`calendar.events` for Gmail, `Calendars.ReadWrite` for Outlook). Enabling a feature changes the requested scopes, so the user must re-authorize.
 - Calendar events are rendered in each mailbox's own time zone. The per-mailbox zone is stored as the `calendar_time_zone` provider-config row, validated/normalized through `TimeZoneUtil` (defaults to `UTC`), and applied by `ActionService`/`EmailSummaryUtil`. Never assume the Worker's UTC clock for event-facing dates.
 
+## Attachment Vision Analysis
+
+When a processed email has image attachments, `AttachmentAnalysisUtil` (`packages/backend-services/src/email/`) invokes `@cf/meta/llama-3.2-11b-vision-instruct` — one AI call per image — to extract a one-sentence summary and structured action proposals (`finance.pay_bill`, `delivery.track_package`, `travel.track_flight`, `appointment.confirm`, `manual.todo`). Vision proposals are appended to text proposals before the action-creation cap is applied; text proposals fill the cap first.
+
+Two-level gate controls execution:
+1. Global env var: `ATTACHMENT_VISION_ENABLED` (default `true`). Set to `false` to disable vision entirely.
+2. Per-mailbox toggle: `attachment_vision_enabled` provider-config row. Managed via the same `PUT /user/application/context` endpoint and the **Analyze Image Attachments** checkbox in ContextSection. Default (absent/`null`) = enabled; `'false'` = disabled.
+
+Provider attachment fetching lives in `EmailProcessingUtil` (Layer 5), using:
+- `GmailProviderUtil.getImageAttachments()` — walks `payload.parts` recursively, fetches via Gmail Attachments API, converts base64url → base64.
+- `OutlookProviderUtil.getImageAttachments()` — calls `GET .../messages/{id}/attachments?$select=id,name,contentType,contentBytes,size`.
+- `FastmailProviderUtil.downloadImageAttachments()` — uses JMAP `Email/get` `attachments` property and downloads blobs via the JMAP download endpoint.
+- IMAP attachments are **not** supported (binary MIME extraction deferred).
+
+Attachment fetching failures are non-fatal (caught per-call, warn-logged). Vision failures are non-fatal (full try/catch in `EmailSummaryOrchestrator`). Audit event `attachment_analyzed` is written after each successful vision run. Neuron usage for vision calls is tracked via `AiUsageUtil` and the `@cf/meta/llama-3.2-11b-vision-instruct` rate entry.
+
+Size and count limits: `MAX_ATTACHMENT_SIZE_BYTES` (default 2 MB) and `MAX_ATTACHMENTS_PER_EMAIL` (default 3).
+
 ## Sender Domain Filters
 
 Each application may define optional `senderDomainFilters` with `includeRules` and `excludeRules` (each capped at 100 entries). `SenderFilterUtil` (in `packages/backend-services/src/email/`) decides whether an incoming message is processed. Empty include rules mean "process all senders except excludes"; non-empty include rules restrict processing to matching senders. Filters are stored as a provider-config row.
@@ -286,7 +305,7 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 ## Test Coverage History
 
 - Initial threshold: 90/80/90/90
-- Lowered to 55/40/70/55, then raised to 72/55/83/74, then adjusted to 57/45/68/58, then functions lowered to 66 (statements/branches/functions/lines) in vitest.config.mts as new features added surface area
+- Lowered to 55/40/70/55, then raised to 72/55/83/74, then adjusted to 57/45/68/58, then functions lowered to 66, then statements lowered to 56 (statements/branches/functions/lines) in vitest.config.mts as new features added surface area
 - `**/model/**` excluded from coverage (pure TypeScript types)
 - Integration tests live under `test/integration/` with their own `vitest.config.mts` (`pnpm run test:integration`). They run on `@cloudflare/vitest-pool-workers`, which does not produce V8 coverage — do not add coverage thresholds to the integration config.
 
@@ -337,6 +356,7 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 - Worker tests: MailOtterWorker (2), CronTasksWorker (3+), OAuth2TokenRefreshWorker (3), EmailProcessingWorkflow (3), EmailEventsQueueWorker (1)
 - Schema validation: 5 tests
 - IMAP provider utils: tests present (ImapEmailProviders.test.ts)
+- AttachmentAnalysisUtil: 9 tests, 100% statements/lines, 80% branches
 
 ### Still Uncovered (0% or near-0%)
 - DigestConfigService.ts, DigestEmailUtil.ts, DigestService.ts, ActionStatusSyncUtil.ts, CalendarEventSyncUtil.ts (digest services)

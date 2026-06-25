@@ -4,6 +4,7 @@ import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { ConnectedApplication, EmailActionProposal } from '@mail-otter/shared/model';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
+import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import { ActionService } from '../action';
 import type { ActionExecutionEnv, CreatedEmailAction } from '../action';
 import { EmailContextUtil } from './EmailContextUtil';
@@ -13,6 +14,7 @@ import { ProviderOrganizationService } from './ProviderOrganizationService';
 import { SenderFilterUtil } from './SenderFilterUtil';
 import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
+import { AttachmentAnalysisUtil } from './AttachmentAnalysisUtil';
 
 const EMAIL_SUMMARY_MAX_COMPLETION_TOKENS = 1200;
 
@@ -55,6 +57,8 @@ interface OrchestratorEnv {
   OAUTH2_TOKEN_CACHE?: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace;
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  ATTACHMENT_VISION_ENABLED?: string;
+  ATTACHMENT_VISION_MODEL?: string;
 }
 
 class EmailSummaryOrchestrator {
@@ -74,6 +78,7 @@ class EmailSummaryOrchestrator {
     threadId: string | null,
     options: { retryAttempt?: number; callbackBaseUrl?: string },
     hasAttachment?: boolean,
+    attachmentImages?: ProviderImageAttachment[],
   ): Promise<OrchestrationResult | null> {
     if (application.senderDomainFilters) {
       const filterResult = SenderFilterUtil.shouldSkip(from, application.senderDomainFilters);
@@ -98,10 +103,37 @@ class EmailSummaryOrchestrator {
     });
     const summary: EmailProcessingSummary = await this.summarize(application, resolvedMessageId, subject, from, body, ragContext, customInstruction);
     await this.auditLogger.logSummaryGenerated(application, resolvedMessageId, summary.summaryModel, summary.estimatedNeurons, options.retryAttempt);
+
+    let attachmentSummaries: string[] = [];
+    let visionProposals: EmailActionProposal[] = [];
+    if (
+      attachmentImages &&
+      attachmentImages.length > 0 &&
+      application.attachmentVisionEnabled &&
+      ConfigurationManager.ai.isAttachmentVisionEnabled(this.env)
+    ) {
+      try {
+        const visionModel = ConfigurationManager.ai.getAttachmentVisionModel(this.env);
+        const visionResult = await AttachmentAnalysisUtil.analyzeAttachments(
+          this.env.AI, visionModel, subject, from, attachmentImages,
+        );
+        attachmentSummaries = visionResult.attachmentSummaries;
+        visionProposals = visionResult.actionProposals;
+        const visionEstimate = await this.recordSummaryUsage(visionModel, visionResult.totalUsage, '', '');
+        await this.auditLogger.logAttachmentAnalysis(
+          application, resolvedMessageId, visionModel,
+          attachmentImages.length, visionEstimate?.estimatedNeurons ?? 0, options.retryAttempt,
+        );
+      } catch (error) {
+        console.warn('[EmailSummaryOrchestrator] Attachment vision analysis failed:', error);
+      }
+    }
+
+    const mergedProposals: EmailActionProposal[] = [...summary.actionProposals, ...visionProposals];
     const processedMessage = await this.processedDAO.getByMessageId(application.applicationId, resolvedMessageId);
     const actions: CreatedEmailAction[] = !suppressActions && processedMessage
       ? await ActionService.createActionsForSummary(
-          { application, processedMessage, subject, from, body, proposals: summary.actionProposals, callbackBaseUrl: options.callbackBaseUrl },
+          { application, processedMessage, subject, from, body, proposals: mergedProposals, callbackBaseUrl: options.callbackBaseUrl },
           this.env,
         )
       : [];
@@ -126,7 +158,10 @@ class EmailSummaryOrchestrator {
         }
       }
     }
-    return { summaryHtml: this.withActionSection(summary.html, actions), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
+    const summaryWithAttachments: string = attachmentSummaries.length > 0
+      ? `${summary.html}\n${this.renderAttachmentSection(attachmentSummaries)}`
+      : summary.html;
+    return { summaryHtml: this.withActionSection(summaryWithAttachments, actions), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
   }
 
   private async summarize(
@@ -194,6 +229,11 @@ class EmailSummaryOrchestrator {
       summaryModel: model,
       estimatedNeurons: usageEstimate?.estimatedNeurons ?? 0,
     };
+  }
+
+  private renderAttachmentSection(summaries: string[]): string {
+    const items = summaries.map((s) => `<li>${EmailContentUtil.escapeHtml(s)}</li>`).join('\n');
+    return `<p><strong>Attachments:</strong></p>\n<ul>\n${items}\n</ul>`;
   }
 
   private withActionSection(summaryHtml: string, actions: CreatedEmailAction[]): string {

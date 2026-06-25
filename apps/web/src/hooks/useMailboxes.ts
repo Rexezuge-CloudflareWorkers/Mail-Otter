@@ -159,6 +159,19 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     }
   };
 
+  const updateAttachmentVisionEnabled = async (applicationId: string, enabled: boolean) => {
+    setIsBusy(true);
+    try {
+      const data = await appSvc.updateAttachmentVisionEnabled(applicationId, enabled);
+      setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
+      showNotice('success', enabled ? 'Attachment Vision Enabled.' : 'Attachment Vision Disabled.');
+    } catch (e) {
+      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Attachment Vision Setting.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const updateMaxContextDocuments = async (applicationId: string, maxContextDocuments: number | null) => {
     setIsBusy(true);
     try {
@@ -424,6 +437,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     stopWatch,
     updateContextIndexing,
     updateRagRetrieval,
+    updateAttachmentVisionEnabled,
     updateMaxContextDocuments,
     loadFolders,
     updateWatchedFolderIds,

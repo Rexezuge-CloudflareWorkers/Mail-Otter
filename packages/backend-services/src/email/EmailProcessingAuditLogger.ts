@@ -1,5 +1,6 @@
 import {
   CONTEXT_AUDIT_EVENT_ACTION_CREATED,
+  CONTEXT_AUDIT_EVENT_ATTACHMENT_ANALYZED,
   CONTEXT_AUDIT_EVENT_ERROR,
   CONTEXT_AUDIT_EVENT_MODEL_FALLBACK,
   CONTEXT_AUDIT_EVENT_PROCESSING_STARTED,
@@ -72,6 +73,29 @@ class EmailProcessingAuditLogger {
       'Summary Email Sent',
       CONTEXT_AUDIT_LOG_SEVERITY_INFO,
       retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : undefined,
+    );
+  }
+
+  async logAttachmentAnalysis(
+    application: ConnectedApplication,
+    sourceDocumentId: string,
+    visionModel: string,
+    attachmentCount: number,
+    estimatedNeurons: number,
+    retryAttempt?: number,
+  ): Promise<void> {
+    return this.logAuditEvent(
+      application,
+      sourceDocumentId,
+      CONTEXT_AUDIT_EVENT_ATTACHMENT_ANALYZED,
+      'Attachment Vision Analysis',
+      CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+      {
+        visionModel,
+        attachmentCount,
+        estimatedNeurons,
+        ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }),
+      },
     );
   }
 

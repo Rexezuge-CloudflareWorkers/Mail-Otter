@@ -1,5 +1,7 @@
 import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
 import type { CalendarAddEventActionPayload } from '@mail-otter/shared/model';
+import { SUPPORTED_IMAGE_MIME_TYPES } from '../AttachmentTypes';
+import type { ProviderImageAttachment } from '../AttachmentTypes';
 
 const JMAP_BASE = 'https://api.fastmail.com/jmap/session';
 
@@ -7,6 +9,13 @@ interface JmapSession {
   apiUrl: string;
   accounts: Record<string, { name: string; isPersonal: boolean }>;
   primaryAccounts: Record<string, string>;
+}
+
+interface JmapEmailAttachment {
+  blobId: string;
+  type: string;
+  name?: string | null;
+  size: number;
 }
 
 interface JmapEmailResult {
@@ -18,6 +27,7 @@ interface JmapEmailResult {
   threadId?: string | null;
   bodyValues?: Record<string, { value: string }> | null;
   textBody?: Array<{ partId: string }> | null;
+  attachments?: JmapEmailAttachment[] | null;
 }
 
 interface JmapCalendarEventResult {
@@ -76,7 +86,7 @@ class FastmailProviderUtil {
         {
           accountId,
           ids: [emailId],
-          properties: ['id', 'subject', 'from', 'receivedAt', 'messageId', 'threadId', 'textBody', 'bodyValues'],
+          properties: ['id', 'subject', 'from', 'receivedAt', 'messageId', 'threadId', 'textBody', 'bodyValues', 'attachments'],
           fetchTextBodyValues: true,
           maxBodyValueBytes: 32_768,
         },
@@ -188,6 +198,33 @@ class FastmailProviderUtil {
     await this.callApi(session.apiUrl, accessToken, [
       ['PushSubscription/set', { destroy: [subscriptionId] }, '0'],
     ]);
+  }
+
+  public static async downloadImageAttachments(
+    accessToken: string,
+    email: JmapEmailResult,
+    maxSizeBytes: number,
+    maxCount: number,
+  ): Promise<ProviderImageAttachment[]> {
+    const attachments = email.attachments ?? [];
+    const eligible = attachments.filter((a) => SUPPORTED_IMAGE_MIME_TYPES.has(a.type) && a.size <= maxSizeBytes).slice(0, maxCount);
+    if (eligible.length === 0) return [];
+    const session = await this.getSession(accessToken);
+    const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
+    const results: ProviderImageAttachment[] = [];
+    for (const att of eligible) {
+      const filename = att.name ?? 'attachment';
+      const downloadUrl = `https://api.fastmail.com/jmap/download/${encodeURIComponent(accountId)}/${encodeURIComponent(att.blobId)}/${encodeURIComponent(filename)}`;
+      const response = await fetch(downloadUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) continue;
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const base64Data = btoa(bytes.reduce((acc, byte) => acc + String.fromCodePoint(byte), ''));
+      results.push({ filename, mimeType: att.type, base64Data, sizeBytes: att.size });
+    }
+    return results;
   }
 
   private static async callApi(

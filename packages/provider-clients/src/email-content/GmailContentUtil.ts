@@ -4,7 +4,7 @@ interface GmailMessagePart {
   mimeType?: string;
   filename?: string;
   headers?: Array<{ name: string; value: string }>;
-  body?: { data?: string };
+  body?: { data?: string; size?: number; attachmentId?: string };
   parts?: GmailMessagePart[];
 }
 

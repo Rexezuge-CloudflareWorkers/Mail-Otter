@@ -2,6 +2,8 @@ import { EmailContentUtil } from './EmailContentUtil';
 import { WebhookSecurityUtil } from './WebhookSecurityUtil';
 import type { GmailMessagePart, MailHeader } from './EmailContentUtil';
 import { fetchJsonWithBearer, createProviderApiError } from './BaseProviderHttp';
+import { SUPPORTED_IMAGE_MIME_TYPES } from './AttachmentTypes';
+import type { ProviderImageAttachment } from './AttachmentTypes';
 
 interface GmailWatchResult {
   historyId: string;
@@ -325,6 +327,70 @@ class GmailProviderUtil {
       '',
       draftBody,
     ].join('\r\n');
+  }
+
+  public static async getAttachment(
+    accessToken: string,
+    messageId: string,
+    attachmentId: string,
+  ): Promise<{ data: string; size: number }> {
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`;
+    const result = await fetchJsonWithBearer<{ data?: string; size?: number }>(url, accessToken, 'Gmail');
+    return { data: result.data ?? '', size: result.size ?? 0 };
+  }
+
+  public static async getImageAttachments(
+    accessToken: string,
+    messageId: string,
+    payload: GmailMessagePart | undefined,
+    maxSizeBytes: number,
+    maxCount: number,
+  ): Promise<ProviderImageAttachment[]> {
+    const candidates = this.collectImageParts(payload);
+    const eligible = candidates.filter((c) => SUPPORTED_IMAGE_MIME_TYPES.has(c.mimeType) && c.size <= maxSizeBytes).slice(0, maxCount);
+    const results: ProviderImageAttachment[] = [];
+    for (const candidate of eligible) {
+      let base64url: string;
+      if (candidate.inlineData) {
+        base64url = candidate.inlineData;
+      } else if (candidate.attachmentId) {
+        const att = await this.getAttachment(accessToken, messageId, candidate.attachmentId);
+        base64url = att.data;
+      } else {
+        continue;
+      }
+      results.push({
+        filename: candidate.filename,
+        mimeType: candidate.mimeType,
+        base64Data: base64url.replaceAll('-', '+').replaceAll('_', '/'),
+        sizeBytes: candidate.size,
+      });
+    }
+    return results;
+  }
+
+  private static collectImageParts(
+    part: GmailMessagePart | undefined,
+    out: Array<{ filename: string; mimeType: string; size: number; attachmentId?: string; inlineData?: string }> = [],
+  ): typeof out {
+    if (!part) return out;
+    const mimeType = part.mimeType ?? '';
+    const filename = part.filename ?? '';
+    const body = part.body;
+    if (filename && SUPPORTED_IMAGE_MIME_TYPES.has(mimeType)) {
+      out.push({
+        filename,
+        mimeType,
+        size: body?.size ?? 0,
+        attachmentId: body?.attachmentId,
+        inlineData: body?.data,
+      });
+    }
+    const children = part.parts ?? [];
+    for (const child of children) {
+      this.collectImageParts(child, out);
+    }
+    return out;
   }
 }
 

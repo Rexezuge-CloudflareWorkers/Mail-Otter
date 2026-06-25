@@ -28,6 +28,7 @@ interface ConnectedAppMetadata {
   status: ConnectedAppStatus;
   contextIndexingEnabled: boolean;
   ragRetrievalEnabled: boolean;
+  attachmentVisionEnabled: boolean;
   maxContextDocuments?: number | null;
   enabledFeatures?: string[] | null;
   timeZone?: string | null;

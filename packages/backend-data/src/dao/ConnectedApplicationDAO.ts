@@ -512,8 +512,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr, autoExecuteActionTypesJson]: [
+    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr, autoExecuteActionTypesJson, attachmentVisionEnabledStr]: [
       Array<{ folderPath: string; folderName: string }>,
+      string | null,
       string | null,
       string | null,
       string | null,
@@ -538,6 +539,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       this.getProviderConfig(row.application_id, 'smtp_host'),
       this.getProviderConfig(row.application_id, 'smtp_port'),
       this.getProviderConfig(row.application_id, 'auto_execute_action_types'),
+      this.getProviderConfig(row.application_id, 'attachment_vision_enabled'),
     ]);
     // Lazily migrate legacy excludeRules (stored in sender_domain_filters) into email processing rules
     let senderDomainFilters: SenderDomainFilters | null = null;
@@ -579,6 +581,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       status,
       contextIndexingEnabled: row.context_indexing_enabled !== 0,
       ragRetrievalEnabled: row.rag_retrieval_enabled !== 0,
+      attachmentVisionEnabled: attachmentVisionEnabledStr !== 'false',
       maxContextDocuments: row.max_context_documents ?? null,
       enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
       timeZone: timeZone ?? null,
@@ -597,6 +600,15 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       smtpPort: smtpPortStr == null ? null : Number(smtpPortStr),
       autoExecuteActionTypes: autoExecuteActionTypesJson ? (JSON.parse(autoExecuteActionTypesJson) as string[]) : null,
     };
+  }
+
+  public async updateAttachmentVisionEnabledForUser(
+    applicationId: string,
+    userEmail: string,
+    enabled: boolean,
+  ): Promise<ConnectedApplicationMetadata | undefined> {
+    await this.setProviderConfig(applicationId, 'attachment_vision_enabled', enabled ? 'true' : 'false');
+    return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
   public async updateEmailProcessingRulesForUser(

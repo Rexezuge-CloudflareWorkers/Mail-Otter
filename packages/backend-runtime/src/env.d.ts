@@ -40,6 +40,10 @@ declare global {
     ACTION_RETENTION_DAYS?: string;
     PACKAGE_TRACKING_API_KEY?: string;
     FLIGHT_TRACKING_API_KEY?: string;
+    ATTACHMENT_VISION_ENABLED?: string;
+    ATTACHMENT_VISION_MODEL?: string;
+    MAX_ATTACHMENT_SIZE_BYTES?: string;
+    MAX_ATTACHMENTS_PER_EMAIL?: string;
   }
 }
 

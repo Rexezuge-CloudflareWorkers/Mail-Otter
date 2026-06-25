@@ -16,6 +16,7 @@ export interface MailboxCallbacksContextValue {
   onSendDigestNow: (id: string) => Promise<void>;
   onUpdateContextIndexing: (id: string, enabled: boolean) => void;
   onUpdateRagRetrieval: (id: string, enabled: boolean) => void;
+  onUpdateAttachmentVisionEnabled: (id: string, enabled: boolean) => void;
   onUpdateMaxContextDocuments: (id: string, max: number | null) => void;
   onOpenContextAudit: (id: string) => void;
   onDeleteContextDocuments: (id: string) => void;

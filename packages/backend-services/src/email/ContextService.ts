@@ -43,6 +43,11 @@ class ContextService {
       if (!application) throw new BadRequestError('Connected application was not found.');
     }
 
+    if (input.attachmentVisionEnabled !== undefined) {
+      application = await applicationDAO.updateAttachmentVisionEnabledForUser(input.applicationId, userEmail, input.attachmentVisionEnabled);
+      if (!application) throw new BadRequestError('Connected application was not found.');
+    }
+
     if (!application) {
       application = await applicationDAO.getMetadataByIdForUser(input.applicationId, userEmail);
       if (!application) throw new BadRequestError('Connected application was not found.');
@@ -210,6 +215,7 @@ interface UpdateContextSettingsInput {
   contextIndexingEnabled?: boolean;
   ragRetrievalEnabled?: boolean;
   maxContextDocuments?: number | null;
+  attachmentVisionEnabled?: boolean;
 }
 
 interface ListContextDocumentsInput {

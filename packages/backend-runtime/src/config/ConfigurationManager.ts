@@ -36,6 +36,10 @@ import {
   DEFAULT_SERVE_SPA_FROM_WORKER,
   DEFAULT_STALE_CONTEXT_DOCUMENT_DELETED_GRACE_DAYS,
   DEFAULT_STALE_CONTEXT_DOCUMENT_ERROR_GRACE_DAYS,
+  DEFAULT_ATTACHMENT_VISION_ENABLED,
+  DEFAULT_ATTACHMENT_VISION_MODEL,
+  DEFAULT_MAX_ATTACHMENT_SIZE_BYTES,
+  DEFAULT_MAX_ATTACHMENTS_PER_EMAIL,
 } from './ConfigurationDefaults';
 import { EnvParser } from './EnvParser';
 
@@ -49,6 +53,13 @@ class ConfigurationManager {
     getDailyNeuronFallbackThreshold: (env: unknown): number => EnvParser.nonNegativeInt(env, 'AI_DAILY_NEURON_FALLBACK_THRESHOLD', DEFAULT_AI_DAILY_NEURON_FALLBACK_THRESHOLD),
     getDailyNeuronFreeTierLimit: (env: unknown): number => EnvParser.positiveInt(env, 'AI_DAILY_NEURON_FREE_TIER_LIMIT', DEFAULT_AI_DAILY_NEURON_FREE_TIER_LIMIT),
     getDailyUsageRetentionDays: (env: unknown): number => EnvParser.positiveInt(env, 'AI_DAILY_USAGE_RETENTION_DAYS', DEFAULT_AI_DAILY_USAGE_RETENTION_DAYS),
+    isAttachmentVisionEnabled: (env: unknown): boolean => EnvParser.boolean(env, 'ATTACHMENT_VISION_ENABLED', DEFAULT_ATTACHMENT_VISION_ENABLED),
+    getAttachmentVisionModel: (env: unknown): string => EnvParser.string(env, 'ATTACHMENT_VISION_MODEL', DEFAULT_ATTACHMENT_VISION_MODEL),
+  };
+
+  public static readonly attachment = {
+    getMaxSizeBytes: (env: unknown): number => EnvParser.positiveInt(env, 'MAX_ATTACHMENT_SIZE_BYTES', DEFAULT_MAX_ATTACHMENT_SIZE_BYTES),
+    getMaxPerEmail: (env: unknown): number => EnvParser.positiveInt(env, 'MAX_ATTACHMENTS_PER_EMAIL', DEFAULT_MAX_ATTACHMENTS_PER_EMAIL),
   };
 
   public static readonly oauth2 = {

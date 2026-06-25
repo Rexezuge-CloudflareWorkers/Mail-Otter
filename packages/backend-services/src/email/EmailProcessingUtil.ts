@@ -8,10 +8,12 @@ import { ImapClient } from '@mail-otter/provider-clients/imap';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { GmailMessage } from '@mail-otter/provider-clients/gmail';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
+import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { ProviderId } from '@mail-otter/shared/constants';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { CreatedEmailAction } from '../action';
 import { EmailProcessingAuditLogger } from './EmailProcessingAuditLogger';
 import { EmailSummaryOrchestrator } from './EmailSummaryOrchestrator';
@@ -130,8 +132,15 @@ class EmailProcessingUtil {
       const hasAttachment: boolean = message.payload?.parts?.some(
         (p: { filename?: string }) => Boolean(p.filename && p.filename.length > 0),
       ) ?? false;
+      const attachmentImages: ProviderImageAttachment[] = hasAttachment && ConfigurationManager.ai.isAttachmentVisionEnabled(env)
+        ? await GmailProviderUtil.getImageAttachments(
+            accessToken, message.id, message.payload,
+            ConfigurationManager.attachment.getMaxSizeBytes(env),
+            ConfigurationManager.attachment.getMaxPerEmail(env),
+          ).catch((err: unknown) => { console.warn('[EmailProcessingUtil] Gmail attachment fetch failed:', err); return []; })
+        : [];
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
-      const result = await orchestrator.orchestrate(application, message.id, from, subject, extracted.text, message.threadId, options, hasAttachment);
+      const result = await orchestrator.orchestrate(application, message.id, from, subject, extracted.text, message.threadId, options, hasAttachment, attachmentImages);
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {
@@ -208,8 +217,15 @@ class EmailProcessingUtil {
     try {
       const body: string = OutlookProviderUtil.getMessageText(message);
       const hasAttachment: boolean = message.hasAttachments ?? false;
+      const attachmentImages: ProviderImageAttachment[] = hasAttachment && ConfigurationManager.ai.isAttachmentVisionEnabled(env)
+        ? await OutlookProviderUtil.getImageAttachments(
+            accessToken, message.id,
+            ConfigurationManager.attachment.getMaxSizeBytes(env),
+            ConfigurationManager.attachment.getMaxPerEmail(env),
+          ).catch((err: unknown) => { console.warn('[EmailProcessingUtil] Outlook attachment fetch failed:', err); return []; })
+        : [];
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
-      const result = await orchestrator.orchestrate(application, message.id, from, subject, body, message.conversationId || null, options, hasAttachment);
+      const result = await orchestrator.orchestrate(application, message.id, from, subject, body, message.conversationId || null, options, hasAttachment, attachmentImages);
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {
@@ -265,8 +281,16 @@ class EmailProcessingUtil {
     if (!started) return null;
     await auditLogger.logProcessingStarted(application, email.id, options.retryAttempt);
     try {
+      const hasAttachment: boolean = (email.attachments?.length ?? 0) > 0;
+      const attachmentImages: ProviderImageAttachment[] = hasAttachment && ConfigurationManager.ai.isAttachmentVisionEnabled(env)
+        ? await FastmailProviderUtil.downloadImageAttachments(
+            accessToken, email,
+            ConfigurationManager.attachment.getMaxSizeBytes(env),
+            ConfigurationManager.attachment.getMaxPerEmail(env),
+          ).catch((err: unknown) => { console.warn('[EmailProcessingUtil] Fastmail attachment fetch failed:', err); return []; })
+        : [];
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
-      const result = await orchestrator.orchestrate(application, email.id, from, subject, body, email.threadId ?? null, options);
+      const result = await orchestrator.orchestrate(application, email.id, from, subject, body, email.threadId ?? null, options, hasAttachment, attachmentImages);
       if (!result) return null;
       return { email, ...result, emailSubject: subject, emailFrom: from, application, accessToken, emailId: email.id, options };
     } catch (error: unknown) {
@@ -423,6 +447,10 @@ interface EmailProcessingEnv {
   RAG_VECTOR_QUERY_TOP_K?: string;
   ACTION_CALLBACK_BASE_URL?: string;
   ACTION_DEFAULT_EXPIRY_HOURS?: string;
+  ATTACHMENT_VISION_ENABLED?: string;
+  ATTACHMENT_VISION_MODEL?: string;
+  MAX_ATTACHMENT_SIZE_BYTES?: string;
+  MAX_ATTACHMENTS_PER_EMAIL?: string;
 }
 
 interface EmailProcessingOptions {

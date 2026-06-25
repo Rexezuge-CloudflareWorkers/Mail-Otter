@@ -34,6 +34,7 @@ export function useMailboxCallbacksValue(
     onSendDigestNow: mailboxes.sendDigestNow,
     onUpdateContextIndexing: mailboxes.updateContextIndexing,
     onUpdateRagRetrieval: mailboxes.updateRagRetrieval,
+    onUpdateAttachmentVisionEnabled: mailboxes.updateAttachmentVisionEnabled,
     onUpdateMaxContextDocuments: mailboxes.updateMaxContextDocuments,
     onOpenContextAudit: (id: string) => {
       contextAudit.setAuditApplicationId(id);

@@ -100,6 +100,19 @@ export async function updateRagRetrieval(
   );
 }
 
+export async function updateAttachmentVisionEnabled(
+  applicationId: string,
+  attachmentVisionEnabled: boolean,
+): Promise<{ application: ConnectedApplication }> {
+  return readJson<{ application: ConnectedApplication }>(
+    await apiFetch('/user/application/context', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, attachmentVisionEnabled }),
+    }),
+  );
+}
+
 export async function updateMaxContextDocuments(
   applicationId: string,
   maxContextDocuments: number | null,

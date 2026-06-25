@@ -35,26 +35,26 @@ interface OrchestratorEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   ACTION_SIGNING_SECRET: SecretsStoreSecret;
-  AI_SUMMARY_MODEL?: string | undefined;
-  AI_SUMMARY_FALLBACK_MODEL?: string | undefined;
-  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string | undefined;
-  AI_EMBEDDING_MODEL?: string | undefined;
-  MAX_EMAIL_BODY_CHARS?: string | undefined;
-  DEBUG_MODE?: string | undefined;
-  MAX_CONTEXT_MEMORY_CHARS?: string | undefined;
-  MAX_RAG_CONTEXT_CHARS?: string | undefined;
-  RAG_TOP_K?: string | undefined;
-  RAG_VECTOR_QUERY_TOP_K?: string | undefined;
-  ACTION_CALLBACK_BASE_URL?: string | undefined;
-  ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
+  AI_SUMMARY_MODEL?: string;
+  AI_SUMMARY_FALLBACK_MODEL?: string;
+  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
+  AI_EMBEDDING_MODEL?: string;
+  MAX_EMAIL_BODY_CHARS?: string;
+  DEBUG_MODE?: string;
+  MAX_CONTEXT_MEMORY_CHARS?: string;
+  MAX_RAG_CONTEXT_CHARS?: string;
+  RAG_TOP_K?: string;
+  RAG_VECTOR_QUERY_TOP_K?: string;
+  ACTION_CALLBACK_BASE_URL?: string;
+  ACTION_DEFAULT_EXPIRY_HOURS?: string;
   // Optional OAuth bindings — present when env is EmailProcessingEnv; needed for auto-executing
   // calendar.add_event and email.draft_reply action types.
-  OAUTH2_TOKEN_CACHE?: KVNamespace | undefined;
-  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_TOKEN_CACHE?: KVNamespace;
+  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 class EmailSummaryOrchestrator {
@@ -72,8 +72,8 @@ class EmailSummaryOrchestrator {
     subject: string,
     body: string,
     threadId: string | null,
-    options: { retryAttempt?: number | undefined; callbackBaseUrl?: string | undefined },
-    hasAttachment?: boolean | undefined,
+    options: { retryAttempt?: number; callbackBaseUrl?: string },
+    hasAttachment?: boolean,
   ): Promise<OrchestrationResult | null> {
     if (application.senderDomainFilters) {
       const filterResult = SenderFilterUtil.shouldSkip(from, application.senderDomainFilters);
@@ -83,7 +83,7 @@ class EmailSummaryOrchestrator {
       }
     }
     const rules = application.emailProcessingRules ?? [];
-    const matchedRule = rules.length
+    const matchedRule = rules.length > 0
       ? EmailRulesUtil.evaluatePreProcessing(rules, { from, subject, body, hasAttachment })
       : null;
     if (matchedRule?.action.type === 'skip') {
@@ -108,10 +108,10 @@ class EmailSummaryOrchestrator {
     if (actions.length > 0) {
       await this.auditLogger.logActionsCreated(application, resolvedMessageId, actions, options.retryAttempt);
     }
-    if (application.autoExecuteActionTypes?.length && actions.length) {
+    if (application.autoExecuteActionTypes?.length && actions.length > 0) {
       await ActionService.autoExecuteCreatedActions(application.autoExecuteActionTypes, actions, this.env as ActionExecutionEnv);
     }
-    if (rules.length && this.env.OAUTH2_TOKEN_CACHE && this.env.OAUTH2_TOKEN_REFRESHERS) {
+    if (rules.length > 0 && this.env.OAUTH2_TOKEN_CACHE && this.env.OAUTH2_TOKEN_REFRESHERS) {
       const detectedActionTypes = summary.actionProposals.map((p) => p.type);
       const matchedPostRules = EmailRulesUtil.evaluatePostProcessing(rules, {
         from, subject, body, hasAttachment, detectedActionTypes,
@@ -135,8 +135,8 @@ class EmailSummaryOrchestrator {
     subject: string,
     from: string,
     body: string,
-    ragContext?: string | undefined,
-    customInstruction?: string | undefined,
+    ragContext?: string,
+    customInstruction?: string,
   ): Promise<EmailProcessingSummary> {
     const maxChars: number = ConfigurationManager.getMaxEmailBodyChars(this.env);
     const bodyText: string = body || '(empty message body)';
@@ -248,7 +248,7 @@ class EmailSummaryOrchestrator {
   private async recordSummaryFailureUsage(model: string, error: AiSummaryRetryableError, fallbackInputText: string): Promise<void> {
     await this.recordSummaryUsage(
       model,
-      error.aiUsage && typeof error.aiUsage === 'object' ? (error.aiUsage as AiTextGenerationUsage) : undefined,
+      error.aiUsage && typeof error.aiUsage === 'object' ? (error.aiUsage) : undefined,
       fallbackInputText,
       error.aiOutputText ?? '',
     );

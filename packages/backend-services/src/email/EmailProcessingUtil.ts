@@ -63,11 +63,11 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<void> {
-    const data: GmailSummaryData | null = await EmailProcessingUtil.generateGmailSummary(
+    const data: GmailSummaryData | null = await this.generateGmailSummary(
       application, accessToken, messageId, env, enabledApplicationIds, options,
     );
     if (data) {
-      await EmailProcessingUtil.sendGmailSummary(data, env);
+      await this.sendGmailSummary(data, env);
     }
   }
 
@@ -79,11 +79,11 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<void> {
-    const data: OutlookSummaryData | null = await EmailProcessingUtil.generateOutlookSummary(
+    const data: OutlookSummaryData | null = await this.generateOutlookSummary(
       application, accessToken, messageId, env, enabledApplicationIds, options,
     );
     if (data) {
-      await EmailProcessingUtil.sendOutlookSummary(data, env);
+      await this.sendOutlookSummary(data, env);
     }
   }
 
@@ -103,7 +103,7 @@ class EmailProcessingUtil {
     } catch (error: unknown) {
       if (GmailProviderUtil.isMessageNotFoundError(error)) {
         const started = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
-          allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+          allowExistingForRetry: this.isRetryAttempt(options),
         });
         if (!started) return null;
         await processedDAO.markSkipped(application.applicationId, messageId, 'Gmail message was deleted before Mail-Otter could process it.');
@@ -115,12 +115,12 @@ class EmailProcessingUtil {
     const subject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
     const from: string = EmailContentUtil.getHeader(headers, 'From') || '';
     const isSummary: boolean = EmailContentUtil.getHeader(headers, 'X-Mail-Otter-Summary')?.toLowerCase() === 'true';
-    const stableMessageFingerprint: string | null = await EmailProcessingUtil.getStableMessageFingerprint(
+    const stableMessageFingerprint: string | null = await this.getStableMessageFingerprint(
       env, application.providerId, EmailContentUtil.getHeader(headers, 'Message-ID'),
     );
     if (isSummary || EmailContentUtil.isFromMailbox(from, application.providerEmail)) return null;
     const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, message.id, message.threadId, {
-      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      allowExistingForRetry: this.isRetryAttempt(options),
       providerStableMessageFingerprint: stableMessageFingerprint,
     });
     if (!started) return null;
@@ -128,14 +128,14 @@ class EmailProcessingUtil {
     try {
       const extracted = EmailContentUtil.extractGmailText(message.payload);
       const hasAttachment: boolean = message.payload?.parts?.some(
-        (p: { filename?: string | undefined }) => Boolean(p.filename && p.filename.length > 0),
+        (p: { filename?: string }) => Boolean(p.filename && p.filename.length > 0),
       ) ?? false;
       const orchestrator = new EmailSummaryOrchestrator(auditLogger, processedDAO, env, enabledApplicationIds);
       const result = await orchestrator.orchestrate(application, message.id, from, subject, extracted.text, message.threadId, options, hasAttachment);
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {
-      const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const processingError: Error = this.classifyError(error);
       await processedDAO.markError(application.applicationId, message.id, processingError.message);
       await auditLogger.logProcessingError(application, message.id, processingError, options.retryAttempt);
       throw processingError;
@@ -152,7 +152,7 @@ class EmailProcessingUtil {
       await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
-      const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const processingError: Error = this.classifyError(error);
       await processedDAO.markError(data.application.applicationId, data.messageId, processingError.message);
       await auditLogger.logProcessingError(data.application, data.messageId, processingError, data.options.retryAttempt);
       throw processingError;
@@ -175,15 +175,15 @@ class EmailProcessingUtil {
     } catch (error: unknown) {
       if (OutlookProviderUtil.isMessageNotFoundError(error)) {
         const started = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
-          allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+          allowExistingForRetry: this.isRetryAttempt(options),
         });
         if (!started) return null;
         await processedDAO.markSkipped(application.applicationId, messageId, 'Outlook message was deleted before Mail-Otter could process it.');
         return null;
       }
-      const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const processingError: Error = this.classifyError(error);
       const started = await processedDAO.tryStart(application.applicationId, application.providerId, messageId, null, {
-        allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+        allowExistingForRetry: this.isRetryAttempt(options),
       });
       if (!started) return null;
       await processedDAO.markError(application.applicationId, messageId, processingError.message);
@@ -198,9 +198,9 @@ class EmailProcessingUtil {
           header.name.toLowerCase() === 'x-mail-otter-summary' && header.value.toLowerCase() === 'true',
       ) ?? false;
     if (isSummary || EmailContentUtil.isFromMailbox(from, application.providerEmail)) return null;
-    const stableMessageFingerprint: string | null = await EmailProcessingUtil.getStableMessageFingerprint(env, application.providerId, message.internetMessageId);
+    const stableMessageFingerprint: string | null = await this.getStableMessageFingerprint(env, application.providerId, message.internetMessageId);
     const started: boolean = await processedDAO.tryStart(application.applicationId, application.providerId, message.id, message.conversationId || null, {
-      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      allowExistingForRetry: this.isRetryAttempt(options),
       providerStableMessageFingerprint: stableMessageFingerprint,
     });
     if (!started) return null;
@@ -213,7 +213,7 @@ class EmailProcessingUtil {
       if (!result) return null;
       return { message, ...result, emailSubject: subject, emailFrom: from, application, accessToken, messageId, options };
     } catch (error: unknown) {
-      const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const processingError: Error = this.classifyError(error);
       await processedDAO.markError(application.applicationId, message.id, processingError.message);
       await auditLogger.logProcessingError(application, message.id, processingError, options.retryAttempt);
       throw processingError;
@@ -230,7 +230,7 @@ class EmailProcessingUtil {
       await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
-      const processingError: Error = EmailProcessingUtil.classifyError(error);
+      const processingError: Error = this.classifyError(error);
       await processedDAO.markError(data.application.applicationId, data.messageId, processingError.message);
       await auditLogger.logProcessingError(data.application, data.messageId, processingError, data.options.retryAttempt);
       throw processingError;
@@ -256,10 +256,10 @@ class EmailProcessingUtil {
       .trim() ?? '';
     const stableFingerprint = email.messageId?.[0] ?? null;
     const stableFingerprintHash = stableFingerprint
-      ? await EmailProcessingUtil.getStableMessageFingerprint(env, application.providerId, stableFingerprint)
+      ? await this.getStableMessageFingerprint(env, application.providerId, stableFingerprint)
       : null;
     const started = await processedDAO.tryStart(application.applicationId, application.providerId, email.id, email.threadId ?? null, {
-      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      allowExistingForRetry: this.isRetryAttempt(options),
       providerStableMessageFingerprint: stableFingerprintHash,
     });
     if (!started) return null;
@@ -270,7 +270,7 @@ class EmailProcessingUtil {
       if (!result) return null;
       return { email, ...result, emailSubject: subject, emailFrom: from, application, accessToken, emailId: email.id, options };
     } catch (error: unknown) {
-      const processingError = EmailProcessingUtil.classifyError(error);
+      const processingError = this.classifyError(error);
       await processedDAO.markError(application.applicationId, email.id, processingError.message);
       await auditLogger.logProcessingError(application, email.id, processingError, options.retryAttempt);
       throw processingError;
@@ -287,7 +287,7 @@ class EmailProcessingUtil {
       await auditLogger.logSummarySent(data.application, data.emailId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.emailId);
     } catch (error: unknown) {
-      const processingError = EmailProcessingUtil.classifyError(error);
+      const processingError = this.classifyError(error);
       await processedDAO.markError(data.application.applicationId, data.emailId, processingError.message);
       await auditLogger.logProcessingError(data.application, data.emailId, processingError, data.options.retryAttempt);
       throw processingError;
@@ -311,9 +311,9 @@ class EmailProcessingUtil {
     const rawBody = await imapClient.fetchBody(uid);
     const body = EmailContentUtil.extractTextFromRaw(rawBody);
     const resolvedMessageId = headerResult.messageId;
-    const stableFingerprintHash = await EmailProcessingUtil.getStableMessageFingerprint(env, application.providerId, headerResult.messageId);
+    const stableFingerprintHash = await this.getStableMessageFingerprint(env, application.providerId, headerResult.messageId);
     const started = await processedDAO.tryStart(application.applicationId, application.providerId, resolvedMessageId, null, {
-      allowExistingForRetry: EmailProcessingUtil.isRetryAttempt(options),
+      allowExistingForRetry: this.isRetryAttempt(options),
       providerStableMessageFingerprint: stableFingerprintHash,
     });
     if (!started) return null;
@@ -324,7 +324,7 @@ class EmailProcessingUtil {
       if (!result) return null;
       return { ...result, emailSubject: subject, emailFrom: from, application, messageId: resolvedMessageId, uid, options };
     } catch (error: unknown) {
-      const processingError = EmailProcessingUtil.classifyError(error);
+      const processingError = this.classifyError(error);
       await processedDAO.markError(application.applicationId, resolvedMessageId, processingError.message);
       await auditLogger.logProcessingError(application, resolvedMessageId, processingError, options.retryAttempt);
       throw processingError;
@@ -350,7 +350,7 @@ class EmailProcessingUtil {
       await auditLogger.logSummarySent(data.application, data.messageId, data.options.retryAttempt);
       await processedDAO.markSummarized(data.application.applicationId, data.messageId);
     } catch (error: unknown) {
-      const processingError = EmailProcessingUtil.classifyError(error);
+      const processingError = this.classifyError(error);
       await processedDAO.markError(data.application.applicationId, data.messageId, processingError.message);
       await auditLogger.logProcessingError(data.application, data.messageId, processingError, data.options.retryAttempt);
       throw processingError;
@@ -409,25 +409,25 @@ interface EmailProcessingEnv {
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   ACTION_SIGNING_SECRET: SecretsStoreSecret;
   AI: Ai;
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  AI_SUMMARY_MODEL?: string | undefined;
-  AI_SUMMARY_FALLBACK_MODEL?: string | undefined;
-  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string | undefined;
-  AI_EMBEDDING_MODEL?: string | undefined;
-  MAX_EMAIL_BODY_CHARS?: string | undefined;
-  DEBUG_MODE?: string | undefined;
-  MAX_CONTEXT_MEMORY_CHARS?: string | undefined;
-  MAX_RAG_CONTEXT_CHARS?: string | undefined;
-  RAG_TOP_K?: string | undefined;
-  RAG_VECTOR_QUERY_TOP_K?: string | undefined;
-  ACTION_CALLBACK_BASE_URL?: string | undefined;
-  ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  AI_SUMMARY_MODEL?: string;
+  AI_SUMMARY_FALLBACK_MODEL?: string;
+  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
+  AI_EMBEDDING_MODEL?: string;
+  MAX_EMAIL_BODY_CHARS?: string;
+  DEBUG_MODE?: string;
+  MAX_CONTEXT_MEMORY_CHARS?: string;
+  MAX_RAG_CONTEXT_CHARS?: string;
+  RAG_TOP_K?: string;
+  RAG_VECTOR_QUERY_TOP_K?: string;
+  ACTION_CALLBACK_BASE_URL?: string;
+  ACTION_DEFAULT_EXPIRY_HOURS?: string;
 }
 
 interface EmailProcessingOptions {
-  retryAttempt?: number | undefined;
-  callbackBaseUrl?: string | undefined;
+  retryAttempt?: number;
+  callbackBaseUrl?: string;
 }
 
 interface GmailSummaryData {

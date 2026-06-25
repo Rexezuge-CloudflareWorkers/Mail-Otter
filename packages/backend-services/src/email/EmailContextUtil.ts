@@ -19,18 +19,18 @@ class EmailContextUtil {
   public static async prepareEmailRagContext(input: PrepareEmailRagContextInput): Promise<string | undefined> {
     if (!input.env.EMAIL_CONTEXT_INDEX) return undefined;
     const enabledApplicationIds: Set<string> = new Set(input.enabledApplicationIds);
-    const shouldRetrieve: boolean = input.application.ragRetrievalEnabled !== false && enabledApplicationIds.size > 0;
+    const shouldRetrieve: boolean = input.application.ragRetrievalEnabled && enabledApplicationIds.size > 0;
     const shouldStore: boolean = input.application.contextIndexingEnabled;
     if (!shouldRetrieve && !shouldStore) return undefined;
-    if (await EmailContextUtil.shouldSkipWorkersAiForDailyUsage(input.env)) return undefined;
+    if (await this.shouldSkipWorkersAiForDailyUsage(input.env)) return undefined;
 
     const contextDAO = new ApplicationContextDAO(input.env.DB);
-    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(input.application.userEmail);
-    const indexedText: string = EmailContextUtil.buildIndexedText(input);
+    const vectorNamespace: string = await this.getUserVectorNamespace(input.application.userEmail);
+    const indexedText: string = this.buildIndexedText(input);
     let document: ApplicationContextDocument | undefined;
     let auditMetadata: EmailDocumentAuditMetadata | undefined;
     if (shouldStore) {
-      auditMetadata = await EmailContextUtil.buildAuditMetadata(input, indexedText);
+      auditMetadata = await this.buildAuditMetadata(input, indexedText);
       document = await contextDAO.upsertEmailDocument({
         applicationId: input.application.applicationId,
         userEmail: input.application.userEmail,
@@ -44,8 +44,8 @@ class EmailContextUtil {
 
     try {
       const embeddingModel: string = ConfigurationManager.getAiEmbeddingModel(input.env);
-      const embedding: number[] = await EmailContextUtil.embed(input.env.AI, embeddingModel, indexedText);
-      await EmailContextUtil.recordEmbeddingUsage(input.env, embeddingModel, indexedText);
+      const embedding: number[] = await this.embed(input.env.AI, embeddingModel, indexedText);
+      await this.recordEmbeddingUsage(input.env, embeddingModel, indexedText);
       if (shouldStore && document) {
         await contextDAO.insertAuditLog({
           contextDocumentId: document.contextDocumentId,
@@ -59,7 +59,7 @@ class EmailContextUtil {
         });
       }
       const ragContext: string | undefined = shouldRetrieve
-        ? await EmailContextUtil.queryRelevantContext(input.env, embedding, vectorNamespace, enabledApplicationIds, document?.vectorId)
+        ? await this.queryRelevantContext(input.env, embedding, vectorNamespace, enabledApplicationIds, document?.vectorId)
         : undefined;
       if (document && ragContext) {
         await contextDAO.insertAuditLog({
@@ -85,8 +85,8 @@ class EmailContextUtil {
               sourceProviderId: input.application.providerId,
               sourceDocumentId: input.sourceDocumentId,
               sourceThreadId: input.sourceThreadId || '',
-              title: EmailContextUtil.truncateMetadata(input.subject),
-              sender: EmailContextUtil.truncateMetadata(input.from),
+              title: this.truncateMetadata(input.subject),
+              sender: this.truncateMetadata(input.from),
               indexedText,
               indexedAt: Date.now(),
             },
@@ -154,13 +154,13 @@ class EmailContextUtil {
   private static async buildAuditMetadata(input: PrepareEmailRagContextInput, indexedText: string): Promise<EmailDocumentAuditMetadata> {
     const secret: string = await input.env.AES_ENCRYPTION_KEY_SECRET.get();
     return {
-      sourceDocumentFingerprint: await EmailContextUtil.fingerprint(secret, 'source-document', input.sourceDocumentId),
+      sourceDocumentFingerprint: await this.fingerprint(secret, 'source-document', input.sourceDocumentId),
       sourceThreadFingerprint: input.sourceThreadId
-        ? await EmailContextUtil.fingerprint(secret, 'source-thread', input.sourceThreadId)
+        ? await this.fingerprint(secret, 'source-thread', input.sourceThreadId)
         : null,
-      titleFingerprint: input.subject ? await EmailContextUtil.fingerprint(secret, 'title', input.subject) : null,
-      senderFingerprint: input.from ? await EmailContextUtil.fingerprint(secret, 'sender', input.from) : null,
-      contentFingerprint: await EmailContextUtil.fingerprint(secret, 'indexed-text', indexedText),
+      titleFingerprint: input.subject ? await this.fingerprint(secret, 'title', input.subject) : null,
+      senderFingerprint: input.from ? await this.fingerprint(secret, 'sender', input.from) : null,
+      contentFingerprint: await this.fingerprint(secret, 'indexed-text', indexedText),
       indexedTextChars: indexedText.length,
     };
   }
@@ -222,20 +222,20 @@ class EmailContextUtil {
     const snippets: string[] = matches.matches
       .filter((match: VectorizeMatch): boolean => match.id !== excludedVectorId)
       .filter((match: VectorizeMatch): boolean => {
-        const applicationId = EmailContextUtil.getStringMetadata(match.metadata, 'applicationId');
+        const applicationId = this.getStringMetadata(match.metadata, 'applicationId');
         return Boolean(applicationId && enabledApplicationIds.has(applicationId));
       })
       .slice(0, ragTopK)
-      .map((match: VectorizeMatch, index: number): string => EmailContextUtil.renderMatch(index + 1, match))
+      .map((match: VectorizeMatch, index: number): string => this.renderMatch(index + 1, match))
       .filter(Boolean);
     if (snippets.length === 0) return undefined;
     return EmailContentUtil.truncate(['Prior relevant documents:', ...snippets].join('\n\n'), maxContextChars);
   }
 
   private static renderMatch(index: number, match: VectorizeMatch): string {
-    const title: string = EmailContextUtil.getStringMetadata(match.metadata, 'title') || '(untitled)';
-    const sender: string = EmailContextUtil.getStringMetadata(match.metadata, 'sender') || '(unknown sender)';
-    const indexedText: string = EmailContextUtil.getStringMetadata(match.metadata, 'indexedText') || '';
+    const title: string = this.getStringMetadata(match.metadata, 'title') || '(untitled)';
+    const sender: string = this.getStringMetadata(match.metadata, 'sender') || '(unknown sender)';
+    const indexedText: string = this.getStringMetadata(match.metadata, 'indexedText') || '';
     return [`${index}. ${title}`, `From: ${sender}`, indexedText].filter(Boolean).join('\n');
   }
 
@@ -257,31 +257,31 @@ interface PrepareEmailRagContextInput {
   from: string;
   body: string;
   sourceDocumentId: string;
-  sourceThreadId?: string | null | undefined;
+  sourceThreadId?: string | null;
 }
 
 interface EmailContextEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   AI: Ai;
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
-  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string | undefined;
-  AI_EMBEDDING_MODEL?: string | undefined;
-  RAG_TOP_K?: string | undefined;
-  RAG_VECTOR_QUERY_TOP_K?: string | undefined;
-  MAX_CONTEXT_MEMORY_CHARS?: string | undefined;
-  MAX_RAG_CONTEXT_CHARS?: string | undefined;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
+  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
+  AI_EMBEDDING_MODEL?: string;
+  RAG_TOP_K?: string;
+  RAG_VECTOR_QUERY_TOP_K?: string;
+  MAX_CONTEXT_MEMORY_CHARS?: string;
+  MAX_RAG_CONTEXT_CHARS?: string;
 }
 
 interface WorkersAiEmbeddingResult {
-  data?: number[] | number[][] | undefined;
+  data?: number[] | number[][];
 }
 
 interface EmailDocumentAuditMetadata {
   sourceDocumentFingerprint: string;
-  sourceThreadFingerprint?: string | null | undefined;
-  titleFingerprint?: string | null | undefined;
-  senderFingerprint?: string | null | undefined;
+  sourceThreadFingerprint?: string | null;
+  titleFingerprint?: string | null;
+  senderFingerprint?: string | null;
   contentFingerprint: string;
   indexedTextChars: number;
 }

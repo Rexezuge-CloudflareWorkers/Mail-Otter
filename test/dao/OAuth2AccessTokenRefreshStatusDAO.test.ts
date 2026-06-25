@@ -20,10 +20,10 @@ describe('OAuth2AccessTokenRefreshStatusDAO', () => {
     } as unknown as D1Database;
     const dao = new OAuth2AccessTokenRefreshStatusDAO(database);
 
-    const applicationIds: string[] = await dao.listDueApplicationIds(1778200000, 25);
+    const applicationIds: string[] = await dao.listDueApplicationIds(1_778_200_000, 25);
 
     expect(applicationIds).toEqual(['app-1', 'app-2']);
-    expect(statement.bind).toHaveBeenCalledWith(CONNECTION_METHOD_OAUTH2, CONNECTED_APPLICATION_STATUS_CONNECTED, 1778200000, 25);
+    expect(statement.bind).toHaveBeenCalledWith(CONNECTION_METHOD_OAUTH2, CONNECTED_APPLICATION_STATUS_CONNECTED, 1_778_200_000, 25);
     expect(database.prepare).toHaveBeenCalledWith(expect.stringContaining('LEFT JOIN oauth2_access_token_refresh_status'));
   });
 
@@ -34,9 +34,9 @@ describe('OAuth2AccessTokenRefreshStatusDAO', () => {
     } as unknown as D1Database;
     const dao = new OAuth2AccessTokenRefreshStatusDAO(database);
 
-    await dao.recordRefreshSuccess('app-1', 1778200000);
+    await dao.recordRefreshSuccess('app-1', 1_778_200_000);
 
     expect(database.prepare).toHaveBeenCalledWith(expect.not.stringContaining('access_token TEXT'));
-    expect(statement.bind).toHaveBeenCalledWith('app-1', 1778200000, expect.any(Number), expect.any(Number), expect.any(Number));
+    expect(statement.bind).toHaveBeenCalledWith('app-1', 1_778_200_000, expect.any(Number), expect.any(Number), expect.any(Number));
   });
 });

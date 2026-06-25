@@ -52,13 +52,13 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       clientSecret: '',
       gmailPubsubTopicName: app.gmailPubsubTopicName || '',
       imapHost: app.imapHost || '',
-      imapPort: app.imapPort != null ? String(app.imapPort) : '993',
+      imapPort: app.imapPort == null ? '993' : String(app.imapPort),
       imapUsername: app.imapUsername || '',
       imapPassword: '',
       smtpHost: app.smtpHost || '',
-      smtpPort: app.smtpPort != null ? String(app.smtpPort) : '587',
+      smtpPort: app.smtpPort == null ? '587' : String(app.smtpPort),
       enabledFeatures: app.enabledFeatures || [],
-      timeZone: app.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timeZone: app.timeZone || new Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     setIsFormExpanded(true);
   };
@@ -97,7 +97,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     setIsBusy(true);
     try {
       const data = await appSvc.startOAuth2(applicationId);
-      window.location.assign(data.authorizationUrl);
+      globalThis.location.assign(data.authorizationUrl);
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : 'Unable To Start OAuth2.');
       setIsBusy(false);
@@ -164,7 +164,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateMaxContextDocuments(applicationId, maxContextDocuments);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', maxContextDocuments != null ? `Document Limit Set To ${maxContextDocuments}.` : 'Document Limit Reset.');
+      showNotice('success', maxContextDocuments == null ? 'Document Limit Reset.' : `Document Limit Set To ${maxContextDocuments}.`);
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : 'Unable To Update Document Limit.');
     } finally {
@@ -253,7 +253,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
 
   const deleteContextDocuments = async (applicationId: string) => {
     const app = applications.find((a) => a.applicationId === applicationId);
-    if (!window.confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
+    if (!globalThis.confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
     setIsBusy(true);
     try {
       const data = await appSvc.deleteContextDocuments(applicationId);

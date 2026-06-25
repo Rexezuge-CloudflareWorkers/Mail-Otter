@@ -23,7 +23,7 @@ import { CryptoUtil, TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { createActionDAO, hashToken } from './ActionServiceUtils';
 import type { ActionDAOEnv } from './ActionServiceUtils';
 
-export { hashToken };
+
 
 const MAX_ACTIONS_PER_SUMMARY = 4;
 const MAX_TEXT_LENGTH = 1000;
@@ -41,7 +41,7 @@ interface CreateActionsForSummaryInput {
   from: string;
   body: string;
   proposals: EmailActionProposal[];
-  callbackBaseUrl?: string | undefined;
+  callbackBaseUrl?: string;
 }
 
 interface NormalizedActionProposal {
@@ -53,8 +53,8 @@ interface NormalizedActionProposal {
 
 interface ActionCreationEnv extends ActionDAOEnv {
   ACTION_SIGNING_SECRET: SecretsStoreSecret;
-  ACTION_CALLBACK_BASE_URL?: string | undefined;
-  ACTION_DEFAULT_EXPIRY_HOURS?: string | undefined;
+  ACTION_CALLBACK_BASE_URL?: string;
+  ACTION_DEFAULT_EXPIRY_HOURS?: string;
 }
 
 function resolveCallbackBaseUrl(callbackBaseUrl: string | undefined, env: ActionCreationEnv): string {
@@ -71,7 +71,7 @@ function extractUrls(body: string): Set<string> {
   const urls = new Set<string>();
   for (const match of body.matchAll(/https?:\/\/[^\s<>"]+/gi)) {
     let raw = match[0];
-    while (raw.length > 0 && '),.;!?'.includes(raw[raw.length - 1])) raw = raw.slice(0, -1);
+    while (raw.length > 0 && '),.;!?'.includes(raw.at(-1)!)) raw = raw.slice(0, -1);
     urls.add(raw);
   }
   return urls;
@@ -79,7 +79,7 @@ function extractUrls(body: string): Set<string> {
 
 function findAllowedUrl(url: string, allowedUrls: Set<string>): string | undefined {
   let candidate = url.trim();
-  while (candidate.length > 0 && '),.;!?'.includes(candidate[candidate.length - 1])) candidate = candidate.slice(0, -1);
+  while (candidate.length > 0 && '),.;!?'.includes(candidate.at(-1)!)) candidate = candidate.slice(0, -1);
   if (!candidate.startsWith('http://') && !candidate.startsWith('https://')) return undefined;
   if (allowedUrls.has(candidate)) return candidate;
   for (const allowed of allowedUrls) {
@@ -116,7 +116,7 @@ function getFallbackActionTitle(type: string): string {
 }
 
 function cleanText(value: string): string {
-  return value.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT_LENGTH);
+  return value.replaceAll(/\s+/g, ' ').trim().slice(0, MAX_TEXT_LENGTH);
 }
 
 function cleanOptionalText(value: string | undefined): string | undefined {
@@ -124,7 +124,7 @@ function cleanOptionalText(value: string | undefined): string | undefined {
   return cleaned || undefined;
 }
 
-type BasePayload = { title: string; description: string; sourceSubject?: string | undefined; sourceFrom?: string | undefined };
+type BasePayload = { title: string; description: string; sourceSubject?: string; sourceFrom?: string };
 
 function toManualTodo(base: BasePayload, instructions: string, expiresAt: number): NormalizedActionProposal {
   return {
@@ -349,3 +349,5 @@ export {
   cleanOptionalText,
   toManualTodo,
 };
+
+export {hashToken} from './ActionServiceUtils';

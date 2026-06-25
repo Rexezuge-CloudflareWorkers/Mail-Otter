@@ -72,11 +72,11 @@ class OAuth2AuthorizationService {
   }
 }
 
-class OAuth2AuthorizationServiceFactory {
-  static create(env: OAuth2AuthorizationServiceEnv): OAuth2AuthorizationService {
+const OAuth2AuthorizationServiceFactory = {
+  create(env: OAuth2AuthorizationServiceEnv): OAuth2AuthorizationService {
     return new OAuth2AuthorizationService(env);
-  }
-}
+  },
+};
 
 interface OAuth2AuthorizationResult {
   authorizationUrl: string;
@@ -93,10 +93,10 @@ interface CompleteOAuth2CallbackInput {
 interface OAuth2AuthorizationServiceEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
-  OAUTH2_TOKEN_CACHE?: KVNamespace | undefined;
-  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  OAUTH2_STATE_EXPIRY_MINUTES?: string | undefined;
+  OAUTH2_TOKEN_CACHE?: KVNamespace;
+  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  OAUTH2_STATE_EXPIRY_MINUTES?: string;
 }
 
 export { OAuth2AuthorizationService, OAuth2AuthorizationServiceFactory };

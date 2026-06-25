@@ -44,7 +44,7 @@ vi.mock('@mail-otter/shared/utils', () => ({
     getBaseUrl: vi.fn(() => 'https://example.com'),
   },
   TimestampUtil: {
-    getCurrentUnixTimestampInSeconds: vi.fn(() => 1778200000),
+    getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000),
     addMinutes: vi.fn((ts, m) => ts + m * 60),
   },
 }));
@@ -90,7 +90,7 @@ describe('OAuth2AuthorizationService', () => {
         credentials: { clientId: 'cid', clientSecret: 'cs' },
       });
 
-      const result = await new OAuth2AuthorizationService(makeEnv() as never).createAuthorization(
+      const result = await new OAuth2AuthorizationService(makeEnv()).createAuthorization(
         'user@example.com',
         'app-1',
         new Request('https://example.com'),
@@ -142,7 +142,7 @@ describe('OAuth2AuthorizationService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await new OAuth2AuthorizationService(makeEnv() as never).completeCallback(
+      await new OAuth2AuthorizationService(makeEnv()).completeCallback(
         { applicationId: 'app-1', code: 'auth-code', state: 'state-token' },
       );
 

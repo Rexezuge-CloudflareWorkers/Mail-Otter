@@ -92,17 +92,17 @@ function createMockEnv(overrides: Record<string, unknown> = {}): Record<string, 
 
 function createScheduledController(): ScheduledController {
   return {
-    scheduledTime: 1000000,
+    scheduledTime: 1_000_000,
     cron: '* * * * *',
     noRetry: vi.fn(),
-  } as unknown as ScheduledController;
+  };
 }
 
 function createExecutionContext(): ExecutionContext {
   return {
     waitUntil: vi.fn(),
     passThroughOnException: vi.fn(),
-  } as unknown as ExecutionContext;
+  };
 }
 
 describe('ProcessedMessagePruningTask', () => {
@@ -248,8 +248,8 @@ describe('OAuth2AccessTokenRefreshTask', () => {
     mocks.mockRefreshAccessToken.mockResolvedValue(undefined);
     await new OAuth2AccessTokenRefreshTask().handle(createScheduledController(), createMockEnv({
       AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
-      OAUTH2_TOKEN_CACHE: {} as KVNamespace,
-      OAUTH2_TOKEN_REFRESHERS: {} as DurableObjectNamespace,
+      OAUTH2_TOKEN_CACHE: {},
+      OAUTH2_TOKEN_REFRESHERS: {},
     }) as Env, createExecutionContext());
     expect(mocks.mockListDueApplicationIds).toHaveBeenCalled();
     expect(mocks.mockRefreshAccessToken).toHaveBeenCalledTimes(2);
@@ -262,8 +262,8 @@ describe('OAuth2AccessTokenRefreshTask', () => {
     mocks.mockRefreshAccessToken.mockResolvedValueOnce(undefined);
     await new OAuth2AccessTokenRefreshTask().handle(createScheduledController(), createMockEnv({
       AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
-      OAUTH2_TOKEN_CACHE: {} as KVNamespace,
-      OAUTH2_TOKEN_REFRESHERS: {} as DurableObjectNamespace,
+      OAUTH2_TOKEN_CACHE: {},
+      OAUTH2_TOKEN_REFRESHERS: {},
     }) as Env, createExecutionContext());
     expect(mocks.mockRefreshAccessToken).toHaveBeenCalledTimes(2);
   });

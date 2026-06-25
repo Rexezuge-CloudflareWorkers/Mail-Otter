@@ -32,7 +32,7 @@ class EmailActionPruningTask extends IScheduledTask<EmailActionPruningTaskEnv> {
 interface EmailActionPruningTaskEnv extends IEnv {
   DB: D1Database;
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
-  ACTION_RETENTION_DAYS?: string | undefined;
+  ACTION_RETENTION_DAYS?: string;
 }
 
 export { EmailActionPruningTask };

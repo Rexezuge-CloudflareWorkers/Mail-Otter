@@ -41,10 +41,10 @@ class GmailWebhookRoute extends IBaseRoute<GmailWebhookRequest, GmailWebhookResp
 interface GmailWebhookRequest extends IRequest {
   message: {
     data: string;
-    messageId?: string | undefined;
-    publishTime?: string | undefined;
+    messageId?: string;
+    publishTime?: string;
   };
-  subscription?: string | undefined;
+  subscription?: string;
 }
 
 interface GmailWebhookResponse extends IResponse {

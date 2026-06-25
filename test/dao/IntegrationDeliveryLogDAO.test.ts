@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@mail-otter/shared/utils', () => ({
-  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1778200000) },
+  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000) },
   UUIDUtil: { getRandomUUID: vi.fn(() => 'log-uuid-1') },
 }));
 
@@ -17,7 +17,7 @@ function makeDb(): D1Database {
       bind: vi.fn(() => ({ run: runFn, all: allFn })),
     })),
     batch: batchFn,
-  } as unknown as D1Database;
+  };
 }
 
 describe('IntegrationDeliveryLogDAO', () => {
@@ -50,7 +50,7 @@ describe('IntegrationDeliveryLogDAO', () => {
       expect(result.httpStatus).toBe(200);
       expect(result.errorMessage).toBeNull();
       expect(result.emailSubject).toBe('Test Subject');
-      expect(result.createdAt).toBe(1778200000);
+      expect(result.createdAt).toBe(1_778_200_000);
     });
 
     it('handles failure status with error message', async () => {
@@ -87,7 +87,7 @@ describe('IntegrationDeliveryLogDAO', () => {
                 http_status: 200,
                 error_message: null,
                 email_subject: 'Hello',
-                created_at: 1778200000,
+                created_at: 1_778_200_000,
               },
             ],
           }),
@@ -113,7 +113,7 @@ describe('IntegrationDeliveryLogDAO', () => {
     it('returns number of deleted rows', async () => {
       const db = makeDb();
       const dao = new IntegrationDeliveryLogDAO(db);
-      const count = await dao.deleteOlderThan(1778100000, 500);
+      const count = await dao.deleteOlderThan(1_778_100_000, 500);
       expect(count).toBe(1);
     });
   });

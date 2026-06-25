@@ -48,9 +48,9 @@ interface OAuth2AccessTokenRefreshTaskEnv extends IEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS?: string | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  OAUTH2_TOKEN_REFRESH_BATCH_SIZE?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS?: string;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  OAUTH2_TOKEN_REFRESH_BATCH_SIZE?: string;
 }
 
 export { OAuth2AccessTokenRefreshTask };

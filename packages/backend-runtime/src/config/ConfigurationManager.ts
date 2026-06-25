@@ -110,40 +110,40 @@ class ConfigurationManager {
 
   // ─── Flat API (backward-compatible, delegates to namespace groups) ────────────
 
-  public static getMaxApplicationsPerUser(env: unknown): number { return ConfigurationManager.limits.getMaxApplicationsPerUser(env); }
+  public static getMaxApplicationsPerUser(env: unknown): number { return this.limits.getMaxApplicationsPerUser(env); }
   public static getDebugMode(env: unknown): boolean { return EnvParser.boolean(env, 'DEBUG_MODE', DEFAULT_DEBUG_MODE); }
-  public static getOauth2StateExpiryMinutes(env: unknown): number { return ConfigurationManager.oauth2.getStateExpiryMinutes(env); }
-  public static getGmailWatchRenewalWindowHours(env: unknown): number { return ConfigurationManager.subscription.getGmailRenewalWindowHours(env); }
-  public static getOutlookSubscriptionRenewalWindowHours(env: unknown): number { return ConfigurationManager.subscription.getOutlookRenewalWindowHours(env); }
-  public static getOutlookSubscriptionTtlDays(env: unknown): number { return ConfigurationManager.subscription.getOutlookTtlDays(env); }
-  public static getEmailSummaryModel(env: unknown): string { return ConfigurationManager.ai.getSummaryModel(env); }
-  public static getEmailSummaryFallbackModel(env: unknown): string { return ConfigurationManager.ai.getSummaryFallbackModel(env); }
-  public static getAiDailyNeuronFallbackThreshold(env: unknown): number { return ConfigurationManager.ai.getDailyNeuronFallbackThreshold(env); }
-  public static getAiDailyNeuronFreeTierLimit(env: unknown): number { return ConfigurationManager.ai.getDailyNeuronFreeTierLimit(env); }
-  public static getMaxEmailBodyChars(env: unknown): number { return ConfigurationManager.context.getMaxEmailBodyChars(env); }
-  public static getAiEmbeddingModel(env: unknown): string { return ConfigurationManager.ai.getEmbeddingModel(env); }
-  public static getRagTopK(env: unknown): number { return ConfigurationManager.context.getRagTopK(env); }
-  public static getRagVectorQueryTopK(env: unknown): number { return ConfigurationManager.context.getRagVectorQueryTopK(env); }
-  public static getMaxContextMemoryChars(env: unknown): number { return ConfigurationManager.context.getMaxContextMemoryChars(env); }
-  public static getMaxRagContextChars(env: unknown): number { return ConfigurationManager.context.getMaxRagContextChars(env); }
+  public static getOauth2StateExpiryMinutes(env: unknown): number { return this.oauth2.getStateExpiryMinutes(env); }
+  public static getGmailWatchRenewalWindowHours(env: unknown): number { return this.subscription.getGmailRenewalWindowHours(env); }
+  public static getOutlookSubscriptionRenewalWindowHours(env: unknown): number { return this.subscription.getOutlookRenewalWindowHours(env); }
+  public static getOutlookSubscriptionTtlDays(env: unknown): number { return this.subscription.getOutlookTtlDays(env); }
+  public static getEmailSummaryModel(env: unknown): string { return this.ai.getSummaryModel(env); }
+  public static getEmailSummaryFallbackModel(env: unknown): string { return this.ai.getSummaryFallbackModel(env); }
+  public static getAiDailyNeuronFallbackThreshold(env: unknown): number { return this.ai.getDailyNeuronFallbackThreshold(env); }
+  public static getAiDailyNeuronFreeTierLimit(env: unknown): number { return this.ai.getDailyNeuronFreeTierLimit(env); }
+  public static getMaxEmailBodyChars(env: unknown): number { return this.context.getMaxEmailBodyChars(env); }
+  public static getAiEmbeddingModel(env: unknown): string { return this.ai.getEmbeddingModel(env); }
+  public static getRagTopK(env: unknown): number { return this.context.getRagTopK(env); }
+  public static getRagVectorQueryTopK(env: unknown): number { return this.context.getRagVectorQueryTopK(env); }
+  public static getMaxContextMemoryChars(env: unknown): number { return this.context.getMaxContextMemoryChars(env); }
+  public static getMaxRagContextChars(env: unknown): number { return this.context.getMaxRagContextChars(env); }
   public static getServeSpaFromWorker(env: unknown): boolean { return EnvParser.boolean(env, 'SERVE_SPA_FROM_WORKER', DEFAULT_SERVE_SPA_FROM_WORKER); }
-  public static getOAuth2AccessTokenRefreshWindowSeconds(env: unknown): number { return ConfigurationManager.oauth2.getAccessTokenRefreshWindowSeconds(env); }
-  public static getOAuth2AccessTokenMinValidSeconds(env: unknown): number { return ConfigurationManager.oauth2.getAccessTokenMinValidSeconds(env); }
-  public static getOAuth2AccessTokenFallbackTtlSeconds(env: unknown): number { return ConfigurationManager.oauth2.getAccessTokenFallbackTtlSeconds(env); }
-  public static getOAuth2TokenRefreshBatchSize(env: unknown): number { return ConfigurationManager.oauth2.getTokenRefreshBatchSize(env); }
-  public static getRenewalRetryBaseDelaySeconds(env: unknown): number { return ConfigurationManager.subscription.getRenewalRetryBaseDelaySeconds(env); }
-  public static getRenewalRetryMaxDelaySeconds(env: unknown): number { return ConfigurationManager.subscription.getRenewalRetryMaxDelaySeconds(env); }
-  public static getMaxContextDocumentsPerApplication(env: unknown): number { return ConfigurationManager.context.getMaxDocumentsPerApplication(env); }
-  public static getProcessedMessageRetentionDays(env: unknown): number { return ConfigurationManager.limits.getProcessedMessageRetentionDays(env); }
-  public static getStaleContextDocumentDeletedGraceDays(env: unknown): number { return ConfigurationManager.context.getStaleDocumentDeletedGraceDays(env); }
-  public static getStaleContextDocumentErrorGraceDays(env: unknown): number { return ConfigurationManager.context.getStaleDocumentErrorGraceDays(env); }
-  public static getContextDeletionRunRetentionDays(env: unknown): number { return ConfigurationManager.context.getDeletionRunRetentionDays(env); }
-  public static getAiDailyUsageRetentionDays(env: unknown): number { return ConfigurationManager.ai.getDailyUsageRetentionDays(env); }
-  public static getActionCallbackBaseUrl(env: unknown): string { return ConfigurationManager.action.getCallbackBaseUrl(env); }
-  public static getActionDefaultExpiryHours(env: unknown): number { return ConfigurationManager.action.getDefaultExpiryHours(env); }
-  public static getActionRetentionDays(env: unknown): number { return ConfigurationManager.action.getRetentionDays(env); }
-  public static getContextAuditLogRetentionDays(env: unknown): number { return ConfigurationManager.context.getAuditLogRetentionDays(env); }
-  public static getIntegrationDeliveryLogRetentionDays(env: unknown): number { return ConfigurationManager.integrations.getDeliveryLogRetentionDays(env); }
+  public static getOAuth2AccessTokenRefreshWindowSeconds(env: unknown): number { return this.oauth2.getAccessTokenRefreshWindowSeconds(env); }
+  public static getOAuth2AccessTokenMinValidSeconds(env: unknown): number { return this.oauth2.getAccessTokenMinValidSeconds(env); }
+  public static getOAuth2AccessTokenFallbackTtlSeconds(env: unknown): number { return this.oauth2.getAccessTokenFallbackTtlSeconds(env); }
+  public static getOAuth2TokenRefreshBatchSize(env: unknown): number { return this.oauth2.getTokenRefreshBatchSize(env); }
+  public static getRenewalRetryBaseDelaySeconds(env: unknown): number { return this.subscription.getRenewalRetryBaseDelaySeconds(env); }
+  public static getRenewalRetryMaxDelaySeconds(env: unknown): number { return this.subscription.getRenewalRetryMaxDelaySeconds(env); }
+  public static getMaxContextDocumentsPerApplication(env: unknown): number { return this.context.getMaxDocumentsPerApplication(env); }
+  public static getProcessedMessageRetentionDays(env: unknown): number { return this.limits.getProcessedMessageRetentionDays(env); }
+  public static getStaleContextDocumentDeletedGraceDays(env: unknown): number { return this.context.getStaleDocumentDeletedGraceDays(env); }
+  public static getStaleContextDocumentErrorGraceDays(env: unknown): number { return this.context.getStaleDocumentErrorGraceDays(env); }
+  public static getContextDeletionRunRetentionDays(env: unknown): number { return this.context.getDeletionRunRetentionDays(env); }
+  public static getAiDailyUsageRetentionDays(env: unknown): number { return this.ai.getDailyUsageRetentionDays(env); }
+  public static getActionCallbackBaseUrl(env: unknown): string { return this.action.getCallbackBaseUrl(env); }
+  public static getActionDefaultExpiryHours(env: unknown): number { return this.action.getDefaultExpiryHours(env); }
+  public static getActionRetentionDays(env: unknown): number { return this.action.getRetentionDays(env); }
+  public static getContextAuditLogRetentionDays(env: unknown): number { return this.context.getAuditLogRetentionDays(env); }
+  public static getIntegrationDeliveryLogRetentionDays(env: unknown): number { return this.integrations.getDeliveryLogRetentionDays(env); }
 }
 
 export { ConfigurationManager };

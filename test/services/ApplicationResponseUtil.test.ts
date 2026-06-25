@@ -69,7 +69,7 @@ describe('ApplicationResponseUtil', () => {
   describe('decorateApplication', () => {
     it('returns correct OAuth2 redirect URI', async () => {
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -79,7 +79,7 @@ describe('ApplicationResponseUtil', () => {
 
     it('returns Gmail webhook URL without token when no subscription', async () => {
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -89,7 +89,7 @@ describe('ApplicationResponseUtil', () => {
 
     it('returns Outlook webhook URL for microsoft-outlook provider', async () => {
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication({ providerId: 'microsoft-outlook' }) as never,
+        makeApplication({ providerId: 'microsoft-outlook' }),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -101,7 +101,7 @@ describe('ApplicationResponseUtil', () => {
       mockGetByApplication.mockResolvedValue({ webhookSecretHash: 'hashed-secret', status: 'active', expiresAt: 9999 });
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -110,28 +110,28 @@ describe('ApplicationResponseUtil', () => {
     });
 
     it('includes watchStatus and watchExpiresAt from subscription', async () => {
-      mockGetByApplication.mockResolvedValue({ status: 'active', expiresAt: 1234567 });
+      mockGetByApplication.mockResolvedValue({ status: 'active', expiresAt: 1_234_567 });
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
 
       expect(result.watchStatus).toBe('active');
-      expect(result.watchExpiresAt).toBe(1234567);
+      expect(result.watchExpiresAt).toBe(1_234_567);
     });
 
     it('includes lastSummaryAt from latest processed message', async () => {
-      mockGetLatestForApplication.mockResolvedValue({ summarySentAt: 9876543 });
+      mockGetLatestForApplication.mockResolvedValue({ summarySentAt: 9_876_543 });
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
 
-      expect(result.lastSummaryAt).toBe(9876543);
+      expect(result.lastSummaryAt).toBe(9_876_543);
     });
 
     it('uses subscription lastError over processed message error', async () => {
@@ -139,7 +139,7 @@ describe('ApplicationResponseUtil', () => {
       mockGetLatestErrorForApplication.mockResolvedValue({ errorMessage: 'Processing failed', updatedAt: 222 });
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -152,7 +152,7 @@ describe('ApplicationResponseUtil', () => {
       mockGetLatestErrorForApplication.mockResolvedValue({ errorMessage: 'Processing failed', updatedAt: 333 });
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -165,7 +165,7 @@ describe('ApplicationResponseUtil', () => {
       mockGetSummaryByApplication.mockResolvedValue(makeContextSummary({ documentCount: 7, lastIndexedAt: 555, lastDeleteAcceptedAt: 444 }));
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );
@@ -179,7 +179,7 @@ describe('ApplicationResponseUtil', () => {
       mockGetSummaryByApplication.mockResolvedValue(makeContextSummary({ lastError: 'Index error', lastErrorAt: 999 }));
 
       const result = await ApplicationResponseUtil.decorateApplication(
-        makeApplication() as never,
+        makeApplication(),
         makeEnv(),
         new Request('https://example.com'),
       );

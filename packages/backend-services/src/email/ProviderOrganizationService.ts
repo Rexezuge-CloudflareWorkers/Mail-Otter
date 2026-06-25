@@ -68,8 +68,9 @@ class ProviderOrganizationService {
           await provider.starMessage(accessToken, messageId);
           break;
         }
-        default:
+        default: {
           break;
+        }
       }
     } catch (error: unknown) {
       console.error(`[ProviderOrganizationService] Rule "${rule.name}" (${rule.action.type}) failed for message ${messageId}:`, error);

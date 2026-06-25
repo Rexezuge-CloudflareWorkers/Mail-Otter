@@ -8,7 +8,7 @@ describe('GmailProviderUtil', () => {
 
   describe('sendSummaryReply', () => {
     it('trashes the sent message after successful send', async () => {
-      const mockSendResponse = new Response(JSON.stringify({ id: 'sent-message-id-123' }), { status: 200 });
+      const mockSendResponse = Response.json({ id: 'sent-message-id-123' }, { status: 200 });
       const mockTrashResponse = new Response('', { status: 200 });
 
       const fetchMock = vi.fn().mockResolvedValueOnce(mockSendResponse).mockResolvedValueOnce(mockTrashResponse);
@@ -31,7 +31,7 @@ describe('GmailProviderUtil', () => {
       await GmailProviderUtil.sendSummaryReply(
         'test-access-token',
         'sender@example.com',
-        originalMessage as never,
+        originalMessage,
         htmlSummary,
       );
 
@@ -60,7 +60,7 @@ describe('GmailProviderUtil', () => {
     });
 
     it('does not throw when trashing fails after successful send', async () => {
-      const mockSendResponse = new Response(JSON.stringify({ id: 'sent-message-id-123' }), { status: 200 });
+      const mockSendResponse = Response.json({ id: 'sent-message-id-123' }, { status: 200 });
       const mockTrashResponse = new Response('Trash failed', { status: 500 });
 
       const fetchMock = vi.fn().mockResolvedValueOnce(mockSendResponse).mockResolvedValueOnce(mockTrashResponse);
@@ -99,7 +99,7 @@ describe('GmailProviderUtil', () => {
 });
 
 function decodeBase64Url(value: string): string {
-  const normalized: string = value.replace(/-/g, '+').replace(/_/g, '/');
+  const normalized: string = value.replaceAll('-', '+').replaceAll('_', '/');
   const padded: string = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
   const binary: string = atob(padded);
   const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.charCodeAt(0));
@@ -109,5 +109,5 @@ function decodeBase64Url(value: string): string {
 function extractMimeBoundary(rawMessage: string): string {
   const match: RegExpMatchArray | null = rawMessage.match(/boundary="([^"]+)"/);
   expect(match).not.toBeNull();
-  return match![1]!;
+  return match![1];
 }

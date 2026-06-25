@@ -305,34 +305,34 @@ class ApplicationService {
   }
 }
 
-class ApplicationServiceFactory {
-  static create(env: ApplicationServiceEnv): ApplicationService {
+const ApplicationServiceFactory = {
+  create(env: ApplicationServiceEnv): ApplicationService {
     return new ApplicationService(env);
-  }
-}
+  },
+};
 
 interface CreateUserApplicationInput {
   displayName: string;
   providerId: string;
-  connectionMethod?: string | undefined;
-  clientId?: string | undefined;
-  clientSecret?: string | undefined;
-  gmailPubsubTopicName?: string | undefined;
-  imapHost?: string | undefined;
-  imapPort?: number | undefined;
-  imapUsername?: string | undefined;
-  imapPassword?: string | undefined;
-  smtpHost?: string | undefined;
-  smtpPort?: number | undefined;
-  enabledFeatures?: string[] | null | undefined;
-  timeZone?: string | null | undefined;
-  senderDomainFilters?: SenderDomainFilters | null | undefined;
+  connectionMethod?: string;
+  clientId?: string;
+  clientSecret?: string;
+  gmailPubsubTopicName?: string;
+  imapHost?: string;
+  imapPort?: number;
+  imapUsername?: string;
+  imapPassword?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  enabledFeatures?: string[] | null;
+  timeZone?: string | null;
+  senderDomainFilters?: SenderDomainFilters | null;
 }
 
 interface UpdateUserApplicationInput extends CreateUserApplicationInput {
   applicationId: string;
   connectionMethod: string;
-  autoExecuteActionTypes?: string[] | null | undefined;
+  autoExecuteActionTypes?: string[] | null;
 }
 
 interface UpdateWatchedFolderIdsInput {
@@ -350,31 +350,33 @@ interface CreateIntegrationInput {
 
 interface UpdateIntegrationInput {
   integrationId: string;
-  name?: string | undefined;
-  enabled?: boolean | undefined;
-  webhookUrl?: string | undefined;
+  name?: string;
+  enabled?: boolean;
+  webhookUrl?: string;
 }
 
 interface ApplicationServiceEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
-  OAUTH2_TOKEN_CACHE?: KVNamespace | undefined;
-  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace | undefined;
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
-  AI?: Ai | undefined;
-  MAX_APPLICATIONS_PER_USER?: string | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string | undefined;
-  AI_SUMMARY_MODEL?: string | undefined;
+  OAUTH2_TOKEN_CACHE?: KVNamespace;
+  OAUTH2_TOKEN_REFRESHERS?: DurableObjectNamespace;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
+  AI?: Ai;
+  MAX_APPLICATIONS_PER_USER?: string;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string;
+  AI_SUMMARY_MODEL?: string;
 }
 
 export { ApplicationService, ApplicationServiceFactory };
 export type {
   ApplicationServiceEnv,
-  ApplicationResponse,
+  
   CreateIntegrationInput,
   CreateUserApplicationInput,
   UpdateIntegrationInput,
   UpdateUserApplicationInput,
   UpdateWatchedFolderIdsInput,
 };
+
+export {type ApplicationResponse} from './ApplicationResponseUtil';

@@ -57,7 +57,7 @@ describe('Action confirmation endpoint', () => {
     await env.DB.prepare(
       `INSERT INTO email_summary_actions (action_id, processed_message_id, application_id, user_email, provider_id, provider_message_id, action_type, status, risk_level, token_hash, encrypted_payload, payload_iv, payload_salt, expires_at, created_at, updated_at) ` +
       `VALUES (?, ?, ?, ?, 'google-gmail', 'msg-action', 'email.draft_reply', 'pending', 'low', 'known-hash', 'encrypted', 'iv', 'salt', ?, ?, ?)`,
-    ).bind(`action-${applicationId}`, `pm-${applicationId}`, applicationId, `action-user-${appCounter}@example.com`, now + 86400, now, now).run();
+    ).bind(`action-${applicationId}`, `pm-${applicationId}`, applicationId, `action-user-${appCounter}@example.com`, now + 86_400, now, now).run();
 
     const response: Response = await SELF.fetch(
       `http://localhost/api/actions/action-${applicationId}?token=wrong-token`,

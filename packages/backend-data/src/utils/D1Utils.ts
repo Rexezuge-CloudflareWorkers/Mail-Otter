@@ -9,11 +9,13 @@ function sleep(ms: number): Promise<void> {
 }
 
 function assertD1Success(result: D1Result, context: string): void {
-  if (!result.success) {
-    const errorMessage: string = result.error ?? 'Unknown database error';
-    const retryable: boolean = isD1ErrorRetryable(errorMessage);
-    throw new DatabaseError(`Failed to ${context}: ${errorMessage}`, retryable);
+  if (result.success) {
+  	return;
   }
+
+  const errorMessage: string = result.error ?? 'Unknown database error';
+  const retryable: boolean = isD1ErrorRetryable(errorMessage);
+  throw new DatabaseError(`Failed to ${context}: ${errorMessage}`, retryable);
 }
 
 async function executeD1WithRetry(

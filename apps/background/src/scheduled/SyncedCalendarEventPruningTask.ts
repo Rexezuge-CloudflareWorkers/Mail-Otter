@@ -15,7 +15,7 @@ class SyncedCalendarEventPruningTask extends IScheduledTask<SyncedCalendarEventP
   ): Promise<void> {
     const sessionEnv = createD1SessionEnv(env);
     const eventDAO = new SyncedCalendarEventDAO(sessionEnv.DB);
-    const pruneBeforeUnix = TimestampUtil.getCurrentUnixTimestampInSeconds() - PRUNE_BEFORE_DAYS * 86400;
+    const pruneBeforeUnix = TimestampUtil.getCurrentUnixTimestampInSeconds() - PRUNE_BEFORE_DAYS * 86_400;
 
     let deletedTotal = 0;
     let deleted = BATCH_SIZE;

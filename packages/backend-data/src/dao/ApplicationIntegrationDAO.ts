@@ -108,7 +108,7 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
 
   public async update(
     integrationId: string,
-    patch: { name?: string | undefined; enabled?: boolean | undefined; webhookUrl?: string | undefined },
+    patch: { name?: string; enabled?: boolean; webhookUrl?: string },
   ): Promise<OutboundIntegration> {
     const now = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const fields: string[] = ['updated_at = ?'];

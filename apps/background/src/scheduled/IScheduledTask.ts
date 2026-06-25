@@ -4,8 +4,8 @@ import type { D1Queryable } from '@mail-otter/backend-data/utils';
 interface TaskRunSummary {
   itemsProcessed: number;
   itemsFailed: number;
-  summary?: string | undefined;
-  details?: unknown | undefined;
+  summary?: string;
+  details?: unknown;
 }
 
 // Handle returned by createApplicationRun() — Builder pattern.

@@ -11,7 +11,8 @@ import { StackedBarChart } from '../analytics/StackedBarChart';
 import { HorizontalBarList } from '../analytics/HorizontalBarList';
 import { cn } from '../../lib/utils';
 
-const DAY_OPTIONS: Array<{ value: 7 | 30 | 90; label: string }> = [
+type DayOption = { value: 7 | 30 | 90; label: string };
+const DAY_OPTIONS: Array<DayOption> = [
   { value: 7, label: '7 Days' },
   { value: 30, label: '30 Days' },
   { value: 90, label: '90 Days' },

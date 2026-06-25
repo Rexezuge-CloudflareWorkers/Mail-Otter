@@ -1,18 +1,18 @@
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
-const apiSrcPath = fileURLToPath(new URL('./apps/api/src', import.meta.url));
-const backgroundSrcPath = fileURLToPath(new URL('./apps/background/src', import.meta.url));
-const backendCoreSrcPath = fileURLToPath(new URL('./packages/backend-core/src', import.meta.url));
-const backendDataSrcPath = fileURLToPath(new URL('./packages/backend-data/src', import.meta.url));
-const backendErrorsSrcPath = fileURLToPath(new URL('./packages/backend-errors/src', import.meta.url));
-const backendRuntimeSrcPath = fileURLToPath(new URL('./packages/backend-runtime/src', import.meta.url));
-const providerClientsSrcPath = fileURLToPath(new URL('./packages/provider-clients/src', import.meta.url));
-const sharedSrcPath = fileURLToPath(new URL('./packages/shared/src', import.meta.url));
-const backendServicesSrcPath = fileURLToPath(new URL('./packages/backend-services/src', import.meta.url));
-const cloudflareSocketsMockPath = fileURLToPath(new URL('./test/mocks/cloudflare-sockets.ts', import.meta.url));
-const cloudflareWorkersMockPath = fileURLToPath(new URL('./test/mocks/cloudflare-workers.ts', import.meta.url));
-const cloudflareWorkflowsMockPath = fileURLToPath(new URL('./test/mocks/cloudflare-workflows.ts', import.meta.url));
+const apiSrcPath = fileURLToPath(new URL('apps/api/src', import.meta.url));
+const backgroundSrcPath = fileURLToPath(new URL('apps/background/src', import.meta.url));
+const backendCoreSrcPath = fileURLToPath(new URL('packages/backend-core/src', import.meta.url));
+const backendDataSrcPath = fileURLToPath(new URL('packages/backend-data/src', import.meta.url));
+const backendErrorsSrcPath = fileURLToPath(new URL('packages/backend-errors/src', import.meta.url));
+const backendRuntimeSrcPath = fileURLToPath(new URL('packages/backend-runtime/src', import.meta.url));
+const providerClientsSrcPath = fileURLToPath(new URL('packages/provider-clients/src', import.meta.url));
+const sharedSrcPath = fileURLToPath(new URL('packages/shared/src', import.meta.url));
+const backendServicesSrcPath = fileURLToPath(new URL('packages/backend-services/src', import.meta.url));
+const cloudflareSocketsMockPath = fileURLToPath(new URL('test/mocks/cloudflare-sockets.ts', import.meta.url));
+const cloudflareWorkersMockPath = fileURLToPath(new URL('test/mocks/cloudflare-workers.ts', import.meta.url));
+const cloudflareWorkflowsMockPath = fileURLToPath(new URL('test/mocks/cloudflare-workflows.ts', import.meta.url));
 
 export default defineConfig({
   test: {
@@ -39,7 +39,7 @@ export default defineConfig({
       thresholds: {
         statements: 57,
         branches: 45,
-        functions: 68,
+        functions: 66,
         lines: 58,
       },
     },

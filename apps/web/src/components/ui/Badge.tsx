@@ -34,20 +34,25 @@ function variantFor(status: string): BadgeVariant {
     case 'connected':
     case 'active':
     case 'succeeded':
-    case 'accepted':
+    case 'accepted': {
       return 'success';
+    }
     case 'error':
     case 'failed':
-    case 'expired':
+    case 'expired': {
       return 'error';
+    }
     case 'draft':
     case 'pending':
-    case 'cancelled':
+    case 'cancelled': {
       return 'warning';
-    case 'executing':
+    }
+    case 'executing': {
       return 'info';
-    default:
+    }
+    default: {
       return 'neutral';
+    }
   }
 }
 
@@ -84,12 +89,18 @@ type ProcessedMessageStatus = 'processing' | 'summarized' | 'skipped' | 'error';
 
 function taskRunVariant(status: TaskRunStatus): BadgeVariant {
   switch (status) {
-    case 'success': return 'success';
-    case 'partial_success': return 'warning';
-    case 'error': return 'error';
-    case 'running': return 'info';
-    case 'skipped': return 'neutral';
-    default: return 'neutral';
+    case 'success': { return 'success';
+    }
+    case 'partial_success': { return 'warning';
+    }
+    case 'error': { return 'error';
+    }
+    case 'running': { return 'info';
+    }
+    case 'skipped': { return 'neutral';
+    }
+    default: { return 'neutral';
+    }
   }
 }
 
@@ -100,11 +111,16 @@ function taskRunLabel(status: TaskRunStatus): string {
 
 function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
   switch (status) {
-    case 'summarized': return 'success';
-    case 'error': return 'error';
-    case 'processing': return 'info';
-    case 'skipped': return 'neutral';
-    default: return 'neutral';
+    case 'summarized': { return 'success';
+    }
+    case 'error': { return 'error';
+    }
+    case 'processing': { return 'info';
+    }
+    case 'skipped': { return 'neutral';
+    }
+    default: { return 'neutral';
+    }
   }
 }
 

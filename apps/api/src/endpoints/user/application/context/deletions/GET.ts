@@ -31,7 +31,7 @@ type ListApplicationContextDeletionRunsRequest = IRequest;
 
 interface ListApplicationContextDeletionRunsResponse extends IResponse {
   deletionRuns: ApplicationContextDeletionRun[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListApplicationContextDeletionRunsEnv = IUserEnv;

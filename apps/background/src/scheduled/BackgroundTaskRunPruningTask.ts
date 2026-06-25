@@ -11,7 +11,7 @@ class BackgroundTaskRunPruningTask extends IScheduledTask<BackgroundTaskRunPruni
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
     const retentionDays = ConfigurationManager.processing.getTaskRunRetentionDays(env);
-    const cutoff = TimestampUtil.getCurrentUnixTimestampInSeconds() - retentionDays * 86400;
+    const cutoff = TimestampUtil.getCurrentUnixTimestampInSeconds() - retentionDays * 86_400;
     const dao = new BackgroundTaskRunDAO(env.DB);
     const deleted = await dao.pruneOldRuns(cutoff, 500);
     return { itemsProcessed: deleted, itemsFailed: 0 };
@@ -20,7 +20,7 @@ class BackgroundTaskRunPruningTask extends IScheduledTask<BackgroundTaskRunPruni
 
 interface BackgroundTaskRunPruningTaskEnv extends IEnv {
   DB: D1Database;
-  BACKGROUND_TASK_RUN_RETENTION_DAYS?: string | undefined;
+  BACKGROUND_TASK_RUN_RETENTION_DAYS?: string;
 }
 
 export { BackgroundTaskRunPruningTask };

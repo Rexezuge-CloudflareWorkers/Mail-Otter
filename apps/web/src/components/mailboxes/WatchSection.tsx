@@ -24,10 +24,12 @@ export function WatchSection({
   const [pendingIds, setPendingIds] = useState<string[] | null>(null);
 
   useEffect(() => {
-    if (availableFolders !== null) {
-      setPendingIds(application.watchedFolders?.map((wf) => wf.id) ?? null);
-    } else {
+    if (availableFolders === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPendingIds(null);
+    } else {
+       
+      setPendingIds(application.watchedFolders?.map((wf) => wf.id) ?? null);
     }
   }, [availableFolders, application.applicationId]);
 
@@ -64,16 +66,16 @@ export function WatchSection({
                       name={isOutlook ? `watch-folder-${application.applicationId}` : undefined}
                       checked={checked}
                       onChange={() => {
+                        let next: string[];
                         if (isOutlook) {
-                          const next = checked ? [] : [folder.id];
-                          setPendingIds(next.length > 0 ? next : null);
+                          next = checked ? [] : [folder.id];
                         } else {
                           const currentIds = pendingIds ?? [];
-                          const next = checked
+                          next = checked
                             ? currentIds.filter((id) => id !== folder.id)
                             : [...currentIds, folder.id];
-                          setPendingIds(next.length > 0 ? next : null);
                         }
+                        setPendingIds(next.length > 0 ? next : null);
                       }}
                       disabled={busy}
                       className="h-4 w-4 accent-[var(--color-accent)]"

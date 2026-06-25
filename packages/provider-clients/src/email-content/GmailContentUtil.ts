@@ -1,11 +1,11 @@
 import { normalizeText, stripHtml } from './TextContentUtil';
 
 interface GmailMessagePart {
-  mimeType?: string | undefined;
-  filename?: string | undefined;
-  headers?: Array<{ name: string; value: string }> | undefined;
-  body?: { data?: string | undefined } | undefined;
-  parts?: GmailMessagePart[] | undefined;
+  mimeType?: string;
+  filename?: string;
+  headers?: Array<{ name: string; value: string }>;
+  body?: { data?: string };
+  parts?: GmailMessagePart[];
 }
 
 interface ExtractedEmailContent {
@@ -14,10 +14,10 @@ interface ExtractedEmailContent {
 }
 
 function decodeBase64Url(value: string): string {
-  const normalized: string = value.replace(/-/g, '+').replace(/_/g, '/');
+  const normalized: string = value.replaceAll('-', '+').replaceAll('_', '/');
   const padded: string = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
   const binary: string = atob(padded);
-  const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.charCodeAt(0));
+  const bytes: Uint8Array = Uint8Array.from(binary, (char: string): number => char.codePointAt(0) ?? 0);
   return new TextDecoder().decode(bytes);
 }
 
@@ -26,7 +26,8 @@ function findGmailPart(part: GmailMessagePart | undefined, mimeType: string): st
   if (part.mimeType === mimeType && part.body?.data && !part.filename) {
     return decodeBase64Url(part.body.data);
   }
-  for (const child of part.parts || []) {
+  const parts = part.parts ?? [];
+  for (const child of parts) {
     const value: string | undefined = findGmailPart(child, mimeType);
     if (value) return value;
   }

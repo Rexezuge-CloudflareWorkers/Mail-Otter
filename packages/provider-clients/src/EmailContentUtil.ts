@@ -68,4 +68,6 @@ class EmailContentUtil {
 }
 
 export { EmailContentUtil };
-export type { ExtractedEmailContent, GmailMessagePart, MailHeader };
+export type {   MailHeader };
+
+export {type ExtractedEmailContent, type GmailMessagePart} from './email-content/GmailContentUtil';

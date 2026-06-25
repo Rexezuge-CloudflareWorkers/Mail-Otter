@@ -22,7 +22,7 @@ class OutlookEmailProvider implements IEmailProvider {
     return folders.map((folder) => ({ id: folder.id, name: folder.displayName }));
   }
 
-  public async stopWatch(accessToken: string, externalSubscriptionId?: string | undefined): Promise<void> {
+  public async stopWatch(accessToken: string, externalSubscriptionId?: string): Promise<void> {
     if (externalSubscriptionId) {
       await OutlookProviderUtil.deleteSubscription(accessToken, externalSubscriptionId);
     }
@@ -68,6 +68,7 @@ class OutlookEmailProvider implements IEmailProvider {
     return result;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     throw new BadRequestError('Outlook uses webhooks and does not support polling.');
   }
@@ -75,7 +76,7 @@ class OutlookEmailProvider implements IEmailProvider {
   public getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {
     const url = new URL(`https://outlook.office.com/mail/deeplink/read/${encodeURIComponent(document.sourceDocumentId)}`);
     if (application.providerEmail) url.searchParams.set('login_hint', application.providerEmail);
-    return url.toString();
+    return url.href;
   }
 
   public async createCalendarEvent(accessToken: string, payload: CalendarAddEventActionPayload): Promise<EmailActionResult> {

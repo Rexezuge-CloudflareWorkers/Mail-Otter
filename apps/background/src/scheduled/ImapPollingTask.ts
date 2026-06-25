@@ -54,12 +54,12 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
     const application: ConnectedApplication | undefined = await applicationDAO.getById(subscription.applicationId);
     if (!application) return;
 
-    const credentials = await ImapPollingTask.resolveCredentials(application, env);
+    const credentials = await this.resolveCredentials(application, env);
     const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
     const { messages, newCursor } = await provider.pollNewMessages(credentials, subscription.imapCursor ?? null);
 
     if (messages.length > 0) {
-      await ImapPollingTask.enqueueMessages(messages, subscription, baseUrl, env);
+      await this.enqueueMessages(messages, subscription, baseUrl, env);
       await subscriptionDAO.updateImapCursor(subscription.subscriptionId, newCursor, Math.floor(Date.now() / 1000));
     }
   }
@@ -109,8 +109,8 @@ interface ImapPollingTaskEnv extends IEnv {
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
   EMAIL_EVENTS_QUEUE: Queue;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  CALLBACK_BASE_URL?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  CALLBACK_BASE_URL?: string;
 }
 
 export { ImapPollingTask };

@@ -1,7 +1,7 @@
 import { ErrorCode, ServiceError } from './IServiceError';
 
 class MethodNotAllowedError extends ServiceError {
-  constructor(message?: string | undefined) {
+  constructor(message?: string) {
     super(message ?? 'The requested method is not allowed for this resource.');
   }
 

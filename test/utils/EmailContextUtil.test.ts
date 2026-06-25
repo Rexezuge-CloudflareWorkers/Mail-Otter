@@ -98,9 +98,9 @@ describe('EmailContextUtil', () => {
     await EmailContextUtil.prepareEmailRagContext({
       env: {
         DB: database as unknown as D1Database,
-        AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('test-secret') } as unknown as SecretsStoreSecret,
-        AI: ai as unknown as Ai,
-        EMAIL_CONTEXT_INDEX: vectorize as unknown as Vectorize,
+        AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('test-secret') },
+        AI: ai,
+        EMAIL_CONTEXT_INDEX: vectorize,
       },
       application,
       enabledApplicationIds: [],

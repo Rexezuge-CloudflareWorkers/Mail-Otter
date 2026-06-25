@@ -17,7 +17,7 @@ class ProcessedMessagePruningTask extends IScheduledTask<ProcessedMessagePruning
     _ctx: ExecutionContext,
   ): Promise<void> {
     const retentionDays: number = ConfigurationManager.getProcessedMessageRetentionDays(env);
-    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86400;
+    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86_400;
     const sessionEnv = createD1SessionEnv(env);
     const dao = new ProcessedMessageDAO(sessionEnv.DB);
 
@@ -33,7 +33,7 @@ class ProcessedMessagePruningTask extends IScheduledTask<ProcessedMessagePruning
 
 interface ProcessedMessagePruningTaskEnv extends IEnv {
   DB: D1Database;
-  PROCESSED_MESSAGE_RETENTION_DAYS?: string | undefined;
+  PROCESSED_MESSAGE_RETENTION_DAYS?: string;
 }
 
 export { ProcessedMessagePruningTask };

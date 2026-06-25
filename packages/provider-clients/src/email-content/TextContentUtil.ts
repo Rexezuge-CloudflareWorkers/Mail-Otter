@@ -14,10 +14,11 @@ function stripHtml(value: string): string {
 
 function normalizeText(value: string): string {
   return value
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
+    // eslint-disable-next-line sonarjs/super-linear-regex
+    .replaceAll(/[ \t]+\n/g, '\n')
+    .replaceAll(/\n{3,}/g, '\n\n')
     .trim();
 }
 

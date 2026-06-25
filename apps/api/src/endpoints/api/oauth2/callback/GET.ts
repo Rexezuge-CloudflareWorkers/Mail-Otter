@@ -60,7 +60,7 @@ interface OAuth2CallbackEnv extends IEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { OAuth2CallbackRoute };

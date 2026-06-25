@@ -6,7 +6,7 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 
 function makeAi(response: unknown): Ai {
-  return { run: vi.fn().mockResolvedValue({ response: JSON.stringify(response) }) } as unknown as Ai;
+  return { run: vi.fn().mockResolvedValue({ response: JSON.stringify(response) }) };
 }
 
 function validRule() {
@@ -37,7 +37,7 @@ describe('EmailRuleSuggestionUtil.suggest', () => {
     const ai = { run: runFn } as unknown as Ai;
     await EmailRuleSuggestionUtil.suggest(ai, MODEL, 'my custom description');
     const call = runFn.mock.calls[0];
-    const messages = (call![1] as { messages: Array<{ role: string; content: string }> }).messages;
+    const messages = (call[1] as { messages: Array<{ role: string; content: string }> }).messages;
     const userMessage = messages.find((m) => m.role === 'user');
     expect(userMessage?.content).toBe('my custom description');
   });
@@ -95,7 +95,7 @@ describe('EmailRuleSuggestionUtil.suggest', () => {
     const ai = { run: runFn } as unknown as Ai;
     await EmailRuleSuggestionUtil.suggest(ai, '@cf/meta/llama-3.1-8b-instruct-fast', 'test');
     const call = runFn.mock.calls[0];
-    const req = call![1] as Record<string, unknown>;
+    const req = call[1] as Record<string, unknown>;
     expect(req['response_format']).toBeDefined();
     expect((req['response_format'] as Record<string, unknown>)['type']).toBe('json_schema');
   });
@@ -105,7 +105,7 @@ describe('EmailRuleSuggestionUtil.suggest', () => {
     const ai = { run: runFn } as unknown as Ai;
     await EmailRuleSuggestionUtil.suggest(ai, '@cf/some/unknown-model', 'test');
     const call = runFn.mock.calls[0];
-    const req = call![1] as Record<string, unknown>;
+    const req = call[1] as Record<string, unknown>;
     expect(req['response_format']).toBeUndefined();
   });
 });

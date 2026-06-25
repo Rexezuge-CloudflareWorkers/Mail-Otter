@@ -15,7 +15,7 @@ function createKvStore(): KVNamespace {
     delete: vi.fn(async (key: string): Promise<void> => {
       storage.delete(key);
     }),
-  } as unknown as KVNamespace;
+  };
 }
 
 describe('OAuth2AccessTokenCacheDAO', () => {

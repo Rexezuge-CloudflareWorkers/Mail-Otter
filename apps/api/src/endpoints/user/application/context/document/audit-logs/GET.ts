@@ -38,7 +38,7 @@ type ListContextDocumentAuditLogsRequest = IRequest;
 
 interface ListContextDocumentAuditLogsResponse extends IResponse {
   logs: ContextAuditLog[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListContextDocumentAuditLogsEnv = IUserEnv;

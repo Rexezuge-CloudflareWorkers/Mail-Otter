@@ -32,7 +32,7 @@ type ListProcessingCalendarEventsRequest = IRequest;
 
 interface ListProcessingCalendarEventsResponse extends IResponse {
   events: SyncedCalendarEvent[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListProcessingCalendarEventsEnv = IUserEnv;

@@ -75,7 +75,7 @@ const IMAP_PROVIDERS: ReadonlySet<string> = new Set([
   PROVIDER_APPLE_ICLOUD,
 ]);
 
-type ConnectedApplicationStatus =
+type ConnectedAppStatus =
   | typeof CONNECTED_APPLICATION_STATUS_DRAFT
   | typeof CONNECTED_APPLICATION_STATUS_CONNECTED
   | typeof CONNECTED_APPLICATION_STATUS_ERROR;
@@ -160,7 +160,7 @@ export {
   SUPPORTED_PROVIDER_CONNECTIONS,
 };
 export type {
-  ConnectedApplicationStatus,
+  ConnectedAppStatus as ConnectedApplicationStatus,
   ConnectionMethod,
   EmailActionExecutionTrigger,
   EmailActionRiskLevel,

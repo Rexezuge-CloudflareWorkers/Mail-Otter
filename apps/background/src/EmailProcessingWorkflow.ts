@@ -28,7 +28,8 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       },
     );
 
-    if (event.payload.type === 'gmail-notification') {
+    switch (event.payload.type) {
+    case 'gmail-notification': {
       const gmailPayload = event.payload;
       const messageList = await step.do(
         'List Gmail Messages',
@@ -111,7 +112,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           },
         );
       }
-    } else if (event.payload.type === 'outlook-notification') {
+    
+    break;
+    }
+    case 'outlook-notification': {
       const outlookPayload = event.payload;
       const summaryData = await step.do(
         'Generate Outlook Summary',
@@ -157,7 +161,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           },
         );
       }
-    } else if (event.payload.type === 'jmap-notification') {
+    
+    break;
+    }
+    case 'jmap-notification': {
       const jmapPayload = event.payload;
       const summaryData = await step.do(
         `Generate JMAP Summary for ${jmapPayload.emailId}`,
@@ -203,7 +210,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           },
         );
       }
-    } else if (event.payload.type === 'imap-notification') {
+    
+    break;
+    }
+    case 'imap-notification': {
       const imapPayload = event.payload;
       const isImapPassword = resolved.application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
       const imapConnectOptions = EmailProcessingWorkflow.buildImapConnectOptions(resolved.application, resolved.accessToken, isImapPassword);
@@ -260,6 +270,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       } finally {
         await imapClient.close();
       }
+    
+    break;
+    }
+    // No default
     }
 
     return {

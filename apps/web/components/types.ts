@@ -184,6 +184,17 @@ export interface ApplicationContextDeletionRun {
   updatedAt: number;
 }
 
+type BasePayload = { title: string; description: string; sourceSubject?: string; sourceFrom?: string };
+export type EmailActionPayload =
+  | (BasePayload & { type: 'calendar.add_event'; eventTitle: string; startTime: string; endTime: string; timeZone: string; location?: string; notes?: string })
+  | (BasePayload & { type: 'email.draft_reply'; draftSubject?: string; draftBody: string })
+  | (BasePayload & { type: 'external.open_link'; url: string })
+  | (BasePayload & { type: 'delivery.track_package'; trackingNumber: string; carrier?: string; trackingUrl?: string })
+  | (BasePayload & { type: 'travel.track_flight'; flightNumber: string; airline?: string; departureAirport?: string; arrivalAirport?: string; departureTime?: string; trackingUrl?: string })
+  | (BasePayload & { type: 'finance.pay_bill'; payee?: string; amount?: string; currency?: string; dueDate?: string; invoiceNumber?: string; paymentUrl?: string })
+  | (BasePayload & { type: 'appointment.confirm'; serviceType?: string; providerName?: string; appointmentTime?: string; location?: string; confirmationNumber?: string; notes?: string })
+  | (BasePayload & { type: 'manual.todo'; instructions: string });
+
 export interface EmailAction {
   actionId: string;
   processedMessageId: string;
@@ -197,7 +208,7 @@ export interface EmailAction {
   riskLevel: 'low' | 'medium' | 'high';
   title: string;
   description: string;
-  payload: Record<string, unknown> & { type: EmailActionType };
+  payload: EmailActionPayload;
   result?: {
     summary: string;
     providerOperationId?: string;
@@ -232,7 +243,7 @@ export interface ContextAuditLog {
   sourceDocumentId?: string | null;
   eventType: ContextAuditEventType;
   eventLabel?: string | null;
-  eventData?: unknown | null;
+  eventData?: unknown;
   severity: 'info' | 'warning' | 'error';
   createdAt: number;
 }

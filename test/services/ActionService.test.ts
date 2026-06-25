@@ -72,9 +72,9 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
 
 vi.mock('@mail-otter/shared/utils', () => ({
   TimestampUtil: {
-    getCurrentUnixTimestampInSeconds: vi.fn(() => 1778200000),
+    getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000),
     addHours: vi.fn((ts: number, h: number) => ts + h * 3600),
-    subtractDays: vi.fn((ts: number, d: number) => ts - d * 86400),
+    subtractDays: vi.fn((ts: number, d: number) => ts - d * 86_400),
   },
   CryptoUtil: {
     randomBase64Url: vi.fn(() => 'random-token'),
@@ -124,8 +124,8 @@ import { ActionService } from '../../packages/backend-services/src/action/Action
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 
-const NOW = 1778200000;
-const FUTURE_EXPIRY = NOW + 86400;
+const NOW = 1_778_200_000;
+const FUTURE_EXPIRY = NOW + 86_400;
 
 function makeEnv(overrides?: Record<string, unknown>) {
   return {
@@ -214,7 +214,7 @@ describe('ActionService', () => {
     it('passes current timestamp and limit to DAO and returns count', async () => {
       mockExpirePendingActions.mockResolvedValue(3);
 
-      const result = await ActionService.expirePendingActions(makeEnv() as never, 100);
+      const result = await ActionService.expirePendingActions(makeEnv(), 100);
 
       expect(result).toBe(3);
       expect(mockExpirePendingActions).toHaveBeenCalledWith(NOW, 100);
@@ -225,7 +225,7 @@ describe('ActionService', () => {
     it('calculates retention cutoff and delegates deletion, returning count', async () => {
       mockDeleteOlderThan.mockResolvedValue(7);
 
-      const result = await ActionService.deleteOldActions(makeEnv() as never, 200);
+      const result = await ActionService.deleteOldActions(makeEnv(), 200);
 
       expect(result).toBe(7);
       expect(mockDeleteOlderThan).toHaveBeenCalledWith(expect.any(Number), 200);
@@ -236,7 +236,7 @@ describe('ActionService', () => {
     it('delegates to DAO and returns list', async () => {
       mockListActionsForUser.mockResolvedValue({ items: [makeAction()], cursor: null });
 
-      const result = await ActionService.listActionsForUser('user@example.com', { applicationId: 'app-1' }, makeEnv() as never);
+      const result = await ActionService.listActionsForUser('user@example.com', { applicationId: 'app-1' }, makeEnv());
 
       expect(result.items).toHaveLength(1);
       expect(mockListActionsForUser).toHaveBeenCalledWith('user@example.com', { applicationId: 'app-1' });
@@ -247,7 +247,7 @@ describe('ActionService', () => {
     it('delegates to DAO and returns execution list', async () => {
       mockListExecutionsForUser.mockResolvedValue({ items: [], cursor: null });
 
-      const result = await ActionService.listExecutionsForUser('action-1', 'user@example.com', makeEnv() as never);
+      const result = await ActionService.listExecutionsForUser('action-1', 'user@example.com', makeEnv());
 
       expect(result).toEqual({ items: [], cursor: null });
       expect(mockListExecutionsForUser).toHaveBeenCalledWith('action-1', 'user@example.com');
@@ -258,7 +258,7 @@ describe('ActionService', () => {
     it('returns 404 when action is not found by token hash', async () => {
       mockGetByTokenHash.mockResolvedValue(undefined);
 
-      const result = await ActionService.getConfirmationResponse('action-1', 'bad-token', makeEnv() as never);
+      const result = await ActionService.getConfirmationResponse('action-1', 'bad-token', makeEnv());
 
       expect(result.statusCode).toBe(404);
       expect(result.html).toContain('Action not found');
@@ -267,7 +267,7 @@ describe('ActionService', () => {
     it('returns 200 with confirmation page when action is found', async () => {
       mockGetByTokenHash.mockResolvedValue(makeAction());
 
-      const result = await ActionService.getConfirmationResponse('action-1', 'valid-token', makeEnv() as never);
+      const result = await ActionService.getConfirmationResponse('action-1', 'valid-token', makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(result.html).toContain('Test Action');
@@ -277,7 +277,7 @@ describe('ActionService', () => {
     it('renders expired indicator for an expired action', async () => {
       mockGetByTokenHash.mockResolvedValue(makeAction({ status: 'expired', expiresAt: 1000 }));
 
-      const result = await ActionService.getConfirmationResponse('action-1', 'token', makeEnv() as never);
+      const result = await ActionService.getConfirmationResponse('action-1', 'token', makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(result.html).toContain('expired');
@@ -286,7 +286,7 @@ describe('ActionService', () => {
     it('renders confirmation form for pending non-expired action', async () => {
       mockGetByTokenHash.mockResolvedValue(makeAction({ status: 'pending', expiresAt: FUTURE_EXPIRY }));
 
-      const result = await ActionService.getConfirmationResponse('action-1', 'token', makeEnv() as never);
+      const result = await ActionService.getConfirmationResponse('action-1', 'token', makeEnv());
 
       expect(result.html).toContain('<form');
       expect(result.html).toContain('Confirm action');
@@ -301,7 +301,7 @@ describe('ActionService', () => {
         'action-1',
         'bad-token',
         new Request('https://example.com'),
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.statusCode).toBe(404);
@@ -316,7 +316,7 @@ describe('ActionService', () => {
         'action-1',
         'token',
         new Request('https://example.com'),
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.statusCode).toBe(200);
@@ -336,7 +336,7 @@ describe('ActionService', () => {
         'action-1',
         'token',
         new Request('https://example.com'),
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.statusCode).toBe(200);
@@ -355,7 +355,7 @@ describe('ActionService', () => {
         'action-1',
         'token',
         new Request('https://example.com'),
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.statusCode).toBe(200);
@@ -384,7 +384,7 @@ describe('ActionService', () => {
         'action-1',
         'user@example.com',
         new Request('https://example.com'),
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.status).toBe('succeeded');
@@ -403,7 +403,7 @@ describe('ActionService', () => {
           proposals: [],
           callbackBaseUrl: 'https://example.com',
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toEqual([]);
@@ -419,7 +419,7 @@ describe('ActionService', () => {
           body: '',
           proposals: [{ type: 'manual.todo', title: 'Do it', description: 'Now', parameters: { instructions: 'Step 1' } }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toEqual([]);
@@ -439,7 +439,7 @@ describe('ActionService', () => {
           callbackBaseUrl: 'https://example.com',
           proposals: [{ type: 'manual.todo', title: 'Prepare slides', description: 'For the meeting', parameters: { instructions: 'Make slides' } }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -466,7 +466,7 @@ describe('ActionService', () => {
             parameters: { startTime: '2026-07-01T10:00:00Z', endTime: '2026-07-01T11:00:00Z', timeZone: 'UTC' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -491,7 +491,7 @@ describe('ActionService', () => {
             parameters: { startTime: '2026-07-01T10:00:00', endTime: '2026-07-01T11:00:00' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -517,7 +517,7 @@ describe('ActionService', () => {
             parameters: { startTime: '2026-07-01T10:00:00', endTime: '2026-07-01T11:00:00', timeZone: 'Europe/Berlin' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(mockCreate.mock.calls[0][0].payload).toMatchObject({ timeZone: 'Europe/Berlin' });
@@ -542,7 +542,7 @@ describe('ActionService', () => {
             parameters: { startTime: '2026-07-01T10:00:00Z', endTime: '2026-07-01T11:00:00Z' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(mockCreate.mock.calls[0][0].payload).toMatchObject({ timeZone: 'UTC' });
@@ -567,7 +567,7 @@ describe('ActionService', () => {
             parameters: { startTime: 'not-a-date', endTime: 'also-not-a-date' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -592,7 +592,7 @@ describe('ActionService', () => {
             parameters: { url: 'https://example.com/report' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -617,7 +617,7 @@ describe('ActionService', () => {
             parameters: { url: 'https://phishing.example.com/steal' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -636,7 +636,7 @@ describe('ActionService', () => {
           callbackBaseUrl: 'https://example.com',
           proposals: [{ type: 'unknown_type', title: 'Unknown', description: 'No handler', parameters: {} }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toEqual([]);
@@ -663,7 +663,7 @@ describe('ActionService', () => {
           callbackBaseUrl: 'https://example.com',
           proposals,
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result.length).toBeLessThanOrEqual(4);
@@ -689,7 +689,7 @@ describe('ActionService', () => {
             parameters: { draftBody: 'I will be there!' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -714,7 +714,7 @@ describe('ActionService', () => {
             parameters: { trackingNumber: '1Z999AA10123456784', carrier: 'UPS', trackingUrl: 'https://track.example.com/1Z999AA10123456784' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -743,7 +743,7 @@ describe('ActionService', () => {
             parameters: {},
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -773,7 +773,7 @@ describe('ActionService', () => {
             parameters: { trackingNumber: '1Z999', trackingUrl: 'https://invented.example.com/track' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect((capturedPayload as Record<string, unknown>).trackingUrl).toBeUndefined();
@@ -798,7 +798,7 @@ describe('ActionService', () => {
             parameters: { flightNumber: 'AA123', airline: 'American Airlines', departureAirport: 'JFK', arrivalAirport: 'LAX' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -827,7 +827,7 @@ describe('ActionService', () => {
             parameters: {},
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -853,7 +853,7 @@ describe('ActionService', () => {
             parameters: { payee: 'Acme Corp', amount: '99.99', currency: 'USD', dueDate: '2026-07-01', invoiceNumber: 'INV-1234', paymentUrl: 'https://pay.example.com/inv1234' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -882,7 +882,7 @@ describe('ActionService', () => {
             parameters: {},
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -908,7 +908,7 @@ describe('ActionService', () => {
             parameters: { serviceType: 'Dentist', providerName: 'Dr. Smith', appointmentTime: '2026-07-15T09:00:00', location: '123 Main St', confirmationNumber: 'CONF-999' },
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -937,7 +937,7 @@ describe('ActionService', () => {
             parameters: {},
           }],
         },
-        makeEnv() as never,
+        makeEnv(),
       );
 
       expect(result).toHaveLength(1);
@@ -958,7 +958,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(GmailProviderUtil.createCalendarEvent).toHaveBeenCalled();
@@ -976,7 +976,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(OutlookProviderUtil.createCalendarEvent).toHaveBeenCalled();
@@ -994,7 +994,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(failedAction);
 
-      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(mockMarkFailed).toHaveBeenCalledWith('action-1', 'Calendar API error');
@@ -1010,7 +1010,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      const result = await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(result.statusCode).toBe(200);
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
@@ -1029,7 +1029,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'Package tracking noted: 1Z999 via UPS.',
@@ -1050,7 +1050,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockFetchStatus).toHaveBeenCalledWith('1Z999', 'UPS', 'aftership-key');
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
@@ -1073,7 +1073,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'Package tracking link opened.',
@@ -1091,7 +1091,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockFetchFlightStatus).not.toHaveBeenCalled();
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
@@ -1116,7 +1116,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockFetchFlightStatus).toHaveBeenCalledWith('AA123', 'aviationstack-key');
       expect(mockUpdateSyncStatus).toHaveBeenCalledWith('action-1', expect.stringContaining('scheduled'));
@@ -1140,7 +1140,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockUpdateSyncStatus).not.toHaveBeenCalled();
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
@@ -1159,7 +1159,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'Payment link opened.',
@@ -1177,7 +1177,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'Bill payment reminder noted.',
@@ -1194,7 +1194,7 @@ describe('ActionService', () => {
       mockRecordExecution.mockResolvedValue(undefined);
       mockGetForUser.mockResolvedValue(doneAction);
 
-      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv() as never);
+      await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'Appointment on 2026-07-15T09:00:00 details noted.',

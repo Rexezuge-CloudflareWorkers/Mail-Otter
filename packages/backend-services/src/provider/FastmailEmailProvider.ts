@@ -54,6 +54,7 @@ class FastmailEmailProvider implements IEmailProvider {
     return { type: 'webhook', externalSubscriptionId: subscriptionId };
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     throw new BadRequestError('Fastmail uses JMAP push and does not support polling.');
   }

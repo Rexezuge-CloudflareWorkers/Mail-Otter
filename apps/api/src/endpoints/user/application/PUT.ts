@@ -31,19 +31,19 @@ interface UpdateApplicationRequest extends IRequest {
   displayName: string;
   providerId: 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
   connectionMethod: 'oauth2' | 'imap-password';
-  clientId?: string | undefined;
-  clientSecret?: string | undefined;
-  gmailPubsubTopicName?: string | undefined;
-  imapHost?: string | undefined;
-  imapPort?: number | undefined;
-  imapUsername?: string | undefined;
-  imapPassword?: string | undefined;
-  smtpHost?: string | undefined;
-  smtpPort?: number | undefined;
-  enabledFeatures?: string[] | undefined;
-  timeZone?: string | undefined;
-  senderDomainFilters?: SenderDomainFilters | null | undefined;
-  autoExecuteActionTypes?: string[] | null | undefined;
+  clientId?: string;
+  clientSecret?: string;
+  gmailPubsubTopicName?: string;
+  imapHost?: string;
+  imapPort?: number;
+  imapUsername?: string;
+  imapPassword?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  enabledFeatures?: string[];
+  timeZone?: string;
+  senderDomainFilters?: SenderDomainFilters | null;
+  autoExecuteActionTypes?: string[] | null;
 }
 
 interface UpdateApplicationResponse extends IResponse {

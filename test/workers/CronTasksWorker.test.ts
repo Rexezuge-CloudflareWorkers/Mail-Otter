@@ -85,7 +85,7 @@ import { CronTasksWorker } from '@mail-otter/background';
 function createDurableObjectState(): DurableObjectState {
   return {
     waitUntil: vi.fn(),
-  } as unknown as DurableObjectState;
+  };
 }
 
 function createRunRequest(): Request {
@@ -93,7 +93,7 @@ function createRunRequest(): Request {
     method: 'POST',
     body: JSON.stringify({
       cron: '*/10 * * * *',
-      scheduledTime: 1778200000000,
+      scheduledTime: 1_778_200_000_000,
     }),
   });
 }
@@ -150,7 +150,7 @@ describe('CronTasksWorker', () => {
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         cron: '*/10 * * * *',
-        scheduledTime: 1778200000000,
+        scheduledTime: 1_778_200_000_000,
       }),
     );
   });

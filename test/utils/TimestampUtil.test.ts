@@ -25,11 +25,11 @@ describe('TimestampUtil', () => {
   });
 
   it('adds and subtracts day offsets from second timestamps', () => {
-    expect(TimestampUtil.addDays(1000, 1)).toBe(87400);
-    expect(TimestampUtil.subtractDays(100000, 1)).toBe(13600);
+    expect(TimestampUtil.addDays(1000, 1)).toBe(87_400);
+    expect(TimestampUtil.subtractDays(100_000, 1)).toBe(13_600);
   });
 
   it('converts ISO timestamps to Unix seconds', () => {
-    expect(TimestampUtil.convertIsoToUnixTimestampInSeconds('2026-01-15T12:34:56.789Z')).toBe(1768480496);
+    expect(TimestampUtil.convertIsoToUnixTimestampInSeconds('2026-01-15T12:34:56.789Z')).toBe(1_768_480_496);
   });
 });

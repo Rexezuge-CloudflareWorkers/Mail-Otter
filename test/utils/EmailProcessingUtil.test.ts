@@ -29,7 +29,7 @@ describe('EmailProcessingUtil', () => {
         providerId: 'microsoft-outlook',
         providerEmail: undefined,
         credentials: { refreshToken: 'refresh-token' },
-      } as never);
+      });
 
       await expect(
         EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv()),
@@ -659,8 +659,8 @@ function createProcessedMessage() {
     providerMessageId: 'message-1',
     providerThreadId: 'conversation-1',
     status: 'processing',
-    createdAt: 1778200000,
-    updatedAt: 1778200000,
+    createdAt: 1_778_200_000,
+    updatedAt: 1_778_200_000,
   } as never;
 }
 

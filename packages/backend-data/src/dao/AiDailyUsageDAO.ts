@@ -46,7 +46,7 @@ class AiDailyUsageDAO extends BaseDAO {
           .run(),
       'delete old AI daily usage',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async getEstimatedNeuronsForDate(usageDate: string): Promise<number> {
@@ -138,10 +138,10 @@ interface AiDailyUsageInternal {
 interface IncrementAiDailyUsageInput {
   usageDate: string;
   estimatedNeurons: number;
-  promptTokens?: number | undefined;
-  completionTokens?: number | undefined;
-  embeddingTokens?: number | undefined;
-  requestCount?: number | undefined;
+  promptTokens?: number;
+  completionTokens?: number;
+  embeddingTokens?: number;
+  requestCount?: number;
 }
 
 export { AiDailyUsageDAO };

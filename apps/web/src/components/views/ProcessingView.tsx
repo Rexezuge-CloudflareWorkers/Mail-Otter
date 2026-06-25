@@ -46,8 +46,8 @@ function formatDuration(startedAt: number, completedAt: number | null): string {
   if (!completedAt) return '—';
   const ms = (completedAt - startedAt) * 1000;
   if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.floor((ms % 60_000) / 1000)}s`;
 }
 
 function appName(applicationId: string | null, applications: ConnectedApplication[]): string {

@@ -7,13 +7,13 @@ interface OAuth2AccessTokenServiceEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 interface OAuth2AccessTokenResult {
   accessToken: string;
   expiresAt: number;
-  providerEmail?: string | undefined;
+  providerEmail?: string;
 }
 
 interface CompleteOAuth2AuthorizationInput {
@@ -24,8 +24,8 @@ interface CompleteOAuth2AuthorizationInput {
 }
 
 interface GetAccessTokenOptions {
-  forceRefresh?: boolean | undefined;
-  minValidSeconds?: number | undefined;
+  forceRefresh?: boolean;
+  minValidSeconds?: number;
 }
 
 class OAuth2AccessTokenService {
@@ -64,7 +64,7 @@ class OAuth2AccessTokenService {
       new Request(url, { method: 'POST', body: JSON.stringify(body) }),
     );
     const text: string = await response.text();
-    const data = text ? (JSON.parse(text) as Partial<OAuth2AccessTokenResult> & { error?: string | undefined }) : {};
+    const data = text ? (JSON.parse(text) as Partial<OAuth2AccessTokenResult> & { error?: string }) : {};
     if (!response.ok || !data.accessToken || !data.expiresAt) {
       const message: string = `OAuth2 token worker failed: ${data.error || text || response.statusText}`;
       if (response.status >= 400 && response.status < 500) {
@@ -76,11 +76,11 @@ class OAuth2AccessTokenService {
   }
 }
 
-class OAuth2AccessTokenServiceFactory {
-  static create(env: OAuth2AccessTokenServiceEnv): OAuth2AccessTokenService {
+const OAuth2AccessTokenServiceFactory = {
+  create(env: OAuth2AccessTokenServiceEnv): OAuth2AccessTokenService {
     return new OAuth2AccessTokenService(env);
-  }
-}
+  },
+};
 
 export { OAuth2AccessTokenService, OAuth2AccessTokenServiceFactory };
 export type { CompleteOAuth2AuthorizationInput, GetAccessTokenOptions, OAuth2AccessTokenResult, OAuth2AccessTokenServiceEnv };

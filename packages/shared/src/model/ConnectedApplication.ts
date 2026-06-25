@@ -1,4 +1,4 @@
-import type { ConnectedApplicationStatus, ConnectionMethod, ProviderId } from '../constants';
+import type { ConnectedApplicationStatus as ConnectedAppStatus, ConnectionMethod, ProviderId } from '../constants';
 import type { DigestConfig } from './DigestConfig';
 import type { EmailProcessingRule } from './EmailRule';
 
@@ -9,63 +9,63 @@ interface SenderDomainFilters {
 interface OAuth2Credentials {
   clientId: string;
   clientSecret: string;
-  refreshToken?: string | undefined;
+  refreshToken?: string;
 }
 
 interface ImapPasswordCredentials {
   imapPassword: string;
 }
 
-type ConnectedApplicationCredentials = OAuth2Credentials | ImapPasswordCredentials;
+type ConnectedAppCredentials = OAuth2Credentials | ImapPasswordCredentials;
 
-interface ConnectedApplicationMetadata {
+interface ConnectedAppMetadata {
   applicationId: string;
   userEmail: string;
-  providerEmail?: string | null | undefined;
+  providerEmail?: string | null;
   displayName: string;
   providerId: ProviderId;
   connectionMethod: ConnectionMethod;
-  status: ConnectedApplicationStatus;
+  status: ConnectedAppStatus;
   contextIndexingEnabled: boolean;
   ragRetrievalEnabled: boolean;
-  maxContextDocuments?: number | null | undefined;
-  enabledFeatures?: string[] | null | undefined;
-  timeZone?: string | null | undefined;
-  senderDomainFilters?: SenderDomainFilters | null | undefined;
-  emailProcessingRules?: EmailProcessingRule[] | null | undefined;
-  autoExecuteActionTypes?: string[] | null | undefined;
-  digestConfig?: DigestConfig | null | undefined;
-  gmailPubsubTopicName?: string | null | undefined;
-  imapHost?: string | null | undefined;
-  imapPort?: number | null | undefined;
-  imapUsername?: string | null | undefined;
-  imapPassword?: string | null | undefined;
-  smtpHost?: string | null | undefined;
-  smtpPort?: number | null | undefined;
-  watchedFolders?: Array<{ id: string; name: string }> | null | undefined;
-  oauth2RedirectUri?: string | undefined;
-  webhookUrl?: string | undefined;
-  watchStatus?: string | undefined;
-  watchExpiresAt?: number | null | undefined;
-  lastSummaryAt?: number | null | undefined;
-  lastError?: string | null | undefined;
-  lastErrorAt?: number | null | undefined;
-  lastErrorAcknowledgedAt?: number | null | undefined;
-  contextDocumentCount?: number | undefined;
-  contextLastIndexedAt?: number | null | undefined;
-  contextLastDeleteAcceptedAt?: number | null | undefined;
-  contextLastError?: string | null | undefined;
-  contextLastErrorAt?: number | null | undefined;
-  contextLastErrorAcknowledgedAt?: number | null | undefined;
+  maxContextDocuments?: number | null;
+  enabledFeatures?: string[] | null;
+  timeZone?: string | null;
+  senderDomainFilters?: SenderDomainFilters | null;
+  emailProcessingRules?: EmailProcessingRule[] | null;
+  autoExecuteActionTypes?: string[] | null;
+  digestConfig?: DigestConfig | null;
+  gmailPubsubTopicName?: string | null;
+  imapHost?: string | null;
+  imapPort?: number | null;
+  imapUsername?: string | null;
+  imapPassword?: string | null;
+  smtpHost?: string | null;
+  smtpPort?: number | null;
+  watchedFolders?: Array<{ id: string; name: string }> | null;
+  oauth2RedirectUri?: string;
+  webhookUrl?: string;
+  watchStatus?: string;
+  watchExpiresAt?: number | null;
+  lastSummaryAt?: number | null;
+  lastError?: string | null;
+  lastErrorAt?: number | null;
+  lastErrorAcknowledgedAt?: number | null;
+  contextDocumentCount?: number;
+  contextLastIndexedAt?: number | null;
+  contextLastDeleteAcceptedAt?: number | null;
+  contextLastError?: string | null;
+  contextLastErrorAt?: number | null;
+  contextLastErrorAcknowledgedAt?: number | null;
   createdAt: number;
   updatedAt: number;
 }
 
-interface ConnectedApplication extends ConnectedApplicationMetadata {
-  credentials: ConnectedApplicationCredentials;
+interface ConnectedApp extends ConnectedAppMetadata {
+  credentials: ConnectedAppCredentials;
 }
 
-interface ConnectedApplicationInternal {
+interface ConnectedAppInternal {
   application_id: string;
   user_email: string;
   provider_email: string | null;
@@ -74,7 +74,7 @@ interface ConnectedApplicationInternal {
   connection_method: ConnectionMethod;
   encrypted_credentials: string;
   credentials_iv: string;
-  status: ConnectedApplicationStatus;
+  status: ConnectedAppStatus;
   context_indexing_enabled: number;
   rag_retrieval_enabled: number;
   max_context_documents: number | null;
@@ -85,10 +85,10 @@ interface ConnectedApplicationInternal {
 }
 
 export type {
-  ConnectedApplication,
-  ConnectedApplicationCredentials,
-  ConnectedApplicationInternal,
-  ConnectedApplicationMetadata,
+  ConnectedApp as ConnectedApplication,
+  ConnectedAppCredentials as ConnectedApplicationCredentials,
+  ConnectedAppInternal as ConnectedApplicationInternal,
+  ConnectedAppMetadata as ConnectedApplicationMetadata,
   ImapPasswordCredentials,
   OAuth2Credentials,
   SenderDomainFilters,

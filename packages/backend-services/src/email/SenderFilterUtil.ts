@@ -3,7 +3,7 @@ import type { SenderDomainFilters } from '@mail-otter/shared/model';
 class SenderFilterUtil {
   public static extractEmailAddress(from: string): string {
     const lt = from.indexOf('<');
-    const gt = lt !== -1 ? from.indexOf('>', lt + 1) : -1;
+    const gt = lt === -1 ? -1 : from.indexOf('>', lt + 1);
     if (lt !== -1 && gt !== -1) {
       return from.slice(lt + 1, gt).toLowerCase().trim();
     }
@@ -22,10 +22,10 @@ class SenderFilterUtil {
     from: string,
     filters: SenderDomainFilters,
   ): { skip: false } | { skip: true; reason: string } {
-    const address = SenderFilterUtil.extractEmailAddress(from);
+    const address = this.extractEmailAddress(from);
 
     if (filters.includeRules.length > 0) {
-      const included = filters.includeRules.some((r) => SenderFilterUtil.matchesPattern(address, r));
+      const included = filters.includeRules.some((r) => this.matchesPattern(address, r));
       if (!included) {
         return { skip: true, reason: 'Sender does not match application include filter rules.' };
       }

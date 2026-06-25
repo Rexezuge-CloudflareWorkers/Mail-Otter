@@ -5,12 +5,12 @@ const APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR = 'error';
 const APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED = 'accepted';
 const APPLICATION_CONTEXT_DELETION_STATUS_ERROR = 'error';
 
-type ApplicationContextDocumentStatus =
+type AppContextDocumentStatus =
   | typeof APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE
   | typeof APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED
   | typeof APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR;
 
-type ApplicationContextDeletionStatus =
+type AppContextDeletionStatus =
   | typeof APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED
   | typeof APPLICATION_CONTEXT_DELETION_STATUS_ERROR;
 
@@ -75,4 +75,4 @@ export {
   CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
   CONTEXT_AUDIT_LOG_SEVERITY_ERROR,
 };
-export type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus, ContextAuditEventType, ContextAuditLogSeverity };
+export type { AppContextDeletionStatus as ApplicationContextDeletionStatus, AppContextDocumentStatus as ApplicationContextDocumentStatus, ContextAuditEventType, ContextAuditLogSeverity };

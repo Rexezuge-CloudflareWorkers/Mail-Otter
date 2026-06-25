@@ -46,4 +46,6 @@ class EmailProviderRegistry {
 }
 
 export { EmailProviderRegistry };
-export type { IEmailProvider };
+
+
+export {type IEmailProvider} from './IEmailProvider';

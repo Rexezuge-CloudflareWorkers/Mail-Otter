@@ -6,8 +6,8 @@ interface EmailRuleContext {
   from: string;
   subject: string;
   body: string;
-  hasAttachment?: boolean | undefined;
-  detectedActionTypes?: string[] | undefined;
+  hasAttachment?: boolean;
+  detectedActionTypes?: string[];
 }
 
 class EmailRulesUtil {
@@ -22,8 +22,8 @@ class EmailRulesUtil {
   public static evaluatePreProcessing(rules: EmailProcessingRule[], ctx: EmailRuleContext): EmailProcessingRule | null {
     for (const rule of rules) {
       if (!rule.enabled) continue;
-      if (!EmailRulesUtil.isPreProcessingRule(rule)) continue;
-      if (EmailRulesUtil.matchesConditions(rule, ctx)) return rule;
+      if (!this.isPreProcessingRule(rule)) continue;
+      if (this.matchesConditions(rule, ctx)) return rule;
     }
     return null;
   }
@@ -32,22 +32,22 @@ class EmailRulesUtil {
     const matched: EmailProcessingRule[] = [];
     for (const rule of rules) {
       if (!rule.enabled) continue;
-      if (!EmailRulesUtil.isPostProcessingRule(rule)) continue;
-      if (EmailRulesUtil.matchesConditions(rule, ctx)) matched.push(rule);
+      if (!this.isPostProcessingRule(rule)) continue;
+      if (this.matchesConditions(rule, ctx)) matched.push(rule);
     }
     return matched;
   }
 
   public static evaluate(rules: EmailProcessingRule[], ctx: EmailRuleContext): EmailProcessingRule | null {
-    return EmailRulesUtil.evaluatePreProcessing(rules, ctx);
+    return this.evaluatePreProcessing(rules, ctx);
   }
 
   private static matchesConditions(rule: EmailProcessingRule, ctx: EmailRuleContext): boolean {
     const { operator, matchers } = rule.conditions;
     if (operator === 'any') {
-      return matchers.some((m) => EmailRulesUtil.matchesMatcher(m, ctx));
+      return matchers.some((m) => this.matchesMatcher(m, ctx));
     }
-    return matchers.every((m) => EmailRulesUtil.matchesMatcher(m, ctx));
+    return matchers.every((m) => this.matchesMatcher(m, ctx));
   }
 
   public static matchesMatcher(matcher: EmailRuleConditionMatcher, ctx: EmailRuleContext): boolean {
@@ -67,7 +67,7 @@ class EmailRulesUtil {
       return SenderFilterUtil.matchesPattern(address, matcher.value);
     }
 
-    const fieldValue: string = EmailRulesUtil.getFieldValue(matcher.field, ctx);
+    const fieldValue: string = this.getFieldValue(matcher.field, ctx);
     const haystack: string = fieldValue.toLowerCase();
     const needle: string = matcher.value.toLowerCase();
     const found: boolean = haystack.includes(needle);
@@ -76,10 +76,14 @@ class EmailRulesUtil {
 
   private static getFieldValue(field: string, ctx: EmailRuleContext): string {
     switch (field) {
-      case 'from': return ctx.from;
-      case 'subject': return ctx.subject;
-      case 'body': return ctx.body;
-      default: return '';
+      case 'from': { return ctx.from;
+      }
+      case 'subject': { return ctx.subject;
+      }
+      case 'body': { return ctx.body;
+      }
+      default: { return '';
+      }
     }
   }
 }

@@ -36,7 +36,7 @@ interface DigestServiceEnv {
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 class DigestService {
@@ -102,8 +102,8 @@ class DigestService {
     const calendarDAO = new SyncedCalendarEventDAO(this.db);
 
     const dayStartUnix = DigestService.getDayStartUnix(now, timeZone);
-    const dayEndUnix = dayStartUnix + 86400;
-    const billsDueByUnix = nowUnix + DIGEST_BILLS_DUE_DAYS * 86400;
+    const dayEndUnix = dayStartUnix + 86_400;
+    const billsDueByUnix = nowUnix + DIGEST_BILLS_DUE_DAYS * 86_400;
     const appointmentsByUnix = nowUnix + DIGEST_APPOINTMENTS_HOURS * 3600;
 
     const [calendarEvents, tasks, packages, flights, allBills, allAppointments] = await Promise.all([
@@ -131,14 +131,14 @@ class DigestService {
       const dueDate = (a.payload as FinancePayBillActionPayload).dueDate;
       if (!dueDate) return true;
       const dueDateUnix = Math.floor(new Date(dueDate).getTime() / 1000);
-      return !isNaN(dueDateUnix) && dueDateUnix <= billsDueByUnix;
+      return !Number.isNaN(dueDateUnix) && dueDateUnix <= billsDueByUnix;
     });
 
     const appointments = allAppointments.filter((a) => {
       const apptTime = (a.payload as AppointmentConfirmActionPayload).appointmentTime;
       if (!apptTime) return true;
       const apptUnix = Math.floor(new Date(apptTime).getTime() / 1000);
-      return !isNaN(apptUnix) && apptUnix <= appointmentsByUnix;
+      return !Number.isNaN(apptUnix) && apptUnix <= appointmentsByUnix;
     });
 
     return { calendarEvents, tasks, packages, flights, bills, appointments };

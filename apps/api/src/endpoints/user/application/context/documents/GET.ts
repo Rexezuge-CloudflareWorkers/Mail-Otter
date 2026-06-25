@@ -32,7 +32,7 @@ type ListApplicationContextDocumentsRequest = IRequest;
 
 interface ListApplicationContextDocumentsResponse extends IResponse {
   documents: ApplicationContextDocument[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListApplicationContextDocumentsEnv = IUserEnv;

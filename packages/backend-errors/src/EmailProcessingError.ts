@@ -2,7 +2,7 @@ import { NonRetryableError } from './NonRetryableError';
 import { RetryableError } from './RetryableError';
 
 class AiSummaryRetryableError extends RetryableError {
-  public readonly aiUsage: unknown | undefined;
+  public readonly aiUsage: unknown;
   public readonly aiOutputText: string | undefined;
 
   constructor(message: string, options: AiSummaryRetryableErrorOptions = {}) {
@@ -29,6 +29,6 @@ export {
 };
 
 interface AiSummaryRetryableErrorOptions {
-  aiUsage?: unknown | undefined;
-  aiOutputText?: string | undefined;
+  aiUsage?: unknown;
+  aiOutputText?: string;
 }

@@ -104,7 +104,7 @@ class EmailRuleSuggestionUtil {
     model: string,
     description: string,
   ): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
-    const { rule } = await EmailRuleSuggestionUtil.suggestWithUsage(ai, model, description);
+    const { rule } = await this.suggestWithUsage(ai, model, description);
     return rule;
   }
 
@@ -153,7 +153,7 @@ class EmailRuleSuggestionUtil {
       throw new BadRequestError('Could not generate a rule from that description. Try rephrasing.');
     }
 
-    const validated = EmailRuleSuggestionUtil.validateRule(parsed);
+    const validated = this.validateRule(parsed);
     if (!validated) {
       throw new BadRequestError('Could not generate a valid rule from that description. Try rephrasing.');
     }
@@ -166,8 +166,8 @@ class EmailRuleSuggestionUtil {
     const p = parsed as Record<string, unknown>;
 
     const name = p['name'];
+    if (typeof name !== 'string' || name.trim().length === 0 || name.length > 100) return undefined;
     const enabled = p['enabled'];
-    if (typeof name !== 'string' || name.trim().length < 1 || name.length > 100) return undefined;
     if (typeof enabled !== 'boolean') return undefined;
 
     const actionResult = EmailRuleActionSchema.safeParse(p['action']);
@@ -175,7 +175,7 @@ class EmailRuleSuggestionUtil {
 
     // Coerce matches_sender on non-from fields and detected_action_type on pre-processing rules
     // before schema validation (the shared schema enforces these as Zod refinements).
-    const conditions = EmailRuleSuggestionUtil.sanitizeConditions(p['conditions'], actionResult.data.type);
+    const conditions = this.sanitizeConditions(p['conditions'], actionResult.data.type);
     const condResult = EmailRuleConditionSchema.safeParse(conditions);
     if (!condResult.success) return undefined;
 

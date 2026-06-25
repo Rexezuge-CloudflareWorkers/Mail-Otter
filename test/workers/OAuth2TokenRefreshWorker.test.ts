@@ -9,7 +9,7 @@ import type { ConnectedApplication } from '@mail-otter/shared/model';
 function createDurableObjectState(): DurableObjectState {
   return {
     waitUntil: vi.fn(),
-  } as unknown as DurableObjectState;
+  };
 }
 
 function createEnv(): Env {
@@ -35,8 +35,8 @@ function createApplication(): ConnectedApplication {
     credentials: { clientId: 'client-id', clientSecret: 'client-secret', refreshToken: 'refresh-token' },
     status: CONNECTED_APPLICATION_STATUS_CONNECTED,
     contextIndexingEnabled: false,
-    createdAt: 1778200000,
-    updatedAt: 1778200000,
+    createdAt: 1_778_200_000,
+    updatedAt: 1_778_200_000,
   };
 }
 
@@ -65,7 +65,7 @@ describe('OAuth2TokenRefreshWorker', () => {
     vi.spyOn(OAuth2AccessTokenCacheDAO.prototype, 'getCachedAccessToken').mockResolvedValue({
       applicationId: 'app-1',
       accessToken: 'cached-token',
-      expiresAt: 1778203600,
+      expiresAt: 1_778_203_600,
     });
     const refreshSpy = vi.spyOn(OAuth2ProviderUtil, 'refreshAccessToken');
     const worker = new OAuth2TokenRefreshWorker(createDurableObjectState(), createEnv());
@@ -75,7 +75,7 @@ describe('OAuth2TokenRefreshWorker', () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       accessToken: 'cached-token',
-      expiresAt: 1778203600,
+      expiresAt: 1_778_203_600,
     });
     expect(refreshSpy).not.toHaveBeenCalled();
   });

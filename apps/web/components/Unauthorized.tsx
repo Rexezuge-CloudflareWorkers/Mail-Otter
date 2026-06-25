@@ -1,10 +1,10 @@
 import { ZERO_TRUST_AUTHENTICATION_PATH } from './constants';
 
-export default function Unauthorized() {
-  const authenticateWithZeroTrust = () => {
-    window.location.assign(ZERO_TRUST_AUTHENTICATION_PATH);
-  };
+function authenticateWithZeroTrust() {
+  globalThis.location.assign(ZERO_TRUST_AUTHENTICATION_PATH);
+}
 
+export default function Unauthorized() {
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex items-center justify-center">
       <div className="text-center px-6">

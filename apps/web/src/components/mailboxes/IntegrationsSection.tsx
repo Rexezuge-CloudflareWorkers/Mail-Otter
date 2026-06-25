@@ -25,7 +25,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete Integration "${integration.name}"?`)) return;
+    if (!globalThis.confirm(`Delete Integration "${integration.name}"?`)) return;
     await onDeleteIntegration(integration.integrationId);
   };
 
@@ -50,7 +50,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
   return (
     <div className="flex items-center gap-3 py-2 border-b border-[var(--color-border)] last:border-0">
       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] uppercase">
-        {TYPE_LABELS[integration.integrationType as OutboundIntegrationType] ?? integration.integrationType}
+        {TYPE_LABELS[integration.integrationType] ?? integration.integrationType}
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{integration.name}</p>

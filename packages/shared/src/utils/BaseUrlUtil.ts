@@ -1,8 +1,8 @@
-class BaseUrlUtil {
+class BaseUrlUtility {
   public static getBaseUrl(request: Request): string {
     const url: URL = new URL(request.url);
     return `${url.protocol}//${url.host}`;
   }
 }
 
-export { BaseUrlUtil };
+export { BaseUrlUtility as BaseUrlUtil };

@@ -8,7 +8,7 @@ interface FastmailWebhookInput {
   applicationId: string;
   token: string | null;
   emailId: string;
-  callbackBaseUrl?: string | undefined;
+  callbackBaseUrl?: string;
 }
 
 interface FastmailWebhookEnv {

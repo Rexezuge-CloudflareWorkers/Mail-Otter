@@ -34,7 +34,7 @@ type ListBackgroundTaskRunsRequest = IRequest;
 
 interface ListBackgroundTaskRunsResponse extends IResponse {
   runs: BackgroundTaskRun[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListBackgroundTaskRunsEnv = IUserEnv;

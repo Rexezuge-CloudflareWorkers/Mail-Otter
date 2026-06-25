@@ -31,14 +31,14 @@ interface StartApplicationWatchResponse extends IResponse {
   message: string;
   webhookUrl: string;
   watchStatus: string;
-  watchExpiresAt?: number | undefined;
+  watchExpiresAt?: number;
 }
 
 interface StartApplicationWatchEnv extends IUserEnv {
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string;
 }
 
 export { StartApplicationWatchRoute };

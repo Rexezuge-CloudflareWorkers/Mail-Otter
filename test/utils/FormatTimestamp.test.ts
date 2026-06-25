@@ -12,7 +12,7 @@ describe('formatTimestamp', () => {
   });
 
   it('treats numeric timestamps as Unix seconds, not milliseconds', () => {
-    expect(formatTimestamp(1700000000)).toBe('16m ago');
+    expect(formatTimestamp(1_700_000_000)).toBe('16m ago');
   });
 
   it('returns Never for missing timestamps', () => {

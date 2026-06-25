@@ -26,10 +26,10 @@ class UpdateApplicationContextRoute extends IUserRoute<
     cxt: RouteContext<UpdateApplicationContextEnv>,
   ): Promise<UpdateApplicationContextResponse> {
     if (request.maxContextDocuments != null) {
-      const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
       if (request.maxContextDocuments < 1) {
         throw new BadRequestError('maxContextDocuments must be a positive integer.');
       }
+      const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
       if (request.maxContextDocuments > globalMax) {
         throw new BadRequestError(`maxContextDocuments cannot exceed the global maximum of ${globalMax}.`);
       }
@@ -42,9 +42,9 @@ class UpdateApplicationContextRoute extends IUserRoute<
 
 interface UpdateApplicationContextRequest extends IRequest {
   applicationId: string;
-  contextIndexingEnabled?: boolean | undefined;
-  ragRetrievalEnabled?: boolean | undefined;
-  maxContextDocuments?: number | null | undefined;
+  contextIndexingEnabled?: boolean;
+  ragRetrievalEnabled?: boolean;
+  maxContextDocuments?: number | null;
 }
 
 interface UpdateApplicationContextResponse extends IResponse {
@@ -52,7 +52,7 @@ interface UpdateApplicationContextResponse extends IResponse {
 }
 
 interface UpdateApplicationContextEnv extends IUserEnv {
-  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
+  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string;
 }
 
 export { UpdateApplicationContextRoute };

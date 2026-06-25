@@ -1,7 +1,7 @@
 import { ErrorCode, ServiceError } from './IServiceError';
 
 class InternalServerError extends ServiceError {
-  constructor(message?: string | undefined) {
+  constructor(message?: string) {
     super(message ?? 'The server encountered an internal error and was unable to complete your request.');
   }
 

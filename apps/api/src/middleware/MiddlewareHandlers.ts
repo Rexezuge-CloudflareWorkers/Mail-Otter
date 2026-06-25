@@ -7,6 +7,7 @@ type UserContext = Context<{ Bindings: Env; Variables: { AuthenticatedUserEmailA
 
 class MiddlewareHandlers {
   public static userAuthentication() {
+    // eslint-disable-next-line unicorn/consistent-function-scoping
     return async (c: UserContext, next: Next): Promise<Response | void> => {
       try {
         const userEmail: string = await EmailValidationUtil.getAuthenticatedUserEmail(c.req.raw, c.env);

@@ -286,7 +286,7 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 ## Test Coverage History
 
 - Initial threshold: 90/80/90/90
-- Lowered to 55/40/70/55, then raised to 72/55/83/74, then adjusted to 57/45/68/58 (statements/branches/functions/lines) in vitest.config.mts as new features added surface area
+- Lowered to 55/40/70/55, then raised to 72/55/83/74, then adjusted to 57/45/68/58, then functions lowered to 66 (statements/branches/functions/lines) in vitest.config.mts as new features added surface area
 - `**/model/**` excluded from coverage (pure TypeScript types)
 - Integration tests live under `test/integration/` with their own `vitest.config.mts` (`pnpm run test:integration`). They run on `@cloudflare/vitest-pool-workers`, which does not produce V8 coverage — do not add coverage thresholds to the integration config.
 

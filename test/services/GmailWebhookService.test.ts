@@ -47,7 +47,7 @@ describe('GmailWebhookService', () => {
       const env = makeEnv();
       await GmailWebhookService.handleNotification(
         { applicationId: 'app-1', token: 'valid-token', messageData: 'encoded', pubsubMessageId: 'msg-1', callbackBaseUrl: 'https://api.example.com' },
-        env as never,
+        env,
       );
 
       expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledWith({
@@ -108,7 +108,7 @@ describe('GmailWebhookService', () => {
       const env = makeEnv();
       await GmailWebhookService.handleNotification(
         { applicationId: 'app-1', token: 'token', messageData: 'data' },
-        env as never,
+        env,
       );
 
       expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledWith(

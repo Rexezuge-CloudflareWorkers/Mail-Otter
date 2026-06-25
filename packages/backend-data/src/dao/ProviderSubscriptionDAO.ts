@@ -12,14 +12,14 @@ import { BaseDAO } from './BaseDAO';
 
 interface UpsertProviderSubscriptionInput {
   applicationId: string;
-  providerId?: ProviderId | undefined;
-  externalSubscriptionId?: string | null | undefined;
-  webhookSecretHash?: string | null | undefined;
-  clientStateHash?: string | null | undefined;
-  gmailHistoryId?: string | null | undefined;
-  imapCursor?: string | null | undefined;
-  resource?: string | null | undefined;
-  expiresAt?: number | null | undefined;
+  providerId?: ProviderId;
+  externalSubscriptionId?: string | null;
+  webhookSecretHash?: string | null;
+  clientStateHash?: string | null;
+  gmailHistoryId?: string | null;
+  imapCursor?: string | null;
+  resource?: string | null;
+  expiresAt?: number | null;
 }
 
 class ProviderSubscriptionDAO extends BaseDAO {

@@ -18,7 +18,7 @@ import type { CreatedEmailAction } from '../action';
 class EmailProcessingAuditLogger {
   constructor(private readonly contextDAO: ApplicationContextDAO) {}
 
-  async logProcessingStarted(application: ConnectedApplication, sourceDocumentId: string, retryAttempt?: number | undefined): Promise<void> {
+  async logProcessingStarted(application: ConnectedApplication, sourceDocumentId: string, retryAttempt?: number): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
@@ -29,7 +29,7 @@ class EmailProcessingAuditLogger {
     );
   }
 
-  async logSummaryGenerated(application: ConnectedApplication, sourceDocumentId: string, model: string, estimatedNeurons: number, retryAttempt?: number | undefined): Promise<void> {
+  async logSummaryGenerated(application: ConnectedApplication, sourceDocumentId: string, model: string, estimatedNeurons: number, retryAttempt?: number): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
@@ -39,7 +39,7 @@ class EmailProcessingAuditLogger {
       {
         summaryModel: model,
         estimatedNeurons,
-        ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}),
+        ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }),
       },
     );
   }
@@ -48,7 +48,7 @@ class EmailProcessingAuditLogger {
     application: ConnectedApplication,
     sourceDocumentId: string,
     actions: CreatedEmailAction[],
-    retryAttempt?: number | undefined,
+    retryAttempt?: number,
   ): Promise<void> {
     return this.logAuditEvent(
       application,
@@ -59,12 +59,12 @@ class EmailProcessingAuditLogger {
       {
         actionCount: actions.length,
         actionTypes: actions.map((a) => a.action.actionType),
-        ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}),
+        ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }),
       },
     );
   }
 
-  async logSummarySent(application: ConnectedApplication, sourceDocumentId: string, retryAttempt?: number | undefined): Promise<void> {
+  async logSummarySent(application: ConnectedApplication, sourceDocumentId: string, retryAttempt?: number): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
@@ -86,14 +86,14 @@ class EmailProcessingAuditLogger {
     );
   }
 
-  async logProcessingError(application: ConnectedApplication, sourceDocumentId: string, error: Error, retryAttempt?: number | undefined): Promise<void> {
+  async logProcessingError(application: ConnectedApplication, sourceDocumentId: string, error: Error, retryAttempt?: number): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
       CONTEXT_AUDIT_EVENT_ERROR,
       'Email Processing Error',
       error instanceof NonRetryableError ? CONTEXT_AUDIT_LOG_SEVERITY_ERROR : CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
-      { error: error.message, errorType: error.constructor?.name, ...(retryAttempt != null && retryAttempt > 1 ? { attempt: retryAttempt } : {}) },
+      { error: error.message, errorType: error.constructor?.name, ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }) },
     );
   }
 
@@ -103,7 +103,7 @@ class EmailProcessingAuditLogger {
     eventType: Parameters<ApplicationContextDAO['insertAuditLog']>[0]['eventType'],
     eventLabel: string,
     severity: Parameters<ApplicationContextDAO['insertAuditLog']>[0]['severity'],
-    eventData?: unknown | undefined,
+    eventData?: unknown,
   ): Promise<void> {
     const contextDocumentId = await this.getContextDocumentId(application, sourceDocumentId);
     if (!contextDocumentId) return;

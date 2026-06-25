@@ -49,27 +49,27 @@ class DigestEmailUtil {
     let hasContent = false;
 
     if (enabledSections.includes(DIGEST_SECTION_CALENDAR) && sections.calendarEvents.length > 0) {
-      parts.push(DigestEmailUtil.buildCalendarSection(sections.calendarEvents));
+      parts.push(this.buildCalendarSection(sections.calendarEvents));
       hasContent = true;
     }
     if (enabledSections.includes(DIGEST_SECTION_TASKS) && sections.tasks.length > 0) {
-      parts.push(DigestEmailUtil.buildTasksSection(sections.tasks));
+      parts.push(this.buildTasksSection(sections.tasks));
       hasContent = true;
     }
     if (enabledSections.includes(DIGEST_SECTION_PACKAGES) && sections.packages.length > 0) {
-      parts.push(DigestEmailUtil.buildPackagesSection(sections.packages));
+      parts.push(this.buildPackagesSection(sections.packages));
       hasContent = true;
     }
     if (enabledSections.includes(DIGEST_SECTION_FLIGHTS) && sections.flights.length > 0) {
-      parts.push(DigestEmailUtil.buildFlightsSection(sections.flights));
+      parts.push(this.buildFlightsSection(sections.flights));
       hasContent = true;
     }
     if (enabledSections.includes(DIGEST_SECTION_BILLS) && sections.bills.length > 0) {
-      parts.push(DigestEmailUtil.buildBillsSection(sections.bills));
+      parts.push(this.buildBillsSection(sections.bills));
       hasContent = true;
     }
     if (enabledSections.includes(DIGEST_SECTION_APPOINTMENTS) && sections.appointments.length > 0) {
-      parts.push(DigestEmailUtil.buildAppointmentsSection(sections.appointments));
+      parts.push(this.buildAppointmentsSection(sections.appointments));
       hasContent = true;
     }
 
@@ -105,7 +105,7 @@ class DigestEmailUtil {
       const location = ev.location ? `<span style="color:#666"> · ${EmailContentUtil.sanitizeHtml(ev.location)}</span>` : '';
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(ev.eventTitle)}</strong> <span style="color:#666">${start}–${end}</span>${location}</li>`;
     });
-    return DigestEmailUtil.buildSection('📅 Today\'s Calendar Events', rows.join(''));
+    return this.buildSection('📅 Today\'s Calendar Events', rows.join(''));
   }
 
   private static buildTasksSection(actions: EmailAction[]): string {
@@ -113,7 +113,7 @@ class DigestEmailUtil {
       const payload = a.payload as ManualTodoActionPayload;
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(a.title)}</strong><br><span style="color:#666;font-size:13px">${EmailContentUtil.sanitizeHtml(payload.instructions || a.description)}</span></li>`;
     });
-    return DigestEmailUtil.buildSection('✅ Pending Tasks', rows.join(''));
+    return this.buildSection('✅ Pending Tasks', rows.join(''));
   }
 
   private static buildPackagesSection(actions: EmailAction[]): string {
@@ -133,7 +133,7 @@ class DigestEmailUtil {
       const link = payload.trackingUrl ? ` <a href="${EmailContentUtil.sanitizeHtml(payload.trackingUrl)}" style="color:#2563eb">Track</a>` : '';
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(a.title)}</strong><span style="color:#666">${status}${location}</span><br><span style="color:#666;font-size:13px">${EmailContentUtil.sanitizeHtml(payload.trackingNumber)}${carrier}</span>${link}${eta}</li>`;
     });
-    return DigestEmailUtil.buildSection('📦 Package Deliveries', rows.join(''));
+    return this.buildSection('📦 Package Deliveries', rows.join(''));
   }
 
   private static buildFlightsSection(actions: EmailAction[]): string {
@@ -150,7 +150,7 @@ class DigestEmailUtil {
       const link = payload.trackingUrl ? ` <a href="${EmailContentUtil.sanitizeHtml(payload.trackingUrl)}" style="color:#2563eb">Track</a>` : '';
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(payload.flightNumber)}</strong>${status}<br><span style="color:#666;font-size:13px">${EmailContentUtil.sanitizeHtml(route || a.description)}</span>${link}</li>`;
     });
-    return DigestEmailUtil.buildSection('✈️ Upcoming Flights', rows.join(''));
+    return this.buildSection('✈️ Upcoming Flights', rows.join(''));
   }
 
   private static buildBillsSection(actions: EmailAction[]): string {
@@ -161,7 +161,7 @@ class DigestEmailUtil {
       const link = payload.paymentUrl ? ` <a href="${EmailContentUtil.sanitizeHtml(payload.paymentUrl)}" style="color:#2563eb">Pay</a>` : '';
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(payload.payee || a.title)}</strong>${amount}${dueDate}${link}</li>`;
     });
-    return DigestEmailUtil.buildSection('💳 Bills Due Soon', rows.join(''));
+    return this.buildSection('💳 Bills Due Soon', rows.join(''));
   }
 
   private static buildAppointmentsSection(actions: EmailAction[]): string {
@@ -171,7 +171,7 @@ class DigestEmailUtil {
       const location = payload.location ? ` at ${EmailContentUtil.sanitizeHtml(payload.location)}` : '';
       return `<li style="margin-bottom:8px"><strong>${EmailContentUtil.sanitizeHtml(payload.serviceType || a.title)}</strong>${time}${location}</li>`;
     });
-    return DigestEmailUtil.buildSection('📋 Upcoming Appointments', rows.join(''));
+    return this.buildSection('📋 Upcoming Appointments', rows.join(''));
   }
 
   private static buildSection(heading: string, itemsHtml: string): string {

@@ -40,7 +40,7 @@ describe('ProviderSubscriptionDAO', () => {
     mockAll.mockReset();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
-    dao = new ProviderSubscriptionDAO(createMockDb() as unknown as D1Database);
+    dao = new ProviderSubscriptionDAO(createMockDb());
   });
 
   describe('getByApplication', () => {
@@ -55,7 +55,7 @@ describe('ProviderSubscriptionDAO', () => {
         gmail_history_id: 'hist-1',
         resource: null,
         status: 'active',
-        expires_at: 9999999999,
+        expires_at: 9_999_999_999,
         last_notification_at: null,
         last_renewed_at: 1000,
         last_error: null,
@@ -93,7 +93,7 @@ describe('ProviderSubscriptionDAO', () => {
         gmail_history_id: null,
         resource: 'Users/test/MailFolders/Inbox',
         status: 'active',
-        expires_at: 9999999999,
+        expires_at: 9_999_999_999,
         last_notification_at: null,
         last_renewed_at: 1000,
         last_error: null,
@@ -124,7 +124,7 @@ describe('ProviderSubscriptionDAO', () => {
           gmail_history_id: 'hist-1',
           resource: null,
           status: 'active',
-          expires_at: 9999999999,
+          expires_at: 9_999_999_999,
           last_notification_at: null,
           last_renewed_at: 1000,
           last_error: null,
@@ -140,7 +140,7 @@ describe('ProviderSubscriptionDAO', () => {
         externalSubscriptionId: 'ext-1',
         webhookSecretHash: 'hash-1',
         gmailHistoryId: 'hist-1',
-        expiresAt: 9999999999,
+        expiresAt: 9_999_999_999,
       });
 
       expect(sub).toBeDefined();
@@ -178,7 +178,7 @@ describe('ProviderSubscriptionDAO', () => {
           gmail_history_id: 'old-hist',
           resource: null,
           status: 'active',
-          expires_at: 9999999999,
+          expires_at: 9_999_999_999,
           last_notification_at: null,
           last_renewed_at: 1000,
           last_error: null,
@@ -192,7 +192,7 @@ describe('ProviderSubscriptionDAO', () => {
         applicationId: 'app-1',
         providerId: 'google-gmail',
         externalSubscriptionId: 'ext-new',
-        expiresAt: 9999999999,
+        expiresAt: 9_999_999_999,
       });
 
       expect(sub.subscriptionId).toBe('existing-sub');
@@ -240,7 +240,7 @@ describe('ProviderSubscriptionDAO', () => {
 
   describe('recordTransientError', () => {
     it('updates error count and next retry', async () => {
-      await dao.recordTransientError('sub-1', 'Transient issue', 9999999999);
+      await dao.recordTransientError('sub-1', 'Transient issue', 9_999_999_999);
       expect(mockRun).toHaveBeenCalled();
     });
   });

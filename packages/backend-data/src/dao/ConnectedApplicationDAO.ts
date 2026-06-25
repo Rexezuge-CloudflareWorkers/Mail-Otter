@@ -218,16 +218,16 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   ): Promise<void> {
     const entries: Array<[string, string | null]> = [
       ['imap_host', config.host ?? null],
-      ['imap_port', config.port != null ? String(config.port) : null],
+      ['imap_port', config.port == null ? null : String(config.port)],
       ['imap_username', config.username ?? null],
       ['smtp_host', config.smtpHost ?? null],
-      ['smtp_port', config.smtpPort != null ? String(config.smtpPort) : null],
+      ['smtp_port', config.smtpPort == null ? null : String(config.smtpPort)],
     ];
     for (const [key, value] of entries) {
-      if (value != null) {
-        await this.setProviderConfig(applicationId, key, value, now);
-      } else {
+      if (value == null) {
         await this.deleteProviderConfig(applicationId, key);
+      } else {
+        await this.setProviderConfig(applicationId, key, value, now);
       }
     }
   }
@@ -500,7 +500,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       : null;
     return {
       ...metadata,
-      ...(imapPassword != null ? { imapPassword } : {}),
+      ...((imapPassword != null) && { imapPassword }),
       credentials,
     };
   }
@@ -591,10 +591,10 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       updatedAt: row.updated_at,
       gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,
       imapHost: imapHost ?? null,
-      imapPort: imapPortStr != null ? Number(imapPortStr) : null,
+      imapPort: imapPortStr == null ? null : Number(imapPortStr),
       imapUsername: imapUsername ?? null,
       smtpHost: smtpHost ?? null,
-      smtpPort: smtpPortStr != null ? Number(smtpPortStr) : null,
+      smtpPort: smtpPortStr == null ? null : Number(smtpPortStr),
       autoExecuteActionTypes: autoExecuteActionTypesJson ? (JSON.parse(autoExecuteActionTypesJson) as string[]) : null,
     };
   }

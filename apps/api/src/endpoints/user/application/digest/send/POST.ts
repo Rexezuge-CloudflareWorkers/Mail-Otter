@@ -48,7 +48,7 @@ interface SendDigestNowResponse extends IResponse {
 interface SendDigestNowEnv extends IUserEnv {
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
 }
 

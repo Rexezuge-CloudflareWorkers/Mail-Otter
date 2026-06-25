@@ -5,7 +5,7 @@ import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig, WorkflowStepConte
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';
 
 vi.mock('@mail-otter/backend-services/email', async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import('@mail-otter/backend-services/email');
+  const actual = (await importOriginal());
   return {
     ...actual,
     EmailProcessingUtil: {
@@ -45,7 +45,7 @@ describe('EmailProcessingWorkflow', () => {
   });
 
   it('passes the workflow retry attempt into email processing', async () => {
-    vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication as never);
+    vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication);
     vi.mocked(EmailProcessingUtil.generateOutlookSummary).mockResolvedValue({
       message: { id: 'message-1', conversationId: 'conv-1' },
       summaryHtml: '<p>Summary</p>',
@@ -80,7 +80,7 @@ describe('EmailProcessingWorkflow', () => {
   });
 
   it('leaves retryable errors retryable for the workflow step policy', async () => {
-    vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication as never);
+    vi.mocked(EmailProcessingUtil.resolveApplication).mockResolvedValue(resolvedApplication);
     const error = new RetryableError('Temporary provider failure.');
     vi.mocked(EmailProcessingUtil.generateOutlookSummary).mockRejectedValue(error);
     const workflow = new EmailProcessingWorkflow({} as ExecutionContext, createEnv());
@@ -136,5 +136,5 @@ function createStep(attempt: number): WorkflowStep {
         });
       },
     ),
-  } as unknown as WorkflowStep;
+  };
 }

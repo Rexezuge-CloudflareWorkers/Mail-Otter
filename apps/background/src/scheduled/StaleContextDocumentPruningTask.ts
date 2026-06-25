@@ -14,8 +14,8 @@ class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumen
   ): Promise<void> {
     const deletedGraceDays: number = ConfigurationManager.getStaleContextDocumentDeletedGraceDays(env);
     const errorGraceDays: number = ConfigurationManager.getStaleContextDocumentErrorGraceDays(env);
-    const deletedBefore: number = Math.floor(Date.now() / 1000) - deletedGraceDays * 86400;
-    const errorBefore: number = Math.floor(Date.now() / 1000) - errorGraceDays * 86400;
+    const deletedBefore: number = Math.floor(Date.now() / 1000) - deletedGraceDays * 86_400;
+    const errorBefore: number = Math.floor(Date.now() / 1000) - errorGraceDays * 86_400;
     const sessionEnv = createD1SessionEnv(env);
     const dao = new ApplicationContextDAO(sessionEnv.DB);
 
@@ -39,8 +39,8 @@ class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumen
 
 interface StaleContextDocumentPruningTaskEnv extends IEnv {
   DB: D1Database;
-  STALE_CONTEXT_DOCUMENT_DELETED_GRACE_DAYS?: string | undefined;
-  STALE_CONTEXT_DOCUMENT_ERROR_GRACE_DAYS?: string | undefined;
+  STALE_CONTEXT_DOCUMENT_DELETED_GRACE_DAYS?: string;
+  STALE_CONTEXT_DOCUMENT_ERROR_GRACE_DAYS?: string;
 }
 
 export { StaleContextDocumentPruningTask };

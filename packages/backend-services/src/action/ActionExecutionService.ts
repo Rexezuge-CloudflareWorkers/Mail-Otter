@@ -48,7 +48,7 @@ interface ActionExecutionEnv extends ActionCreationEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 type ActionCallbackEnv = ActionExecutionEnv;
@@ -56,7 +56,8 @@ type UserActionEnv = ActionExecutionEnv;
 
 async function getActionForToken(actionId: string, token: string, env: ActionCallbackEnv): Promise<EmailAction | undefined> {
   const tokenHash: string = await hashToken(actionId, token, await env.ACTION_SIGNING_SECRET.get());
-  return (await createActionDAO(env)).getByTokenHash(actionId, tokenHash);
+  const dao = await createActionDAO(env);
+  return dao.getByTokenHash(actionId, tokenHash);
 }
 
 async function hashUserAgent(request: Request | null, env: ActionExecutionEnv): Promise<string | null> {
@@ -152,11 +153,7 @@ async function executeAction(
   const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
   const userAgentHash: string | null = await hashUserAgent(request, env);
 
-  if (
-    action.status === EMAIL_ACTION_STATUS_SUCCEEDED ||
-    action.status === EMAIL_ACTION_STATUS_FAILED ||
-    action.status === EMAIL_ACTION_STATUS_EXPIRED
-  ) {
+  if ([EMAIL_ACTION_STATUS_SUCCEEDED, EMAIL_ACTION_STATUS_FAILED, EMAIL_ACTION_STATUS_EXPIRED].includes(action.status)) {
     return action;
   }
   if (action.expiresAt <= now) {
@@ -230,7 +227,7 @@ async function autoExecuteCreatedActions(
 ): Promise<void> {
   const typeSet = new Set(autoExecuteTypes);
   const eligible = createdActions.filter((a) => typeSet.has(a.action.actionType));
-  if (!eligible.length) return;
+  if (eligible.length === 0) return;
   await Promise.all(
     eligible.map(async (created) => {
       try {

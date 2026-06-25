@@ -1,16 +1,5 @@
 const AVIATIONSTACK_API_BASE = 'https://api.aviationstack.com/v1/flights';
 
-interface AviationstackFlight {
-  flight_status?: string;
-  departure?: { scheduled?: string; iata?: string };
-  arrival?: { iata?: string };
-  airline?: { name?: string };
-  flight?: { iata?: string };
-}
-
-interface AviationstackResponse {
-  data?: AviationstackFlight[];
-}
 
 interface FlightSyncStatus {
   flightNumber: string;
@@ -44,7 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatDepartureTime(iso: string): string | null {
   const date = new Date(iso);
-  if (isNaN(date.getTime())) return null;
+  if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC';
 }
 
@@ -53,9 +42,9 @@ async function fetchFlightStatus(flightNumber: string, apiKey: string): Promise<
     const url = new URL(AVIATIONSTACK_API_BASE);
     url.searchParams.set('access_key', apiKey);
     url.searchParams.set('flight_iata', flightNumber);
-    const response = await fetch(url.toString());
+    const response = await fetch(url.href);
     if (!response.ok) return null;
-    const json = (await response.json()) as AviationstackResponse;
+    const json = JSON.parse(await response.text()) as { data?: Record<string, any>[] };
     const flight = json?.data?.[0];
     if (!flight) return null;
     return {

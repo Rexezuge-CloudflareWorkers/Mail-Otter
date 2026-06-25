@@ -37,7 +37,7 @@ interface CreateOAuth2AuthorizationResponse extends IResponse {
 }
 
 interface CreateOAuth2AuthorizationEnv extends IUserEnv {
-  OAUTH2_STATE_EXPIRY_MINUTES?: string | undefined;
+  OAUTH2_STATE_EXPIRY_MINUTES?: string;
 }
 
 export { CreateOAuth2AuthorizationRoute };

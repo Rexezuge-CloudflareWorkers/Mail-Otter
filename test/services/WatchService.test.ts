@@ -49,8 +49,8 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
 
 vi.mock('@mail-otter/shared/utils', () => ({
   TimestampUtil: {
-    getCurrentUnixTimestampInSeconds: vi.fn(() => 1778200000),
-    addDays: vi.fn((ts, d) => ts + d * 86400),
+    getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000),
+    addDays: vi.fn((ts, d) => ts + d * 86_400),
   },
 }));
 
@@ -93,11 +93,11 @@ describe('WatchService', () => {
       });
       mockUpsertActive.mockResolvedValue({
         status: 'active',
-        expiresAt: 1778200000 + 86400 * 3,
+        expiresAt: 1_778_200_000 + 86_400 * 3,
       });
       (GmailProviderUtil.watchInbox as ReturnType<typeof vi.fn>).mockResolvedValue({
         historyId: '12345',
-        expiresAt: 1778200000 + 86400 * 3,
+        expiresAt: 1_778_200_000 + 86_400 * 3,
       });
 
       const result = await new WatchService(makeEnv()).startApplicationWatch(
@@ -121,11 +121,11 @@ describe('WatchService', () => {
         watchedFolders: null,
         credentials: { clientId: 'cid' },
       });
-      mockUpsertActive.mockResolvedValue({ status: 'active', expiresAt: 1778200000 + 86400 * 6 });
+      mockUpsertActive.mockResolvedValue({ status: 'active', expiresAt: 1_778_200_000 + 86_400 * 6 });
       (OutlookProviderUtil.createInboxSubscription as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'sub-1',
         resource: 'mail',
-        expiresAt: 1778200000 + 86400 * 6,
+        expiresAt: 1_778_200_000 + 86_400 * 6,
       });
 
       const result = await new WatchService(makeEnv()).startApplicationWatch(

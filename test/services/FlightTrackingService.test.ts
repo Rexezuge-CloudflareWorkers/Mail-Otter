@@ -21,7 +21,7 @@ function makeFlightResponse(overrides?: Record<string, unknown>) {
 
 function mockFetch(status: number, body: unknown) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-    new Response(JSON.stringify(body), { status }),
+    Response.json(body, { status }),
   );
 }
 

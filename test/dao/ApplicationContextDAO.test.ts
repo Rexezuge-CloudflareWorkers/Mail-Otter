@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@mail-otter/shared/utils', () => ({
-  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1778200000) },
+  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000) },
   UUIDUtil: { getRandomUUID: vi.fn(() => 'doc-uuid-1') },
 }));
 
@@ -21,7 +21,7 @@ function makeDb(fns: {
     prepare: vi.fn(() => ({
       bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
     })),
-  } as unknown as D1Database;
+  };
 }
 
 function createDocRow(overrides?: Partial<ApplicationContextDocumentInternal>): ApplicationContextDocumentInternal {
@@ -45,8 +45,8 @@ function createDocRow(overrides?: Partial<ApplicationContextDocumentInternal>): 
     indexed_at: null,
     deleted_at: null,
     last_error: null,
-    created_at: 1778200000,
-    updated_at: 1778200000,
+    created_at: 1_778_200_000,
+    updated_at: 1_778_200_000,
     ...overrides,
   };
 }
@@ -62,8 +62,8 @@ function createDeletionRunRow(overrides?: Partial<ApplicationContextDeletionRunI
     mutation_ids: '["m1","m2"]',
     status: 'accepted',
     error_message: null,
-    created_at: 1778200000,
-    updated_at: 1778200000,
+    created_at: 1_778_200_000,
+    updated_at: 1_778_200_000,
     ...overrides,
   };
 }
@@ -79,7 +79,7 @@ function createAuditLogRow(overrides?: Partial<ContextAuditLogInternal>): Contex
     event_label: null,
     event_data: null,
     severity: 'info',
-    created_at: 1778200000,
+    created_at: 1_778_200_000,
     ...overrides,
   };
 }
@@ -156,15 +156,15 @@ describe('ApplicationContextDAO', () => {
   describe('getSummaryByApplication', () => {
     it('returns summary with counts', async () => {
       const firstFn = vi.fn()
-        .mockResolvedValueOnce({ count: 5, last_indexed_at: 1778200000 })
-        .mockResolvedValueOnce({ last_delete_accepted_at: 1778100000 });
+        .mockResolvedValueOnce({ count: 5, last_indexed_at: 1_778_200_000 })
+        .mockResolvedValueOnce({ last_delete_accepted_at: 1_778_100_000 });
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       const db = makeDb({ first: firstFn, all: allFn });
       dao = new ApplicationContextDAO(db);
 
       const result = await dao.getSummaryByApplication('app-1');
       expect(result.documentCount).toBe(5);
-      expect(result.lastIndexedAt).toBe(1778200000);
+      expect(result.lastIndexedAt).toBe(1_778_200_000);
     });
 
     it('handles null values', async () => {
@@ -182,9 +182,9 @@ describe('ApplicationContextDAO', () => {
 
     it('reports last error from documents', async () => {
       const firstFn = vi.fn()
-        .mockResolvedValueOnce({ count: 5, last_indexed_at: 1778200000 })
+        .mockResolvedValueOnce({ count: 5, last_indexed_at: 1_778_200_000 })
         .mockResolvedValueOnce({ last_delete_accepted_at: null })
-        .mockResolvedValueOnce({ last_error: 'doc error', updated_at: 1778200000 })
+        .mockResolvedValueOnce({ last_error: 'doc error', updated_at: 1_778_200_000 })
         .mockResolvedValueOnce(null);
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       const db = makeDb({ first: firstFn, all: allFn });
@@ -218,7 +218,7 @@ describe('ApplicationContextDAO', () => {
     });
 
     it('handles cursor pagination', async () => {
-      const cursor = btoa(JSON.stringify([1778200000, 1778200000]));
+      const cursor = btoa(JSON.stringify([1_778_200_000, 1_778_200_000]));
       const db = makeDb({ all: vi.fn().mockResolvedValue({ results: [] } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
@@ -295,7 +295,7 @@ describe('ApplicationContextDAO', () => {
       const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 3 } } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
-      const result = await dao.deleteStaleDeletedDocuments(1778000000, 100);
+      const result = await dao.deleteStaleDeletedDocuments(1_778_000_000, 100);
       expect(result).toBe(3);
     });
 
@@ -303,7 +303,7 @@ describe('ApplicationContextDAO', () => {
       const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 2 } } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
-      const result = await dao.deleteStaleErrorDocuments(1778000000, 100);
+      const result = await dao.deleteStaleErrorDocuments(1_778_000_000, 100);
       expect(result).toBe(2);
     });
   });
@@ -345,7 +345,7 @@ describe('ApplicationContextDAO', () => {
     });
 
     it('handles cursor pagination', async () => {
-      const cursor = btoa(JSON.stringify([1778200000]));
+      const cursor = btoa(JSON.stringify([1_778_200_000]));
       const db = makeDb({ all: vi.fn().mockResolvedValue({ results: [] } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
@@ -358,7 +358,7 @@ describe('ApplicationContextDAO', () => {
       const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 5 } } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
-      const result = await dao.deleteOldAuditLogs(1778000000, 100);
+      const result = await dao.deleteOldAuditLogs(1_778_000_000, 100);
       expect(result).toBe(5);
     });
 
@@ -366,7 +366,7 @@ describe('ApplicationContextDAO', () => {
       const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 3 } } as D1Result) });
       dao = new ApplicationContextDAO(db);
 
-      const result = await dao.deleteOldDeletionRuns(1778000000, 100);
+      const result = await dao.deleteOldDeletionRuns(1_778_000_000, 100);
       expect(result).toBe(3);
     });
   });

@@ -19,15 +19,15 @@ interface OutlookSubscriptionResult {
 
 interface OutlookMessage {
   id: string;
-  subject?: string | undefined;
-  conversationId?: string | undefined;
-  internetMessageId?: string | undefined;
-  body?: { contentType?: string | undefined; content?: string | undefined } | undefined;
-  from?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
-  sender?: { emailAddress?: { address?: string | undefined; name?: string | undefined } | undefined } | undefined;
-  internetMessageHeaders?: Array<{ name: string; value: string }> | undefined;
-  webLink?: string | undefined;
-  hasAttachments?: boolean | undefined;
+  subject?: string;
+  conversationId?: string;
+  internetMessageId?: string;
+  body?: { contentType?: string; content?: string };
+  from?: { emailAddress?: { address?: string; name?: string } };
+  sender?: { emailAddress?: { address?: string; name?: string } };
+  internetMessageHeaders?: Array<{ name: string; value: string }>;
+  webLink?: string;
+  hasAttachments?: boolean;
 }
 
 interface OutlookCalendarEventInput {
@@ -35,27 +35,27 @@ interface OutlookCalendarEventInput {
   startTime: string;
   endTime: string;
   timeZone: string;
-  location?: string | undefined;
-  notes?: string | undefined;
+  location?: string;
+  notes?: string;
 }
 
 interface OutlookCalendarEventResult {
-  id?: string | undefined;
-  webLink?: string | undefined;
+  id?: string;
+  webLink?: string;
 }
 
 interface OutlookDraftReplyResult {
-  id?: string | undefined;
-  webLink?: string | undefined;
+  id?: string;
+  webLink?: string;
 }
 
 interface OutlookCalendarEventListItem {
   id: string;
-  subject?: string | undefined;
-  body?: { contentType?: string | undefined; content?: string | undefined } | undefined;
-  start?: { dateTime?: string | undefined; timeZone?: string | undefined } | undefined;
-  end?: { dateTime?: string | undefined; timeZone?: string | undefined } | undefined;
-  location?: { displayName?: string | undefined } | undefined;
+  subject?: string;
+  body?: { contentType?: string; content?: string };
+  start?: { dateTime?: string; timeZone?: string };
+  end?: { dateTime?: string; timeZone?: string };
+  location?: { displayName?: string };
 }
 
 class OutlookProviderUtil {
@@ -66,7 +66,7 @@ class OutlookProviderUtil {
   ];
 
   public static async listMailFolders(accessToken: string): Promise<OutlookMailFolder[]> {
-    const data = await fetchJsonWithBearer<{ value?: OutlookMailFolder[] | undefined }>(
+    const data = await fetchJsonWithBearer<{ value?: OutlookMailFolder[] }>(
       'https://graph.microsoft.com/v1.0/me/mailFolders?$select=id,displayName&$top=100',
       accessToken,
       'Microsoft Graph',
@@ -76,8 +76,8 @@ class OutlookProviderUtil {
 
   public static async getProfile(accessToken: string): Promise<OutlookMailboxProfile> {
     const data = await fetchJsonWithBearer<{
-      mail?: string | null | undefined;
-      userPrincipalName?: string | null | undefined;
+      mail?: string | null;
+      userPrincipalName?: string | null;
     }>('https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName', accessToken, 'Microsoft Graph');
     const emailAddress: string | undefined = data.mail || data.userPrincipalName || undefined;
     if (!emailAddress) throw new ProviderApiNonRetryableError('Microsoft Graph profile did not include a mailbox address.');
@@ -94,10 +94,10 @@ class OutlookProviderUtil {
   ): Promise<OutlookSubscriptionResult> {
     const resource = `/me/mailFolders('${folderId ?? 'Inbox'}')/messages`;
     const data = await fetchJsonWithBearer<{
-      id?: string | undefined;
-      expirationDateTime?: string | undefined;
-      resource?: string | undefined;
-      error?: { message?: string | undefined } | undefined;
+      id?: string;
+      expirationDateTime?: string;
+      resource?: string;
+      error?: { message?: string };
     }>('https://graph.microsoft.com/v1.0/subscriptions', accessToken, 'Microsoft Graph', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -126,9 +126,9 @@ class OutlookProviderUtil {
     expiresAt: number,
   ): Promise<OutlookSubscriptionResult> {
     const data = await fetchJsonWithBearer<{
-      id?: string | undefined;
-      expirationDateTime?: string | undefined;
-      resource?: string | undefined;
+      id?: string;
+      expirationDateTime?: string;
+      resource?: string;
     }>(`https://graph.microsoft.com/v1.0/subscriptions/${encodeURIComponent(subscriptionId)}`, accessToken, 'Microsoft Graph', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -157,7 +157,7 @@ class OutlookProviderUtil {
   public static async getMessage(accessToken: string, messageId: string): Promise<OutlookMessage> {
     const url: URL = new URL(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}`);
     url.searchParams.set('$select', 'id,subject,conversationId,internetMessageId,body,from,sender,internetMessageHeaders,hasAttachments');
-    return fetchJsonWithBearer<OutlookMessage>(url.toString(), accessToken, 'Microsoft Graph', {
+    return fetchJsonWithBearer<OutlookMessage>(url.href, accessToken, 'Microsoft Graph', {
       headers: { Prefer: 'outlook.body-content-type="text"' },
     });
   }
@@ -188,7 +188,7 @@ class OutlookProviderUtil {
           dateTime: input.endTime,
           timeZone: input.timeZone,
         },
-        ...(input.location ? { location: { displayName: input.location } } : {}),
+        ...(input.location && { location: { displayName: input.location } }),
       }),
     });
   }
@@ -220,32 +220,32 @@ class OutlookProviderUtil {
     mailboxAddress: string,
     summary: string,
   ): Promise<void> {
-    const marker: string = await OutlookProviderUtil.deriveMessageMarker(originalMessage.id);
+    const marker: string = await this.deriveMessageMarker(originalMessage.id);
 
     // Idempotency: if this email's summary already in Inbox, all steps completed
-    const inboxMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'inbox', marker);
+    const inboxMsgId: string | null = await this.findSummaryMessageInFolder(accessToken, 'inbox', marker);
     if (inboxMsgId) {
       // Clean up any leftover Sent Items copy if a previous delete attempt failed
-      const staleSentMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
+      const staleSentMsgId: string | null = await this.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
       if (staleSentMsgId) {
-        await OutlookProviderUtil.deleteMessage(accessToken, staleSentMsgId);
+        await this.deleteMessage(accessToken, staleSentMsgId);
       }
       return;
     }
 
     // If this email's summary in Sent Items only, reply was sent but copy+delete are pending
-    const sentMsgId: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
+    const sentMsgId: string | null = await this.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
     if (sentMsgId) {
-      await OutlookProviderUtil.copyMessage(accessToken, sentMsgId, 'inbox');
-      await OutlookProviderUtil.deleteMessage(accessToken, sentMsgId);
+      await this.copyMessage(accessToken, sentMsgId, 'inbox');
+      await this.deleteMessage(accessToken, sentMsgId);
       return;
     }
 
     // First attempt: send reply
     const atIndex: number = mailboxAddress.lastIndexOf('@');
-    const sinkAddress: string = atIndex !== -1
-      ? `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`
-      : mailboxAddress;
+    const sinkAddress: string = atIndex === -1
+      ? mailboxAddress
+      : `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`;
     const originalSubject: string = originalMessage.subject || '';
     const response: Response = await fetch(
       `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/reply`,
@@ -279,9 +279,9 @@ class OutlookProviderUtil {
     if (!response.ok) {
       throw createProviderApiError('Microsoft Graph', 'send summary reply', response, await response.text());
     }
-    const sentMessageId: string = await OutlookProviderUtil.findSentSummaryMessage(accessToken, marker);
-    await OutlookProviderUtil.copyMessage(accessToken, sentMessageId, 'inbox');
-    await OutlookProviderUtil.deleteMessage(accessToken, sentMessageId);
+    const sentMessageId: string = await this.findSentSummaryMessage(accessToken, marker);
+    await this.copyMessage(accessToken, sentMessageId, 'inbox');
+    await this.deleteMessage(accessToken, sentMessageId);
   }
 
   private static async findSummaryMessageInFolder(accessToken: string, folderId: string, marker?: string): Promise<string | null> {
@@ -295,8 +295,8 @@ class OutlookProviderUtil {
     url.searchParams.set('$top', '1');
     url.searchParams.set('$select', 'id');
     const data = await fetchJsonWithBearer<{
-      value?: Array<{ id: string }> | undefined;
-    }>(url.toString(), accessToken, 'Microsoft Graph');
+      value?: Array<{ id: string }>;
+    }>(url.href, accessToken, 'Microsoft Graph');
     return data.value && data.value.length > 0 ? data.value[0].id : null;
   }
 
@@ -308,9 +308,9 @@ class OutlookProviderUtil {
     const delays = [1000, 2000, 4000];
     for (let attempt = 0; attempt <= delays.length; attempt++) {
       if (attempt > 0) {
-        await OutlookProviderUtil.sleep(delays[attempt - 1]);
+        await this.sleep(delays[attempt - 1]);
       }
-      const id: string | null = await OutlookProviderUtil.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
+      const id: string | null = await this.findSummaryMessageInFolder(accessToken, 'sentitems', marker);
       if (id) {
         return id;
       }
@@ -320,7 +320,7 @@ class OutlookProviderUtil {
 
   public static isMessageNotFoundError(error: unknown): boolean {
     const message: string = error instanceof Error ? error.message : String(error);
-    return OutlookProviderUtil.MESSAGE_NOT_FOUND_PATTERNS.some((pattern: RegExp): boolean => pattern.test(message));
+    return this.MESSAGE_NOT_FOUND_PATTERNS.some((pattern: RegExp): boolean => pattern.test(message));
   }
 
   private static async copyMessage(accessToken: string, messageId: string, destinationId: string): Promise<void> {
@@ -347,7 +347,7 @@ class OutlookProviderUtil {
     url.searchParams.set('endDateTime', endDateTimeIso);
     url.searchParams.set('$select', 'id,subject,body,start,end,location');
     url.searchParams.set('$top', '50');
-    const data = await fetchJsonWithBearer<{ value?: OutlookCalendarEventListItem[] | undefined }>(url.toString(), accessToken, 'Microsoft Graph');
+    const data = await fetchJsonWithBearer<{ value?: OutlookCalendarEventListItem[] }>(url.href, accessToken, 'Microsoft Graph');
     return data.value || [];
   }
 
@@ -384,7 +384,7 @@ class OutlookProviderUtil {
 
   public static async listOutlookCategories(accessToken: string): Promise<Array<{ id: string; displayName: string }>> {
     try {
-      const data = await fetchJsonWithBearer<{ value?: Array<{ id: string; displayName: string }> | undefined }>(
+      const data = await fetchJsonWithBearer<{ value?: Array<{ id: string; displayName: string }> }>(
         'https://graph.microsoft.com/v1.0/me/outlook/masterCategories',
         accessToken,
         'Microsoft Graph',
@@ -396,7 +396,6 @@ class OutlookProviderUtil {
   }
 
   public static async sendStandaloneEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {
-    const textBody: string = EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(htmlBody));
     const response: Response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -414,7 +413,6 @@ class OutlookProviderUtil {
       throw createProviderApiError('Microsoft Graph', 'send digest email', response, await response.text());
     }
     // sendMail returns 202 with no body — nothing to parse
-    void textBody;
   }
 
   private static async deleteMessage(accessToken: string, messageId: string): Promise<void> {

@@ -7,18 +7,18 @@ interface EmailAction {
   userEmail: string;
   providerId: ProviderId;
   providerMessageId: string;
-  providerThreadId?: string | null | undefined;
+  providerThreadId?: string | null;
   actionType: EmailActionType;
   status: EmailActionStatus;
   riskLevel: EmailActionRiskLevel;
   title: string;
   description: string;
   payload: EmailActionPayload;
-  result?: EmailActionResult | null | undefined;
-  errorMessage?: string | null | undefined;
-  syncStatus?: string | null | undefined;
+  result?: EmailActionResult | null;
+  errorMessage?: string | null;
+  syncStatus?: string | null;
   expiresAt: number;
-  executedAt?: number | null | undefined;
+  executedAt?: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -51,7 +51,7 @@ interface EmailActionInternal {
 
 interface EmailActionList {
   actions: EmailAction[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 interface EmailActionExecution {
@@ -60,11 +60,11 @@ interface EmailActionExecution {
   attempt: number;
   triggeredBy: EmailActionExecutionTrigger;
   status: EmailActionStatus;
-  providerOperationId?: string | null | undefined;
-  requestUserAgentHash?: string | null | undefined;
-  errorMessage?: string | null | undefined;
+  providerOperationId?: string | null;
+  requestUserAgentHash?: string | null;
+  errorMessage?: string | null;
   createdAt: number;
-  completedAt?: number | null | undefined;
+  completedAt?: number | null;
 }
 
 interface EmailActionExecutionInternal {
@@ -97,8 +97,8 @@ type EmailActionPayload =
 interface EmailActionPayloadBase {
   title: string;
   description: string;
-  sourceSubject?: string | undefined;
-  sourceFrom?: string | undefined;
+  sourceSubject?: string;
+  sourceFrom?: string;
 }
 
 interface CalendarAddEventActionPayload extends EmailActionPayloadBase {
@@ -107,13 +107,13 @@ interface CalendarAddEventActionPayload extends EmailActionPayloadBase {
   startTime: string;
   endTime: string;
   timeZone: string;
-  location?: string | undefined;
-  notes?: string | undefined;
+  location?: string;
+  notes?: string;
 }
 
 interface EmailDraftReplyActionPayload extends EmailActionPayloadBase {
   type: 'email.draft_reply';
-  draftSubject?: string | undefined;
+  draftSubject?: string;
   draftBody: string;
 }
 
@@ -130,38 +130,38 @@ interface ManualTodoActionPayload extends EmailActionPayloadBase {
 interface DeliveryTrackPackageActionPayload extends EmailActionPayloadBase {
   type: 'delivery.track_package';
   trackingNumber: string;
-  carrier?: string | undefined;
-  trackingUrl?: string | undefined;
+  carrier?: string;
+  trackingUrl?: string;
 }
 
 interface TravelTrackFlightActionPayload extends EmailActionPayloadBase {
   type: 'travel.track_flight';
   flightNumber: string;
-  airline?: string | undefined;
-  departureAirport?: string | undefined;
-  arrivalAirport?: string | undefined;
-  departureTime?: string | undefined;
-  trackingUrl?: string | undefined;
+  airline?: string;
+  departureAirport?: string;
+  arrivalAirport?: string;
+  departureTime?: string;
+  trackingUrl?: string;
 }
 
 interface FinancePayBillActionPayload extends EmailActionPayloadBase {
   type: 'finance.pay_bill';
-  payee?: string | undefined;
-  amount?: string | undefined;
-  currency?: string | undefined;
-  dueDate?: string | undefined;
-  invoiceNumber?: string | undefined;
-  paymentUrl?: string | undefined;
+  payee?: string;
+  amount?: string;
+  currency?: string;
+  dueDate?: string;
+  invoiceNumber?: string;
+  paymentUrl?: string;
 }
 
 interface AppointmentConfirmActionPayload extends EmailActionPayloadBase {
   type: 'appointment.confirm';
-  serviceType?: string | undefined;
-  providerName?: string | undefined;
-  appointmentTime?: string | undefined;
-  location?: string | undefined;
-  confirmationNumber?: string | undefined;
-  notes?: string | undefined;
+  serviceType?: string;
+  providerName?: string;
+  appointmentTime?: string;
+  location?: string;
+  confirmationNumber?: string;
+  notes?: string;
 }
 
 interface EmailActionProposal {
@@ -176,15 +176,15 @@ interface EmailActionProposal {
     | 'appointment.confirm';
   title: string;
   description: string;
-  confidence?: number | undefined;
-  parameters?: Record<string, unknown> | undefined;
+  confidence?: number;
+  parameters?: Record<string, unknown>;
 }
 
 interface EmailActionResult {
   summary: string;
-  providerOperationId?: string | undefined;
-  providerUrl?: string | undefined;
-  externalUrl?: string | undefined;
+  providerOperationId?: string;
+  providerUrl?: string;
+  externalUrl?: string;
 }
 
 export type {

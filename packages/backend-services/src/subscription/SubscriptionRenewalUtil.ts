@@ -9,7 +9,7 @@ import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { RetryableError } from '@mail-otter/backend-errors';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
-import type { AnyProviderCredentials, WebhookWatchResult } from '../provider/IEmailProvider';
+import type { AnyProviderCredentials } from '../provider/IEmailProvider';
 
 class SubscriptionRenewalUtil {
   constructor(private readonly env: SubscriptionRenewalEnv) {}
@@ -83,7 +83,7 @@ class SubscriptionRenewalUtil {
     const provider = EmailProviderRegistry.get(application.providerId);
     const result = await provider.renewWatch(credentials, subscription.externalSubscriptionId, expiresAt);
     if (result.type === 'webhook') {
-      const webhookResult = result as WebhookWatchResult;
+      const webhookResult = result;
       await subscriptionDAO.upsertActive({
         applicationId: application.applicationId,
         providerId: application.providerId,
@@ -113,23 +113,23 @@ class SubscriptionRenewalUtil {
   }
 }
 
-class SubscriptionRenewalFactory {
-  static create(env: SubscriptionRenewalEnv): SubscriptionRenewalUtil {
+const SubscriptionRenewalFactory = {
+  create(env: SubscriptionRenewalEnv): SubscriptionRenewalUtil {
     return new SubscriptionRenewalUtil(env);
-  }
-}
+  },
+};
 
 interface SubscriptionRenewalEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  GMAIL_WATCH_RENEWAL_WINDOW_HOURS?: string | undefined;
-  OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS?: string | undefined;
-  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string | undefined;
-  RENEWAL_RETRY_BASE_DELAY_SECONDS?: string | undefined;
-  RENEWAL_RETRY_MAX_DELAY_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  GMAIL_WATCH_RENEWAL_WINDOW_HOURS?: string;
+  OUTLOOK_SUBSCRIPTION_RENEWAL_WINDOW_HOURS?: string;
+  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string;
+  RENEWAL_RETRY_BASE_DELAY_SECONDS?: string;
+  RENEWAL_RETRY_MAX_DELAY_SECONDS?: string;
 }
 
 export { SubscriptionRenewalUtil, SubscriptionRenewalFactory };

@@ -61,8 +61,8 @@ class DigestConfigService {
     }).formatToParts(now);
 
     const get = (type: string): string => localParts.find((p) => p.type === type)?.value ?? '00';
-    const localHour = parseInt(get('hour'), 10);
-    const localMinute = parseInt(get('minute'), 10);
+    const localHour = Number(get('hour'));
+    const localMinute = Number(get('minute'));
     const localDateStr = `${get('year')}-${get('month')}-${get('day')}`;
 
     const [targetHour, targetMinute] = config.sendTime.split(':').map(Number);

@@ -1,7 +1,7 @@
-class VoidUtil {
+class VoidUtility {
   public static void(..._ignored: never[]): void {
     // Intentionally empty - used to suppress unused variable warnings
   }
 }
 
-export { VoidUtil };
+export { VoidUtility as VoidUtil };

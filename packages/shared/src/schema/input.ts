@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { ZodTypeAny } from 'zod';
-import { ConnectedApplicationBaseSchema, EmailProcessingRuleSchema, GmailPubsubTopicNameSchema, ProviderIdSchema, ConnectionMethodSchema, UuidSchema, nonEmptyStringSchema } from './common';
+import { ConnectedApplicationBaseSchema as ConnectedAppBaseSchema, EmailProcessingRuleSchema, GmailPubsubTopicNameSchema, ProviderIdSchema, ConnectionMethodSchema, UuidSchema, nonEmptyStringSchema } from './common';
 import { MAX_EMAIL_PROCESSING_RULES } from '../constants';
 import {
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
@@ -16,16 +15,15 @@ import {
   PROVIDER_GOOGLE_GMAIL,
   PROVIDER_SUPPORTED_CONNECTION_METHODS,
 } from '../constants';
-import type { ConnectionMethod, ProviderId } from '../constants';
 
 interface RequestInputSchema {
-  body?: ZodTypeAny | undefined;
-  query?: ZodTypeAny | undefined;
+  body?: z.ZodType;
+  query?: z.ZodType;
 }
 
-const CreateApplicationBodySchema = ConnectedApplicationBaseSchema;
+const CreateAppBodySchema = ConnectedAppBaseSchema;
 
-const UpdateApplicationBodySchema = z
+const UpdateAppBodySchema = z
   .object({
     applicationId: UuidSchema,
     displayName: nonEmptyStringSchema('displayName', 128),
@@ -44,15 +42,15 @@ const UpdateApplicationBodySchema = z
     timeZone: z.string().max(64).optional().nullable(),
     autoExecuteActionTypes: z.array(z.string()).optional().nullable(),
     imapHost: z.string().max(253).optional(),
-    imapPort: z.number().int().min(1).max(65535).optional(),
+    imapPort: z.number().int().min(1).max(65_535).optional(),
     imapUsername: z.string().max(512).optional(),
     imapPassword: z.string().max(2048).optional(),
     smtpHost: z.string().max(253).optional(),
-    smtpPort: z.number().int().min(1).max(65535).optional(),
+    smtpPort: z.number().int().min(1).max(65_535).optional(),
   })
   .refine(
     (input): boolean =>
-      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId as ProviderId]?.includes(input.connectionMethod as ConnectionMethod)) ?? false,
+      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod)) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(
@@ -63,20 +61,20 @@ const UpdateApplicationBodySchema = z
     'gmailPubsubTopicName is required for Gmail OAuth2 applications.',
   );
 
-const DeleteApplicationBodySchema = z.object({
+const DeleteAppBodySchema = z.object({
   applicationId: UuidSchema,
 });
 
-const UpdateApplicationContextBodySchema = z.object({
+const UpdateAppContextBodySchema = z.object({
   applicationId: UuidSchema,
   contextIndexingEnabled: z.boolean(),
 });
 
-const DeleteApplicationContextDocumentsBodySchema = z.object({
+const DeleteAppContextDocumentsBodySchema = z.object({
   applicationId: UuidSchema,
 });
 
-const ApplicationContextListQuerySchema = z.object({
+const AppContextListQuerySchema = z.object({
   applicationId: UuidSchema.optional(),
   status: z
     .enum([
@@ -88,7 +86,7 @@ const ApplicationContextListQuerySchema = z.object({
   cursor: nonEmptyStringSchema('cursor', 64).optional(),
 });
 
-const ApplicationContextDeletionRunsQuerySchema = z.object({
+const AppContextDeletionRunsQuerySchema = z.object({
   applicationId: UuidSchema.optional(),
   cursor: nonEmptyStringSchema('cursor', 64).optional(),
 });
@@ -116,15 +114,15 @@ const OAuth2AuthorizeBodySchema = z.object({
   applicationId: UuidSchema,
 });
 
-const ApplicationFoldersQuerySchema = z.object({
+const AppFoldersQuerySchema = z.object({
   applicationId: UuidSchema,
 });
 
-const ApplicationIntegrationsQuerySchema = z.object({
+const AppIntegrationsQuerySchema = z.object({
   applicationId: UuidSchema,
 });
 
-const UpdateApplicationWatchSettingsBodySchema = z.object({
+const UpdateAppWatchSettingsBodySchema = z.object({
   applicationId: UuidSchema,
   folderIds: z.array(nonEmptyStringSchema('folderIds', 512)).nullable(),
   folderNames: z.record(nonEmptyStringSchema('folderNames.key', 512), nonEmptyStringSchema('folderNames.value', 512)).optional(),
@@ -195,21 +193,21 @@ const SuggestApplicationRuleBodySchema = z.object({
 });
 
 const RequestInputSchemas: Record<string, RequestInputSchema> = {
-  'POST /user/application': { body: CreateApplicationBodySchema },
-  'PUT /user/application': { body: UpdateApplicationBodySchema },
-  'DELETE /user/application': { body: DeleteApplicationBodySchema },
-  'PUT /user/application/context': { body: UpdateApplicationContextBodySchema },
-  'POST /user/application/context/delete-documents': { body: DeleteApplicationContextDocumentsBodySchema },
-  'GET /user/application/context/documents': { query: ApplicationContextListQuerySchema },
-  'GET /user/application/context/deletions': { query: ApplicationContextDeletionRunsQuerySchema },
+  'POST /user/application': { body: CreateAppBodySchema },
+  'PUT /user/application': { body: UpdateAppBodySchema },
+  'DELETE /user/application': { body: DeleteAppBodySchema },
+  'PUT /user/application/context': { body: UpdateAppContextBodySchema },
+  'POST /user/application/context/delete-documents': { body: DeleteAppContextDocumentsBodySchema },
+  'GET /user/application/context/documents': { query: AppContextListQuerySchema },
+  'GET /user/application/context/deletions': { query: AppContextDeletionRunsQuerySchema },
   'GET /user/application/context/document/:contextDocumentId/provider-link': {},
   'GET /user/actions': { query: EmailActionListQuerySchema },
   'GET /user/actions/:actionId/executions': {},
   'POST /user/actions/:actionId/execute': {},
   'POST /user/application/oauth2/authorize': { body: OAuth2AuthorizeBodySchema },
-  'GET /user/application/folders': { query: ApplicationFoldersQuerySchema },
-  'GET /user/application/integrations': { query: ApplicationIntegrationsQuerySchema },
-  'PUT /user/application/watch-settings': { body: UpdateApplicationWatchSettingsBodySchema },
+  'GET /user/application/folders': { query: AppFoldersQuerySchema },
+  'GET /user/application/integrations': { query: AppIntegrationsQuerySchema },
+  'PUT /user/application/watch-settings': { body: UpdateAppWatchSettingsBodySchema },
   'POST /user/application/watch': { body: WatchApplicationBodySchema },
   'POST /user/application/stop': { body: StopApplicationBodySchema },
   'GET /user/application/rules': { query: ApplicationRulesQuerySchema },

@@ -28,8 +28,8 @@ describe('EmailEventsDispatcherWorker', () => {
         queue: 'mail-otter-email-events',
         retryAll: vi.fn(),
         ackAll: vi.fn(),
-      } as unknown as MessageBatch<unknown>,
-      { EMAIL_PROCESSING_WORKFLOW: { createBatch } } as unknown as Env,
+      },
+      { EMAIL_PROCESSING_WORKFLOW: { createBatch } },
       {} as ExecutionContext,
     );
 

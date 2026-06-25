@@ -2,8 +2,8 @@ interface GmailNotificationQueueMessage {
   type: 'gmail-notification';
   applicationId: string;
   notificationHistoryId: string;
-  pubsubMessageId?: string | undefined;
-  callbackBaseUrl?: string | undefined;
+  pubsubMessageId?: string;
+  callbackBaseUrl?: string;
 }
 
 interface OutlookNotificationQueueMessage {
@@ -11,14 +11,14 @@ interface OutlookNotificationQueueMessage {
   applicationId: string;
   subscriptionId: string;
   messageId: string;
-  callbackBaseUrl?: string | undefined;
+  callbackBaseUrl?: string;
 }
 
 interface JmapNotificationQueueMessage {
   type: 'jmap-notification';
   applicationId: string;
   emailId: string;
-  callbackBaseUrl?: string | undefined;
+  callbackBaseUrl?: string;
 }
 
 interface ImapNotificationQueueMessage {
@@ -26,7 +26,7 @@ interface ImapNotificationQueueMessage {
   applicationId: string;
   messageUids: number[];
   newCursor: string;
-  callbackBaseUrl?: string | undefined;
+  callbackBaseUrl?: string;
 }
 
 type EmailQueueMessage =

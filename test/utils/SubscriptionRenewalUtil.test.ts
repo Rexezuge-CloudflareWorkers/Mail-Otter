@@ -103,9 +103,9 @@ describe('SubscriptionRenewalUtil', () => {
       expect.any(Number),
     );
     // retry_count=2 → delay = 300 * 2^2 = 1200s; nextRetryAt should be > now
-    const [, , nextRetryAt] = recordTransientError.mock.calls[0] as [string, string, number];
+    const nextRetryAt = (recordTransientError.mock.calls[0] as [string, string, number])[2];
     expect(nextRetryAt).toBeGreaterThan(now);
-    expect(nextRetryAt).toBeLessThanOrEqual(now + 14400);
+    expect(nextRetryAt).toBeLessThanOrEqual(now + 14_400);
     expect(ProviderSubscriptionDAO.prototype.markError).not.toHaveBeenCalled();
   });
 });

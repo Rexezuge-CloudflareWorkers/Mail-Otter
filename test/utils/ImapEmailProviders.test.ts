@@ -93,10 +93,10 @@ describe.each([
   });
 
   it('createCalendarEvent throws unsupported error', async () => {
-    await expect(provider.createCalendarEvent('token', {} as never)).rejects.toThrow();
+    await expect(provider.createCalendarEvent('token', {})).rejects.toThrow();
   });
 
   it('createDraftReply throws unsupported error', async () => {
-    await expect(provider.createDraftReply('token', 'msg-id', 'from@example.com', {} as never)).rejects.toThrow();
+    await expect(provider.createDraftReply('token', 'msg-id', 'from@example.com', {})).rejects.toThrow();
   });
 });

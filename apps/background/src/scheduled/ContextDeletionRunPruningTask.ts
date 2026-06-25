@@ -13,7 +13,7 @@ class ContextDeletionRunPruningTask extends IScheduledTask<ContextDeletionRunPru
     _ctx: ExecutionContext,
   ): Promise<void> {
     const retentionDays: number = ConfigurationManager.getContextDeletionRunRetentionDays(env);
-    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86400;
+    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86_400;
     const sessionEnv = createD1SessionEnv(env);
     const dao = new ApplicationContextDAO(sessionEnv.DB);
 
@@ -29,7 +29,7 @@ class ContextDeletionRunPruningTask extends IScheduledTask<ContextDeletionRunPru
 
 interface ContextDeletionRunPruningTaskEnv extends IEnv {
   DB: D1Database;
-  CONTEXT_DELETION_RUN_RETENTION_DAYS?: string | undefined;
+  CONTEXT_DELETION_RUN_RETENTION_DAYS?: string;
 }
 
 export { ContextDeletionRunPruningTask };

@@ -2,7 +2,7 @@ const WORKERS_AI_DAILY_LIMIT_CODES: ReadonlySet<string> = new Set<string>(['3036
 
 class WorkersAiErrorUtil {
   public static isDailyFreeAllocationError(error: unknown): boolean {
-    const values: string[] = WorkersAiErrorUtil.collectErrorValues(error);
+    const values: string[] = this.collectErrorValues(error);
     const text: string = values.join(' ');
     if (/daily free allocation|10,?000 neurons|account limited/i.test(text)) return true;
     return values.some((value: string): boolean => WORKERS_AI_DAILY_LIMIT_CODES.has(value.trim()));
@@ -25,7 +25,7 @@ class WorkersAiErrorUtil {
     }
 
     for (const value of Object.values(error as Record<string, unknown>)) {
-      values.push(...WorkersAiErrorUtil.collectErrorValues(value, seen, depth + 1));
+      values.push(...this.collectErrorValues(value, seen, depth + 1));
     }
     return values;
   }

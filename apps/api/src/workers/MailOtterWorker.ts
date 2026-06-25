@@ -187,7 +187,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     const isUserRequest: boolean = path.startsWith('/user/');
     const incomingBookmark: string | undefined = isUserRequest ? request.headers.get(D1_BOOKMARK_HEADER)?.trim() || undefined : undefined;
     const sessionEnv = createD1SessionEnv(env, incomingBookmark || 'first-primary');
-    const response: Response = await this.app.fetch(request, sessionEnv as unknown as Env, ctx);
+    const response: Response = await this.app.fetch(request, sessionEnv, ctx);
     if (isUserRequest) {
       const bookmark: D1SessionBookmark | null = sessionEnv.DB.getBookmark();
       if (bookmark) {
@@ -198,6 +198,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     return response;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   protected async onScheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const cronTasksId: DurableObjectId = env.CRON_TASKS.idFromName(DURABLE_OBJECT_NAMESPACE_GLOBAL);
     const cronTasksStub = env.CRON_TASKS.get(cronTasksId);

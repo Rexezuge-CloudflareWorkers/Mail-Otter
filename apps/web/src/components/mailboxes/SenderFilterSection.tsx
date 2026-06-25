@@ -54,7 +54,11 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+          onKeyDown={(e) => { if (e.key !== 'Enter') {
+          	return;
+          }
+
+          e.preventDefault(); handleAdd(); }}
           placeholder="@domain.com or user@domain.com"
           disabled={busy}
           className="text-sm"

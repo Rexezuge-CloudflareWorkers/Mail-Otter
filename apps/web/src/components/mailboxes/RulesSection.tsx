@@ -127,22 +127,30 @@ function draftToMatcher(m: MatcherDraft): EmailRuleConditionMatcher {
     return { field: 'detected_action_type', op: (m.op === 'not_includes' ? 'not_includes' : 'includes'), value: m.value };
   }
   if (m.field === 'from') {
-    const op = (m.op === 'contains' || m.op === 'not_contains' || m.op === 'matches_sender') ? m.op : 'contains';
+    const fromOps = ['contains', 'not_contains', 'matches_sender'] as const;
+    const op = (fromOps.includes(m.op as typeof fromOps[number]) ? m.op : 'contains') as typeof fromOps[number];
     return { field: 'from', op, value: m.value };
   }
   const op = (m.op === 'contains' || m.op === 'not_contains') ? m.op : 'contains';
-  return { field: m.field as 'subject' | 'body', op, value: m.value };
+  return { field: m.field, op, value: m.value };
 }
 
 function draftToAction(draft: RuleDraft): EmailRuleAction {
   switch (draft.actionType) {
-    case 'prepend_instruction': return { type: 'prepend_instruction', instruction: draft.instruction.trim() };
-    case 'apply_label': return { type: 'apply_label', labelName: draft.labelName.trim() };
-    case 'archive_message': return { type: 'archive_message' };
-    case 'mark_read': return { type: 'mark_read' };
-    case 'star_message': return { type: 'star_message' };
-    case 'skip_actions': return { type: 'skip_actions' };
-    default: return { type: 'skip' };
+    case 'prepend_instruction': { return { type: 'prepend_instruction', instruction: draft.instruction.trim() };
+    }
+    case 'apply_label': { return { type: 'apply_label', labelName: draft.labelName.trim() };
+    }
+    case 'archive_message': { return { type: 'archive_message' };
+    }
+    case 'mark_read': { return { type: 'mark_read' };
+    }
+    case 'star_message': { return { type: 'star_message' };
+    }
+    case 'skip_actions': { return { type: 'skip_actions' };
+    }
+    default: { return { type: 'skip' };
+    }
   }
 }
 
@@ -183,20 +191,31 @@ function RuleForm({
         if (idx !== i) return m;
         const updated = { ...m, ...patch };
         if (patch.field) {
-          if (patch.field === 'has_attachment') {
+          switch (patch.field) {
+          case 'has_attachment': {
             updated.op = 'is';
             updated.value = 'true';
-          } else if (patch.field === 'detected_action_type') {
+          
+          break;
+          }
+          case 'detected_action_type': {
             updated.op = 'includes';
-            updated.value = updated.value || DETECTED_ACTION_TYPE_OPTIONS[0];
-          } else if (patch.field === 'from') {
+            updated.value ||= DETECTED_ACTION_TYPE_OPTIONS[0];
+          
+          break;
+          }
+          case 'from': {
             if (updated.op !== 'contains' && updated.op !== 'not_contains' && updated.op !== 'matches_sender') {
               updated.op = 'contains';
             }
-          } else {
+          
+          break;
+          }
+          default: {
             if (updated.op !== 'contains' && updated.op !== 'not_contains') {
               updated.op = 'contains';
             }
+          }
           }
         }
         return updated;
@@ -207,16 +226,16 @@ function RuleForm({
 
   const setActionType = (actionType: EmailRuleActionType) => {
     setDraft((d) => {
-      const newMatchers = d.matchers.map((m) => {
+      const newMatchers = d.matchers.map((m): MatcherDraft => {
         if (m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
-          return { ...m, field: 'subject' as EmailRuleConditionMatcherField, op: 'contains' };
+          return { ...m, field: 'subject', op: 'contains' };
         }
         return m;
       });
       return { ...d, actionType, matchers: newMatchers };
     });
     if (actionType === 'apply_label') {
-      loadLabelsForApplyLabel();
+      void loadLabelsForApplyLabel();
     }
   };
 
@@ -238,8 +257,7 @@ function RuleForm({
     })) return false;
     if (draft.actionType === 'prepend_instruction' && !draft.instruction.trim()) return false;
     if (draft.actionType === 'apply_label' && !draft.labelName.trim()) return false;
-    if (POST_PROCESSING_ACTION_TYPES.has(draft.actionType) === false && draft.matchers.some((m) => m.field === 'detected_action_type')) return false;
-    return true;
+    return !(!POST_PROCESSING_ACTION_TYPES.has(draft.actionType) && draft.matchers.some((m) => m.field === 'detected_action_type'));
   };
 
   const handleAdd = () => {
@@ -485,6 +503,21 @@ function SuggestRuleForm({
   const [description, setDescription] = useState('');
   const [state, setState] = useState<SuggestState>({ phase: 'idle' });
 
+  if (state.phase === 'edit') {
+    return (
+      <RuleForm
+        initialRule={state.rule}
+        applicationId={applicationId}
+        onAdd={onAdd}
+        onCancel={() => {
+          // eslint-disable-next-line sonarjs/no-unused-vars
+          const { ruleId: _, ...ruleWithoutId } = state.rule;
+          setState({ phase: 'preview', rule: ruleWithoutId, description: state.description });
+        }}
+      />
+    );
+  }
+
   const generate = async (desc: string) => {
     setState({ phase: 'loading' });
     try {
@@ -498,12 +531,12 @@ function SuggestRuleForm({
 
   const handleGenerate = () => {
     if (!description.trim()) return;
-    generate(description.trim());
+    void generate(description.trim());
   };
 
   const handleRegenerate = () => {
     if (state.phase === 'preview' || state.phase === 'error') {
-      generate(state.description);
+      void generate(state.description);
     }
   };
 
@@ -511,20 +544,6 @@ function SuggestRuleForm({
     if (state.phase !== 'preview') return;
     onAdd({ ...state.rule, ruleId: crypto.randomUUID() });
   };
-
-  if (state.phase === 'edit') {
-    return (
-      <RuleForm
-        initialRule={state.rule}
-        applicationId={applicationId}
-        onAdd={onAdd}
-        onCancel={() => {
-          const { ruleId: _, ...ruleWithoutId } = state.rule;
-          setState({ phase: 'preview', rule: ruleWithoutId, description: state.description });
-        }}
-      />
-    );
-  }
 
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 flex flex-col gap-3 bg-[var(--color-surface-raised)]">
@@ -616,7 +635,7 @@ function RuleRow({
   onMoveDown: () => void;
 }) {
   return (
-    <div className={`flex flex-col gap-1 py-3 border-b border-[var(--color-border)] last:border-0 ${!rule.enabled ? 'opacity-50' : ''}`}>
+    <div className={`flex flex-col gap-1 py-3 border-b border-[var(--color-border)] last:border-0 ${rule.enabled ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${getActionBadgeColor(rule.action)}`}>
           {getActionLabel(rule.action)}
@@ -693,25 +712,27 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
 
   const addRule = (rule: EmailProcessingRule) => {
     setFormMode('none');
-    save([...rules, rule]);
+    void save([...rules, rule]);
   };
 
   const saveEdit = (updated: EmailProcessingRule) => {
     setEditingRuleId(null);
-    save(rules.map((r) => (r.ruleId === updated.ruleId ? updated : r)));
+    void save(rules.map((r) => (r.ruleId === updated.ruleId ? updated : r)));
   };
 
   const toggleRule = (ruleId: string) =>
-    save(rules.map((r) => (r.ruleId === ruleId ? { ...r, enabled: !r.enabled } : r)));
+    void save(rules.map((r) => (r.ruleId === ruleId ? { ...r, enabled: !r.enabled } : r)));
 
-  const deleteRule = (ruleId: string) => save(rules.filter((r) => r.ruleId !== ruleId));
+  const deleteRule = (ruleId: string) => void save(rules.filter((r) => r.ruleId !== ruleId));
 
   const moveRule = (index: number, direction: -1 | 1) => {
     const updated = [...rules];
     const target = index + direction;
     if (target < 0 || target >= updated.length) return;
-    [updated[index], updated[target]] = [updated[target], updated[index]];
-    save(updated);
+    const temp = updated[index];
+    updated[index] = updated[target];
+    updated[target] = temp;
+    void save(updated);
   };
 
   const canAddMore = rules.length < MAX_RULES;

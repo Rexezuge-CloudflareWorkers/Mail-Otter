@@ -13,7 +13,7 @@ interface BackgroundTaskRun {
   itemsProcessed: number;
   itemsFailed: number;
   summary: string | null;
-  details: unknown | null;
+  details: unknown;
   errorMessage: string | null;
   startedAt: number;
   completedAt: number | null;
@@ -37,27 +37,27 @@ interface BackgroundTaskRunInternal {
 
 interface BackgroundTaskRunList {
   runs: BackgroundTaskRun[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 interface StartTaskRunInput {
   taskType: string;
-  applicationId?: string | undefined;
+  applicationId?: string;
 }
 
 interface CompleteTaskRunInput {
   itemsProcessed: number;
   itemsFailed: number;
-  summary?: string | undefined;
-  details?: unknown | undefined;
+  summary?: string;
+  details?: unknown;
 }
 
 interface ListTaskRunsOptions {
-  taskType?: string | undefined;
-  applicationId?: string | undefined;
-  status?: BackgroundTaskRunStatus | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  taskType?: string;
+  applicationId?: string;
+  status?: BackgroundTaskRunStatus;
+  cursor?: string;
+  limit?: number;
 }
 
 class BackgroundTaskRunDAO extends BaseDAO {
@@ -95,7 +95,7 @@ class BackgroundTaskRunDAO extends BaseDAO {
             input.itemsProcessed,
             input.itemsFailed,
             input.summary ?? null,
-            input.details !== undefined ? JSON.stringify(input.details) : null,
+            input.details === undefined ? null : JSON.stringify(input.details),
             now,
             runId,
           )
@@ -120,7 +120,7 @@ class BackgroundTaskRunDAO extends BaseDAO {
             partial?.itemsProcessed ?? 0,
             partial?.itemsFailed ?? 0,
             partial?.summary ?? null,
-            partial?.details !== undefined ? JSON.stringify(partial.details) : null,
+            partial?.details === undefined ? null : JSON.stringify(partial.details),
             now,
             runId,
           )
@@ -186,10 +186,10 @@ class BackgroundTaskRunDAO extends BaseDAO {
 
     const pageRows = rows.slice(0, limit);
     return {
-      runs: pageRows.map(BackgroundTaskRunDAO.toRun),
+      runs: pageRows.map((r) => BackgroundTaskRunDAO.toRun(r)),
       nextCursor:
         rows.length > limit
-          ? BackgroundTaskRunDAO.encodeCursor(pageRows[pageRows.length - 1].started_at, pageRows[pageRows.length - 1].run_id)
+          ? BackgroundTaskRunDAO.encodeCursor(pageRows.at(-1)!.started_at, pageRows.at(-1)!.run_id)
           : undefined,
     };
   }
@@ -210,7 +210,7 @@ class BackgroundTaskRunDAO extends BaseDAO {
           .run(),
       'prune old background task runs',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   private static encodeCursor(startedAt: number, runId: string): string {

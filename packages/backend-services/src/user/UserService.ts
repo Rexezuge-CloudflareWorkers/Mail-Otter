@@ -3,10 +3,10 @@ import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 
 interface UserServiceEnv {
   DB: D1Database;
-  MAX_APPLICATIONS_PER_USER?: string | undefined;
-  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
-  AI_DAILY_NEURON_FREE_TIER_LIMIT?: string | undefined;
-  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string | undefined;
+  MAX_APPLICATIONS_PER_USER?: string;
+  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string;
+  AI_DAILY_NEURON_FREE_TIER_LIMIT?: string;
+  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
 }
 
 interface CurrentUserSummary {
@@ -45,11 +45,11 @@ class UserService {
   }
 }
 
-class UserServiceFactory {
-  static create(env: UserServiceEnv): UserService {
+const UserServiceFactory = {
+  create(env: UserServiceEnv): UserService {
     return new UserService(env);
-  }
-}
+  },
+};
 
 export { UserService, UserServiceFactory };
 export type { CurrentUserSummary, UserServiceEnv };

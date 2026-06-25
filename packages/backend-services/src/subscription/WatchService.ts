@@ -26,9 +26,9 @@ class WatchService {
     const credentials = await this.resolveCredentials(application);
     const subscriptionDAO = new ProviderSubscriptionDAO(this.env.DB);
 
-    const clientState = application.connectionMethod !== CONNECTION_METHOD_IMAP_PASSWORD
-      ? WebhookSecurityUtil.generateSecret().slice(0, 128)
-      : undefined;
+    const clientState = application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
+      ? undefined
+      : WebhookSecurityUtil.generateSecret().slice(0, 128);
     const ttlDays: number = ConfigurationManager.getOutlookSubscriptionTtlDays(this.env);
     const expiresAt: number = TimestampUtil.addDays(TimestampUtil.getCurrentUnixTimestampInSeconds(), ttlDays);
 
@@ -42,7 +42,7 @@ class WatchService {
     });
 
     if (result.type === 'webhook') {
-      const webhookUrl = result.webhookUrl?.replace('__APPLICATION_ID__', applicationId) ?? '';
+      const webhookUrl = result.webhookUrl?.replace('__APPLICATION_ID__', () => applicationId) ?? '';
       const subscription: ProviderSubscription = await subscriptionDAO.upsertActive({
         applicationId: application.applicationId,
         providerId: application.providerId,
@@ -78,9 +78,9 @@ class WatchService {
     const application: ConnectedApplication = await this.getConnectedApplicationForUser(userEmail, applicationId);
     const subscriptionDAO = new ProviderSubscriptionDAO(this.env.DB);
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-    const accessToken: string = application.connectionMethod !== CONNECTION_METHOD_IMAP_PASSWORD
-      ? await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId)
-      : '';
+    const accessToken: string = application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
+      ? ''
+      : await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId);
     try {
       await EmailProviderRegistry.get(application.providerId, application.connectionMethod).stopWatch(accessToken, subscription?.externalSubscriptionId ?? undefined);
     } catch (error: unknown) {
@@ -116,26 +116,26 @@ class WatchService {
   }
 }
 
-class WatchServiceFactory {
-  static create(env: WatchServiceEnv): WatchService {
+const WatchServiceFactory = {
+  create(env: WatchServiceEnv): WatchService {
     return new WatchService(env);
-  }
-}
+  },
+};
 
 interface WatchServiceEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
-  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
+  OUTLOOK_SUBSCRIPTION_TTL_DAYS?: string;
 }
 
 interface StartApplicationWatchResult {
   message: string;
   webhookUrl: string;
   watchStatus: string;
-  watchExpiresAt?: number | undefined;
+  watchExpiresAt?: number;
 }
 
 export { WatchService, WatchServiceFactory };

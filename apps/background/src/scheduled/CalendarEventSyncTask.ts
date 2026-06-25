@@ -29,7 +29,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
     const syncUtil = new CalendarEventSyncUtil(sessionEnv.DB);
     const now = new Date();
     const windowStartIso = now.toISOString();
-    const windowEndIso = new Date(now.getTime() + DIGEST_CALENDAR_SYNC_DAYS * 86400 * 1000).toISOString();
+    const windowEndIso = new Date(now.getTime() + DIGEST_CALENDAR_SYNC_DAYS * 86_400 * 1000).toISOString();
 
     let synced = 0;
     let failed = 0;
@@ -76,7 +76,7 @@ interface CalendarEventSyncTaskEnv extends IEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { CalendarEventSyncTask };

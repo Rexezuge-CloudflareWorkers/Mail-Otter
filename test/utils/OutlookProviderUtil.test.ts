@@ -5,7 +5,7 @@ import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 const EXPECTED_MARKER = '45da5cec0da75b4c';
 
 function mockEmptyResponse(): Response {
-  return new Response(JSON.stringify({ value: [] }), { status: 200 });
+  return Response.json({ value: [] }, { status: 200 });
 }
 
 describe('OutlookProviderUtil', () => {
@@ -16,8 +16,8 @@ describe('OutlookProviderUtil', () => {
   describe('sendSelfSummaryReply', () => {
     it('sends summary as a reply, finds sent message, copies to inbox, and deletes sent copy', async () => {
       const mockReplyResponse = new Response(null, { status: 202 });
-      const mockFindResponse = new Response(JSON.stringify({ value: [{ id: 'sent-msg-id' }] }), { status: 200 });
-      const mockCopyResponse = new Response(JSON.stringify({ id: 'copy-id-456' }), { status: 201 });
+      const mockFindResponse = Response.json({ value: [{ id: 'sent-msg-id' }] }, { status: 200 });
+      const mockCopyResponse = Response.json({ id: 'copy-id-456' }, { status: 201 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
@@ -107,7 +107,7 @@ describe('OutlookProviderUtil', () => {
     });
 
     it('skips when summary already exists in inbox and no stale sent copy', async () => {
-      const mockInboxResponse = new Response(JSON.stringify({ value: [{ id: 'inbox-msg-id' }] }), { status: 200 });
+      const mockInboxResponse = Response.json({ value: [{ id: 'inbox-msg-id' }] }, { status: 200 });
 
       const fetchMock = vi
         .fn()
@@ -130,8 +130,8 @@ describe('OutlookProviderUtil', () => {
     });
 
     it('deletes stale Sent Items copy when summary already exists in inbox', async () => {
-      const mockInboxResponse = new Response(JSON.stringify({ value: [{ id: 'inbox-msg-id' }] }), { status: 200 });
-      const mockSentItemsResponse = new Response(JSON.stringify({ value: [{ id: 'stale-sent-id' }] }), { status: 200 });
+      const mockInboxResponse = Response.json({ value: [{ id: 'inbox-msg-id' }] }, { status: 200 });
+      const mockSentItemsResponse = Response.json({ value: [{ id: 'stale-sent-id' }] }, { status: 200 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
@@ -158,8 +158,8 @@ describe('OutlookProviderUtil', () => {
     });
 
     it('skips reply and only copies and deletes when summary already in sent items', async () => {
-      const mockSentItemsResponse = new Response(JSON.stringify({ value: [{ id: 'sent-msg-id' }] }), { status: 200 });
-      const mockCopyResponse = new Response(JSON.stringify({ id: 'copy-id-456' }), { status: 201 });
+      const mockSentItemsResponse = Response.json({ value: [{ id: 'sent-msg-id' }] }, { status: 200 });
+      const mockCopyResponse = Response.json({ id: 'copy-id-456' }, { status: 201 });
       const mockDeleteResponse = new Response(null, { status: 204 });
 
       const fetchMock = vi
@@ -233,7 +233,7 @@ describe('OutlookProviderUtil', () => {
 
     it('throws when find fails after reply', async () => {
       const mockReplyResponse = new Response(null, { status: 202 });
-      const mockFindFailResponse = new Response(JSON.stringify({ error: { message: 'Find failed' } }), { status: 500 });
+      const mockFindFailResponse = Response.json({ error: { message: 'Find failed' } }, { status: 500 });
 
       const fetchMock = vi
         .fn()
@@ -251,7 +251,7 @@ describe('OutlookProviderUtil', () => {
 
     it('throws when copy fails', async () => {
       const mockReplyResponse = new Response(null, { status: 202 });
-      const mockFindResponse = new Response(JSON.stringify({ value: [{ id: 'sent-msg-id' }] }), { status: 200 });
+      const mockFindResponse = Response.json({ value: [{ id: 'sent-msg-id' }] }, { status: 200 });
       const mockCopyFailResponse = new Response('Copy failed', { status: 500 });
 
       const fetchMock = vi
@@ -271,8 +271,8 @@ describe('OutlookProviderUtil', () => {
 
     it('throws when delete fails', async () => {
       const mockReplyResponse = new Response(null, { status: 202 });
-      const mockFindResponse = new Response(JSON.stringify({ value: [{ id: 'sent-msg-id' }] }), { status: 200 });
-      const mockCopyResponse = new Response(JSON.stringify({ id: 'copy-id-456' }), { status: 201 });
+      const mockFindResponse = Response.json({ value: [{ id: 'sent-msg-id' }] }, { status: 200 });
+      const mockCopyResponse = Response.json({ id: 'copy-id-456' }, { status: 201 });
       const mockDeleteFailResponse = new Response('Delete failed', { status: 500 });
 
       const fetchMock = vi

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockNow = 1778200000;
+const mockNow = 1_778_200_000;
 const mockAppId = 'app-123';
 const mockUUID = 'uuid-456';
 const mockEncryptedData = { encrypted: 'encrypted-val', iv: 'iv-val' };
@@ -43,7 +43,7 @@ function createMockDb(overrides?: {
         all: allFn,
       })),
     })),
-  } as unknown as D1Database;
+  };
 }
 
 function createSampleRow(overrides?: Partial<ConnectedApplicationInternal>): ConnectedApplicationInternal {
@@ -85,13 +85,13 @@ describe('ConnectedApplicationDAO', () => {
           first: firstFn,
           all: vi.fn().mockResolvedValue({ results: [] } as D1Result),
         })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
       (UUIDUtil.getRandomUUID as ReturnType<typeof vi.fn>).mockReturnValue('new-app-id');
 
       const result = await dao.create(
         'user@example.com', 'My App', 'google-gmail', 'oauth2',
-        { refreshToken: 'rt' } as never, 'draft',
+        { refreshToken: 'rt' }, 'draft',
       );
 
       expect(result.applicationId).toBe(mockAppId);
@@ -109,12 +109,12 @@ describe('ConnectedApplicationDAO', () => {
           first: firstFn,
           all: vi.fn().mockResolvedValue({ results: [] } as D1Result),
         })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.create(
         'user@example.com', 'My App', 'google-gmail', 'oauth2',
-        {} as never, 'draft', 'projects/p/topics/t',
+        {}, 'draft', 'projects/p/topics/t',
       );
 
       expect(setConfigSpy).toHaveBeenCalledWith('new-app-id', 'gmail_pubsub_topic_name', 'projects/p/topics/t', mockNow);
@@ -132,7 +132,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.listMetadataByUserEmail('user@example.com');
@@ -147,7 +147,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.listMetadataByUserEmail('user@example.com');
@@ -160,7 +160,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue({ count: 3 });
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.countByUserEmail('user@example.com');
@@ -171,7 +171,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.countByUserEmail('user@example.com');
@@ -185,14 +185,14 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(row);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getById(mockAppId);
@@ -204,7 +204,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getById('nonexistent');
@@ -220,7 +220,7 @@ describe('ConnectedApplicationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getMetadataByIdForUser(mockAppId, 'user@example.com');
@@ -233,7 +233,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await expect(
@@ -248,7 +248,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn, run: runFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.markOAuth2Connected(mockAppId, 'new-rt', 'email@provider.com');
@@ -265,7 +265,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn, run: runFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.updateOAuth2RefreshToken(mockAppId, 'new-rt');
@@ -275,7 +275,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.updateOAuth2RefreshToken(mockAppId, 'new-rt');
@@ -287,7 +287,7 @@ describe('ConnectedApplicationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.markError(mockAppId, 'something failed');
@@ -299,7 +299,7 @@ describe('ConnectedApplicationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.deleteForUser(mockAppId, 'user@example.com');
@@ -311,7 +311,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue({ config_value: 'topic-val' });
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getProviderConfig(mockAppId, 'gmail_pubsub_topic_name');
@@ -322,7 +322,7 @@ describe('ConnectedApplicationDAO', () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ first: firstFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getProviderConfig(mockAppId, 'nonexistent');
@@ -333,7 +333,7 @@ describe('ConnectedApplicationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.setProviderConfig(mockAppId, 'key', 'value');
@@ -343,7 +343,7 @@ describe('ConnectedApplicationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.deleteProviderConfig(mockAppId, 'key');
@@ -360,7 +360,7 @@ describe('ConnectedApplicationDAO', () => {
       } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getWatchedFolders(mockAppId);
@@ -374,7 +374,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.getWatchedFolders(mockAppId);
@@ -390,7 +390,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.updateContextIndexingForUser(mockAppId, 'user@example.com', true);
@@ -406,7 +406,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.updateMaxContextDocumentsForUser(mockAppId, 'user@example.com', 50);
@@ -421,7 +421,7 @@ describe('ConnectedApplicationDAO', () => {
       } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const result = await dao.listContextEnabledApplicationIdsByUserEmail('user@example.com');
@@ -436,7 +436,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', ['INBOX', 'LABEL_1'], { INBOX: 'Inbox', LABEL_1: 'Label 1' });
@@ -448,7 +448,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', null);
@@ -460,7 +460,7 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', []);
@@ -475,10 +475,10 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.updateForUser(mockAppId, 'user@example.com', 'New Name', {} as never, 'draft');
+      const result = await dao.updateForUser(mockAppId, 'user@example.com', 'New Name', {}, 'draft');
       expect(result?.applicationId).toBe(mockAppId);
     });
 
@@ -489,11 +489,11 @@ describe('ConnectedApplicationDAO', () => {
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       mockDb.prepare = vi.fn(() => ({
         bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
-      })) as unknown as D1Database['prepare'];
+      }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const deleteSpy = vi.spyOn(dao as never, 'deleteProviderConfig' as never);
-      await dao.updateForUser(mockAppId, 'user@example.com', 'Name', {} as never, 'draft', null);
+      await dao.updateForUser(mockAppId, 'user@example.com', 'Name', {}, 'draft', null);
       expect(deleteSpy).toHaveBeenCalledWith(mockAppId, 'gmail_pubsub_topic_name');
     });
   });

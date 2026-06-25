@@ -5,10 +5,10 @@ interface ContextAuditLog {
   contextDocumentId: string;
   applicationId: string;
   userEmail: string;
-  sourceDocumentId?: string | null | undefined;
+  sourceDocumentId?: string | null;
   eventType: ContextAuditEventType;
-  eventLabel?: string | null | undefined;
-  eventData?: unknown | null | undefined;
+  eventLabel?: string | null;
+  eventData?: unknown;
   severity: ContextAuditLogSeverity;
   createdAt: number;
 }
@@ -28,7 +28,7 @@ interface ContextAuditLogInternal {
 
 interface ContextAuditLogList {
   logs: ContextAuditLog[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 export type { ContextAuditLog, ContextAuditLogInternal, ContextAuditLogList };

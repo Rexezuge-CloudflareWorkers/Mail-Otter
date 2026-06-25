@@ -70,23 +70,23 @@ class ApplicationResponseUtil {
 
 interface ApplicationDecorationEnv {
   DB: D1Queryable;
-  AES_ENCRYPTION_KEY_SECRET?: SecretsStoreSecret | undefined;
+  AES_ENCRYPTION_KEY_SECRET?: SecretsStoreSecret;
 }
 
 interface ApplicationResponse extends ConnectedApplicationMetadata {
   digestConfig?: DigestConfig | null;
   oauth2RedirectUri: string;
   webhookUrl: string;
-  watchStatus?: string | undefined;
-  watchExpiresAt?: number | null | undefined;
-  lastSummaryAt?: number | null | undefined;
-  lastError?: string | null | undefined;
-  lastErrorAt?: number | null | undefined;
+  watchStatus?: string;
+  watchExpiresAt?: number | null;
+  lastSummaryAt?: number | null;
+  lastError?: string | null;
+  lastErrorAt?: number | null;
   contextDocumentCount: number;
-  contextLastIndexedAt?: number | null | undefined;
-  contextLastDeleteAcceptedAt?: number | null | undefined;
-  contextLastError?: string | null | undefined;
-  contextLastErrorAt?: number | null | undefined;
+  contextLastIndexedAt?: number | null;
+  contextLastDeleteAcceptedAt?: number | null;
+  contextLastError?: string | null;
+  contextLastErrorAt?: number | null;
 }
 
 export { ApplicationResponseUtil };

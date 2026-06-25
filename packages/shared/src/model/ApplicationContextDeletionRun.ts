@@ -1,6 +1,6 @@
-import type { ApplicationContextDeletionStatus } from '../constants';
+import type { ApplicationContextDeletionStatus as AppContextDeletionStatus } from '../constants';
 
-interface ApplicationContextDeletionRun {
+interface AppContextDeletionRun {
   deletionRunId: string;
   applicationId: string;
   userEmail: string;
@@ -8,13 +8,13 @@ interface ApplicationContextDeletionRun {
   requestedVectorCount: number;
   deletedVectorCount: number;
   mutationIds: string[];
-  status: ApplicationContextDeletionStatus;
-  errorMessage?: string | null | undefined;
+  status: AppContextDeletionStatus;
+  errorMessage?: string | null;
   createdAt: number;
   updatedAt: number;
 }
 
-interface ApplicationContextDeletionRunInternal {
+interface AppContextDeletionRunInternal {
   deletion_run_id: string;
   application_id: string;
   user_email: string;
@@ -22,15 +22,15 @@ interface ApplicationContextDeletionRunInternal {
   requested_vector_count: number;
   deleted_vector_count: number;
   mutation_ids: string | null;
-  status: ApplicationContextDeletionStatus;
+  status: AppContextDeletionStatus;
   error_message: string | null;
   created_at: number;
   updated_at: number;
 }
 
-interface ApplicationContextDeletionRunList {
-  deletionRuns: ApplicationContextDeletionRun[];
-  nextCursor?: string | undefined;
+interface AppContextDeletionRunList {
+  deletionRuns: AppContextDeletionRun[];
+  nextCursor?: string;
 }
 
-export type { ApplicationContextDeletionRun, ApplicationContextDeletionRunInternal, ApplicationContextDeletionRunList };
+export type { AppContextDeletionRun as ApplicationContextDeletionRun, AppContextDeletionRunInternal as ApplicationContextDeletionRunInternal, AppContextDeletionRunList as ApplicationContextDeletionRunList };

@@ -13,7 +13,7 @@ class IntegrationDeliveryLogPruningTask extends IScheduledTask<IntegrationDelive
     _ctx: ExecutionContext,
   ): Promise<void> {
     const retentionDays: number = ConfigurationManager.getIntegrationDeliveryLogRetentionDays(env);
-    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86400;
+    const olderThan: number = Math.floor(Date.now() / 1000) - retentionDays * 86_400;
     const sessionEnv = createD1SessionEnv(env);
     const dao = new IntegrationDeliveryLogDAO(sessionEnv.DB);
 
@@ -29,7 +29,7 @@ class IntegrationDeliveryLogPruningTask extends IScheduledTask<IntegrationDelive
 
 interface IntegrationDeliveryLogPruningTaskEnv extends IEnv {
   DB: D1Database;
-  INTEGRATION_DELIVERY_LOG_RETENTION_DAYS?: string | undefined;
+  INTEGRATION_DELIVERY_LOG_RETENTION_DAYS?: string;
 }
 
 export { IntegrationDeliveryLogPruningTask };

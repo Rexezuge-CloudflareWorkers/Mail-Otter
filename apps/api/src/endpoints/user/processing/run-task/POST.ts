@@ -38,9 +38,9 @@ interface RunTaskNowEnv extends IUserEnv {
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  PACKAGE_TRACKING_API_KEY?: string | undefined;
-  FLIGHT_TRACKING_API_KEY?: string | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  PACKAGE_TRACKING_API_KEY?: string;
+  FLIGHT_TRACKING_API_KEY?: string;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { RunTaskNowRoute };

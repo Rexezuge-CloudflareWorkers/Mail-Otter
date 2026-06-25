@@ -32,7 +32,7 @@ interface DeleteApplicationResponse extends IResponse {
 }
 
 interface DeleteApplicationEnv extends IUserEnv {
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
 }

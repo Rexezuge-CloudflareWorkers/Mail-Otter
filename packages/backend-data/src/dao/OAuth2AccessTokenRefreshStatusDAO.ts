@@ -5,11 +5,11 @@ import { BaseDAO } from './BaseDAO';
 
 interface OAuth2AccessTokenRefreshStatus {
   applicationId: string;
-  accessTokenExpiresAt?: number | null | undefined;
-  lastRefreshStartedAt?: number | null | undefined;
-  lastRefreshSucceededAt?: number | null | undefined;
-  lastRefreshFailedAt?: number | null | undefined;
-  lastError?: string | null | undefined;
+  accessTokenExpiresAt?: number | null;
+  lastRefreshStartedAt?: number | null;
+  lastRefreshSucceededAt?: number | null;
+  lastRefreshFailedAt?: number | null;
+  lastError?: string | null;
   createdAt: number;
   updatedAt: number;
 }

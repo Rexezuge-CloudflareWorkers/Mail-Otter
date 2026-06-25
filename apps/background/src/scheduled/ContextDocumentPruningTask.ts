@@ -35,7 +35,7 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
 interface ContextDocumentPruningTaskEnv extends IEnv {
   DB: D1Database;
   EMAIL_CONTEXT_INDEX: Vectorize;
-  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string | undefined;
+  MAX_CONTEXT_DOCUMENTS_PER_APPLICATION?: string;
 }
 
 export { ContextDocumentPruningTask };

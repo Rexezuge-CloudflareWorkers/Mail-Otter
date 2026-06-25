@@ -40,19 +40,17 @@ class OutlookWebhookRoute extends IBaseRoute<OutlookWebhookRequest, OutlookWebho
 }
 
 interface OutlookWebhookRequest extends IRequest {
-  value?: OutlookNotification[] | undefined;
+  value?: OutlookNotification[];
 }
 
 interface OutlookNotification {
   subscriptionId: string;
-  clientState?: string | undefined;
-  changeType?: string | undefined;
-  resource?: string | undefined;
-  resourceData?:
-    | {
-        id?: string | undefined;
-      }
-    | undefined;
+  clientState?: string;
+  changeType?: string;
+  resource?: string;
+  resourceData?: {
+    id?: string;
+  };
 }
 
 interface OutlookWebhookResponse extends IResponse {

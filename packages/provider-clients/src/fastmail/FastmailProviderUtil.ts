@@ -46,11 +46,11 @@ class FastmailProviderUtil {
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
     if (!response.ok) throw new InternalServerError(`Fastmail JMAP session fetch failed: ${response.statusText}`);
-    return response.json() as Promise<JmapSession>;
+    return response.json();
   }
 
   public static async getProfile(accessToken: string): Promise<JmapProfileResult> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
+    const session = await this.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
     if (!accountId) throw new BadRequestError('No primary JMAP mail account found.');
     const account = session.accounts[accountId];
@@ -58,9 +58,9 @@ class FastmailProviderUtil {
   }
 
   public static async listMailboxes(accessToken: string): Promise<JmapMailboxResult[]> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
+    const session = await this.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
-    const response = await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const response = await this.callApi(session.apiUrl, accessToken, [
       ['Mailbox/get', { accountId, ids: null }, '0'],
     ]);
     const result = (response.methodResponses as [[string, { list: JmapMailboxResult[] }]])[0][1];
@@ -68,9 +68,9 @@ class FastmailProviderUtil {
   }
 
   public static async getEmail(accessToken: string, emailId: string): Promise<JmapEmailResult> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
+    const session = await this.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
-    const response = await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const response = await this.callApi(session.apiUrl, accessToken, [
       [
         'Email/get',
         {
@@ -78,7 +78,7 @@ class FastmailProviderUtil {
           ids: [emailId],
           properties: ['id', 'subject', 'from', 'receivedAt', 'messageId', 'threadId', 'textBody', 'bodyValues'],
           fetchTextBodyValues: true,
-          maxBodyValueBytes: 32768,
+          maxBodyValueBytes: 32_768,
         },
         '0',
       ],
@@ -90,13 +90,14 @@ class FastmailProviderUtil {
   }
 
   public static async createDraftReply(accessToken: string, originalEmailId: string, draftBody: string): Promise<{ id: string }> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
+    const session = await this.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:mail'];
-    const original = await FastmailProviderUtil.getEmail(accessToken, originalEmailId);
-    const draftMailboxes = (await FastmailProviderUtil.listMailboxes(accessToken)).filter((m) => m.role === 'drafts');
-    const draftMailboxId = draftMailboxes[0]?.id;
+    const original = await this.getEmail(accessToken, originalEmailId);
+    const mailboxes = await this.listMailboxes(accessToken);
+    const draftMailbox = mailboxes.find((m) => m.role === 'drafts');
+    const draftMailboxId = draftMailbox?.id;
     if (!draftMailboxId) throw new BadRequestError('No Drafts mailbox found in Fastmail account.');
-    const response = await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const response = await this.callApi(session.apiUrl, accessToken, [
       [
         'Email/set',
         {
@@ -127,13 +128,13 @@ class FastmailProviderUtil {
     accessToken: string,
     payload: CalendarAddEventActionPayload,
   ): Promise<{ id: string; uid: string }> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
+    const session = await this.getSession(accessToken);
     const accountId = session.primaryAccounts['urn:ietf:params:jmap:calendars'];
     if (!accountId) throw new BadRequestError('Fastmail calendar access is not authorized. Re-authorize with the Calendar feature enabled.');
     const uid = crypto.randomUUID();
     const start = payload.startTime ?? new Date().toISOString();
     const end = payload.endTime ?? new Date(Date.now() + 3600 * 1000).toISOString();
-    const response = await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const response = await this.callApi(session.apiUrl, accessToken, [
       [
         'CalendarEvent/set',
         {
@@ -160,8 +161,8 @@ class FastmailProviderUtil {
   }
 
   public static async createPushSubscription(accessToken: string, webhookUrl: string): Promise<JmapPushSubscription> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
-    const response = await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const session = await this.getSession(accessToken);
+    const response = await this.callApi(session.apiUrl, accessToken, [
       [
         'PushSubscription/set',
         {
@@ -183,8 +184,8 @@ class FastmailProviderUtil {
   }
 
   public static async deletePushSubscription(accessToken: string, subscriptionId: string): Promise<void> {
-    const session = await FastmailProviderUtil.getSession(accessToken);
-    await FastmailProviderUtil.callApi(session.apiUrl, accessToken, [
+    const session = await this.getSession(accessToken);
+    await this.callApi(session.apiUrl, accessToken, [
       ['PushSubscription/set', { destroy: [subscriptionId] }, '0'],
     ]);
   }
@@ -200,7 +201,7 @@ class FastmailProviderUtil {
       body: JSON.stringify({ using: ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail', 'urn:ietf:params:jmap:calendars', 'urn:ietf:params:jmap:submission'], methodCalls: calls }),
     });
     if (!response.ok) throw new InternalServerError(`Fastmail JMAP API call failed: ${response.statusText}`);
-    return response.json() as Promise<{ methodResponses: unknown[][] }>;
+    return response.json();
   }
 }
 

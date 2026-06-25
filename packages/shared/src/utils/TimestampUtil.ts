@@ -1,4 +1,4 @@
-class TimestampUtil {
+class TimestampUtility {
   public static getCurrentUnixTimestampInMilliseconds(): number {
     return Date.now();
   }
@@ -32,4 +32,4 @@ class TimestampUtil {
   }
 }
 
-export { TimestampUtil };
+export { TimestampUtility as TimestampUtil };

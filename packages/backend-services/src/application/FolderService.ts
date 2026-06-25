@@ -21,19 +21,21 @@ class FolderService {
   }
 }
 
-class FolderServiceFactory {
-  static create(env: FolderServiceEnv): FolderService {
+const FolderServiceFactory = {
+  create(env: FolderServiceEnv): FolderService {
     return new FolderService(env);
-  }
-}
+  },
+};
 
 interface FolderServiceEnv {
   DB: D1Queryable;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { FolderService, FolderServiceFactory };
-export type { FolderServiceEnv, ProviderFolder };
+export type { FolderServiceEnv,  };
+
+export {type ProviderFolder} from '../provider/IEmailProvider';

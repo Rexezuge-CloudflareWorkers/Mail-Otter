@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockNow = 1778200000;
+const mockNow = 1_778_200_000;
 const mockUUID = 'exec-uuid-1';
 const mockEncryptedPayload = { encrypted: 'payload-enc', iv: 'payload-iv', salt: 'payload-salt' };
 const mockEncryptedResult = { encrypted: 'result-enc', iv: 'result-iv', salt: 'result-salt' };
@@ -47,7 +47,7 @@ function createActionRow(overrides?: Partial<EmailActionInternal>): EmailActionI
     result_iv: null,
     result_salt: null,
     error_message: null,
-    expires_at: mockNow + 86400,
+    expires_at: mockNow + 86_400,
     executed_at: null,
     created_at: mockNow,
     updated_at: mockNow,
@@ -83,7 +83,7 @@ function makeDb(dbFns: {
     prepare: vi.fn(() => ({
       bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })),
     })),
-  } as unknown as D1Database;
+  };
 }
 
 describe('EmailActionDAO', () => {
@@ -112,7 +112,7 @@ describe('EmailActionDAO', () => {
         riskLevel: 'low',
         tokenHash: 'hash-1',
         payload: { title: 'Test', description: 'Desc' },
-        expiresAt: mockNow + 86400,
+        expiresAt: mockNow + 86_400,
       });
 
       expect(result.actionId).toBe('action-1');
@@ -261,7 +261,7 @@ describe('EmailActionDAO', () => {
       const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 3 } } as D1Result) });
       dao = new EmailActionDAO(db, 'key');
 
-      const result = await dao.deleteOlderThan(mockNow - 86400 * 30, 100);
+      const result = await dao.deleteOlderThan(mockNow - 86_400 * 30, 100);
       expect(result).toBe(3);
     });
   });

@@ -22,9 +22,9 @@ export type {
 export type { ActionMaintenanceEnv } from './ActionMaintenanceService';
 
 interface ListActionsInput {
-  applicationId?: string | undefined;
-  status?: EmailActionStatus | undefined;
-  cursor?: string | undefined;
+  applicationId?: string;
+  status?: EmailActionStatus;
+  cursor?: string;
 }
 
 type UserActionListEnv = import('./ActionServiceUtils').ActionDAOEnv;
@@ -41,11 +41,13 @@ class ActionService {
   public static deleteOldActions = deleteOldActions;
 
   public static async listActionsForUser(userEmail: string, input: ListActionsInput, env: UserActionListEnv): Promise<EmailActionList> {
-    return (await createActionDAO(env)).listActionsForUser(userEmail, input);
+    const dao = await createActionDAO(env);
+    return dao.listActionsForUser(userEmail, input);
   }
 
   public static async listExecutionsForUser(actionId: string, userEmail: string, env: UserActionListEnv): Promise<EmailActionExecutionList> {
-    return (await createActionDAO(env)).listExecutionsForUser(actionId, userEmail);
+    const dao = await createActionDAO(env);
+    return dao.listExecutionsForUser(actionId, userEmail);
   }
 }
 

@@ -1,6 +1,6 @@
-import type { ApplicationContextDocumentStatus, ProviderId } from '../constants';
+import type { ApplicationContextDocumentStatus as AppContextDocumentStatus, ProviderId } from '../constants';
 
-interface ApplicationContextDocument {
+interface AppContextDocument {
   contextDocumentId: string;
   applicationId: string;
   userEmail: string;
@@ -8,21 +8,21 @@ interface ApplicationContextDocument {
   sourceProviderId: ProviderId;
   vectorNamespace: string;
   vectorId: string;
-  sourceDocumentFingerprint?: string | null | undefined;
-  sourceThreadFingerprint?: string | null | undefined;
-  titleFingerprint?: string | null | undefined;
-  senderFingerprint?: string | null | undefined;
-  contentFingerprint?: string | null | undefined;
+  sourceDocumentFingerprint?: string | null;
+  sourceThreadFingerprint?: string | null;
+  titleFingerprint?: string | null;
+  senderFingerprint?: string | null;
+  contentFingerprint?: string | null;
   indexedTextChars: number;
-  status: ApplicationContextDocumentStatus;
-  indexedAt?: number | null | undefined;
-  deletedAt?: number | null | undefined;
-  lastError?: string | null | undefined;
+  status: AppContextDocumentStatus;
+  indexedAt?: number | null;
+  deletedAt?: number | null;
+  lastError?: string | null;
   createdAt: number;
   updatedAt: number;
 }
 
-interface ApplicationContextDocumentInternal {
+interface AppContextDocumentInternal {
   context_document_id: string;
   application_id: string;
   user_email: string;
@@ -38,7 +38,7 @@ interface ApplicationContextDocumentInternal {
   sender_fingerprint: string | null;
   content_fingerprint: string | null;
   indexed_text_chars: number;
-  status: ApplicationContextDocumentStatus;
+  status: AppContextDocumentStatus;
   indexed_at: number | null;
   deleted_at: number | null;
   last_error: string | null;
@@ -46,34 +46,34 @@ interface ApplicationContextDocumentInternal {
   updated_at: number;
 }
 
-interface ApplicationContextSummary {
+interface AppContextSummary {
   applicationId: string;
   documentCount: number;
-  lastIndexedAt?: number | null | undefined;
-  lastDeleteAcceptedAt?: number | null | undefined;
-  lastError?: string | null | undefined;
-  lastErrorAt?: number | null | undefined;
+  lastIndexedAt?: number | null;
+  lastDeleteAcceptedAt?: number | null;
+  lastError?: string | null;
+  lastErrorAt?: number | null;
 }
 
-interface ApplicationContextDocumentList {
-  documents: ApplicationContextDocument[];
-  nextCursor?: string | undefined;
+interface AppContextDocumentList {
+  documents: AppContextDocument[];
+  nextCursor?: string;
 }
 
-interface ApplicationContextDocumentSource {
+interface AppContextDocumentSource {
   contextDocumentId: string;
   applicationId: string;
   userEmail: string;
   sourceProviderId: ProviderId;
   sourceDocumentId: string;
-  sourceThreadId?: string | null | undefined;
-  status: ApplicationContextDocumentStatus;
+  sourceThreadId?: string | null;
+  status: AppContextDocumentStatus;
 }
 
 export type {
-  ApplicationContextDocument,
-  ApplicationContextDocumentInternal,
-  ApplicationContextDocumentList,
-  ApplicationContextDocumentSource,
-  ApplicationContextSummary,
+  AppContextDocument as ApplicationContextDocument,
+  AppContextDocumentInternal as ApplicationContextDocumentInternal,
+  AppContextDocumentList as ApplicationContextDocumentList,
+  AppContextDocumentSource as ApplicationContextDocumentSource,
+  AppContextSummary as ApplicationContextSummary,
 };

@@ -35,7 +35,7 @@ interface OAuth2TokenExchangeRequest {
 interface OAuth2TokenWorkerResponse {
   accessToken: string;
   expiresAt: number;
-  providerEmail?: string | undefined;
+  providerEmail?: string;
 }
 
 class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
@@ -167,10 +167,12 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
 
   private async getProviderEmail(application: ConnectedApplication, accessToken: string): Promise<string> {
     if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
-      return (await GmailProviderUtil.getProfile(accessToken)).emailAddress;
+      const gmailProfile = await GmailProviderUtil.getProfile(accessToken);
+      return gmailProfile.emailAddress;
     }
     if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
-      return (await OutlookProviderUtil.getProfile(accessToken)).emailAddress;
+      const outlookProfile = await OutlookProviderUtil.getProfile(accessToken);
+      return outlookProfile.emailAddress;
     }
     return application.userEmail;
   }
@@ -180,7 +182,7 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
     tokenResult: OAuth2TokenResult,
     cacheDAO: OAuth2AccessTokenCacheDAO,
     statusDAO: OAuth2AccessTokenRefreshStatusDAO,
-    providerEmail?: string | undefined,
+    providerEmail?: string  ,
   ): Promise<OAuth2TokenWorkerResponse> {
     const expiresInSeconds: number = OAuth2ProviderUtil.getExpiresInSeconds(
       tokenResult,

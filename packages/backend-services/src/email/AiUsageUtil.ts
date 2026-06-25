@@ -4,13 +4,13 @@ const MILLION_TOKENS = 1_000_000;
 const APPROXIMATE_CHARS_PER_TOKEN = 4;
 
 const GPT_OSS_120B_RATES: ModelNeuronRates = {
-  inputNeuronsPerMillionTokens: 31818,
-  outputNeuronsPerMillionTokens: 68182,
+  inputNeuronsPerMillionTokens: 31_818,
+  outputNeuronsPerMillionTokens: 68_182,
 };
 
 const KIMI_K2_6_RATES: ModelNeuronRates = {
-  inputNeuronsPerMillionTokens: 86364,
-  outputNeuronsPerMillionTokens: 363636,
+  inputNeuronsPerMillionTokens: 86_364,
+  outputNeuronsPerMillionTokens: 363_636,
 };
 
 const BGE_M3_RATES: ModelNeuronRates = {
@@ -20,8 +20,8 @@ const BGE_M3_RATES: ModelNeuronRates = {
 const MODEL_NEURON_RATES: Readonly<Record<string, ModelNeuronRates>> = {
   '@cf/openai/gpt-oss-120b': GPT_OSS_120B_RATES,
   '@cf/openai/gpt-oss-20b': {
-    inputNeuronsPerMillionTokens: 18182,
-    outputNeuronsPerMillionTokens: 27273,
+    inputNeuronsPerMillionTokens: 18_182,
+    outputNeuronsPerMillionTokens: 27_273,
   },
   '@cf/moonshotai/kimi-k2.6': KIMI_K2_6_RATES,
   '@cf/baai/bge-m3': BGE_M3_RATES,
@@ -38,15 +38,15 @@ class AiUsageUtil {
     fallbackInputText: string,
     fallbackOutputText: string,
   ): AiTextGenerationUsageEstimate {
-    const promptTokensFromUsage: number | undefined = AiUsageUtil.toTokenCount(usage?.promptTokens);
-    const promptTokens: number = promptTokensFromUsage ?? AiUsageUtil.estimateTokensFromText(fallbackInputText);
-    const completionTokensFromUsage: number | undefined = AiUsageUtil.toTokenCount(usage?.completionTokens);
-    const totalTokens: number | undefined = AiUsageUtil.toTokenCount(usage?.totalTokens);
+    const promptTokensFromUsage: number | undefined = this.toTokenCount(usage?.promptTokens);
+    const promptTokens: number = promptTokensFromUsage ?? this.estimateTokensFromText(fallbackInputText);
+    const completionTokensFromUsage: number | undefined = this.toTokenCount(usage?.completionTokens);
+    const totalTokens: number | undefined = this.toTokenCount(usage?.totalTokens);
     const completionTokensFromTotal: number | undefined =
       promptTokensFromUsage !== undefined && totalTokens !== undefined ? Math.max(0, totalTokens - promptTokens) : undefined;
     const completionTokens: number =
-      AiUsageUtil.maxTokenCount(completionTokensFromUsage, completionTokensFromTotal) ?? AiUsageUtil.estimateTokensFromText(fallbackOutputText);
-    return AiUsageUtil.estimateTextGenerationUsageForTokenCounts(model, promptTokens, completionTokens);
+      this.maxTokenCount(completionTokensFromUsage, completionTokensFromTotal) ?? this.estimateTokensFromText(fallbackOutputText);
+    return this.estimateTextGenerationUsageForTokenCounts(model, promptTokens, completionTokens);
   }
 
   public static estimateTextGenerationUsageForTokenCounts(
@@ -54,9 +54,9 @@ class AiUsageUtil {
     promptTokens: number,
     completionTokens: number,
   ): AiTextGenerationUsageEstimate {
-    const normalizedPromptTokens: number = AiUsageUtil.toTokenCount(promptTokens) ?? 0;
-    const normalizedCompletionTokens: number = AiUsageUtil.toTokenCount(completionTokens) ?? 0;
-    const rates: ModelNeuronRates = AiUsageUtil.getRates(model, GPT_OSS_120B_RATES);
+    const normalizedPromptTokens: number = this.toTokenCount(promptTokens) ?? 0;
+    const normalizedCompletionTokens: number = this.toTokenCount(completionTokens) ?? 0;
+    const rates: ModelNeuronRates = this.getRates(model, GPT_OSS_120B_RATES);
     const outputRate: number = rates.outputNeuronsPerMillionTokens ?? rates.inputNeuronsPerMillionTokens;
     const estimatedNeurons: number = Math.ceil(
       (normalizedPromptTokens * rates.inputNeuronsPerMillionTokens + normalizedCompletionTokens * outputRate) / MILLION_TOKENS,
@@ -65,8 +65,8 @@ class AiUsageUtil {
   }
 
   public static estimateEmbeddingUsage(model: string, text: string): AiEmbeddingUsageEstimate {
-    const embeddingTokens: number = AiUsageUtil.estimateTokensFromText(text);
-    const rates: ModelNeuronRates = AiUsageUtil.getRates(model, BGE_M3_RATES);
+    const embeddingTokens: number = this.estimateTokensFromText(text);
+    const rates: ModelNeuronRates = this.getRates(model, BGE_M3_RATES);
     const estimatedNeurons: number = Math.ceil((embeddingTokens * rates.inputNeuronsPerMillionTokens) / MILLION_TOKENS);
     return { estimatedNeurons, embeddingTokens };
   }
@@ -94,7 +94,7 @@ class AiUsageUtil {
 
 interface ModelNeuronRates {
   inputNeuronsPerMillionTokens: number;
-  outputNeuronsPerMillionTokens?: number | undefined;
+  outputNeuronsPerMillionTokens?: number;
 }
 
 interface AiTextGenerationUsageEstimate {

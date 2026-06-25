@@ -92,7 +92,7 @@ describe('ProcessedMessageDAO', () => {
   it('does not start a moved message when the stable provider message fingerprint already exists', async () => {
     const database = new FakeProcessedMessageD1Database();
     database.rows.push(createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }));
-    const dao = new ProcessedMessageDAO(database as unknown as D1Database);
+    const dao = new ProcessedMessageDAO(database);
 
     await expect(
       dao.tryStart('app-1', 'microsoft-outlook', 'new-provider-id', 'conversation-1', {
@@ -106,7 +106,7 @@ describe('ProcessedMessageDAO', () => {
   it('starts a new message in the same thread when its stable provider message fingerprint is new', async () => {
     const database = new FakeProcessedMessageD1Database();
     database.rows.push(createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }));
-    const dao = new ProcessedMessageDAO(database as unknown as D1Database);
+    const dao = new ProcessedMessageDAO(database);
 
     await expect(
       dao.tryStart('app-1', 'microsoft-outlook', 'new-reply-provider-id', 'conversation-1', {
@@ -133,10 +133,10 @@ function createProcessedMessageRow(overrides: Partial<ProcessedMessageInternal> 
     provider_thread_id: 'conversation-1',
     provider_stable_message_fingerprint: 'stable-1',
     status: PROCESSED_MESSAGE_STATUS_SUMMARIZED,
-    summary_sent_at: 1778200000,
+    summary_sent_at: 1_778_200_000,
     error_message: null,
-    created_at: 1778200000,
-    updated_at: 1778200000,
+    created_at: 1_778_200_000,
+    updated_at: 1_778_200_000,
     ...overrides,
   };
 }
@@ -225,7 +225,7 @@ describe('ProcessedMessageDAO (mock-based)', () => {
       const { db } = makeDb({ runChanges: 7 });
       const dao = new ProcessedMessageDAO(db);
 
-      const count = await dao.deleteOlderThan(1000000, [PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROCESSED_MESSAGE_STATUS_SKIPPED], 100);
+      const count = await dao.deleteOlderThan(1_000_000, [PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROCESSED_MESSAGE_STATUS_SKIPPED], 100);
 
       expect(count).toBe(7);
     });

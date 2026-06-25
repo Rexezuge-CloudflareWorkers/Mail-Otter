@@ -33,7 +33,7 @@ function makeApp(): ConnectedApplication {
     enabled: true,
     enabledFeatures: [],
     createdAt: 0,
-  } as unknown as ConnectedApplication;
+  };
 }
 
 function makeRule(action: EmailProcessingRule['action']): EmailProcessingRule {

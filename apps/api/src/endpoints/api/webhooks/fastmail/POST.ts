@@ -40,7 +40,7 @@ class FastmailWebhookRoute extends IBaseRoute<FastmailWebhookRequest, FastmailWe
 
 interface FastmailWebhookRequest extends IRequest {
   emailId: string;
-  type?: string | undefined;
+  type?: string;
 }
 
 interface FastmailWebhookResponse extends IResponse {

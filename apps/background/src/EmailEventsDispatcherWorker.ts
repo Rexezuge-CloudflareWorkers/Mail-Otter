@@ -15,7 +15,7 @@ class EmailEventsDispatcherWorker extends AbstractQueueWorker {
 
     try {
       await env.EMAIL_PROCESSING_WORKFLOW.createBatch(workflowInputs);
-      batch.messages.forEach((message: Message<unknown>): void => message.ack());
+      for (const message of batch.messages) message.ack();
       return;
     } catch (error: unknown) {
       console.warn('Batch workflow dispatch failed; falling back to per-message dispatch:', error);

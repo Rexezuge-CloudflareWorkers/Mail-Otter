@@ -54,8 +54,8 @@ interface ActionStatusSyncTaskEnv extends IEnv {
   DB: D1Database;
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
-  PACKAGE_TRACKING_API_KEY?: string | undefined;
-  FLIGHT_TRACKING_API_KEY?: string | undefined;
+  PACKAGE_TRACKING_API_KEY?: string;
+  FLIGHT_TRACKING_API_KEY?: string;
 }
 
 export { ActionStatusSyncTask };

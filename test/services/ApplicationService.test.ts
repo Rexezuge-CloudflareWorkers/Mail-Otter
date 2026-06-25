@@ -176,7 +176,7 @@ describe('ApplicationService', () => {
         new Request('https://example.com'),
       );
 
-      const [, , , calledCredentials] = mockUpdateForUser.mock.calls[0] as [unknown, unknown, unknown, { clientId: string; clientSecret: string; refreshToken: string }];
+      const calledCredentials = (mockUpdateForUser.mock.calls[0] as [unknown, unknown, unknown, { clientId: string; clientSecret: string; refreshToken: string }])[3];
       expect(calledCredentials).toEqual({ clientId: 'existing-cid', clientSecret: 'existing-cs', refreshToken: 'rt' });
     });
 
@@ -322,7 +322,7 @@ describe('ApplicationService', () => {
         EMAIL_CONTEXT_INDEX: { deleteByIds: vi.fn().mockResolvedValue(undefined) },
       });
 
-      await new ApplicationService(env as never).deleteUserApplication('user@example.com', 'app-1');
+      await new ApplicationService(env).deleteUserApplication('user@example.com', 'app-1');
 
       expect(mockListActiveVectorIdsForApplication).toHaveBeenCalledWith('app-1', 'user@example.com');
       expect(mockDeleteForUser).toHaveBeenCalledWith('app-1', 'user@example.com');
@@ -333,7 +333,7 @@ describe('ApplicationService', () => {
       mockDeleteAccessToken.mockResolvedValue(undefined);
       mockDeleteForUser.mockResolvedValue(undefined);
 
-      await new ApplicationService(makeEnv() as never).deleteUserApplication('user@example.com', 'app-1');
+      await new ApplicationService(makeEnv()).deleteUserApplication('user@example.com', 'app-1');
 
       expect(mockListActiveVectorIdsForApplication).toHaveBeenCalled();
       expect(mockDeleteForUser).toHaveBeenCalled();

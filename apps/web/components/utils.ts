@@ -21,7 +21,7 @@ export async function readJson<T>(response: Response): Promise<T> {
     const error = await response.text();
     throw new Error(error || `HTTP ${response.status}`);
   }
-  return response.json() as Promise<T>;
+  return response.json();
 }
 
 export function formatTimestamp(timestampSeconds: number | null | undefined): string {
@@ -29,7 +29,7 @@ export function formatTimestamp(timestampSeconds: number | null | undefined): st
   const date = new Date(timestampSeconds * 1000);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffMins = Math.floor(diffMs / 60_000);
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
@@ -44,7 +44,7 @@ export function formatExpiryTimestamp(timestampSeconds: number | null | undefine
   const date = new Date(timestampSeconds * 1000);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffMins = Math.floor(diffMs / 60_000);
   if (diffMins < 1) return 'Expires soon';
   if (diffMins < 60) return `Expires in ${diffMins}m`;
   const diffHours = Math.floor(diffMins / 60);
@@ -95,13 +95,14 @@ export const providerMethod: Record<string, 'oauth2' | 'imap-password'> = {
 
 function getFetchPath(input: Parameters<typeof fetch>[0]): string {
   const url: string = typeof input === 'string' || input instanceof URL ? input.toString() : input.url;
-  return new URL(url, window.location.origin).pathname;
+  return new URL(url, globalThis.location.origin).pathname;
 }
 
 function rememberD1Bookmark(bookmark: string | null): void {
   const nextBookmark: string | undefined = bookmark?.trim() || undefined;
   if (!nextBookmark) return;
   if (!latestD1Bookmark || latestD1Bookmark < nextBookmark) {
+    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
     latestD1Bookmark = nextBookmark;
   }
 }

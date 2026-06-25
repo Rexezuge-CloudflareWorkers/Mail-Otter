@@ -1,18 +1,24 @@
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char: string): string => {
+  return value.replaceAll(/[&<>"']/g, (char: string): string => {
     switch (char) {
-      case '&':
+      case '&': {
         return '&amp;';
-      case '<':
+      }
+      case '<': {
         return '&lt;';
-      case '>':
+      }
+      case '>': {
         return '&gt;';
-      case '"':
+      }
+      case '"': {
         return '&quot;';
-      case "'":
+      }
+      case "'": {
         return '&#39;';
-      default:
+      }
+      default: {
         return char;
+      }
     }
   });
 }

@@ -101,7 +101,7 @@ class EmailActionDAO extends EncryptedDAO {
       actions,
       nextCursor:
         rows.length > limit
-          ? EmailActionDAO.encodeCursor(pageRows[pageRows.length - 1].updated_at, pageRows[pageRows.length - 1].created_at)
+          ? EmailActionDAO.encodeCursor(pageRows.at(-1)!.updated_at, pageRows.at(-1)!.created_at)
           : undefined,
     };
   }
@@ -152,7 +152,7 @@ class EmailActionDAO extends EncryptedDAO {
           .run(),
       'claim email action for execution',
     );
-    return ((result.meta as { changes?: number } | undefined)?.changes ?? 0) > 0;
+    return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   public async markSucceeded(actionId: string, result: EmailActionResult): Promise<void> {
@@ -210,7 +210,7 @@ class EmailActionDAO extends EncryptedDAO {
           .run(),
       'expire pending email actions',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async deleteByProcessedMessageId(processedMessageId: string): Promise<number> {
@@ -227,7 +227,7 @@ class EmailActionDAO extends EncryptedDAO {
           .run(),
       'delete pending email actions by processed message',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async getCountsByUserAndDateRange(
@@ -327,7 +327,7 @@ class EmailActionDAO extends EncryptedDAO {
           .run(),
       'delete old email actions',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async recordExecution(input: RecordEmailActionExecutionInput): Promise<EmailActionExecution> {
@@ -521,7 +521,7 @@ interface CreateEmailActionInput {
   userEmail: string;
   providerId: ProviderId;
   providerMessageId: string;
-  providerThreadId?: string | null | undefined;
+  providerThreadId?: string | null;
   actionType: EmailActionType;
   riskLevel: EmailActionRiskLevel;
   tokenHash: string;
@@ -530,22 +530,22 @@ interface CreateEmailActionInput {
 }
 
 interface ListEmailActionsInput {
-  applicationId?: string | undefined;
-  status?: EmailActionStatus | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  applicationId?: string;
+  status?: EmailActionStatus;
+  cursor?: string;
+  limit?: number;
 }
 
 interface RecordEmailActionExecutionInput {
   actionId: string;
   triggeredBy: EmailActionExecutionTrigger;
   status: EmailActionStatus;
-  attempt?: number | undefined;
-  providerOperationId?: string | null | undefined;
-  requestUserAgentHash?: string | null | undefined;
-  errorMessage?: string | null | undefined;
-  createdAt?: number | undefined;
-  completedAt?: number | null | undefined;
+  attempt?: number;
+  providerOperationId?: string | null;
+  requestUserAgentHash?: string | null;
+  errorMessage?: string | null;
+  createdAt?: number;
+  completedAt?: number | null;
 }
 
 interface EmailActionCounts {

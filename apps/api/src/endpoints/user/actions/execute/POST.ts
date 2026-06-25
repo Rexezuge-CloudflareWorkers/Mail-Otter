@@ -37,7 +37,7 @@ interface ExecuteUserEmailActionEnv extends IUserEnv {
   ACTION_SIGNING_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { ExecuteUserEmailActionRoute };

@@ -260,7 +260,7 @@ class ApplicationContextDAO extends BaseDAO {
     const pageRows: ApplicationContextDocumentInternal[] = rows.slice(0, limit);
     return {
       documents: pageRows.map((row: ApplicationContextDocumentInternal): ApplicationContextDocument => this.toDocument(row)),
-      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeDocumentCursor(pageRows[pageRows.length - 1].updated_at, pageRows[pageRows.length - 1].created_at) : undefined,
+      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeDocumentCursor(pageRows.at(-1)!.updated_at, pageRows.at(-1)!.created_at) : undefined,
     };
   }
 
@@ -294,7 +294,7 @@ class ApplicationContextDAO extends BaseDAO {
     const pageRows: ApplicationContextDeletionRunInternal[] = rows.slice(0, limit);
     return {
       deletionRuns: pageRows.map((row: ApplicationContextDeletionRunInternal): ApplicationContextDeletionRun => this.toDeletionRun(row)),
-      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeDeletionRunCursor(pageRows[pageRows.length - 1].created_at) : undefined,
+      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeDeletionRunCursor(pageRows.at(-1)!.created_at) : undefined,
     };
   }
 
@@ -404,7 +404,7 @@ class ApplicationContextDAO extends BaseDAO {
           .run(),
       'delete stale deleted context documents',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async deleteStaleErrorDocuments(errorBefore: number, limit: number): Promise<number> {
@@ -422,7 +422,7 @@ class ApplicationContextDAO extends BaseDAO {
           .run(),
       'delete stale error context documents',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async insertAuditLog(input: InsertAuditLogInput): Promise<void> {
@@ -516,7 +516,7 @@ class ApplicationContextDAO extends BaseDAO {
     const pageRows: ContextAuditLogInternal[] = rows.slice(0, limit);
     return {
       logs: pageRows.map((row: ContextAuditLogInternal): ContextAuditLog => this.toAuditLog(row)),
-      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeAuditLogCursor(pageRows[pageRows.length - 1].created_at) : undefined,
+      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeAuditLogCursor(pageRows.at(-1)!.created_at) : undefined,
     };
   }
 
@@ -535,7 +535,7 @@ class ApplicationContextDAO extends BaseDAO {
           .run(),
       'delete old context audit logs',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async deleteOldDeletionRuns(olderThan: number, limit: number): Promise<number> {
@@ -553,7 +553,7 @@ class ApplicationContextDAO extends BaseDAO {
           .run(),
       'delete old context deletion runs',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async listApplicationsOverDocumentLimit(globalMax: number): Promise<OverLimitApplication[]> {
@@ -793,18 +793,14 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   private static parseAuditLogCursor(cursor: string | undefined): { createdAt: number } | undefined {
-    const parsed = CursorUtil.decode<unknown[]>(cursor);
-    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'number') {
-      return { createdAt: parsed[0] };
-    }
-    return undefined;
+    return this.parseDeletionRunCursor(cursor);
   }
 
   private static encodeAuditLogCursor(createdAt: number): string {
     return CursorUtil.encode([createdAt]);
   }
 
-  private static parseAuditLogEventData(value: string | null): unknown | null {
+  private static parseAuditLogEventData(value: string | null): unknown {
     if (!value) return null;
     try {
       return JSON.parse(value);
@@ -861,27 +857,27 @@ interface UpsertEmailDocumentInput {
   userEmail: string;
   sourceProviderId: ProviderId;
   sourceDocumentId: string;
-  sourceThreadId?: string | null | undefined;
+  sourceThreadId?: string | null;
   vectorNamespace: string;
   sourceDocumentFingerprint: string;
-  sourceThreadFingerprint?: string | null | undefined;
-  titleFingerprint?: string | null | undefined;
-  senderFingerprint?: string | null | undefined;
+  sourceThreadFingerprint?: string | null;
+  titleFingerprint?: string | null;
+  senderFingerprint?: string | null;
   contentFingerprint: string;
   indexedTextChars: number;
 }
 
 interface ListContextDocumentsInput {
-  applicationId?: string | undefined;
-  status?: ApplicationContextDocumentStatus | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  applicationId?: string;
+  status?: ApplicationContextDocumentStatus;
+  cursor?: string;
+  limit?: number;
 }
 
 interface ListDeletionRunsInput {
-  applicationId?: string | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  applicationId?: string;
+  cursor?: string;
+  limit?: number;
 }
 
 interface RecordDeletionRunInput {
@@ -892,7 +888,7 @@ interface RecordDeletionRunInput {
   deletedVectorCount: number;
   mutationIds: string[];
   status: ApplicationContextDeletionStatus;
-  errorMessage?: string | null | undefined;
+  errorMessage?: string | null;
 }
 
 interface OverLimitApplication {
@@ -906,16 +902,16 @@ interface InsertAuditLogInput {
   contextDocumentId: string;
   applicationId: string;
   userEmail: string;
-  sourceDocumentId?: string | null | undefined;
+  sourceDocumentId?: string | null;
   eventType: ContextAuditEventType;
-  eventLabel?: string | null | undefined;
-  eventData?: unknown | null | undefined;
+  eventLabel?: string | null;
+  eventData?: unknown;
   severity: ContextAuditLogSeverity;
 }
 
 interface ListAuditLogsOptions {
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  cursor?: string;
+  limit?: number;
 }
 
 interface ApplicationContextUserCounts {

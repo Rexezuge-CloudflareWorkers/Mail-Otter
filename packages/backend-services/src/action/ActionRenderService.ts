@@ -11,32 +11,33 @@ import {
 } from '@mail-otter/shared/constants';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import type {
-  AppointmentConfirmActionPayload,
-  DeliveryTrackPackageActionPayload,
   EmailAction,
   EmailActionPayload,
   EmailActionResult,
-  FinancePayBillActionPayload,
-  ManualTodoActionPayload,
-  TravelTrackFlightActionPayload,
 } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char: string): string => {
+  return value.replaceAll(/[&<>"']/g, (char: string): string => {
     switch (char) {
-      case '&':
+      case '&': {
         return '&amp;';
-      case '<':
+      }
+      case '<': {
         return '&lt;';
-      case '>':
+      }
+      case '>': {
         return '&gt;';
-      case '"':
+      }
+      case '"': {
         return '&quot;';
-      case "'":
+      }
+      case "'": {
         return '&#39;';
-      default:
+      }
+      default: {
         return char;
+      }
     }
   });
 }
@@ -98,7 +99,7 @@ function renderActionDetails(action: EmailAction): string {
     return `<section><h2>Link</h2><p>${escapeHtml(payload.url)}</p></section>`;
   }
   if (payload.type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
-    const p = payload as DeliveryTrackPackageActionPayload;
+    const p = payload;
     return [
       '<section><h2>Package Tracking</h2>',
       `<p><strong>Tracking Number:</strong> ${escapeHtml(p.trackingNumber)}</p>`,
@@ -108,7 +109,7 @@ function renderActionDetails(action: EmailAction): string {
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
-    const p = payload as TravelTrackFlightActionPayload;
+    const p = payload;
     return [
       '<section><h2>Flight</h2>',
       `<p><strong>Flight:</strong> ${escapeHtml(p.flightNumber)}</p>`,
@@ -122,7 +123,7 @@ function renderActionDetails(action: EmailAction): string {
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
-    const p = payload as FinancePayBillActionPayload;
+    const p = payload;
     return [
       '<section><h2>Bill Payment</h2>',
       p.payee ? `<p><strong>Payee:</strong> ${escapeHtml(p.payee)}</p>` : '',
@@ -134,7 +135,7 @@ function renderActionDetails(action: EmailAction): string {
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
-    const p = payload as AppointmentConfirmActionPayload;
+    const p = payload;
     return [
       '<section><h2>Appointment</h2>',
       p.serviceType ? `<p><strong>Service:</strong> ${escapeHtml(p.serviceType)}</p>` : '',
@@ -146,7 +147,7 @@ function renderActionDetails(action: EmailAction): string {
       '</section>',
     ].join('\n');
   }
-  const manualPayload = payload as ManualTodoActionPayload;
+  const manualPayload = payload;
   return `<section><h2>Manual Task</h2><p>${escapeHtml(manualPayload.instructions)}</p></section>`;
 }
 

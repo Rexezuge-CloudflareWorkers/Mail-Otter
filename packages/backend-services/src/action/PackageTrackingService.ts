@@ -41,11 +41,6 @@ interface AftershippTracking {
   checkpoints?: AftershippCheckpoint[];
 }
 
-interface AftershippResponse {
-  data?: {
-    tracking?: AftershippTracking;
-  };
-}
 
 interface PackageTrackingStatus {
   summary: string;
@@ -62,7 +57,7 @@ function resolveSlug(carrier: string | undefined): string | undefined {
 
 function formatExpectedDelivery(raw: string): string {
   const date = new Date(raw);
-  if (isNaN(date.getTime())) return raw;
+  if (Number.isNaN(date.getTime())) return raw;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -71,7 +66,7 @@ function buildSummary(tracking: AftershippTracking): string {
   const statusLabel = TAG_LABELS[tag] ?? tag;
 
   const checkpoints = tracking.checkpoints ?? [];
-  const latest = checkpoints[checkpoints.length - 1];
+  const latest = checkpoints.at(-1);
   const locationParts: string[] = [];
   if (latest) {
     if (latest.message) locationParts.push(latest.message);
@@ -80,7 +75,7 @@ function buildSummary(tracking: AftershippTracking): string {
   }
 
   let summary = statusLabel;
-  if (locationParts.length) summary += ` — ${locationParts.join(', ')}`;
+  if (locationParts.length > 0) summary += ` — ${locationParts.join(', ')}`;
   if (tracking.expected_delivery) {
     summary += `. Expected: ${formatExpectedDelivery(tracking.expected_delivery)}`;
   }
@@ -105,7 +100,7 @@ async function fetchStatus(trackingNumber: string, carrier: string | undefined, 
     // 201 Created or 409 Already Exists both include tracking data in the body.
     if (response.status !== 201 && response.status !== 409) return null;
 
-    const json = (await response.json()) as AftershippResponse;
+    const json = JSON.parse(await response.text()) as { data?: { tracking?: Record<string, any> } };
     const tracking = json?.data?.tracking;
     if (!tracking) return null;
 

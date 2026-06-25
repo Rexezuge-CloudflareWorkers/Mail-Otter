@@ -5,7 +5,7 @@ import { useEffect } from 'react';
  * Call this inside useState lazy initializers so it runs before the first render.
  */
 export function getUrlParam(key: string, defaultValue: string): string {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.location.search);
   return params.get(key) || defaultValue;
 }
 
@@ -23,8 +23,8 @@ export function useSyncedUrl(params: Record<string, string>): void {
       if (v) sp.set(k, v);
     }
     const query = sp.toString();
-    const next = query ? `?${query}` : window.location.pathname;
-    const current = window.location.search || '';
+    const next = query ? `?${query}` : globalThis.location.pathname;
+    const current = globalThis.location.search || '';
     if (current !== (query ? `?${query}` : '')) {
       history.replaceState(null, '', next);
     }

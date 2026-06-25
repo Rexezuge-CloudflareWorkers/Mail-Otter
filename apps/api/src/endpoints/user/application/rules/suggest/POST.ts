@@ -35,7 +35,7 @@ interface SuggestApplicationRuleResponse extends IResponse {
 
 interface SuggestApplicationRuleEnv extends IUserEnv {
   AI: Ai;
-  AI_SUMMARY_MODEL?: string | undefined;
+  AI_SUMMARY_MODEL?: string;
 }
 
 export { SuggestApplicationRuleRoute };

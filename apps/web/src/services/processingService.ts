@@ -13,7 +13,7 @@ export interface BackgroundTaskRun {
   itemsProcessed: number;
   itemsFailed: number;
   summary: string | null;
-  details: unknown | null;
+  details: unknown;
   errorMessage: string | null;
   startedAt: number;
   completedAt: number | null;

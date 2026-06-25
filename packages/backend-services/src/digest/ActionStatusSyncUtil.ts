@@ -53,20 +53,12 @@ class ActionStatusSyncUtil {
 
     const url = new URL('https://api.aftership.com/tracking/2024-10/trackings');
     url.searchParams.set('tracking_numbers', payload.trackingNumber);
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url.href, {
       headers: { 'as-api-key': apiKey, 'Content-Type': 'application/json' },
     });
     if (!response.ok) return;
 
-    const data = (await response.json()) as {
-      data?: {
-        trackings?: Array<{
-          tag?: string;
-          expected_delivery?: string;
-          checkpoints?: Array<{ message?: string; city?: string; state?: string; created_at?: string }>;
-        }>;
-      };
-    };
+    const data = JSON.parse(await response.text()) as { data?: { trackings?: Record<string, any>[] } };
     const tracking = data.data?.trackings?.[0];
     if (!tracking) return;
 

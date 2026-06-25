@@ -1,7 +1,7 @@
-class UUIDUtil {
+class UIDUtility {
   public static getRandomUUID(): string {
     return crypto.randomUUID();
   }
 }
 
-export { UUIDUtil };
+export { UIDUtility as UUIDUtil };

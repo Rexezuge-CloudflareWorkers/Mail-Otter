@@ -37,12 +37,12 @@ describe('OAuth2AuthorizationSessionDAO', () => {
     mockFirst.mockReset();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
-    dao = new OAuth2AuthorizationSessionDAO(createMockDb() as unknown as D1Database);
+    dao = new OAuth2AuthorizationSessionDAO(createMockDb());
   });
 
   describe('create', () => {
     it('inserts a new authorization session', async () => {
-      await dao.create('app-1', 'state-hash', 'code-verifier', 'https://callback.example.com', 9999999999);
+      await dao.create('app-1', 'state-hash', 'code-verifier', 'https://callback.example.com', 9_999_999_999);
 
       expect(mockRun).toHaveBeenCalled();
     });
@@ -57,7 +57,7 @@ describe('OAuth2AuthorizationSessionDAO', () => {
         code_verifier: 'code-verifier',
         redirect_uri: 'https://example.com/callback',
         created_at: 1000,
-        expires_at: 9999999999,
+        expires_at: 9_999_999_999,
         consumed_at: null,
       });
 

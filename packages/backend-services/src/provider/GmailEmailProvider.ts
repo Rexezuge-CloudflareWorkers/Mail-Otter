@@ -43,11 +43,13 @@ class GmailEmailProvider implements IEmailProvider {
     return result;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   public async renewWatch(credentials: AnyProviderCredentials, _subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
     if (credentials.type !== 'oauth2') throw new BadRequestError('Gmail requires OAuth2 credentials.');
     throw new BadRequestError('Gmail renewal must be triggered by the subscription renewal util with topic context.');
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     throw new BadRequestError('Gmail uses webhooks and does not support polling.');
   }
@@ -56,7 +58,7 @@ class GmailEmailProvider implements IEmailProvider {
     const url = new URL('https://mail.google.com/mail/u/');
     if (application.providerEmail) url.searchParams.set('authuser', application.providerEmail);
     url.hash = `all/${document.sourceThreadId || document.sourceDocumentId}`;
-    return url.toString();
+    return url.href;
   }
 
   public async createCalendarEvent(accessToken: string, payload: CalendarAddEventActionPayload): Promise<EmailActionResult> {

@@ -62,7 +62,7 @@ class OAuth2AuthorizationSessionDAO extends BaseDAO {
           .run(),
       'delete expired OAuth2 sessions',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async consume(sessionId: string): Promise<void> {

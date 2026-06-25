@@ -34,11 +34,12 @@ abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse
       typeof response === 'object' &&
       ('body' in response || 'rawBody' in response || 'statusCode' in response || 'headers' in response)
     ) {
-      const extendedResponse: ExtendedResponse<TResponse> = response as ExtendedResponse<TResponse>;
+      const extendedResponse: ExtendedResponse<TResponse> = response;
       const statusCode: number = extendedResponse.statusCode || 200;
-      Object.entries(extendedResponse.headers || {}).forEach(([key, value]: [string, string]): void => {
+      const headers = Object.entries(extendedResponse.headers ?? {});
+      for (const [key, value] of headers) {
         c.header(key, value);
-      });
+      }
       c.status(statusCode as StatusCode);
       if (statusCode >= 300 && statusCode < 400) {
         return c.body(null);
@@ -88,10 +89,10 @@ interface IResponse {}
 interface IEnv {}
 
 interface ExtendedResponse<TResponse extends IResponse> {
-  body?: TResponse | undefined;
-  rawBody?: BodyInit | null | undefined;
-  statusCode?: StatusCode | undefined;
-  headers?: Record<string, string> | undefined;
+  body?: TResponse;
+  rawBody?: BodyInit | null;
+  statusCode?: StatusCode;
+  headers?: Record<string, string>;
 }
 
 type RouteContext<TEnv extends IEnv> = Context<{ Bindings: Env } & TEnv>;

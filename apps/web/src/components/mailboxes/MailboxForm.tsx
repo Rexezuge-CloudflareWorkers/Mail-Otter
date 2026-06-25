@@ -28,11 +28,11 @@ export interface ApplicationFormState {
 }
 
 function getBrowserTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 }
 
 function getDefaultFeatures(providerId: ProviderId): string[] {
-  return (Object.entries(OAUTH2_FEATURES) as [string, OAuth2Feature][])
+  return (Object.entries(OAUTH2_FEATURES))
     .filter(([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[providerId] ?? []).length > 0)
     .map(([featureId]) => featureId);
 }
@@ -86,8 +86,8 @@ export function MailboxForm({
     if (form.applicationId && form.applicationId !== prevApplicationId.current) {
       setIsHighlighted(true);
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      const t = window.setTimeout(() => setIsHighlighted(false), FORM_HIGHLIGHT_TIMEOUT_MS);
-      return () => window.clearTimeout(t);
+      const t = setTimeout(() => setIsHighlighted(false), FORM_HIGHLIGHT_TIMEOUT_MS);
+      return () => clearTimeout(t);
     }
     prevApplicationId.current = form.applicationId;
   }, [form.applicationId]);
@@ -109,7 +109,7 @@ export function MailboxForm({
   const showOAuth2Fields = isOAuth2Method && !isImapProvider;
   const isFixedHostImapProvider = isImapPasswordMethod && !isImapProvider;
 
-  const providerFeatures: [string, OAuth2Feature][] = (Object.entries(OAUTH2_FEATURES) as [string, OAuth2Feature][]).filter(
+  const providerFeatures: [string, OAuth2Feature][] = (Object.entries(OAUTH2_FEATURES)).filter(
     ([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[form.providerId] ?? []).length > 0,
   );
 

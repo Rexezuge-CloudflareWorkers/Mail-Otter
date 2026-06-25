@@ -29,17 +29,17 @@ interface CreateApplicationRequest extends IRequest {
   displayName: string;
   providerId: 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
   connectionMethod: 'oauth2' | 'imap-password';
-  clientId?: string | undefined;
-  clientSecret?: string | undefined;
-  gmailPubsubTopicName?: string | undefined;
-  imapHost?: string | undefined;
-  imapPort?: number | undefined;
-  imapUsername?: string | undefined;
-  imapPassword?: string | undefined;
-  smtpHost?: string | undefined;
-  smtpPort?: number | undefined;
-  enabledFeatures?: string[] | undefined;
-  timeZone?: string | undefined;
+  clientId?: string;
+  clientSecret?: string;
+  gmailPubsubTopicName?: string;
+  imapHost?: string;
+  imapPort?: number;
+  imapUsername?: string;
+  imapPassword?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  enabledFeatures?: string[];
+  timeZone?: string;
 }
 
 interface CreateApplicationResponse extends IResponse {
@@ -47,7 +47,7 @@ interface CreateApplicationResponse extends IResponse {
 }
 
 interface CreateApplicationEnv extends IUserEnv {
-  MAX_APPLICATIONS_PER_USER?: string | undefined;
+  MAX_APPLICATIONS_PER_USER?: string;
 }
 
 export { CreateApplicationRoute };

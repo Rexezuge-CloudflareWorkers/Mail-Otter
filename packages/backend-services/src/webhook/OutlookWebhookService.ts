@@ -9,18 +9,18 @@ class OutlookWebhookService {
     applicationId: string,
     notifications: OutlookNotification[],
     env: OutlookWebhookEnv,
-    callbackBaseUrl?: string | undefined,
+    callbackBaseUrl?: string,
   ): Promise<void> {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
     for (const notification of notifications) {
-      const subscription: ProviderSubscription = await OutlookWebhookService.getAuthorizedSubscription(
+      const subscription: ProviderSubscription = await this.getAuthorizedSubscription(
         applicationId,
         notification.subscriptionId,
         notification.clientState,
         subscriptionDAO,
         true,
       );
-      const messageId: string | undefined = notification.resourceData?.id || OutlookWebhookService.extractMessageId(notification.resource);
+      const messageId: string | undefined = notification.resourceData?.id || this.extractMessageId(notification.resource);
       if (!messageId) continue;
       await env.EMAIL_EVENTS_QUEUE.send({
         type: 'outlook-notification',
@@ -40,7 +40,7 @@ class OutlookWebhookService {
   ): Promise<void> {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
     for (const notification of notifications) {
-      const subscription: ProviderSubscription = await OutlookWebhookService.getAuthorizedSubscription(
+      const subscription: ProviderSubscription = await this.getAuthorizedSubscription(
         applicationId,
         notification.subscriptionId,
         notification.clientState,
@@ -82,20 +82,18 @@ class OutlookWebhookService {
 
 interface OutlookNotification {
   subscriptionId: string;
-  clientState?: string | undefined;
-  changeType?: string | undefined;
-  resource?: string | undefined;
-  resourceData?:
-    | {
-        id?: string | undefined;
-      }
-    | undefined;
+  clientState?: string;
+  changeType?: string;
+  resource?: string;
+  resourceData?: {
+    id?: string;
+  };
 }
 
 interface OutlookLifecycleNotification {
   subscriptionId: string;
-  clientState?: string | undefined;
-  lifecycleEvent?: string | undefined;
+  clientState?: string;
+  lifecycleEvent?: string;
 }
 
 interface OutlookLifecycleWebhookEnv {

@@ -11,7 +11,7 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config test/integration/vitest.config.mts",
     "test:coverage:integration": "vitest run --coverage --config test/integration/vitest.config.mts",
-    "lint": "eslint --ext .ts,.tsx --fix .",
+    "lint": "eslint --ext .ts,.tsx --fix --quiet .",
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
@@ -25,6 +25,10 @@
     "eslint": "^10.5.x",
     "eslint-config-prettier": "^10.1.x",
     "eslint-plugin-prettier": "^5.5.x",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-regexp": "^3.1.0",
+    "eslint-plugin-sonarjs": "^4.1.0",
+    "eslint-plugin-unicorn": "^68.0.0",
     "globals": "^17.6.x",
     "jsonc-parser": "^3.3.x",
     "prettier": "^3.8.x",

@@ -1,7 +1,6 @@
 import { BackgroundTaskRunDAO, ConnectedApplicationDAO, ProcessedMessageDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type {
   BackgroundTaskRunList,
-  BackgroundTaskRunStatus,
   ListTaskRunsOptions,
   ListProcessedMessagesOptions,
   ListCalendarEventsOptions,
@@ -23,13 +22,13 @@ interface TriggerTaskEnv extends ProcessingServiceEnv {
   ACTION_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  PACKAGE_TRACKING_API_KEY?: string | undefined;
-  FLIGHT_TRACKING_API_KEY?: string | undefined;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  PACKAGE_TRACKING_API_KEY?: string;
+  FLIGHT_TRACKING_API_KEY?: string;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
-class ProcessingService {
-  static async listTaskRuns(
+const ProcessingService = {
+  async listTaskRuns(
     userEmail: string,
     options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor'>,
     env: ProcessingServiceEnv,
@@ -38,21 +37,21 @@ class ProcessingService {
     return dao.listForUser(userEmail, {
       taskType: options.taskType,
       applicationId: options.applicationId,
-      status: options.status as BackgroundTaskRunStatus | undefined,
+      status: options.status,
       cursor: options.cursor,
     });
-  }
+  },
 
-  static async listCalendarEvents(
+  async listCalendarEvents(
     userEmail: string,
     options: Pick<ListCalendarEventsOptions, 'applicationId' | 'cursor'>,
     env: ProcessingServiceEnv,
   ): Promise<SyncedCalendarEventList> {
     const dao = new SyncedCalendarEventDAO(env.DB);
     return dao.listForUser(userEmail, { applicationId: options.applicationId, cursor: options.cursor });
-  }
+  },
 
-  static async listProcessedMessages(
+  async listProcessedMessages(
     userEmail: string,
     options: Pick<ListProcessedMessagesOptions, 'applicationId' | 'status' | 'cursor'>,
     env: ProcessingServiceEnv,
@@ -63,9 +62,9 @@ class ProcessingService {
       status: options.status,
       cursor: options.cursor,
     });
-  }
+  },
 
-  static async triggerTask(
+  async triggerTask(
     userEmail: string,
     taskType: string,
     applicationId: string,
@@ -95,8 +94,8 @@ class ProcessingService {
       if (packageApiKey) await syncUtil.syncPackageActions(applicationId, packageApiKey);
       if (flightApiKey) await syncUtil.syncFlightActions(applicationId, flightApiKey);
     }
-  }
-}
+  },
+};
 
 export { ProcessingService };
 export type { ProcessingServiceEnv, TriggerTaskEnv };

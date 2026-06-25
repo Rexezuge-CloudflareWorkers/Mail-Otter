@@ -77,7 +77,7 @@ describe('OutlookWebhookService', () => {
       await OutlookWebhookService.handleNotifications(
         'app-1',
         [{ subscriptionId: 'ext-sub-1', clientState: 'state', resourceData: { id: 'msg-1' } }],
-        env as never,
+        env,
       );
 
       expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledWith({
@@ -98,7 +98,7 @@ describe('OutlookWebhookService', () => {
       await OutlookWebhookService.handleNotifications(
         'app-1',
         [{ subscriptionId: 'ext-sub-1', clientState: 'state', resource: 'Users/user/Messages/MSG999' }],
-        env as never,
+        env,
         'https://api.example.com',
       );
 
@@ -115,7 +115,7 @@ describe('OutlookWebhookService', () => {
       await OutlookWebhookService.handleNotifications(
         'app-1',
         [{ subscriptionId: 'ext-sub-1', clientState: 'state' }],
-        env as never,
+        env,
       );
 
       expect(env.EMAIL_EVENTS_QUEUE.send).not.toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe('OutlookWebhookService', () => {
           { subscriptionId: 'ext-sub-1', clientState: 'state', resourceData: { id: 'msg-1' } },
           { subscriptionId: 'ext-sub-1', clientState: 'state', resourceData: { id: 'msg-2' } },
         ],
-        env as never,
+        env,
       );
 
       expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledTimes(2);

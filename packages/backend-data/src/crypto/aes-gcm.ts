@@ -1,20 +1,20 @@
 export async function generateAESGCMKey(): Promise<string> {
-  const key = (await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])) as CryptoKey;
+  const key = (await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']));
   const exported = await crypto.subtle.exportKey('raw', key);
-  return btoa(String.fromCharCode(...new Uint8Array(exported as ArrayBuffer)));
+  return btoa(String.fromCodePoint(...new Uint8Array(exported)));
 }
 
 export async function encryptData(data: string, keyBase64: string, ivBase64?: string): Promise<{ encrypted: string; iv: string }> {
-  const keyBuffer = Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0));
+  const keyBuffer = Uint8Array.from(atob(keyBase64), (c) => c.codePointAt(0) ?? 0);
   const key = await crypto.subtle.importKey('raw', keyBuffer, { name: 'AES-GCM' }, false, ['encrypt']);
 
-  const iv = ivBase64 ? Uint8Array.from(atob(ivBase64), (c) => c.charCodeAt(0)) : crypto.getRandomValues(new Uint8Array(12));
+  const iv = ivBase64 ? Uint8Array.from(atob(ivBase64), (c) => c.codePointAt(0) ?? 0) : crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(data);
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
 
   return {
-    encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-    iv: btoa(String.fromCharCode(...iv)),
+    encrypted: btoa(String.fromCodePoint(...new Uint8Array(encrypted))),
+    iv: btoa(String.fromCodePoint(...iv)),
   };
 }
 
@@ -38,11 +38,11 @@ export async function encryptDataWithSalt(
 }
 
 export async function decryptData(encryptedBase64: string, ivBase64: string, keyBase64: string): Promise<string> {
-  const keyBuffer = Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0));
+  const keyBuffer = Uint8Array.from(atob(keyBase64), (c) => c.codePointAt(0) ?? 0);
   const key = await crypto.subtle.importKey('raw', keyBuffer, { name: 'AES-GCM' }, false, ['decrypt']);
 
-  const iv = Uint8Array.from(atob(ivBase64), (c) => c.charCodeAt(0));
-  const encrypted = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0));
+  const iv = Uint8Array.from(atob(ivBase64), (c) => c.codePointAt(0) ?? 0);
+  const encrypted = Uint8Array.from(atob(encryptedBase64), (c) => c.codePointAt(0) ?? 0);
 
   const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
   return new TextDecoder().decode(decrypted);
@@ -78,11 +78,11 @@ async function deriveSaltedAESGCMKey(masterKeyBase64: string, salt: Uint8Array<A
 }
 
 function fromBase64(value: string): Uint8Array<ArrayBuffer> {
-  return Uint8Array.from(atob(value), (c) => c.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
+  return Uint8Array.from(atob(value), (c) => c.codePointAt(0) ?? 0);
 }
 
 function toBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  return btoa(String.fromCodePoint(...bytes));
 }
 
 function randomBytes(byteLength: number): Uint8Array<ArrayBuffer> {

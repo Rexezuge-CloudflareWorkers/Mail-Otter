@@ -61,7 +61,7 @@ export class ImapClient {
     const searchLine = response.find((line) => line.startsWith('* SEARCH'));
     if (!searchLine) return [];
     const parts = searchLine.replace('* SEARCH', '').trim().split(/\s+/).filter(Boolean);
-    return parts.map(Number).filter((n) => !isNaN(n) && n > sinceUid);
+    return parts.map(Number).filter((n) => !Number.isNaN(n) && n > sinceUid);
   }
 
   public async fetchHeaders(uids: number[]): Promise<ImapFetchResult[]> {
@@ -80,7 +80,7 @@ export class ImapClient {
     return response.join('\r\n');
   }
 
-  public async append(mailbox: string, messageData: string, flags: string[] = ['\\Seen']): Promise<void> {
+  public async append(mailbox: string, messageData: string, flags: string[] = [String.raw`\Seen`]): Promise<void> {
     const encoded = new TextEncoder().encode(messageData);
     const tag = this.nextTag();
     const flagList = flags.join(' ');
@@ -103,9 +103,9 @@ export class ImapClient {
       // best-effort
     }
     try {
-      this.reader?.cancel();
-      this.writer?.close();
-      this.socket?.close();
+      await this.reader?.cancel();
+      await this.writer?.close();
+      await this.socket?.close();
     } catch {
       // best-effort
     }
@@ -125,7 +125,7 @@ export class ImapClient {
       const tag = this.nextTag();
       await this.send(`${tag} AUTHENTICATE XOAUTH2 ${xoauth2}`);
       const response = await this.readResponse(tag);
-      if (!response.some((line) => line.includes('OK'))) {
+      if (response.every((line) => !line.includes('OK'))) {
         throw new BadRequestError('IMAP XOAUTH2 authentication failed. Check OAuth2 token and IMAP access settings.');
       }
     } else {
@@ -134,7 +134,7 @@ export class ImapClient {
       const tag = this.nextTag();
       await this.send(`${tag} LOGIN ${escapedUser} ${escapedPass}`);
       const response = await this.readResponse(tag);
-      if (!response.some((line) => line.includes('OK'))) {
+      if (response.every((line) => !line.includes('OK'))) {
         throw new BadRequestError('IMAP LOGIN failed. Check username and password.');
       }
     }
@@ -191,7 +191,7 @@ export class ImapClient {
   }
 
   private static buildXoauth2(user: string, accessToken: string): string {
-    const raw = `user=${user}\x01auth=Bearer ${accessToken}\x01\x01`;
+    const raw = `user=${user}\u{1}auth=Bearer ${accessToken}\u{1}\u{1}`;
     return btoa(raw);
   }
 
@@ -205,9 +205,9 @@ export class ImapClient {
       const fetchMatch = /^\* \d+ FETCH .*UID (\d+)/.exec(line);
       if (fetchMatch) {
         if (currentUid !== null) {
-          results.push(ImapClient.parseHeaderBlock(currentUid, headerLines));
+          results.push(this.parseHeaderBlock(currentUid, headerLines));
         }
-        currentUid = parseInt(fetchMatch[1], 10);
+        currentUid = Number(fetchMatch[1]);
         headerLines = [];
         inHeaders = true;
         continue;
@@ -221,7 +221,7 @@ export class ImapClient {
       }
     }
     if (currentUid !== null && headerLines.length > 0) {
-      results.push(ImapClient.parseHeaderBlock(currentUid, headerLines));
+      results.push(this.parseHeaderBlock(currentUid, headerLines));
     }
     return results;
   }

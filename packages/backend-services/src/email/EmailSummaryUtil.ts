@@ -62,11 +62,11 @@ class EmailSummaryUtil {
     subject: string,
     from: string,
     body: string,
-    ragContext?: string | undefined,
-    timeZone?: string | undefined,
-    customInstruction?: string | undefined,
+    ragContext?: string,
+    timeZone?: string,
+    customInstruction?: string,
   ): Promise<string> {
-    const result: EmailSummaryResult = await EmailSummaryUtil.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone, customInstruction);
+    const result: EmailSummaryResult = await this.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone, customInstruction);
     return result.summary;
   }
 
@@ -76,12 +76,12 @@ class EmailSummaryUtil {
     subject: string,
     from: string,
     body: string,
-    ragContext?: string | undefined,
-    timeZone?: string | undefined,
-    customInstruction?: string | undefined,
+    ragContext?: string,
+    timeZone?: string,
+    customInstruction?: string,
   ): Promise<EmailSummaryResult> {
-    const instructions: string = EmailSummaryUtil.buildSummaryInstructions(timeZone, customInstruction);
-    const input: string = EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext);
+    const instructions: string = this.buildSummaryInstructions(timeZone, customInstruction);
+    const input: string = this.buildSummaryInput(subject, from, body, ragContext);
 
     const request: AiTextGenerationRequest = {
       messages: [
@@ -116,18 +116,18 @@ class EmailSummaryUtil {
       throw new AiSummaryRetryableError('Workers AI did not return a summary.', { aiUsage: usage });
     }
 
-    const summary = EmailSummaryUtil.parseAiSummaryResult(summaryText);
+    const summary = this.parseAiSummaryResult(summaryText);
     if (!summary) {
       throw new AiSummaryRetryableError('Workers AI did not return a valid summary.', { aiUsage: usage, aiOutputText: summaryText });
     }
-    return { summary: EmailSummaryUtil.renderHtmlSummary(summary), emailSummary: summary, actionProposals: summary.actions, usage };
+    return { summary: this.renderHtmlSummary(summary), emailSummary: summary, actionProposals: summary.actions, usage };
   }
 
-  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string | undefined, timeZone?: string | undefined, customInstruction?: string | undefined): string {
-    return [EmailSummaryUtil.buildSummaryInstructions(timeZone, customInstruction), EmailSummaryUtil.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
+  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string  , timeZone?: string  , customInstruction?: string): string {
+    return [this.buildSummaryInstructions(timeZone, customInstruction), this.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
   }
 
-  private static buildSummaryInstructions(timeZone?: string | undefined, customInstruction?: string | undefined): string {
+  private static buildSummaryInstructions(timeZone?: string  , customInstruction?: string): string {
     const zone: string = TimeZoneUtil.normalize(timeZone);
     const currentDate: string = TimeZoneUtil.todayInZone(zone);
     const parts: string[] = [
@@ -154,7 +154,7 @@ class EmailSummaryUtil {
     return parts.join(' ');
   }
 
-  private static buildSummaryInput(subject: string, from: string, body: string, ragContext?: string | undefined): string {
+  private static buildSummaryInput(subject: string, from: string, body: string, ragContext?: string): string {
     return [
       'Summarize this email for the mailbox owner.',
       'Use the PRIOR CONTEXT (if any) only as background, not as the email to summarize.',
@@ -169,36 +169,36 @@ class EmailSummaryUtil {
 
   static parseAiSummaryResult(result: string): EmailSummary | undefined {
     const parsed: unknown =
-      EmailSummaryUtil.tryParseJson(result) ??
-      EmailSummaryUtil.tryParseExtractedJsonObject(result) ??
-      EmailSummaryUtil.parseLooseText(result);
+      this.tryParseJson(result) ??
+      this.tryParseExtractedJsonObject(result) ??
+      this.parseLooseText(result);
 
-    if (!EmailSummaryUtil.isEmailSummary(parsed)) {
+    if (!this.isEmailSummary(parsed)) {
       return undefined;
     }
     return {
-      gist: EmailSummaryUtil.normalizeSentence(parsed.gist),
-      keyDetails: EmailSummaryUtil.normalizeItems(parsed.keyDetails),
-      actions: EmailSummaryUtil.normalizeActionProposals(parsed.actions),
+      gist: this.normalizeSentence(parsed.gist),
+      keyDetails: this.normalizeItems(parsed.keyDetails),
+      actions: this.normalizeActionProposals(parsed.actions),
     };
   }
 
   static renderHtmlSummary(summary: EmailSummary): string {
-    const gist: string = EmailSummaryUtil.normalizeSentence(summary.gist) || 'No clear gist available.';
-    const keyDetails: string[] = EmailSummaryUtil.normalizeItems(summary.keyDetails);
+    const gist: string = this.normalizeSentence(summary.gist) || 'No clear gist available.';
+    const keyDetails: string[] = this.normalizeItems(summary.keyDetails);
 
     return [
       `<p>${EmailContentUtil.sanitizeHtml(gist)}</p>`,
       '',
       '<p><strong>Details:</strong></p>',
       '<ul>',
-      ...EmailSummaryUtil.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),
+      ...this.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),
       '</ul>',
     ].join('\n');
   }
 
   static renderPlainTextSummary(summary: EmailSummary): string {
-    return EmailContentUtil.stripHtml(EmailSummaryUtil.renderHtmlSummary(summary));
+    return EmailContentUtil.stripHtml(this.renderHtmlSummary(summary));
   }
 
   private static parseLooseText(response: string): EmailSummary {
@@ -206,7 +206,7 @@ class EmailSummaryUtil {
       .split('\n')
       .map((line: string): string => line.trim())
       .filter(Boolean);
-    const gistLine: string = lines.find((line: string): boolean => !/^[-*]|^[A-Za-z ]+:$/.test(line)) || response.trim();
+    const gistLine: string = lines.find((line: string): boolean => !/^[-*]|^[A-Z ]+:$/i.test(line)) || response.trim();
     const bulletLines: string[] = lines
       .filter((line: string): boolean => /^[-*]\s+/.test(line))
       .map((line: string): string => line.replace(/^[-*]\s+/, '').trim())
@@ -224,11 +224,11 @@ class EmailSummaryUtil {
   }
 
   private static normalizeItems(items: string[]): string[] {
-    return items.map((item: string): string => EmailSummaryUtil.normalizeSentence(item)).filter(Boolean);
+    return items.map((item: string): string => this.normalizeSentence(item)).filter(Boolean);
   }
 
   private static normalizeSentence(value: string): string {
-    return value.replace(/\s+/g, ' ').trim();
+    return value.replaceAll(/\s+/g, ' ').trim();
   }
 
   private static tryParseJson(value: string): unknown {
@@ -241,7 +241,7 @@ class EmailSummaryUtil {
 
   private static tryParseExtractedJsonObject(value: string): unknown {
     const jsonObjectText: string | undefined = WorkersAiResponseUtil.extractJsonObjectText(value);
-    return jsonObjectText ? EmailSummaryUtil.tryParseJson(jsonObjectText) : undefined;
+    return jsonObjectText ? this.tryParseJson(jsonObjectText) : undefined;
   }
 
   private static isEmailSummary(value: unknown): value is EmailSummary {
@@ -277,8 +277,8 @@ class EmailSummaryUtil {
       if (typeof item.title !== 'string' || typeof item.description !== 'string') continue;
       actions.push({
         type: type as EmailActionProposal['type'],
-        title: EmailSummaryUtil.normalizeSentence(item.title),
-        description: EmailSummaryUtil.normalizeSentence(item.description),
+        title: this.normalizeSentence(item.title),
+        description: this.normalizeSentence(item.description),
         confidence: typeof item.confidence === 'number' && Number.isFinite(item.confidence) ? item.confidence : undefined,
         parameters: WorkersAiResponseUtil.isRecord(item.parameters) ? item.parameters : {},
       });
@@ -295,28 +295,28 @@ interface EmailSummary {
 
 interface EmailSummaryResult {
   summary: string;
-  emailSummary?: EmailSummary | undefined;
-  actionProposals?: EmailActionProposal[] | undefined;
-  usage?: AiTextGenerationUsage | undefined;
+  emailSummary?: EmailSummary;
+  actionProposals?: EmailActionProposal[];
+  usage?: AiTextGenerationUsage;
 }
 
 interface AiTextGenerationRequest {
   messages: Array<{ role: 'system' | 'user'; content: string }>;
   max_tokens: number;
   temperature: number;
-  response_format?:
-    | {
-        type: 'json_schema';
-        json_schema: {
-          name: string;
-          schema: typeof SUMMARY_JSON_SCHEMA;
-          strict: boolean;
-        };
-      }
-    | undefined;
-  reasoning_effort?: 'low' | 'medium' | 'high' | undefined;
-  chat_template_kwargs?: { thinking: boolean } | undefined;
+  response_format?: {
+    type: 'json_schema';
+    json_schema: {
+      name: string;
+      schema: typeof SUMMARY_JSON_SCHEMA;
+      strict: boolean;
+    };
+  };
+  reasoning_effort?: 'low' | 'medium' | 'high';
+  chat_template_kwargs?: { thinking: boolean };
 }
 
 export { EmailSummaryUtil };
-export type { AiTextGenerationUsage, EmailSummary, EmailSummaryResult };
+export type {  EmailSummary, EmailSummaryResult };
+
+export {type AiTextGenerationUsage} from './WorkersAiResponseUtil';

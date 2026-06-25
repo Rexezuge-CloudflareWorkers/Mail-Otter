@@ -26,9 +26,9 @@ class UpdateIntegrationRoute extends IUserRoute<UpdateIntegrationRequest, Update
 
 interface UpdateIntegrationRequest extends IRequest {
   integrationId: string;
-  name?: string | undefined;
-  enabled?: boolean | undefined;
-  webhookUrl?: string | undefined;
+  name?: string;
+  enabled?: boolean;
+  webhookUrl?: string;
 }
 
 interface UpdateIntegrationResponse extends IResponse {

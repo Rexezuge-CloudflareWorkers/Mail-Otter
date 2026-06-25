@@ -1,10 +1,9 @@
 import { OAUTH2_FEATURE_SCOPES, PROVIDER_FASTMAIL_JMAP, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, PROVIDER_YAHOO_MAIL } from '@mail-otter/shared/constants';
-import type { ProviderId } from '@mail-otter/shared/constants';
 import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
 import type { OAuth2Credentials } from '@mail-otter/shared/model';
 
 interface OAuth2AuthorizationInput {
-  providerId: ProviderId | string;
+  providerId: string;
   clientId: string;
   redirectUri: string;
   state: string;
@@ -13,7 +12,7 @@ interface OAuth2AuthorizationInput {
 }
 
 interface OAuth2TokenExchangeInput {
-  providerId: ProviderId | string;
+  providerId: string;
   credentials: OAuth2Credentials;
   redirectUri: string;
   code: string;
@@ -21,14 +20,14 @@ interface OAuth2TokenExchangeInput {
 }
 
 interface OAuth2RefreshInput {
-  providerId: ProviderId | string;
+  providerId: string;
   credentials: OAuth2Credentials;
 }
 
 interface OAuth2TokenResult {
   accessToken: string;
-  refreshToken?: string | undefined;
-  expiresIn?: number | undefined;
+  refreshToken?: string;
+  expiresIn?: number;
 }
 
 const ProviderConfig = {
@@ -58,7 +57,7 @@ const ProviderConfig = {
 
 class OAuth2ProviderUtil {
   public static buildAuthorizationUrl(input: OAuth2AuthorizationInput): string {
-    const config = OAuth2ProviderUtil.getProviderConfig(input.providerId);
+    const config = this.getProviderConfig(input.providerId);
     const url: URL = new URL(config.authorizationEndpoint);
     url.searchParams.set('client_id', input.clientId);
     url.searchParams.set('redirect_uri', input.redirectUri);
@@ -71,20 +70,31 @@ class OAuth2ProviderUtil {
     url.searchParams.set('state', input.state);
     url.searchParams.set('code_challenge', input.codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
-    if (input.providerId === PROVIDER_GOOGLE_GMAIL) {
+    switch (input.providerId) {
+    case PROVIDER_GOOGLE_GMAIL: {
       url.searchParams.set('access_type', 'offline');
       url.searchParams.set('prompt', 'consent');
-    } else if (input.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
-      url.searchParams.set('response_mode', 'query');
-    } else if (input.providerId === PROVIDER_YAHOO_MAIL) {
-      url.searchParams.set('response_mode', 'query');
+    
+    break;
     }
-    return url.toString();
+    case PROVIDER_MICROSOFT_OUTLOOK: {
+      url.searchParams.set('response_mode', 'query');
+    
+    break;
+    }
+    case PROVIDER_YAHOO_MAIL: {
+      url.searchParams.set('response_mode', 'query');
+    
+    break;
+    }
+    // No default
+    }
+    return url.href;
   }
 
   public static async exchangeCode(input: OAuth2TokenExchangeInput): Promise<OAuth2TokenResult> {
-    const config = OAuth2ProviderUtil.getProviderConfig(input.providerId);
-    const data = await OAuth2ProviderUtil.postTokenRequest(config.tokenEndpoint, {
+    const config = this.getProviderConfig(input.providerId);
+    const data = await this.postTokenRequest(config.tokenEndpoint, {
       client_id: input.credentials.clientId,
       client_secret: input.credentials.clientSecret,
       code: input.code,
@@ -98,7 +108,7 @@ class OAuth2ProviderUtil {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      expiresIn: OAuth2ProviderUtil.parseExpiresIn(data.expires_in),
+      expiresIn: this.parseExpiresIn(data.expires_in),
     };
   }
 
@@ -106,8 +116,8 @@ class OAuth2ProviderUtil {
     if (!input.credentials.refreshToken) {
       throw new BadRequestError('Connected application is not fully authorized.');
     }
-    const config = OAuth2ProviderUtil.getProviderConfig(input.providerId);
-    const data = await OAuth2ProviderUtil.postTokenRequest(config.tokenEndpoint, {
+    const config = this.getProviderConfig(input.providerId);
+    const data = await this.postTokenRequest(config.tokenEndpoint, {
       client_id: input.credentials.clientId,
       client_secret: input.credentials.clientSecret,
       grant_type: 'refresh_token',
@@ -116,7 +126,7 @@ class OAuth2ProviderUtil {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      expiresIn: OAuth2ProviderUtil.parseExpiresIn(data.expires_in),
+      expiresIn: this.parseExpiresIn(data.expires_in),
     };
   }
 
@@ -139,7 +149,7 @@ class OAuth2ProviderUtil {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
     });
-    const data = (await response.json()) as OAuth2TokenResponse;
+    const data = JSON.parse(await response.text()) as OAuth2TokenResponse;
     if (!response.ok || !data.access_token) {
       const message: string = `OAuth2 token request failed: ${data.error_description || data.error || response.statusText}`;
       if (response.status >= 400 && response.status < 500) {
@@ -162,10 +172,10 @@ class OAuth2ProviderUtil {
 
 interface OAuth2TokenResponse {
   access_token: string;
-  refresh_token?: string | undefined;
-  expires_in?: number | string | undefined;
-  error?: string | undefined;
-  error_description?: string | undefined;
+  refresh_token?: string;
+  expires_in?: number | string;
+  error?: string;
+  error_description?: string;
 }
 
 export { OAuth2ProviderUtil };

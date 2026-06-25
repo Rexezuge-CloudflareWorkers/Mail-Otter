@@ -211,7 +211,7 @@ describe('ContextService', () => {
       const env = makeEnv({ EMAIL_CONTEXT_INDEX: { deleteByIds: vi.fn().mockRejectedValue(new Error('Vectorize error')) } });
       mockRecordDeletionRun.mockResolvedValue(undefined);
 
-      await new ContextService(env as never).pruneApplicationDocuments('app-1', 'user@example.com', 15, 10);
+      await new ContextService(env).pruneApplicationDocuments('app-1', 'user@example.com', 15, 10);
 
       expect(mockRecordDeletionRun).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', errorMessage: 'Vectorize error' }));
     });
@@ -260,7 +260,7 @@ describe('ContextService', () => {
       mockGetDocumentSourcesByVectorIds.mockResolvedValue([]);
       mockRecordDeletionRun.mockResolvedValue({ runId: 'run-1' });
 
-      const result = await new ContextService(makeEnv() as never).deleteDocuments('user@example.com', 'app-1');
+      const result = await new ContextService(makeEnv()).deleteDocuments('user@example.com', 'app-1');
 
       expect(result).toEqual({ runId: 'run-1' });
       expect(mockMarkDocumentsDeletedByVectorIds).toHaveBeenCalledWith('app-1', 'user@example.com', ['v1', 'v2']);
@@ -273,7 +273,7 @@ describe('ContextService', () => {
       const env = makeEnv({ EMAIL_CONTEXT_INDEX: { deleteByIds: vi.fn().mockRejectedValue(new Error('Delete failed')) } });
       mockRecordDeletionRun.mockResolvedValue({ runId: 'err-run' });
 
-      const result = await new ContextService(env as never).deleteDocuments('user@example.com', 'app-1');
+      const result = await new ContextService(env).deleteDocuments('user@example.com', 'app-1');
 
       expect(result).toEqual({ runId: 'err-run' });
       expect(mockRecordDeletionRun).toHaveBeenCalledWith(expect.objectContaining({ status: 'error', deletedVectorCount: 0 }));

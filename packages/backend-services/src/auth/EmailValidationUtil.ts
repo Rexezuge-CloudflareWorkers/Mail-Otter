@@ -2,9 +2,9 @@ import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { UnauthorizedError } from '@mail-otter/backend-errors';
 
 interface EmailValidationEnv {
-  DEV_AUTH_EMAIL?: string | undefined;
-  TEAM_DOMAIN?: string | undefined;
-  POLICY_AUD?: string | undefined;
+  DEV_AUTH_EMAIL?: string;
+  TEAM_DOMAIN?: string;
+  POLICY_AUD?: string;
 }
 
 class EmailValidationUtil {

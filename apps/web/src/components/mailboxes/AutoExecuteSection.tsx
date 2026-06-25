@@ -29,7 +29,7 @@ const RISK_COLORS: Record<'low' | 'medium' | 'high', string> = {
 
 export function AutoExecuteSection({ application }: { application: ConnectedApplication }) {
   const { busy, onUpdateAutoExecuteActionTypes } = useMailboxCallbacks();
-  const enabled = new Set(application.autoExecuteActionTypes ?? []);
+  const enabled = new Set(application.autoExecuteActionTypes);
 
   const toggle = (type: EmailActionType) => {
     const next = new Set(enabled);

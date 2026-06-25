@@ -46,7 +46,7 @@ class ProcessedMessageDAO extends BaseDAO {
           .run(),
       'create processed message row',
     );
-    const inserted: boolean = ((result.meta as { changes?: number } | undefined)?.changes ?? 0) > 0;
+    const inserted: boolean = ((result.meta as { changes?: number })?.changes ?? 0) > 0;
     if (inserted || !options.allowExistingForRetry) {
       return inserted;
     }
@@ -96,7 +96,7 @@ class ProcessedMessageDAO extends BaseDAO {
           .run(),
       'delete old processed messages',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async getLatestForApplication(applicationId: string): Promise<ProcessedMessage | undefined> {
@@ -343,8 +343,8 @@ class ProcessedMessageDAO extends BaseDAO {
       nextCursor:
         rows.length > limit
           ? ProcessedMessageDAO.encodeListCursor(
-              pageRows[pageRows.length - 1].created_at,
-              pageRows[pageRows.length - 1].processed_message_id,
+              pageRows.at(-1)!.created_at,
+              pageRows.at(-1)!.processed_message_id,
             )
           : undefined,
     };
@@ -376,8 +376,8 @@ class ProcessedMessageDAO extends BaseDAO {
 }
 
 interface TryStartProcessedMessageOptions {
-  allowExistingForRetry?: boolean | undefined;
-  providerStableMessageFingerprint?: string | null | undefined;
+  allowExistingForRetry?: boolean;
+  providerStableMessageFingerprint?: string | null;
 }
 
 interface ProcessedMessageDailyCountInternal {
@@ -393,10 +393,10 @@ interface ProcessedMessageStatusCounts {
 }
 
 interface ListProcessedMessagesOptions {
-  applicationId?: string | undefined;
-  status?: ProcessedMessageStatus | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  applicationId?: string;
+  status?: ProcessedMessageStatus;
+  cursor?: string;
+  limit?: number;
 }
 
 export { ProcessedMessageDAO };

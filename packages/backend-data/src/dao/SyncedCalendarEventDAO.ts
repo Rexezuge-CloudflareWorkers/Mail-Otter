@@ -53,7 +53,7 @@ class SyncedCalendarEventDAO extends BaseDAO {
       .bind(applicationId, startUnix, endUnix)
       .all<SyncedCalendarEventInternal>()
       .then((result: D1Result<SyncedCalendarEventInternal>): SyncedCalendarEventInternal[] => result.results || []);
-    return rows.map(SyncedCalendarEventDAO.toEvent);
+    return rows.map((r) => SyncedCalendarEventDAO.toEvent(r));
   }
 
   public async listForUser(userEmail: string, options: ListCalendarEventsOptions = {}): Promise<SyncedCalendarEventList> {
@@ -88,12 +88,12 @@ class SyncedCalendarEventDAO extends BaseDAO {
 
     const pageRows = rows.slice(0, limit);
     return {
-      events: pageRows.map(SyncedCalendarEventDAO.toEvent),
+      events: pageRows.map((r) => SyncedCalendarEventDAO.toEvent(r)),
       nextCursor:
         rows.length > limit
           ? SyncedCalendarEventDAO.encodeCursor(
-              pageRows[pageRows.length - 1].synced_at,
-              pageRows[pageRows.length - 1].sync_event_id,
+              pageRows.at(-1)!.synced_at,
+              pageRows.at(-1)!.sync_event_id,
             )
           : undefined,
     };
@@ -117,7 +117,7 @@ class SyncedCalendarEventDAO extends BaseDAO {
           .run(),
       'prune old synced calendar events',
     );
-    return (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+    return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   private static encodeCursor(syncedAt: number, syncEventId: string): string {
@@ -157,9 +157,9 @@ interface UpsertCalendarEventInput {
 }
 
 interface ListCalendarEventsOptions {
-  applicationId?: string | undefined;
-  cursor?: string | undefined;
-  limit?: number | undefined;
+  applicationId?: string;
+  cursor?: string;
+  limit?: number;
 }
 
 export { SyncedCalendarEventDAO };

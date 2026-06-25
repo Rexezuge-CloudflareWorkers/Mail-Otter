@@ -146,7 +146,7 @@ describe('ProcessedMessageDAO', () => {
     await dao.markSummarized(applicationId, 'delete-old');
     await env.DB.prepare(
       `UPDATE processed_messages SET updated_at = ? WHERE application_id = ? AND provider_message_id = 'delete-old'`,
-    ).bind(now - 86400, applicationId).run();
+    ).bind(now - 86_400, applicationId).run();
 
     const deleted = await dao.deleteOlderThan(now - 3600, ['summarized'], 10);
 

@@ -64,7 +64,7 @@ export function AuditLogsModal({
               : log.severity === 'warning'
                 ? 'bg-[var(--color-warning-text)]'
                 : 'bg-[var(--color-success-text)]';
-          const attemptNumber = (log.eventData as { attempt?: number } | undefined)?.attempt;
+          const attemptNumber = (log.eventData as { attempt?: number })?.attempt;
           return (
             <div key={log.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-base)] p-4">
               <div className="flex items-start gap-2.5">
@@ -87,7 +87,7 @@ export function AuditLogsModal({
                   </div>
                   {log.eventData != null && (
                     <div className="mt-2 text-xs text-[var(--color-text-muted)] font-mono bg-[var(--color-surface-base)] border border-[var(--color-border)] rounded-lg p-2 overflow-x-auto">
-                      {typeof log.eventData === 'object' ? JSON.stringify(log.eventData, null, 1) : String(log.eventData)}
+                      {JSON.stringify(log.eventData, null, 1)}
                     </div>
                   )}
                 </div>

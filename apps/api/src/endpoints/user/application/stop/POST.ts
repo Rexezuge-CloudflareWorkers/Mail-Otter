@@ -34,7 +34,7 @@ interface StopApplicationWatchResponse extends IResponse {
 interface StopApplicationWatchEnv extends IUserEnv {
   OAUTH2_TOKEN_CACHE: KVNamespace;
   OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace;
-  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string | undefined;
+  OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
 export { StopApplicationWatchRoute };

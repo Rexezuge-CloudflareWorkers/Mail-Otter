@@ -16,8 +16,8 @@ interface GmailHistoryResult {
 interface GmailMessage {
   id: string;
   threadId: string;
-  labelIds?: string[] | undefined;
-  payload?: GmailMessagePart | undefined;
+  labelIds?: string[];
+  payload?: GmailMessagePart;
 }
 
 interface GmailProfile {
@@ -35,18 +35,18 @@ interface GmailCalendarEventInput {
   startTime: string;
   endTime: string;
   timeZone: string;
-  location?: string | undefined;
-  notes?: string | undefined;
+  location?: string;
+  notes?: string;
 }
 
 interface GmailCalendarEventResult {
-  id?: string | undefined;
-  htmlLink?: string | undefined;
+  id?: string;
+  htmlLink?: string;
 }
 
 interface GmailDraftReplyResult {
-  id?: string | undefined;
-  message?: { id?: string | undefined; threadId?: string | undefined } | undefined;
+  id?: string;
+  message?: { id?: string; threadId?: string };
 }
 
 class GmailProviderUtil {
@@ -57,7 +57,7 @@ class GmailProviderUtil {
   }
 
   public static async listLabels(accessToken: string): Promise<GmailLabel[]> {
-    const data = await fetchJsonWithBearer<{ labels?: GmailLabel[] | undefined }>(
+    const data = await fetchJsonWithBearer<{ labels?: GmailLabel[] }>(
       'https://gmail.googleapis.com/gmail/v1/users/me/labels',
       accessToken,
       'Gmail',
@@ -78,7 +78,8 @@ class GmailProviderUtil {
         labelFilterBehavior: 'INCLUDE',
       }),
     });
-    const data = (await response.json()) as { historyId?: string; expiration?: string; error?: { message?: string } };
+    const responseText = await response.text();
+    const data = JSON.parse(responseText || '{}') as { historyId?: string; expiration?: string; error?: { message?: string } };
     if (!response.ok || !data.historyId || !data.expiration) {
       throw createProviderApiError('Gmail', 'watch', response, data.error?.message || response.statusText);
     }
@@ -110,10 +111,12 @@ class GmailProviderUtil {
       if (singleLabelId) url.searchParams.set('labelId', singleLabelId);
       url.searchParams.set('maxResults', '500');
       if (pageToken) url.searchParams.set('pageToken', pageToken);
-      const data = await fetchJsonWithBearer<GmailHistoryListResponse>(url.toString(), accessToken, 'Gmail');
+      const data = await fetchJsonWithBearer<GmailHistoryListResponse>(url.href, accessToken, 'Gmail');
       currentHistoryId = data.historyId || currentHistoryId;
-      for (const history of data.history || []) {
-        for (const added of history.messagesAdded || []) {
+      const historyItems = data.history ?? [];
+      for (const history of historyItems) {
+        const messagesAdded = history.messagesAdded ?? [];
+        for (const added of messagesAdded) {
           if (added.message?.id) messageIds.add(added.message.id);
         }
       }
@@ -125,12 +128,12 @@ class GmailProviderUtil {
   public static async getMessage(accessToken: string, messageId: string): Promise<GmailMessage> {
     const url: URL = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}`);
     url.searchParams.set('format', 'FULL');
-    return fetchJsonWithBearer<GmailMessage>(url.toString(), accessToken, 'Gmail');
+    return fetchJsonWithBearer<GmailMessage>(url.href, accessToken, 'Gmail');
   }
 
   public static isMessageNotFoundError(error: unknown): boolean {
     const message: string = error instanceof Error ? error.message : String(error);
-    return GmailProviderUtil.MESSAGE_NOT_FOUND_PATTERN.test(message);
+    return this.MESSAGE_NOT_FOUND_PATTERN.test(message);
   }
 
   public static async createCalendarEvent(accessToken: string, input: GmailCalendarEventInput): Promise<GmailCalendarEventResult> {
@@ -152,9 +155,9 @@ class GmailProviderUtil {
     from: string,
     originalMessage: GmailMessage,
     draftBody: string,
-    draftSubject?: string | undefined,
+    draftSubject?: string,
   ): Promise<GmailDraftReplyResult> {
-    const message: string = GmailProviderUtil.createDraftReplyMimeMessage(from, originalMessage, draftBody, draftSubject);
+    const message: string = this.createDraftReplyMimeMessage(from, originalMessage, draftBody, draftSubject);
     return fetchJsonWithBearer<GmailDraftReplyResult>('https://gmail.googleapis.com/gmail/v1/users/me/drafts', accessToken, 'Gmail', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -174,7 +177,7 @@ class GmailProviderUtil {
     const originalReferences: string | undefined = EmailContentUtil.getHeader(headers, 'References');
     const replySubject: string = /^re:/i.test(originalSubject) ? originalSubject : `Re: ${originalSubject}`;
     const references: string = [originalReferences, originalMessageId].filter(Boolean).join(' ');
-    const boundary: string = GmailProviderUtil.createSummaryMimeBoundary(originalMessage.id);
+    const boundary: string = this.createSummaryMimeBoundary(originalMessage.id);
     const textSummary: string = EmailContentUtil.stripHtml(summary);
     const message: string = [
       `From: ${from}`,
@@ -202,8 +205,8 @@ class GmailProviderUtil {
     if (!response.ok) {
       throw createProviderApiError('Gmail', 'send summary', response, await response.text());
     }
-    const sentMessage = (await response.json()) as { id: string };
-    await GmailProviderUtil.trashGmailMessage(sentMessage.id, accessToken);
+    const sentMessage = JSON.parse(await response.text()) as { id: string };
+    await this.trashGmailMessage(sentMessage.id, accessToken);
   }
 
   private static async trashGmailMessage(messageId: string, accessToken: string): Promise<void> {
@@ -219,7 +222,7 @@ class GmailProviderUtil {
   }
 
   private static createSummaryMimeBoundary(seed: string): string {
-    const safeSeed: string = seed.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'message';
+    const safeSeed: string = seed.replaceAll(/[^\w-]/g, '').slice(0, 32) || 'message';
     return `mail-otter-summary-${safeSeed}`;
   }
 
@@ -246,7 +249,7 @@ class GmailProviderUtil {
   }
 
   public static async findOrCreateLabel(accessToken: string, labelName: string): Promise<string> {
-    const labels = await GmailProviderUtil.listLabels(accessToken);
+    const labels = await this.listLabels(accessToken);
     const normalizedName = labelName.toLowerCase();
     const existing = labels.find((l) => l.name.toLowerCase() === normalizedName);
     if (existing) return existing.id;
@@ -269,7 +272,7 @@ class GmailProviderUtil {
     url.searchParams.set('singleEvents', 'true');
     url.searchParams.set('orderBy', 'startTime');
     url.searchParams.set('maxResults', '50');
-    const data = await fetchJsonWithBearer<{ items?: GmailCalendarEventListItem[] | undefined }>(url.toString(), accessToken, 'Gmail');
+    const data = await fetchJsonWithBearer<{ items?: GmailCalendarEventListItem[] }>(url.href, accessToken, 'Gmail');
     return data.items || [];
   }
 
@@ -294,15 +297,15 @@ class GmailProviderUtil {
     if (!response.ok) {
       throw createProviderApiError('Gmail', 'send digest email', response, await response.text());
     }
-    const sent = (await response.json()) as { id: string };
-    await GmailProviderUtil.trashGmailMessage(sent.id, accessToken);
+    const sent = JSON.parse(await response.text()) as { id: string };
+    await this.trashGmailMessage(sent.id, accessToken);
   }
 
   private static createDraftReplyMimeMessage(
     from: string,
     originalMessage: GmailMessage,
     draftBody: string,
-    draftSubject?: string | undefined,
+    draftSubject?: string,
   ): string {
     const headers: MailHeader[] | undefined = originalMessage.payload?.headers;
     const originalSubject: string = EmailContentUtil.getHeader(headers, 'Subject') || '(no subject)';
@@ -327,11 +330,11 @@ class GmailProviderUtil {
 
 interface GmailCalendarEventListItem {
   id: string;
-  summary?: string | undefined;
-  description?: string | undefined;
-  location?: string | undefined;
-  start?: { dateTime?: string | undefined; date?: string | undefined; timeZone?: string | undefined } | undefined;
-  end?: { dateTime?: string | undefined; date?: string | undefined; timeZone?: string | undefined } | undefined;
+  summary?: string;
+  description?: string;
+  location?: string;
+  start?: { dateTime?: string; date?: string; timeZone?: string };
+  end?: { dateTime?: string; date?: string; timeZone?: string };
 }
 
 interface GmailHistoryListResponse {
@@ -339,13 +342,11 @@ interface GmailHistoryListResponse {
     | Array<{
         messagesAdded?:
           | Array<{
-              message?: { id?: string | undefined; threadId?: string | undefined } | undefined;
-            }>
-          | undefined;
-      }>
-    | undefined;
-  nextPageToken?: string | undefined;
-  historyId?: string | undefined;
+              message?: { id?: string; threadId?: string };
+            }>;
+      }>;
+  nextPageToken?: string;
+  historyId?: string;
 }
 
 export { GmailProviderUtil };

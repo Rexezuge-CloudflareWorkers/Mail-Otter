@@ -28,13 +28,13 @@ interface GmailWebhookInput {
   applicationId: string;
   token: string | null;
   messageData: string;
-  pubsubMessageId?: string | undefined;
-  callbackBaseUrl?: string | undefined;
+  pubsubMessageId?: string;
+  callbackBaseUrl?: string;
 }
 
 interface GmailNotificationData {
-  emailAddress?: string | undefined;
-  historyId?: string | undefined;
+  emailAddress?: string;
+  historyId?: string;
 }
 
 interface GmailWebhookEnv {

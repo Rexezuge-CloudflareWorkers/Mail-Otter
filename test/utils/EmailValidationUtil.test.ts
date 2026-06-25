@@ -39,7 +39,7 @@ describe('EmailValidationUtil', () => {
       await expect(
         EmailValidationUtil.getAuthenticatedUserEmail(req, {
           TEAM_DOMAIN: 'https://example.cloudflareaccess.com',
-          POLICY_AUD: '   ',
+          POLICY_AUD: ' '.repeat(3),
         }),
       ).rejects.toThrow('Missing required JWT verification configuration (empty POLICY_AUD).');
     });

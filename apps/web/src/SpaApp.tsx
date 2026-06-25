@@ -50,7 +50,7 @@ export default function SpaApp() {
   const mailboxes = useMailboxes({
     setIsBusy,
     showNotice,
-    onContextChanged: () => { contextAudit.loadContextAudit(); },
+    onContextChanged: () => { void contextAudit.loadContextAudit(); },
   });
 
   // Seed URL-provided values into their domains once on mount
@@ -61,7 +61,7 @@ export default function SpaApp() {
     if (initialView === 'actions' && initialStatus) actions.setActionStatus(initialStatus as EmailActionStatus);
     if (initialView === 'actions' && initialActionId) actions.setSelectedActionId(initialActionId);
     if (initialView === 'mailboxes' && initialAppId) mailboxes.setSelectedApplicationId(initialAppId);
-    if (initialView === 'context' && initialLogDocId) auditLogs.openAuditLogs(initialLogDocId);
+    if (initialView === 'context' && initialLogDocId) void auditLogs.openAuditLogs(initialLogDocId);
   }, []);
 
   // Load applications once the user is authorized
@@ -74,25 +74,25 @@ export default function SpaApp() {
   // Load view-specific data when the active view becomes visible
   useEffect(() => {
     if (authorized && activeView === 'context') {
-      contextAudit.loadContextAudit();
+      void contextAudit.loadContextAudit();
     }
   }, [activeView, authorized]);
 
   useEffect(() => {
     if (authorized && activeView === 'actions') {
-      actions.loadActions();
+      void actions.loadActions();
     }
   }, [activeView, authorized]);
 
   useEffect(() => {
     if (authorized && activeView === 'analytics') {
-      analytics.loadAnalytics();
+      void analytics.loadAnalytics();
     }
   }, [activeView, authorized]);
 
   useEffect(() => {
     if (authorized && activeView === 'processing') {
-      processing.loadProcessing();
+      void processing.loadProcessing();
     }
   }, [activeView, authorized]);
 
@@ -116,6 +116,8 @@ export default function SpaApp() {
     logDocId: activeView === 'context' ? (auditLogs.auditLogDocumentId ?? '') : '',
   });
 
+  const mailboxCallbacksValue = useMailboxCallbacksValue(mailboxes, contextAudit, isBusy, setActiveView);
+
   if (authorized === null) {
     return (
       <div className="min-h-screen bg-[var(--color-surface-base)] flex items-center justify-center">
@@ -125,8 +127,6 @@ export default function SpaApp() {
   }
 
   if (!authorized || !user) return <Unauthorized />;
-
-  const mailboxCallbacksValue = useMailboxCallbacksValue(mailboxes, contextAudit, isBusy, setActiveView);
 
   return (
     <NoticeContext.Provider value={{ showNotice }}>
@@ -200,12 +200,12 @@ export default function SpaApp() {
             <AnalyticsView
               applications={mailboxes.applications}
               days={analytics.analyticsDays}
-              setDays={(d) => { analytics.setAnalyticsDays(d); analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined); }}
+              setDays={(d) => { analytics.setAnalyticsDays(d); void analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined); }}
               applicationId={analytics.analyticsApplicationId}
-              setApplicationId={(id) => { analytics.setAnalyticsApplicationId(id); analytics.loadAnalytics(analytics.analyticsDays, id || undefined); }}
+              setApplicationId={(id) => { analytics.setAnalyticsApplicationId(id); void analytics.loadAnalytics(analytics.analyticsDays, id || undefined); }}
               data={analytics.analyticsData}
               loading={analytics.analyticsLoading}
-              onRefresh={() => analytics.loadAnalytics()}
+              onRefresh={() => void analytics.loadAnalytics()}
             />
           )}
 
@@ -229,12 +229,12 @@ export default function SpaApp() {
               processedMessages={processing.processedMessages}
               processedMessagesCursor={processing.processedMessagesCursor}
               processedMessagesLoading={processing.processedMessagesLoading}
-              onRefresh={() => processing.loadProcessing()}
-              onTriggerTaskRun={() => processing.triggerTaskRun()}
+              onRefresh={() => void processing.loadProcessing()}
+              onTriggerTaskRun={() => void processing.triggerTaskRun()}
               triggeringTask={processing.triggeringTask}
-              onLoadMoreTaskRuns={() => processing.loadTaskRuns(true, processing.taskRunsCursor)}
-              onLoadMoreCalendarEvents={() => processing.loadCalendarEvents(true, processing.calendarEventsCursor)}
-              onLoadMoreProcessedMessages={() => processing.loadProcessedMessages(true, processing.processedMessagesCursor)}
+              onLoadMoreTaskRuns={() => void processing.loadTaskRuns(true, processing.taskRunsCursor)}
+              onLoadMoreCalendarEvents={() => void processing.loadCalendarEvents(true, processing.calendarEventsCursor)}
+              onLoadMoreProcessedMessages={() => void processing.loadProcessedMessages(true, processing.processedMessagesCursor)}
             />
           )}
 
@@ -246,7 +246,7 @@ export default function SpaApp() {
               onConfirm={() => {
                 const { applicationId } = mailboxes.confirmDelete!;
                 mailboxes.setConfirmDelete(null);
-                mailboxes.deleteApplication(applicationId);
+                void mailboxes.deleteApplication(applicationId);
               }}
               onCancel={() => mailboxes.setConfirmDelete(null)}
             />

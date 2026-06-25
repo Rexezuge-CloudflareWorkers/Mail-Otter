@@ -12,7 +12,7 @@ describe('OAuth2AccessTokenService', () => {
     vi.spyOn(OAuth2AccessTokenCacheDAO.prototype, 'getCachedAccessToken').mockResolvedValue({
       applicationId: 'app-1',
       accessToken: 'cached-token',
-      expiresAt: 1778203600,
+      expiresAt: 1_778_203_600,
     });
     const fetch = vi.fn();
     const env = {
@@ -33,7 +33,7 @@ describe('OAuth2AccessTokenService', () => {
 
   it('falls back to the application Durable Object when the cache misses', async () => {
     vi.spyOn(OAuth2AccessTokenCacheDAO.prototype, 'getCachedAccessToken').mockResolvedValue(undefined);
-    const fetch = vi.fn().mockResolvedValue(Response.json({ accessToken: 'fresh-token', expiresAt: 1778203600 }));
+    const fetch = vi.fn().mockResolvedValue(Response.json({ accessToken: 'fresh-token', expiresAt: 1_778_203_600 }));
     const id = {} as DurableObjectId;
     const env = {
       AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('master-key') },

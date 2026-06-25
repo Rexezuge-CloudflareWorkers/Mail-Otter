@@ -42,13 +42,11 @@ class OutlookLifecycleWebhookRoute extends IBaseRoute<
 }
 
 interface OutlookLifecycleWebhookRequest extends IRequest {
-  value?:
-    | Array<{
-        subscriptionId: string;
-        clientState?: string | undefined;
-        lifecycleEvent?: string | undefined;
-      }>
-    | undefined;
+  value?: Array<{
+    subscriptionId: string;
+    clientState?: string;
+    lifecycleEvent?: string;
+  }>;
 }
 
 interface OutlookLifecycleWebhookResponse extends IResponse {

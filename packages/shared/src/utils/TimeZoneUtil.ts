@@ -1,6 +1,6 @@
 const DEFAULT_TIME_ZONE = 'UTC';
 
-class TimeZoneUtil {
+class TimeZoneUtility {
   public static isValid(timeZone: string | null | undefined): boolean {
     if (!timeZone || typeof timeZone !== 'string') return false;
     try {
@@ -12,13 +12,13 @@ class TimeZoneUtil {
   }
 
   public static normalize(timeZone: string | null | undefined): string {
-    return TimeZoneUtil.isValid(timeZone) ? (timeZone as string).trim() : DEFAULT_TIME_ZONE;
+    return this.isValid(timeZone) ? (timeZone as string).trim() : DEFAULT_TIME_ZONE;
   }
 
   public static todayInZone(timeZone: string | null | undefined, now: Date = new Date()): string {
-    const zone: string = TimeZoneUtil.normalize(timeZone);
+    const zone: string = this.normalize(timeZone);
     return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
   }
 }
 
-export { TimeZoneUtil, DEFAULT_TIME_ZONE };
+export { TimeZoneUtility as TimeZoneUtil, DEFAULT_TIME_ZONE };

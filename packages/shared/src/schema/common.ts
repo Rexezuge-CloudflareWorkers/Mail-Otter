@@ -13,10 +13,9 @@ import {
   MAX_RULE_MATCHERS,
   PRE_PROCESSING_ACTION_TYPES,
 } from '../constants';
-import type { ConnectionMethod, ProviderId } from '../constants';
 
-const UUID_PATTERN: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-const GMAIL_PUBSUB_TOPIC_PATTERN: RegExp = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/topics\/[A-Za-z][A-Za-z0-9_.~+%-]{2,254}$/;
+const UUID_PATTERN: RegExp = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const GMAIL_PUBSUB_TOPIC_PATTERN: RegExp = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/topics\/[A-Za-z][\w.~+%-]{2,254}$/;
 
 const UuidSchema = z.string().regex(UUID_PATTERN, 'Value must be a valid UUID.');
 const EmailSchema = z.string().email('Value must be a valid email address.').max(320);
@@ -40,7 +39,7 @@ const ProviderIdSchema = z.enum([
 ]);
 const ConnectionMethodSchema = z.enum([CONNECTION_METHOD_OAUTH2, CONNECTION_METHOD_IMAP_PASSWORD]);
 
-const ConnectedApplicationBaseSchema = z
+const ConnectedAppBaseSchema = z
   .object({
     displayName: nonEmptyStringSchema('displayName', 128),
     providerId: ProviderIdSchema,
@@ -49,15 +48,15 @@ const ConnectedApplicationBaseSchema = z
     clientSecret: z.string().max(2048).optional(),
     gmailPubsubTopicName: GmailPubsubTopicNameSchema.optional(),
     imapHost: z.string().max(253).optional(),
-    imapPort: z.number().int().min(1).max(65535).optional(),
+    imapPort: z.number().int().min(1).max(65_535).optional(),
     imapUsername: z.string().max(320).optional(),
     imapPassword: z.string().max(512).optional(),
     smtpHost: z.string().max(253).optional(),
-    smtpPort: z.number().int().min(1).max(65535).optional(),
+    smtpPort: z.number().int().min(1).max(65_535).optional(),
   })
   .refine(
     (input): boolean =>
-      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId as ProviderId]?.includes(input.connectionMethod as ConnectionMethod)) ?? false,
+      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod)) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(
@@ -142,13 +141,13 @@ const EmailProcessingRuleSchema = z
   .refine(
     (rule): boolean => {
       if (!PRE_PROCESSING_ACTION_TYPES.has(rule.action.type)) return true;
-      return !rule.conditions.matchers.some((m) => m.field === 'detected_action_type');
+      return rule.conditions.matchers.every((m) => m.field !== 'detected_action_type');
     },
     'detected_action_type matcher is only valid with post-processing action types (apply_label, archive_message, mark_read, star_message).',
   );
 
 export {
-  ConnectedApplicationBaseSchema,
+  ConnectedAppBaseSchema as ConnectedApplicationBaseSchema,
   ConnectionMethodSchema,
   EmailProcessingRuleSchema,
   EmailRuleActionSchema,

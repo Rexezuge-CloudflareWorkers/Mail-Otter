@@ -67,7 +67,7 @@ class ContextService {
         if (chunk.length === 0) continue;
         const mutation = await this.env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
         if ('mutationId' in mutation && mutation.mutationId) {
-          mutationIds.push(mutation.mutationId as string);
+          mutationIds.push(mutation.mutationId);
         }
       }
       await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
@@ -150,7 +150,7 @@ class ContextService {
     }
   }
 
-  async listAuditLogs(userEmail: string, contextDocumentId: string, cursor?: string | undefined): Promise<ContextAuditLogList> {
+  async listAuditLogs(userEmail: string, contextDocumentId: string, cursor?: string): Promise<ContextAuditLogList> {
     const contextDAO = new ApplicationContextDAO(this.env.DB);
     const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
     if (!document) {
@@ -199,34 +199,34 @@ class ContextService {
   }
 }
 
-class ContextServiceFactory {
-  static create(env: ContextServiceEnv): ContextService {
+const ContextServiceFactory = {
+  create(env: ContextServiceEnv): ContextService {
     return new ContextService(env);
-  }
-}
+  },
+};
 
 interface UpdateContextSettingsInput {
   applicationId: string;
-  contextIndexingEnabled?: boolean | undefined;
-  ragRetrievalEnabled?: boolean | undefined;
-  maxContextDocuments?: number | null | undefined;
+  contextIndexingEnabled?: boolean;
+  ragRetrievalEnabled?: boolean;
+  maxContextDocuments?: number | null;
 }
 
 interface ListContextDocumentsInput {
-  applicationId?: string | undefined;
-  status?: ApplicationContextDocumentStatus | undefined;
-  cursor?: string | undefined;
+  applicationId?: string;
+  status?: ApplicationContextDocumentStatus;
+  cursor?: string;
 }
 
 interface ListDeletionRunsInput {
-  applicationId?: string | undefined;
-  cursor?: string | undefined;
+  applicationId?: string;
+  cursor?: string;
 }
 
 interface ContextServiceEnv {
   DB: D1Queryable;
-  AES_ENCRYPTION_KEY_SECRET?: SecretsStoreSecret | undefined;
-  EMAIL_CONTEXT_INDEX?: Vectorize | undefined;
+  AES_ENCRYPTION_KEY_SECRET?: SecretsStoreSecret;
+  EMAIL_CONTEXT_INDEX?: Vectorize;
 }
 
 export { ContextService, ContextServiceFactory };

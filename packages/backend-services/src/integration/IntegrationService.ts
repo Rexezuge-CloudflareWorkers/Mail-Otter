@@ -112,12 +112,15 @@ class IntegrationService {
 
   private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification): Promise<DispatchResult> {
     switch (integration.integrationType) {
-      case 'slack':
+      case 'slack': {
         return this.postJson(webhookUrl, this.buildSlackPayload(notification));
-      case 'discord':
+      }
+      case 'discord': {
         return this.postJson(webhookUrl, this.buildDiscordPayload(notification));
-      case 'webhook':
+      }
+      case 'webhook': {
         return this.postJson(webhookUrl, this.buildWebhookPayload(notification));
+      }
     }
   }
 
@@ -204,7 +207,7 @@ class IntegrationService {
         {
           title: `New Email: ${n.emailSubject}`.slice(0, 256),
           description: n.gist.slice(0, 4096),
-          color: 0x5865f2,
+          color: 0x58_65_F2,
           fields,
           footer: { text: `Mail-Otter · ${n.applicationId}` },
         },
@@ -230,11 +233,11 @@ class IntegrationService {
   }
 }
 
-class IntegrationServiceFactory {
-  static create(env: IntegrationServiceEnv): IntegrationService {
+const IntegrationServiceFactory = {
+  create(env: IntegrationServiceEnv): IntegrationService {
     return new IntegrationService(env);
-  }
-}
+  },
+};
 
 export { IntegrationService, IntegrationServiceFactory };
 export type { IntegrationServiceEnv };

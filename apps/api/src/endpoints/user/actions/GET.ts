@@ -34,7 +34,7 @@ type ListEmailActionsRequest = IRequest;
 
 interface ListEmailActionsResponse extends IResponse {
   actions: EmailAction[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 interface ListEmailActionsEnv extends IUserEnv {

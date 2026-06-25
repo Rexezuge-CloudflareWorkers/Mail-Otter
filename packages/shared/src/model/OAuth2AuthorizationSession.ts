@@ -6,7 +6,7 @@ interface OAuth2AuthorizationSession {
   redirectUri: string;
   createdAt: number;
   expiresAt: number;
-  consumedAt?: number | undefined;
+  consumedAt?: number;
 }
 
 interface OAuth2AuthorizationSessionInternal {
@@ -17,7 +17,7 @@ interface OAuth2AuthorizationSessionInternal {
   redirect_uri: string;
   created_at: number;
   expires_at: number;
-  consumed_at?: number | undefined;
+  consumed_at?: number;
 }
 
 export type { OAuth2AuthorizationSession, OAuth2AuthorizationSessionInternal };

@@ -34,7 +34,7 @@ type ListProcessedMessagesRequest = IRequest;
 
 interface ListProcessedMessagesResponse extends IResponse {
   messages: ProcessedMessage[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 type ListProcessedMessagesEnv = IUserEnv;

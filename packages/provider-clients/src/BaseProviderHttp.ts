@@ -16,7 +16,7 @@ async function fetchJsonWithBearer<T>(
   if (!response.ok) {
     throw createProviderApiError(providerName, 'request', response, data.error?.message || text || response.statusText);
   }
-  return data as T;
+  return data;
 }
 
 function createProviderApiError(providerName: string, operation: string, response: Response, detail: string): Error {

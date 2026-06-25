@@ -33,7 +33,7 @@ interface SyncedCalendarEventInternal {
 
 interface SyncedCalendarEventList {
   events: SyncedCalendarEvent[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 export type { DigestConfig, SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEventList };

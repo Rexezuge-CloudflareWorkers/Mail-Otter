@@ -5,11 +5,13 @@ type DurableObjectFetchResult = ReturnType<NonNullable<DurableObject<Env>['fetch
 type DurableObjectFetchResponse = Awaited<DurableObjectFetchResult>;
 
 abstract class AbstractDurableObjectWorker extends DurableObject<Env> {
-  public fetch(request: DurableObjectFetchRequest): DurableObjectFetchResult {
-    return this.onRequest(request).catch((err: unknown): DurableObjectFetchResponse => {
+  public async fetch(request: DurableObjectFetchRequest): Promise<DurableObjectFetchResponse> {
+    try {
+      return await this.onRequest(request);
+    } catch (err: unknown) {
       console.error('Unhandled error in durable object fetch():', err);
-      return Response.json({ error: 'Internal Error' }, { status: 500 }) as DurableObjectFetchResponse;
-    });
+      return Response.json({ error: 'Internal Error' }, { status: 500 });
+    }
   }
 
   protected createExecutionContext(): ExecutionContext {

@@ -32,7 +32,7 @@ describe('MailOtterWorker', () => {
     await worker.scheduled(
       {
         cron: '*/10 * * * *',
-        scheduledTime: 1778200000000,
+        scheduledTime: 1_778_200_000_000,
         noRetry: vi.fn(),
       },
       env,
@@ -46,7 +46,7 @@ describe('MailOtterWorker', () => {
     expect(new URL(request.url).pathname).toBe('/run');
     await expect(request.json()).resolves.toEqual({
       cron: '*/10 * * * *',
-      scheduledTime: 1778200000000,
+      scheduledTime: 1_778_200_000_000,
     });
   });
 });

@@ -5,11 +5,11 @@ interface ProcessedMessage {
   applicationId: string;
   providerId: ProviderId;
   providerMessageId: string;
-  providerThreadId?: string | null | undefined;
-  providerStableMessageFingerprint?: string | null | undefined;
+  providerThreadId?: string | null;
+  providerStableMessageFingerprint?: string | null;
   status: ProcessedMessageStatus;
-  summarySentAt?: number | null | undefined;
-  errorMessage?: string | null | undefined;
+  summarySentAt?: number | null;
+  errorMessage?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -30,7 +30,7 @@ interface ProcessedMessageInternal {
 
 interface ProcessedMessageList {
   messages: ProcessedMessage[];
-  nextCursor?: string | undefined;
+  nextCursor?: string;
 }
 
 export type { ProcessedMessage, ProcessedMessageInternal, ProcessedMessageList };

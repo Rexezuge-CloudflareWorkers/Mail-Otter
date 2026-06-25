@@ -26,12 +26,12 @@ describe('UserDAO', () => {
     mockFirst.mockReset();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
-    dao = new UserDAO(createMockDb() as unknown as D1Database);
+    dao = new UserDAO(createMockDb());
   });
 
   describe('upsertByEmail', () => {
     it('inserts a new user and returns it', async () => {
-      mockFirst.mockResolvedValue({ email: 'new@example.com', created_at: 1778198400, updated_at: 1778198400 });
+      mockFirst.mockResolvedValue({ email: 'new@example.com', created_at: 1_778_198_400, updated_at: 1_778_198_400 });
 
       const user = await dao.upsertByEmail('new@example.com');
 

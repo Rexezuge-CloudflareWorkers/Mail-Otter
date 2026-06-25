@@ -6,6 +6,7 @@ type D1SessionEnv<TEnv extends { DB: D1Database }> = Omit<TEnv, 'DB'> & {
 
 function createD1SessionEnv<TEnv extends { DB: D1Database }>(
   env: TEnv,
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   constraintOrBookmark: D1SessionBookmark | D1SessionConstraint = 'first-primary',
 ): D1SessionEnv<TEnv> {
   return {

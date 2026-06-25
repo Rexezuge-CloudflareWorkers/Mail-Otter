@@ -22,7 +22,7 @@ class ListIntegrationDeliveriesRoute extends IUserRoute<ListIntegrationDeliverie
   ): Promise<ListIntegrationDeliveriesResponse> {
     const integrationId = this.getQueryParam(request, 'integrationId') ?? '';
     if (!integrationId) throw new BadRequestError('integrationId is required.');
-    const rawLimit = parseInt(this.getQueryParam(request, 'limit') ?? '20', 10);
+    const rawLimit = Number(this.getQueryParam(request, 'limit') ?? '20');
     const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
     const logs = await new ApplicationService(env).listIntegrationDeliveries(
       this.getAuthenticatedUserEmailAddress(cxt),

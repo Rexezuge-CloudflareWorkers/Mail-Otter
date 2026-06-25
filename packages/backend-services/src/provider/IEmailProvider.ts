@@ -9,7 +9,7 @@ interface ProviderCredentials {
   type: 'oauth2';
   accessToken: string;
   /** For IMAP XOAUTH2: the mailbox email address to authenticate as. */
-  imapUsername?: string | undefined;
+  imapUsername?: string;
 }
 
 interface ImapProviderCredentials {
@@ -24,23 +24,23 @@ type AnyProviderCredentials = ProviderCredentials | ImapProviderCredentials;
 
 interface StartWatchInput {
   baseUrl: string;
-  applicationId?: string | undefined;
-  watchedFolderIds?: string[] | undefined;
-  gmailPubsubTopicName?: string | undefined;
-  clientState?: string | undefined;
-  expiresAt?: number | undefined;
+  applicationId?: string;
+  watchedFolderIds?: string[];
+  gmailPubsubTopicName?: string;
+  clientState?: string;
+  expiresAt?: number;
 }
 
 interface WebhookWatchResult {
   type: 'webhook';
-  externalSubscriptionId?: string | undefined;
-  webhookSecretHash?: string | undefined;
-  clientStateHash?: string | undefined;
-  resource?: string | undefined;
-  expiresAt?: number | undefined;
-  gmailHistoryId?: string | undefined;
-  webhookUrl?: string | undefined;
-  message?: string | undefined;
+  externalSubscriptionId?: string;
+  webhookSecretHash?: string;
+  clientStateHash?: string;
+  resource?: string;
+  expiresAt?: number;
+  gmailHistoryId?: string;
+  webhookUrl?: string;
+  message?: string;
 }
 
 interface ImapCursorWatchResult {
@@ -61,7 +61,7 @@ interface IEmailProvider {
 
   listFolders(accessToken: string): Promise<ProviderFolder[]>;
 
-  stopWatch(accessToken: string, externalSubscriptionId?: string | undefined): Promise<void>;
+  stopWatch(accessToken: string, externalSubscriptionId?: string): Promise<void>;
 
   startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult>;
 

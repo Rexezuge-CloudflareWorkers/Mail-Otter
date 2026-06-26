@@ -3,6 +3,7 @@ import {
   CONNECTED_APPLICATION_STATUS_DRAFT,
   CONNECTION_METHOD_IMAP_PASSWORD,
   CONNECTION_METHOD_OAUTH2,
+  OAUTH2_FEATURE_SCOPES,
 } from '@mail-otter/shared/constants';
 import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDeliveryLogDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
@@ -108,7 +109,9 @@ class ApplicationService {
         refreshToken: existingOAuth2.refreshToken,
       };
       const credentialsChanged = newClientId !== existingOAuth2.clientId || newClientSecret !== existingOAuth2.clientSecret;
-      if (credentialsChanged) newStatus = CONNECTED_APPLICATION_STATUS_DRAFT;
+      const newFeatures = (input.enabledFeatures ?? []).filter(f => !(existing.enabledFeatures ?? []).includes(f));
+      const scopeRequiringFeatureAdded = newFeatures.some(f => (OAUTH2_FEATURE_SCOPES[f]?.[existing.providerId]?.length ?? 0) > 0);
+      if (credentialsChanged || scopeRequiringFeatureAdded) newStatus = CONNECTED_APPLICATION_STATUS_DRAFT;
     }
 
     const imapConfig = (input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort)

@@ -8,6 +8,7 @@ import {
   ListProcessedMessagesRoute,
   RunTaskNowRoute,
   ListActivityRoute,
+  ChatRoute,
   CreateApplicationRoute,
   GetApplicationRulesRoute,
   UpdateApplicationRulesRoute,
@@ -163,6 +164,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     openapi.post('/user/actions/:actionId/schedule', ScheduleEmailActionRoute);
 
     openapi.get('/user/activity', ListActivityRoute);
+    openapi.post('/user/chat', ChatRoute);
 
     openapi.get('/user/processing/task-runs', ListBackgroundTaskRunsRoute);
     openapi.get('/user/processing/calendar-events', ListProcessingCalendarEventsRoute);

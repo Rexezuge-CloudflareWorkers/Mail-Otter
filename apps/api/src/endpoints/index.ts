@@ -49,6 +49,7 @@ import { ListProcessingCalendarEventsRoute as OriginalListProcessingCalendarEven
 import { ListProcessedMessagesRoute as OriginalListProcessedMessagesRoute } from './user/processing/messages/GET';
 import { RunTaskNowRoute as OriginalRunTaskNowRoute } from './user/processing/run-task/POST';
 import { ListActivityRoute as OriginalListActivityRoute } from './user/activity/GET';
+import { ChatRoute as OriginalChatRoute } from './user/chat/POST';
 
 export const GetAnalyticsRoute: any = OriginalGetAnalyticsRoute;
 export const GetCurrentUserRoute: any = OriginalGetCurrentUserRoute;
@@ -98,3 +99,4 @@ export const ListProcessingCalendarEventsRoute: any = OriginalListProcessingCale
 export const ListProcessedMessagesRoute: any = OriginalListProcessedMessagesRoute;
 export const RunTaskNowRoute: any = OriginalRunTaskNowRoute;
 export const ListActivityRoute: any = OriginalListActivityRoute;
+export const ChatRoute: any = OriginalChatRoute;

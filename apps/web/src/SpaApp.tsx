@@ -10,6 +10,7 @@ import { AnalyticsView } from './components/views/AnalyticsView';
 import { HelpView } from './components/views/HelpView';
 import { ProcessingView } from './components/views/ProcessingView';
 import { ActivityView } from './components/views/ActivityView';
+import { ChatView } from './components/views/ChatView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
@@ -25,6 +26,7 @@ import { useAuditLogs } from './hooks/useAuditLogs';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useProcessing } from './hooks/useProcessing';
 import { useActivity } from './hooks/useActivity';
+import { useChat } from './hooks/useChat';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
@@ -49,6 +51,7 @@ export default function SpaApp() {
   const analytics = useAnalytics({ showNotice });
   const processing = useProcessing({ showNotice });
   const activity = useActivity({ showNotice });
+  const chat = useChat({ showNotice });
 
   const mailboxes = useMailboxes({
     setIsBusy,
@@ -117,7 +120,9 @@ export default function SpaApp() {
             ? processing.processingApplicationId
             : activeView === 'activity'
               ? activity.activityApplicationId
-              : actions.actionApplicationId;
+              : activeView === 'chat'
+                ? chat.chatApplicationId
+                : actions.actionApplicationId;
 
   useSyncedUrl({
     view: activeView,
@@ -225,6 +230,19 @@ export default function SpaApp() {
               onRefresh={() => void activity.loadActivity()}
               onLoadMore={() => void activity.loadActivity(true, activity.activityCursor)}
               onExportCsv={() => void activity.exportCsv()}
+            />
+          )}
+
+          {activeView === 'chat' && (
+            <ChatView
+              applications={mailboxes.applications}
+              applicationId={chat.chatApplicationId}
+              setApplicationId={chat.setChatApplicationId}
+              messages={chat.messages}
+              sources={chat.sources}
+              loading={chat.chatLoading}
+              onSend={(q) => void chat.sendMessage(q)}
+              onClear={chat.clearChat}
             />
           )}
 

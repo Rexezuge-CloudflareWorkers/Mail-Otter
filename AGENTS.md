@@ -4,7 +4,7 @@ Guidance for agents working in Mail-Otter.
 
 ## Overview
 
-Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. The AI can suggest structured email actions (add calendar event, draft reply, open link, manual to-do, track package, track flight, pay bill, confirm appointment) that the user confirms or denies through a public callback flow or the management UI. Per-mailbox time zones keep calendar events correct, optional sender domain filters scope which senders are processed, configurable email processing rules gate or modify per-message handling, a scheduled daily digest aggregates pending actions and calendar events, outbound webhook integrations forward summary payloads to external services, a usage analytics dashboard summarizes AI usage, processing, actions, and context indexing, attachment vision analysis uses `@cf/meta/llama-3.2-11b-vision-instruct` to extract structured data from image attachments (receipts, invoices, boarding passes, package labels) with a per-mailbox toggle, action scheduling/snooze lets users defer pending actions to a future time or schedule `calendar.add_event`/`email.draft_reply` actions for automatic execution at a chosen time, background Google Drive and OneDrive document ingestion syncs Drive/OneDrive files into the RAG context index via optional per-mailbox OAuth2 feature toggles (`google_drive` for Gmail, `onedrive` for Outlook) requiring re-authorization, and a unified **Activity Feed** view (`GET /user/activity`) that aggregates email processing outcomes, action creations, and action executions into a reverse-chronological timeline with per-mailbox filtering, event-type filtering, cursor pagination, and CSV export.
+Mail-Otter is a Cloudflare Worker API with a Vite React management UI in a pnpm workspace. Cloudflare Zero Trust protects `/user/*`; public provider webhook endpoints under `/api/*` validate provider secrets/client state and enqueue work. Emails are summarized via Workers AI with optional RAG context indexing. The AI can suggest structured email actions (add calendar event, draft reply, open link, manual to-do, track package, track flight, pay bill, confirm appointment) that the user confirms or denies through a public callback flow or the management UI. Per-mailbox time zones keep calendar events correct, optional sender domain filters scope which senders are processed, configurable email processing rules gate or modify per-message handling, a scheduled daily digest aggregates pending actions and calendar events, outbound webhook integrations forward summary payloads to external services, a usage analytics dashboard summarizes AI usage, processing, actions, and context indexing, attachment vision analysis uses `@cf/meta/llama-3.2-11b-vision-instruct` to extract structured data from image attachments (receipts, invoices, boarding passes, package labels) with a per-mailbox toggle, action scheduling/snooze lets users defer pending actions to a future time or schedule `calendar.add_event`/`email.draft_reply` actions for automatic execution at a chosen time, background Google Drive and OneDrive document ingestion syncs Drive/OneDrive files into the RAG context index via optional per-mailbox OAuth2 feature toggles (`google_drive` for Gmail, `onedrive` for Outlook) requiring re-authorization, a unified **Activity Feed** view (`GET /user/activity`) that aggregates email processing outcomes, action creations, and action executions into a reverse-chronological timeline with per-mailbox filtering, event-type filtering, cursor pagination, and CSV export, and an **AI Email Chat** feature (`POST /user/chat`) that lets users ask natural-language questions about their emails by querying the existing Vectorize RAG index and generating grounded answers with source citations using the same Workers AI models used for summarization.
 
 ## Cloudflare Documentation
 
@@ -80,13 +80,13 @@ Run `volta run pnpm run typegen` after changing bindings in Wrangler config.
 - `apps/background/src/EmailEventsDispatcherWorker.ts` is the Queue consumer that dispatches events to `EmailProcessingWorkflow`.
 - `apps/background/src/EmailProcessingWorkflow.ts` is the Workflow that resolves applications, lists Gmail/Outlook/Fastmail messages, summarizes with Workers AI, and posts summary replies.
 - `apps/background/src/OAuth2TokenRefreshWorker.ts` is the Durable Object that handles OAuth2 token refresh and authorization code exchange.
-- `apps/web/` contains the Vite React SPA for `/user`. `apps/web/src/components/` is organized by feature area: `actions/`, `analytics/`, `context/`, `layout/`, `mailboxes/`, `modals/`, `shared/`, `ui/`, and `views/` (`ActionsView`, `ActivityView`, `AnalyticsView`, `ContextAuditView`, `HelpView`, `MailboxesView`, `ProcessingView`).
+- `apps/web/` contains the Vite React SPA for `/user`. `apps/web/src/components/` is organized by feature area: `actions/`, `analytics/`, `context/`, `layout/`, `mailboxes/`, `modals/`, `shared/`, `ui/`, and `views/` (`ActionsView`, `ActivityView`, `AnalyticsView`, `ChatView`, `ContextAuditView`, `HelpView`, `MailboxesView`, `ProcessingView`).
 - `packages/shared/src/` contains cross-package constants, models, schemas, and utilities (including `TimeZoneUtil`, `TimestampUtil`, `UUIDUtil`, `BaseUrlUtil`, `CryptoUtil`).
 - `packages/backend-errors/src/` owns a typed error hierarchy (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `InternalServerError`, `DatabaseError`, `EmailProcessingError` with retryable/non-retryable variants).
 - `packages/backend-runtime/src/` owns all environment variable access via `ConfigurationManager` static methods and defaults in `ConfigurationDefaults.ts`. Also provides abstract worker base classes (`AbstractEntrypointWorker`, `AbstractDurableObjectWorker`, `AbstractQueueWorker`, `AbstractWorkflowWorker`) and DO naming constants. Add new env vars in `ConfigurationDefaults.ts`, not inline.
 - `packages/backend-data/src/` owns all D1 access via DAO classes in `dao/` (`ConnectedApplicationDAO`, `ApplicationContextDAO`, `UserDAO`, `ProcessedMessageDAO`, `OAuth2AuthorizationSessionDAO`, `ProviderSubscriptionDAO`, `AiDailyUsageDAO`, `EmailActionDAO`, `OAuth2AccessTokenCacheDAO`, `OAuth2AccessTokenRefreshStatusDAO`, `ApplicationIntegrationDAO`, `BackgroundTaskRunDAO`, `IntegrationDeliveryLogDAO`, `SyncedCalendarEventDAO`, `ActivityDAO`), KV-based token cache, D1 session/cursor/error utilities in `utils/` (`D1SessionUtil`, `CursorUtil`, `D1ErrorClassifier`, `D1Utils`), and AES-GCM encryption in `crypto/` (`CryptoService`). Per-application settings without dedicated columns (e.g. `calendar_time_zone`, enabled features, sender domain filters, processing rules) are stored as provider-config key/value rows.
 - `packages/provider-clients/src/` owns provider API clients (`GmailProviderUtil`, `OutlookProviderUtil`, `OAuth2ProviderUtil`, `FastmailProviderUtil`, `GoogleDriveProviderUtil`, `OneDriveProviderUtil`), webhook security (`WebhookSecurityUtil`), and email content parsing (`EmailContentUtil`).
-- `packages/backend-services/src/` owns business logic services, organized by domain subdirectory: `activity/` (`ActivityService`), `action/` (`ActionService`, `ActionExecutionService`, `ActionSchedulingService`, `PackageTrackingService`, `FlightTrackingService`), `analytics/` (`AnalyticsService`), `application/` (`ApplicationService`, `ApplicationResponseUtil`, `FolderService`), `auth/` (`EmailValidationUtil`), `digest/` (`DigestConfigService`, `DigestEmailUtil`, `DigestService`, `ActionStatusSyncUtil`, `CalendarEventSyncUtil`), `drive/` (`GoogleDriveIngestionService`, `OneDriveIngestionService`, `DriveDocumentUtil`), `email/` (`EmailProcessingUtil`, `EmailSummaryOrchestrator`, `EmailSummaryUtil`, `EmailContextUtil`, `EmailRulesUtil`, `EmailRuleSuggestionUtil`, `ContextService`, `AiUsageUtil`, `AttachmentAnalysisUtil`, `SenderFilterUtil`, `ProviderOrganizationService`, `WorkersAiErrorUtil`), `integration/` (`IntegrationService`), `oauth2/` (`OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `OAuth2StateUtil`), `processing/` (`ProcessingService`), `provider/` (`EmailProviderRegistry` + `IEmailProvider`, `GmailEmailProvider`, `OutlookEmailProvider`, `FastmailEmailProvider`, `FastmailImapEmailProvider`), `subscription/` (`WatchService`, `SubscriptionRenewalUtil`), `user/` (`UserService`), and `webhook/` (`GmailWebhookService`, `OutlookWebhookService`). New provider-specific behavior should go behind `EmailProviderRegistry`/`IEmailProvider` rather than branching on provider id in callers.
+- `packages/backend-services/src/` owns business logic services, organized by domain subdirectory: `activity/` (`ActivityService`), `action/` (`ActionService`, `ActionExecutionService`, `ActionSchedulingService`, `PackageTrackingService`, `FlightTrackingService`), `analytics/` (`AnalyticsService`), `application/` (`ApplicationService`, `ApplicationResponseUtil`, `FolderService`), `auth/` (`EmailValidationUtil`), `chat/` (`ChatService`), `digest/` (`DigestConfigService`, `DigestEmailUtil`, `DigestService`, `ActionStatusSyncUtil`, `CalendarEventSyncUtil`), `drive/` (`GoogleDriveIngestionService`, `OneDriveIngestionService`, `DriveDocumentUtil`), `email/` (`EmailProcessingUtil`, `EmailSummaryOrchestrator`, `EmailSummaryUtil`, `EmailContextUtil`, `EmailRulesUtil`, `EmailRuleSuggestionUtil`, `ContextService`, `AiUsageUtil`, `AttachmentAnalysisUtil`, `SenderFilterUtil`, `ProviderOrganizationService`, `WorkersAiErrorUtil`), `integration/` (`IntegrationService`), `oauth2/` (`OAuth2AuthorizationService`, `OAuth2AccessTokenService`, `OAuth2StateUtil`), `processing/` (`ProcessingService`), `provider/` (`EmailProviderRegistry` + `IEmailProvider`, `GmailEmailProvider`, `OutlookEmailProvider`, `FastmailEmailProvider`, `FastmailImapEmailProvider`), `subscription/` (`WatchService`, `SubscriptionRenewalUtil`), `user/` (`UserService`), and `webhook/` (`GmailWebhookService`, `OutlookWebhookService`). New provider-specific behavior should go behind `EmailProviderRegistry`/`IEmailProvider` rather than branching on provider id in callers.
 - `migrations/` contains D1 migrations (latest: `0025_action_scheduling.sql`).
 - `functions/[[path]].ts` proxies Cloudflare Pages requests to the API Worker through a service binding.
 - `test/` contains Vitest suites for workers, schemas, and utilities.
@@ -117,6 +117,7 @@ Enforced by ESLint `no-restricted-imports` rules in `eslint.config.mjs`.
 - Current Worker bindings include D1 binding `DB`, KV namespace `OAUTH2_TOKEN_CACHE`, Secrets Store secrets `AES_ENCRYPTION_KEY_SECRET`, `ACTION_ENCRYPTION_KEY_SECRET`, `ACTION_SIGNING_SECRET`, Workers AI binding `AI`, Vectorize index `EMAIL_CONTEXT_INDEX`, Queue `EMAIL_EVENTS_QUEUE`, Workflow `EMAIL_PROCESSING_WORKFLOW`, Durable Objects `CRON_TASKS` and `OAUTH2_TOKEN_REFRESHERS`, and a cron trigger `*/10 * * * *`.
 - Attachment vision env vars (all optional, governed by `ConfigurationManager`): `ATTACHMENT_VISION_ENABLED` (default `true`), `ATTACHMENT_VISION_MODEL` (default `@cf/meta/llama-3.2-11b-vision-instruct`), `MAX_ATTACHMENT_SIZE_BYTES` (default `2097152` / 2 MB), `MAX_ATTACHMENTS_PER_EMAIL` (default `3`).
 - Drive ingestion env vars (all optional): `MAX_DRIVE_FILES_PER_SYNC` (default `20`) — max files processed per application per cron cycle for both Google Drive and OneDrive.
+- Chat env vars (all optional): `CHAT_MAX_RESPONSE_TOKENS` (default `1000`), `CHAT_VECTOR_QUERY_TOP_K` (default `20`), `CHAT_CONTEXT_TOP_K` (default `5`), `CHAT_MAX_HISTORY_MESSAGES` (default `10`).
 
 ## Auth And Routing
 
@@ -161,6 +162,7 @@ Protected user routes:
 - `POST /user/actions/:actionId/snooze`
 - `POST /user/actions/:actionId/schedule`
 - `GET /user/activity`
+- `POST /user/chat`
 - `GET /user/application/folders`
 - `PUT /user/application/watch-settings`
 - `POST /user/application/oauth2/authorize`
@@ -386,6 +388,7 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 - OneDriveProviderUtil: tests present (getDelta, downloadItem, convertItemToPdf)
 - GoogleDriveIngestionService: tests present (no-op without Vectorize, first-run cursor init, index/skip/delete/fail scenarios)
 - OneDriveIngestionService: tests present (no-op without Vectorize, 401 stale-link reset, retry, happy path)
+- ChatService: 6 tests covering happy path, applicationId filtering, missing Vectorize binding (400), daily quota exceeded (400), history truncation flag, and empty Vectorize results
 
 ### Still Uncovered (0% or near-0%)
 - DigestConfigService.ts, DigestEmailUtil.ts, DigestService.ts, ActionStatusSyncUtil.ts, CalendarEventSyncUtil.ts (digest services)
@@ -426,6 +429,32 @@ All user-visible text in `apps/web/` must use **Title Case** (capitalize the fir
 **CSV columns:** Event Type, Application ID, Timestamp ISO, Provider Message ID, Status / Execution Status, Error Message, Action ID, Action Type, Risk Level, Triggered By.
 
 **Frontend:** `ActivityView` (tab between Actions and Analytics), `useActivity` hook, `activityService.ts`. The view has a mailbox selector, three event-type checkboxes, an Export CSV button, and a Refresh button. Entries show an event-type badge, description, mailbox name, and relative timestamp. Load More appends the next page via cursor.
+
+## AI Email Chat
+
+`POST /user/chat` lets users ask natural-language questions about their indexed emails. It is stateless (v1 — no conversation persistence) but supports multi-turn context via a `history` array in the request body.
+
+**Request:**
+```json
+{ "query": "What packages am I expecting?", "applicationId": "optional-app-id", "history": [] }
+```
+
+**Response:**
+```json
+{ "answer": "...", "sources": [{ "vectorId": "...", "title": "...", "sender": "...", "applicationId": "...", "score": 0.9 }], "truncated": false }
+```
+
+**Backend flow (`ChatService` in `packages/backend-services/src/chat/`):**
+1. Guard: require `EMAIL_CONTEXT_INDEX` binding; check daily neuron quota via `AiDailyUsageDAO`
+2. Embed the query using `@cf/baai/bge-m3` (same model as email context indexing); record embedding usage
+3. Query `EMAIL_CONTEXT_INDEX` Vectorize using the user's namespace (via `EmailContextUtil.getUserVectorNamespace`); filter in-memory by `applicationId` if provided
+4. Take top-`CHAT_CONTEXT_TOP_K` matches; build a system prompt with numbered email excerpts from vector metadata (`title`, `sender`, `indexedText`)
+5. Call `@cf/moonshotai/kimi-k2.6` with system prompt + trimmed history + user query; apply `thinking: false` for reasoning models
+6. Record text generation usage; return answer + source citations
+
+No D1 migration is needed. AI usage is tracked via the existing `ai_daily_usage` table.
+
+**Frontend:** `ChatView` (tab after Activity), `useChat` hook, `chatService.ts`. The view has a mailbox filter, multi-turn message bubbles (user right-aligned, assistant left-aligned), collapsible source citations below each answer, and a textarea/Ask button at the bottom. Shift+Enter inserts a newline; Enter sends.
 
 ## Keeping AGENTS.md Current
 

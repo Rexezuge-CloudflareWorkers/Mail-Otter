@@ -41,6 +41,10 @@ import {
   DEFAULT_MAX_ATTACHMENT_SIZE_BYTES,
   DEFAULT_MAX_ATTACHMENTS_PER_EMAIL,
   DEFAULT_MAX_DRIVE_FILES_PER_SYNC,
+  DEFAULT_CHAT_MAX_RESPONSE_TOKENS,
+  DEFAULT_CHAT_VECTOR_QUERY_TOP_K,
+  DEFAULT_CHAT_CONTEXT_TOP_K,
+  DEFAULT_CHAT_MAX_HISTORY_MESSAGES,
 } from './ConfigurationDefaults';
 import { EnvParser } from './EnvParser';
 
@@ -122,6 +126,13 @@ class ConfigurationManager {
 
   public static readonly drive = {
     getMaxFilesPerSync: (env: unknown): number => EnvParser.positiveInt(env, 'MAX_DRIVE_FILES_PER_SYNC', DEFAULT_MAX_DRIVE_FILES_PER_SYNC),
+  };
+
+  public static readonly chat = {
+    getMaxResponseTokens: (env: unknown): number => EnvParser.positiveInt(env, 'CHAT_MAX_RESPONSE_TOKENS', DEFAULT_CHAT_MAX_RESPONSE_TOKENS),
+    getVectorQueryTopK: (env: unknown): number => EnvParser.positiveInt(env, 'CHAT_VECTOR_QUERY_TOP_K', DEFAULT_CHAT_VECTOR_QUERY_TOP_K),
+    getContextTopK: (env: unknown): number => EnvParser.positiveInt(env, 'CHAT_CONTEXT_TOP_K', DEFAULT_CHAT_CONTEXT_TOP_K),
+    getMaxHistoryMessages: (env: unknown): number => EnvParser.positiveInt(env, 'CHAT_MAX_HISTORY_MESSAGES', DEFAULT_CHAT_MAX_HISTORY_MESSAGES),
   };
 
   // ─── Flat API (backward-compatible, delegates to namespace groups) ────────────

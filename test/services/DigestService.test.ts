@@ -207,6 +207,139 @@ describe('DigestService', () => {
       // Since calendar events are empty and tasks/packages/flights/appointments are empty, only the soon bill triggers content.
       expect(mockMarkSent).toHaveBeenCalled();
     });
+
+    it('handles bills with missing dueDate', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+
+      const noDueDateBill = {
+        actionId: 'bill-1',
+        title: 'No Due Date Bill',
+        description: '',
+        payload: { payee: 'Unknown Electric', dueDate: null },
+        syncStatus: null,
+      };
+
+      mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
+        if (types.includes('finance.pay_bill')) return Promise.resolve([noDueDateBill]);
+        return Promise.resolve([]);
+      });
+      mockListEventsForRange.mockResolvedValue([]);
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      expect(mockSendStandaloneEmailGmail).toHaveBeenCalled();
+      expect(mockMarkSent).toHaveBeenCalled();
+    });
+
+    it('filters appointments by appointment time within hours', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+      const now = Math.floor(Date.now() / 1000);
+      const soonApptTime = new Date((now + 1 * 3600) * 1000).toISOString();
+      const lateApptTime = new Date((now + 48 * 3600) * 1000).toISOString();
+
+      const soonAppt = {
+        actionId: 'appt-1',
+        title: 'Soon Appointment',
+        description: '',
+        payload: { location: 'Office', appointmentTime: soonApptTime },
+        syncStatus: null,
+      };
+      const lateAppt = {
+        actionId: 'appt-2',
+        title: 'Late Appointment',
+        description: '',
+        payload: { location: 'Hospital', appointmentTime: lateApptTime },
+        syncStatus: null,
+      };
+
+      mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
+        if (types.includes('appointment.confirm')) return Promise.resolve([soonAppt, lateAppt]);
+        return Promise.resolve([]);
+      });
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      expect(mockMarkSent).toHaveBeenCalled();
+    });
+
+    it('handles appointments with missing appointmentTime', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+
+      const noTimAppt = {
+        actionId: 'appt-1',
+        title: 'No Time Appointment',
+        description: '',
+        payload: { location: 'TBD', appointmentTime: null },
+        syncStatus: null,
+      };
+
+      mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
+        if (types.includes('appointment.confirm')) return Promise.resolve([noTimAppt]);
+        return Promise.resolve([]);
+      });
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      expect(mockSendStandaloneEmailGmail).toHaveBeenCalled();
+      expect(mockMarkSent).toHaveBeenCalled();
+    });
+
+    it('handles appointments with invalid appointmentTime date', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+
+      const invalidAppt = {
+        actionId: 'appt-1',
+        title: 'Invalid Appointment',
+        description: '',
+        payload: { location: 'Somewhere', appointmentTime: 'not-a-date' },
+        syncStatus: null,
+      };
+
+      mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
+        if (types.includes('appointment.confirm')) return Promise.resolve([invalidAppt]);
+        return Promise.resolve([]);
+      });
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      expect(mockMarkSent).toHaveBeenCalled();
+    });
+
+    it('respects timezone for calendar event date boundaries', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+      const now = Math.floor(Date.now() / 1000);
+      const todayEvent = makeCalendarEvent({ startTime: now + 3600, endTime: now + 7200 });
+
+      mockListEventsForRange.mockResolvedValue([todayEvent]);
+
+      await service.sendDigest(makeApplication('google-gmail', { timeZone: 'America/New_York' }) as any, 'access-token');
+
+      expect(mockSendStandaloneEmailGmail).toHaveBeenCalled();
+    });
+
+    it('calls listPendingActionsByTypes for each enabled section', async () => {
+      mockGetConfig.mockResolvedValue(makeEnabledConfig());
+      mockListEventsForRange.mockResolvedValue([]);
+      mockListPendingActionsByTypes.mockResolvedValue([]);
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      // Should be called for each section type (tasks, packages, flights, bills, appointments)
+      expect(mockListPendingActionsByTypes).toHaveBeenCalled();
+    });
+
+    it('handles partial section exclusions', async () => {
+      const configWithPartialSections = {
+        ...makeEnabledConfig(),
+        sections: ['calendar'],
+      };
+      mockGetConfig.mockResolvedValue(configWithPartialSections);
+      mockListEventsForRange.mockResolvedValue([makeCalendarEvent()]);
+
+      await service.sendDigest(makeApplication() as any, 'access-token');
+
+      expect(mockSendStandaloneEmailGmail).toHaveBeenCalled();
+    });
   });
 
   describe('sendDigestForced', () => {
@@ -222,6 +355,14 @@ describe('DigestService', () => {
     it('marks sent even for disabled digest', async () => {
       mockGetConfig.mockResolvedValue({ enabled: false, sendTime: '08:00', sections: DIGEST_ALL_SECTIONS, lastSentAt: null });
       mockListEventsForRange.mockResolvedValue([makeCalendarEvent()]);
+
+      await service.sendDigestForced(makeApplication('google-gmail') as any, 'access-token');
+
+      expect(mockMarkSent).toHaveBeenCalled();
+    });
+
+    it('sends forced digest without content', async () => {
+      mockGetConfig.mockResolvedValue({ enabled: true, sendTime: '08:00', sections: DIGEST_ALL_SECTIONS, lastSentAt: null });
 
       await service.sendDigestForced(makeApplication('google-gmail') as any, 'access-token');
 

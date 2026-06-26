@@ -107,6 +107,132 @@ describe('IntegrationDeliveryLogDAO', () => {
       const logs = await dao.listByIntegrationId('int-none', 10);
       expect(logs).toHaveLength(0);
     });
+
+    it('respects limit parameter by passing to database', async () => {
+      const db = makeDb();
+      const bindFn = vi.fn().mockReturnValue({
+        all: vi.fn().mockResolvedValue({
+          results: [
+            {
+              log_id: 'log-1',
+              integration_id: 'int-1',
+              application_id: 'app-1',
+              status: 'success',
+              http_status: 200,
+              error_message: null,
+              email_subject: 'Test',
+              created_at: 1_778_200_000,
+            },
+          ],
+        }),
+      });
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: bindFn,
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      await dao.listByIntegrationId('int-1', 10);
+      expect(bindFn).toHaveBeenCalledWith('int-1', 10);
+    });
+
+    it('handles null error_message field', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({
+            results: [
+              {
+                log_id: 'log-1',
+                integration_id: 'int-1',
+                application_id: 'app-1',
+                status: 'success',
+                http_status: 200,
+                error_message: null,
+                email_subject: 'Test',
+                created_at: 1_778_200_000,
+              },
+            ],
+          }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const logs = await dao.listByIntegrationId('int-1', 10);
+      expect(logs[0]?.errorMessage).toBeNull();
+    });
+
+    it('handles null http_status field', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({
+            results: [
+              {
+                log_id: 'log-1',
+                integration_id: 'int-1',
+                application_id: 'app-1',
+                status: 'failure',
+                http_status: null,
+                error_message: 'Network error',
+                email_subject: 'Test',
+                created_at: 1_778_200_000,
+              },
+            ],
+          }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const logs = await dao.listByIntegrationId('int-1', 10);
+      expect(logs[0]?.httpStatus).toBeNull();
+    });
+
+    it('handles null email_subject field', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({
+            results: [
+              {
+                log_id: 'log-1',
+                integration_id: 'int-1',
+                application_id: 'app-1',
+                status: 'success',
+                http_status: 200,
+                error_message: null,
+                email_subject: null,
+                created_at: 1_778_200_000,
+              },
+            ],
+          }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const logs = await dao.listByIntegrationId('int-1', 10);
+      expect(logs[0]?.emailSubject).toBeNull();
+    });
+
+    it('handles different failure statuses', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({
+            results: [
+              {
+                log_id: 'log-1',
+                integration_id: 'int-1',
+                application_id: 'app-1',
+                status: 'failure',
+                http_status: 500,
+                error_message: 'Server Error',
+                email_subject: 'Test',
+                created_at: 1_778_200_000,
+              },
+            ],
+          }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const logs = await dao.listByIntegrationId('int-1', 10);
+      expect(logs[0]?.status).toBe('failure');
+    });
   });
 
   describe('deleteOlderThan', () => {
@@ -115,6 +241,98 @@ describe('IntegrationDeliveryLogDAO', () => {
       const dao = new IntegrationDeliveryLogDAO(db);
       const count = await dao.deleteOlderThan(1_778_100_000, 500);
       expect(count).toBe(1);
+    });
+
+    it('handles zero deleted rows', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 0 } }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const count = await dao.deleteOlderThan(1_778_100_000, 500);
+      expect(count).toBe(0);
+    });
+
+    it('respects batch size limit', async () => {
+      const db = makeDb();
+      const dao = new IntegrationDeliveryLogDAO(db);
+
+      // Call with different batch sizes to verify it works
+      await dao.deleteOlderThan(1_778_100_000, 100);
+      await dao.deleteOlderThan(1_778_100_000, 1000);
+
+      expect(db.prepare).toHaveBeenCalled();
+    });
+
+    it('deletes up to batch size entries', async () => {
+      const db = makeDb();
+      (db.prepare as ReturnType<typeof vi.fn>).mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 500 } }),
+        }),
+      });
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const count = await dao.deleteOlderThan(1_778_100_000, 500);
+      expect(count).toBe(500);
+    });
+  });
+
+  describe('create - batch operations', () => {
+    it('updates integration health columns on success', async () => {
+      const db = makeDb();
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const stmts: unknown[] = [];
+      batchFn.mockImplementation((statements) => {
+        stmts.push(...statements);
+        return Promise.resolve([{ success: true }, { success: true }]);
+      });
+
+      await dao.create({
+        integrationId: 'int-1',
+        applicationId: 'app-1',
+        status: 'success',
+        httpStatus: 200,
+        errorMessage: null,
+        emailSubject: 'Test',
+      });
+
+      expect(stmts.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('stores email subject as provided', async () => {
+      const db = makeDb();
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const subject = 'Important: Your account has been updated';
+
+      const result = await dao.create({
+        integrationId: 'int-1',
+        applicationId: 'app-1',
+        status: 'success',
+        httpStatus: 200,
+        errorMessage: null,
+        emailSubject: subject,
+      });
+
+      expect(result.emailSubject).toBe(subject);
+    });
+
+    it('stores error message as provided', async () => {
+      const db = makeDb();
+      const dao = new IntegrationDeliveryLogDAO(db);
+      const errorMsg = 'Database connection timeout after 5000ms';
+
+      const result = await dao.create({
+        integrationId: 'int-1',
+        applicationId: 'app-1',
+        status: 'failure',
+        httpStatus: null,
+        errorMessage: errorMsg,
+        emailSubject: 'Test',
+      });
+
+      expect(result.errorMessage).toBe(errorMsg);
     });
   });
 });

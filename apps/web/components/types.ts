@@ -270,3 +270,35 @@ export interface ContextAuditLogList {
   logs: ContextAuditLog[];
   nextCursor?: string | null;
 }
+
+export type ActivityEventType = 'email_processed' | 'action_created' | 'action_executed';
+
+export interface EmailProcessedEntry {
+  eventType: 'email_processed';
+  applicationId: string;
+  providerMessageId: string;
+  status: 'processing' | 'summarized' | 'skipped' | 'error';
+  errorMessage?: string | null;
+  timestamp: number;
+}
+
+export interface ActionCreatedEntry {
+  eventType: 'action_created';
+  applicationId: string;
+  actionId: string;
+  actionType: string;
+  riskLevel: string;
+  timestamp: number;
+}
+
+export interface ActionExecutedEntry {
+  eventType: 'action_executed';
+  applicationId: string;
+  actionId: string;
+  actionType: string;
+  executionStatus: string;
+  triggeredBy: string;
+  timestamp: number;
+}
+
+export type ActivityEntry = EmailProcessedEntry | ActionCreatedEntry | ActionExecutedEntry;

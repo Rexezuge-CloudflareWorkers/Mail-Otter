@@ -28,3 +28,5 @@ export { IntegrationDeliveryLogDAO } from './IntegrationDeliveryLogDAO';
 export type { CreateDeliveryLogInput } from './IntegrationDeliveryLogDAO';
 export { SyncedCalendarEventDAO } from './SyncedCalendarEventDAO';
 export type { UpsertCalendarEventInput, ListCalendarEventsOptions } from './SyncedCalendarEventDAO';
+export { ActivityDAO } from './ActivityDAO';
+export type { ListActivityOptions } from './ActivityDAO';

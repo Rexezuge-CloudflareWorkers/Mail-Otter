@@ -6,6 +6,7 @@ const TABS: { id: ActiveView; label: string }[] = [
   { id: 'mailboxes', label: 'Mailboxes' },
   { id: 'context', label: 'RAG Context' },
   { id: 'actions', label: 'Actions' },
+  { id: 'activity', label: 'Activity' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'processing', label: 'Processing' },
   { id: 'help', label: 'Help' },

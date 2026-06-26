@@ -11,3 +11,4 @@ export * from './ProcessedMessage';
 export * from './ContextAuditLog';
 export * from './ProviderSubscription';
 export * from './Integration';
+export * from './ActivityEntry';

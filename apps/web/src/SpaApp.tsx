@@ -9,6 +9,7 @@ import { ActionsView } from './components/views/ActionsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { HelpView } from './components/views/HelpView';
 import { ProcessingView } from './components/views/ProcessingView';
+import { ActivityView } from './components/views/ActivityView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
@@ -23,6 +24,7 @@ import { useActions } from './hooks/useActions';
 import { useAuditLogs } from './hooks/useAuditLogs';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useProcessing } from './hooks/useProcessing';
+import { useActivity } from './hooks/useActivity';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
@@ -46,6 +48,7 @@ export default function SpaApp() {
   const actions = useActions({ setIsBusy, showNotice });
   const analytics = useAnalytics({ showNotice });
   const processing = useProcessing({ showNotice });
+  const activity = useActivity({ showNotice });
 
   const mailboxes = useMailboxes({
     setIsBusy,
@@ -96,6 +99,12 @@ export default function SpaApp() {
     }
   }, [activeView, authorized]);
 
+  useEffect(() => {
+    if (authorized && activeView === 'activity') {
+      void activity.loadActivity();
+    }
+  }, [activeView, authorized]);
+
   // Sync current state back to the URL
   const effectiveAppId =
     activeView === 'mailboxes'
@@ -106,7 +115,9 @@ export default function SpaApp() {
           ? analytics.analyticsApplicationId
           : activeView === 'processing'
             ? processing.processingApplicationId
-            : actions.actionApplicationId;
+            : activeView === 'activity'
+              ? activity.activityApplicationId
+              : actions.actionApplicationId;
 
   useSyncedUrl({
     view: activeView,
@@ -197,6 +208,23 @@ export default function SpaApp() {
               onSnoozeAction={actions.snoozeAction}
               onScheduleAction={actions.scheduleAction}
               busy={isBusy}
+            />
+          )}
+
+          {activeView === 'activity' && (
+            <ActivityView
+              applications={mailboxes.applications}
+              applicationId={activity.activityApplicationId}
+              setApplicationId={activity.setActivityApplicationId}
+              eventTypes={activity.activityEventTypes}
+              setEventTypes={activity.setActivityEventTypes}
+              entries={activity.entries}
+              cursor={activity.activityCursor}
+              loading={activity.activityLoading}
+              exporting={activity.activityExporting}
+              onRefresh={() => void activity.loadActivity()}
+              onLoadMore={() => void activity.loadActivity(true, activity.activityCursor)}
+              onExportCsv={() => void activity.exportCsv()}
             />
           )}
 

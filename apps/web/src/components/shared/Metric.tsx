@@ -25,9 +25,9 @@ export function Metric({
         <button
           onClick={onDismiss}
           title="Dismiss Error"
-          className="absolute top-2 right-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] leading-none text-sm flex items-center gap-1 whitespace-nowrap"
+          className="absolute top-1 right-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] leading-none text-xs flex items-center gap-0.5 whitespace-nowrap"
         >
-          Dismiss <X className="h-3.5 w-3.5" />
+          Dismiss <X className="h-2.5 w-2.5" />
         </button>
       )}
     </div>

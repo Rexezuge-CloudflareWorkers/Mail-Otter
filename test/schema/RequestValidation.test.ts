@@ -153,5 +153,20 @@ describe('Request input schemas', () => {
       const valid = { ...validRule, action: { type: 'prepend_instruction', instruction: 'Extract invoice number.' } };
       expect(EmailProcessingRuleSchema.safeParse(valid).success).toBe(true);
     });
+
+    it('accepts always matcher with match_all op on a pre-processing rule', () => {
+      const valid = { ...validRule, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } };
+      expect(EmailProcessingRuleSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('accepts always matcher with match_all op on a post-processing rule', () => {
+      const valid = { ...validRule, action: { type: 'star_message' }, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } };
+      expect(EmailProcessingRuleSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('rejects always matcher with wrong op', () => {
+      const invalid = { ...validRule, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'contains' }] } };
+      expect(EmailProcessingRuleSchema.safeParse(invalid).success).toBe(false);
+    });
   });
 });

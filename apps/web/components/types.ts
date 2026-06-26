@@ -1,14 +1,15 @@
 export type ProviderId = 'google-gmail' | 'microsoft-outlook' | 'fastmail-jmap' | 'yahoo-mail' | 'custom-imap' | 'apple-icloud';
 
-export type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body' | 'has_attachment' | 'detected_action_type';
-export type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender' | 'is' | 'includes' | 'not_includes';
+export type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body' | 'has_attachment' | 'detected_action_type' | 'always';
+export type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender' | 'is' | 'includes' | 'not_includes' | 'match_all';
 
 export type EmailRuleConditionMatcher =
   | { field: 'from'; op: 'contains' | 'not_contains' | 'matches_sender'; value: string }
   | { field: 'subject'; op: 'contains' | 'not_contains'; value: string }
   | { field: 'body'; op: 'contains' | 'not_contains'; value: string }
   | { field: 'has_attachment'; op: 'is'; value: 'true' | 'false' }
-  | { field: 'detected_action_type'; op: 'includes' | 'not_includes'; value: string };
+  | { field: 'detected_action_type'; op: 'includes' | 'not_includes'; value: string }
+  | { field: 'always'; op: 'match_all' };
 
 export interface EmailRuleCondition {
   operator: 'all' | 'any';

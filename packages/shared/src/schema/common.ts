@@ -108,6 +108,10 @@ const EmailRuleConditionMatcherSchema = z.union([
     op: z.enum(['includes', 'not_includes']),
     value: z.string().min(1, 'value is required.').max(200, 'value must be 200 characters or less.'),
   }),
+  z.object({
+    field: z.literal('always'),
+    op: z.literal('match_all'),
+  }),
 ]);
 
 const EmailRuleConditionSchema = z.object({

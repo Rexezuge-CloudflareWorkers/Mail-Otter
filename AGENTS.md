@@ -257,7 +257,7 @@ Each application may define up to 20 `emailProcessingRules` (stored as a provide
 
 `EmailRulesUtil` in `packages/backend-services/src/email/` evaluates rules. `EmailRuleSuggestionUtil` in the same package generates AI-suggested rules from a plain-language description. The rules and suggest API routes are `GET|PUT /user/application/rules` and `POST /user/application/rules/suggest`. The `RulesSection` component in `apps/web/src/components/mailboxes/` owns the rules UI.
 
-Matcher fields: `from`, `subject`, `body`, `has_attachment`, `detected_action_type`. Ops: `contains`, `not_contains`, `matches_sender`, `is`, `includes`, `not_includes`.
+Matcher fields: `from`, `subject`, `body`, `has_attachment`, `detected_action_type`, `always`. Ops: `contains`, `not_contains`, `matches_sender`, `is`, `includes`, `not_includes`, `match_all`. The `always` field with op `match_all` (no `value`) unconditionally matches every email.
 
 ## Scheduled Digest
 

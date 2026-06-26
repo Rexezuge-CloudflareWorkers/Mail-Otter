@@ -1,12 +1,13 @@
-type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body' | 'has_attachment' | 'detected_action_type';
-type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender' | 'is' | 'includes' | 'not_includes';
+type EmailRuleConditionMatcherField = 'from' | 'subject' | 'body' | 'has_attachment' | 'detected_action_type' | 'always';
+type EmailRuleConditionMatcherOp = 'contains' | 'not_contains' | 'matches_sender' | 'is' | 'includes' | 'not_includes' | 'match_all';
 
 type EmailRuleConditionMatcher =
   | { field: 'from'; op: 'contains' | 'not_contains' | 'matches_sender'; value: string }
   | { field: 'subject'; op: 'contains' | 'not_contains'; value: string }
   | { field: 'body'; op: 'contains' | 'not_contains'; value: string }
   | { field: 'has_attachment'; op: 'is'; value: 'true' | 'false' }
-  | { field: 'detected_action_type'; op: 'includes' | 'not_includes'; value: string };
+  | { field: 'detected_action_type'; op: 'includes' | 'not_includes'; value: string }
+  | { field: 'always'; op: 'match_all' };
 
 interface EmailRuleCondition {
   operator: 'all' | 'any';

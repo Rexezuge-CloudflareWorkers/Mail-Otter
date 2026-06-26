@@ -25,6 +25,7 @@ const FIELD_LABELS: Record<EmailRuleConditionMatcherField, string> = {
   body: 'Body',
   has_attachment: 'Has Attachment',
   detected_action_type: 'Detected Action Type',
+  always: 'Always (Match All Emails)',
 };
 
 const DETECTED_ACTION_TYPE_OPTIONS = [
@@ -70,6 +71,7 @@ function formatConditionSummary(rule: EmailProcessingRule): string {
   const { operator, matchers } = rule.conditions;
   return matchers
     .map((m) => {
+      if (m.field === 'always') return 'Always (Match All Emails)';
       if (m.field === 'has_attachment') return `Has Attachment Is ${m.value === 'true' ? 'True' : 'False'}`;
       if (m.field === 'detected_action_type') {
         const opLabel = m.op === 'includes' ? 'Includes' : 'Does Not Include';
@@ -112,7 +114,7 @@ function ruleToDraft(rule: EmailProcessingRule): RuleDraft {
   return {
     name: rule.name,
     operator: rule.conditions.operator,
-    matchers: rule.conditions.matchers.map((m) => ({ field: m.field, op: m.op, value: m.value })),
+    matchers: rule.conditions.matchers.map((m) => ({ field: m.field, op: m.op, value: 'value' in m ? m.value : '' })),
     actionType: rule.action.type,
     instruction: rule.action.type === 'prepend_instruction' ? (rule.action.instruction ?? '') : '',
     labelName: rule.action.type === 'apply_label' ? rule.action.labelName : '',
@@ -120,6 +122,9 @@ function ruleToDraft(rule: EmailProcessingRule): RuleDraft {
 }
 
 function draftToMatcher(m: MatcherDraft): EmailRuleConditionMatcher {
+  if (m.field === 'always') {
+    return { field: 'always', op: 'match_all' };
+  }
   if (m.field === 'has_attachment') {
     return { field: 'has_attachment', op: 'is', value: (m.value === 'true' ? 'true' : 'false') };
   }
@@ -192,23 +197,29 @@ function RuleForm({
         const updated = { ...m, ...patch };
         if (patch.field) {
           switch (patch.field) {
+          case 'always': {
+            updated.op = 'match_all';
+            updated.value = '';
+
+          break;
+          }
           case 'has_attachment': {
             updated.op = 'is';
             updated.value = 'true';
-          
+
           break;
           }
           case 'detected_action_type': {
             updated.op = 'includes';
             updated.value ||= DETECTED_ACTION_TYPE_OPTIONS[0];
-          
+
           break;
           }
           case 'from': {
             if (updated.op !== 'contains' && updated.op !== 'not_contains' && updated.op !== 'matches_sender') {
               updated.op = 'contains';
             }
-          
+
           break;
           }
           default: {
@@ -220,6 +231,8 @@ function RuleForm({
         }
         return updated;
       });
+      const alwaysIdx = matchers.findIndex((m) => m.field === 'always');
+      if (alwaysIdx !== -1) return { ...d, matchers: [matchers[alwaysIdx]] };
       return { ...d, matchers };
     });
   };
@@ -252,7 +265,7 @@ function RuleForm({
   const isValid = (): boolean => {
     if (!draft.name.trim()) return false;
     if (draft.matchers.some((m) => {
-      if (m.field === 'has_attachment') return false;
+      if (m.field === 'has_attachment' || m.field === 'always') return false;
       return !m.value.trim();
     })) return false;
     if (draft.actionType === 'prepend_instruction' && !draft.instruction.trim()) return false;
@@ -277,6 +290,7 @@ function RuleForm({
   };
 
   const renderMatcherValueInput = (m: MatcherDraft, i: number) => {
+    if (m.field === 'always') return null;
     if (m.field === 'has_attachment') {
       return (
         <select
@@ -315,6 +329,7 @@ function RuleForm({
   };
 
   const renderOpSelect = (m: MatcherDraft, i: number) => {
+    if (m.field === 'always') return null;
     if (m.field === 'has_attachment') {
       return (
         <select
@@ -365,17 +380,19 @@ function RuleForm({
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-[var(--color-text-muted)]">Match</span>
-        <select
-          value={draft.operator}
-          onChange={(e) => setDraft((d) => ({ ...d, operator: e.target.value as 'all' | 'any' }))}
-          className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
-        >
-          <option value="any">Any Condition</option>
-          <option value="all">All Conditions</option>
-        </select>
-      </div>
+      {!(draft.matchers.length === 1 && draft.matchers[0].field === 'always') && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[var(--color-text-muted)]">Match</span>
+          <select
+            value={draft.operator}
+            onChange={(e) => setDraft((d) => ({ ...d, operator: e.target.value as 'all' | 'any' }))}
+            className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
+          >
+            <option value="any">Any Condition</option>
+            <option value="all">All Conditions</option>
+          </select>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {draft.matchers.map((m, i) => (
@@ -390,6 +407,7 @@ function RuleForm({
               <option value="body">Body</option>
               <option value="has_attachment">Has Attachment</option>
               <option value="detected_action_type">Detected Action Type</option>
+              <option value="always">Always (Match All Emails)</option>
             </select>
             {renderOpSelect(m, i)}
             {renderMatcherValueInput(m, i)}
@@ -405,7 +423,7 @@ function RuleForm({
             )}
           </div>
         ))}
-        {draft.matchers.length < MAX_MATCHERS && (
+        {draft.matchers.length < MAX_MATCHERS && draft.matchers[0]?.field !== 'always' && (
           <button
             type="button"
             onClick={addMatcher}

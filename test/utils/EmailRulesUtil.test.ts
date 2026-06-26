@@ -272,6 +272,33 @@ describe('EmailRulesUtil', () => {
     });
   });
 
+  describe('matchesMatcher — always', () => {
+    it('returns true for a standard email context', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'always', op: 'match_all' }, ctx)).toBe(true);
+    });
+
+    it('returns true when context fields are empty strings', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'always', op: 'match_all' }, { from: '', subject: '', body: '' })).toBe(true);
+    });
+
+    it('returns true regardless of hasAttachment value', () => {
+      expect(EmailRulesUtil.matchesMatcher({ field: 'always', op: 'match_all' }, { ...ctx, hasAttachment: false })).toBe(true);
+      expect(EmailRulesUtil.matchesMatcher({ field: 'always', op: 'match_all' }, { ...ctx, hasAttachment: true })).toBe(true);
+    });
+
+    it('evaluatePreProcessing fires for any email with always matcher', () => {
+      const r = rule({ action: { type: 'skip' }, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } });
+      expect(EmailRulesUtil.evaluatePreProcessing([r], { from: '', subject: '', body: '' })).not.toBeNull();
+    });
+
+    it('evaluatePostProcessing includes always-matcher rule for any email', () => {
+      const r = rule({ action: { type: 'star_message' }, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } });
+      const result = EmailRulesUtil.evaluatePostProcessing([r], { from: '', subject: '', body: '' });
+      expect(result).toHaveLength(1);
+      expect(result[0].action.type).toBe('star_message');
+    });
+  });
+
   describe('edge cases', () => {
     it('empty body — contains returns false for non-empty value', () => {
       const emptyBodyCtx = { ...ctx, body: '' };

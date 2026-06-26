@@ -51,6 +51,8 @@ class EmailRulesUtil {
   }
 
   public static matchesMatcher(matcher: EmailRuleConditionMatcher, ctx: EmailRuleContext): boolean {
+    if (matcher.field === 'always') return true;
+
     if (matcher.field === 'has_attachment') {
       const hasAttachment = ctx.hasAttachment === true;
       return matcher.value === 'true' ? hasAttachment : !hasAttachment;

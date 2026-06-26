@@ -35,7 +35,9 @@
     "./drive": "./src/drive/index.ts",
     "./drive/*": "./src/drive/*.ts",
     "./activity": "./src/activity/index.ts",
-    "./activity/*": "./src/activity/*.ts"
+    "./activity/*": "./src/activity/*.ts",
+    "./chat": "./src/chat/index.ts",
+    "./chat/*": "./src/chat/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -72,7 +72,7 @@ export function ContextAuditView({
           <option value="deleted">Deleted</option>
           <option value="error">Error</option>
         </Select>
-        <Button variant="secondary" size="sm" onClick={onRefresh} disabled={busy}>
+        <Button variant="secondary" size="sm" onClick={onRefresh} loading={busy}>
           <RefreshCw className="h-3.5 w-3.5" />
           Refresh
         </Button>

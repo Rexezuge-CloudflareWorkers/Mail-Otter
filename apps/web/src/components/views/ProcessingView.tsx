@@ -1,3 +1,4 @@
+
 import { RefreshCw, ChevronDown, Play } from 'lucide-react';
 import type { ConnectedApplication } from '../../../components/types';
 import type {
@@ -163,6 +164,12 @@ export function ProcessingView({
   onLoadMoreCalendarEvents: () => void;
   onLoadMoreProcessedMessages: () => void;
 }) {
+  const refreshing = taskRunsLoading || calendarEventsLoading || processedMessagesLoading;
+
+  const handleRefresh = () => {
+    onRefresh();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
       <FilterBar>
@@ -203,7 +210,7 @@ export function ProcessingView({
           <Play className="h-3.5 w-3.5" />
           Run Now
         </Button>
-        <Button variant="secondary" size="sm" onClick={onRefresh} className="ml-auto">
+        <Button variant="secondary" size="sm" onClick={handleRefresh} loading={refreshing} className="ml-auto">
           <RefreshCw className="h-3.5 w-3.5" />
           Refresh
         </Button>

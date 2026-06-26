@@ -23,11 +23,11 @@
   "dependencies": {
     "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "html-to-text": "^10.0.0"
+    "html-to-text": "10.0.0"
   },
   "devDependencies": {
-    "@types/html-to-text": "^9.0.4",
-    "@types/node": "25.9.x",
-    "typescript": "^6.0.3"
+    "@types/html-to-text": "9.0.4",
+    "@types/node": "26.0.1",
+    "typescript": "6.0.3"
   }
 }

@@ -48,10 +48,10 @@
     "@mail-otter/backend-runtime": "workspace:*",
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "jose": "^6.2.0"
+    "jose": "6.2.3"
   },
   "devDependencies": {
-    "@types/node": "25.9.x",
-    "typescript": "^6.0.3"
+    "@types/node": "26.0.1",
+    "typescript": "6.0.3"
   }
 }

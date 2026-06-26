@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.12.25"
+    "hono": "4.12.27"
   },
   "devDependencies": {
-    "@types/node": "25.9.x",
-    "typescript": "^6.0.3"
+    "@types/node": "26.0.1",
+    "typescript": "6.0.3"
   }
 }

@@ -7,19 +7,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mail-otter/background": "workspace:*",
     "@mail-otter/backend-data": "workspace:*",
     "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/backend-runtime": "workspace:*",
     "@mail-otter/backend-services": "workspace:*",
+    "@mail-otter/background": "workspace:*",
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "chanfana": "^3.3.0",
-    "hono": "^4.12.25",
-    "zod": "^4.4.3"
+    "chanfana": "3.3.0",
+    "hono": "4.12.27",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@types/node": "25.9.x",
-    "typescript": "^6.0.3"
+    "@types/node": "26.0.1",
+    "typescript": "6.0.3"
   }
 }

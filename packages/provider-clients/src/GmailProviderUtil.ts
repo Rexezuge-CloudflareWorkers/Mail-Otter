@@ -370,7 +370,7 @@ class GmailProviderUtil {
   }
 
   private static encodeMimeHeaderValue(value: string): string {
-    if (/^[\x00-\x7F]*$/.test(value)) return value;
+    if (!/[\u{0080}-\u{10FFFF}]/u.test(value)) return value;
     const bytes = new TextEncoder().encode(value);
     let binary = '';
     bytes.forEach((b: number) => { binary += String.fromCodePoint(b); });

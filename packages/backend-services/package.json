@@ -33,7 +33,9 @@
     "./processing": "./src/processing/index.ts",
     "./processing/*": "./src/processing/*.ts",
     "./drive": "./src/drive/index.ts",
-    "./drive/*": "./src/drive/*.ts"
+    "./drive/*": "./src/drive/*.ts",
+    "./activity": "./src/activity/index.ts",
+    "./activity/*": "./src/activity/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

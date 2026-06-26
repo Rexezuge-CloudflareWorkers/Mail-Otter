@@ -184,7 +184,7 @@ class GmailProviderUtil {
     const message: string = [
       `From: ${from}`,
       `To: ${from}`,
-      `Subject: ${replySubject}`,
+      `Subject: ${this.encodeMimeHeaderValue(replySubject)}`,
       ...(originalMessageId ? [`In-Reply-To: ${originalMessageId}`] : []),
       ...(references ? [`References: ${references}`] : []),
       'X-Mail-Otter-Summary: true',
@@ -284,7 +284,7 @@ class GmailProviderUtil {
     const message: string = [
       `From: ${to}`,
       `To: ${to}`,
-      `Subject: ${subject}`,
+      `Subject: ${this.encodeMimeHeaderValue(subject)}`,
       'X-Mail-Otter-Digest: true',
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -318,7 +318,7 @@ class GmailProviderUtil {
     return [
       `From: ${from}`,
       `To: ${EmailContentUtil.getHeader(headers, 'From') || ''}`,
-      `Subject: ${replySubject}`,
+      `Subject: ${this.encodeMimeHeaderValue(replySubject)}`,
       ...(originalMessageId ? [`In-Reply-To: ${originalMessageId}`] : []),
       ...(references ? [`References: ${references}`] : []),
       'MIME-Version: 1.0',
@@ -367,6 +367,14 @@ class GmailProviderUtil {
       });
     }
     return results;
+  }
+
+  private static encodeMimeHeaderValue(value: string): string {
+    if (/^[\x00-\x7F]*$/.test(value)) return value;
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    bytes.forEach((b: number) => { binary += String.fromCodePoint(b); });
+    return `=?UTF-8?B?${btoa(binary)}?=`;
   }
 
   private static collectImageParts(

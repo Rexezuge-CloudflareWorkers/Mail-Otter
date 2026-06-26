@@ -58,6 +58,7 @@ interface ListTaskRunsOptions {
   status?: BackgroundTaskRunStatus;
   cursor?: string;
   limit?: number;
+  latestPerType?: boolean;
 }
 
 class BackgroundTaskRunDAO extends BaseDAO {
@@ -161,6 +162,40 @@ class BackgroundTaskRunDAO extends BaseDAO {
     if (options.status) {
       conditions.push('btr.status = ?');
       bindings.push(options.status);
+    }
+
+    // When latestPerType is requested and no specific task type is selected,
+    // use a window function to return only the most recent run per task type.
+    if (options.latestPerType && !options.taskType) {
+      const whereClause = conditions.join(' AND ');
+      const rows: BackgroundTaskRunInternal[] = await this.database
+        .prepare(
+          `SELECT run_id, task_type, application_id, status,
+                  items_processed, items_failed, summary, details,
+                  error_message, started_at, completed_at, created_at
+           FROM (
+             SELECT btr.run_id, btr.task_type, btr.application_id, btr.status,
+                    btr.items_processed, btr.items_failed, btr.summary, btr.details,
+                    btr.error_message, btr.started_at, btr.completed_at, btr.created_at,
+                    ROW_NUMBER() OVER (
+                      PARTITION BY btr.task_type
+                      ORDER BY btr.started_at DESC, btr.run_id DESC
+                    ) AS rn
+             FROM background_task_runs btr
+             INNER JOIN connected_applications ca ON ca.application_id = btr.application_id
+             WHERE ${whereClause}
+           )
+           WHERE rn = 1
+           ORDER BY started_at DESC, run_id DESC`,
+        )
+        .bind(...bindings)
+        .all<BackgroundTaskRunInternal>()
+        .then((result: D1Result<BackgroundTaskRunInternal>): BackgroundTaskRunInternal[] => result.results || []);
+
+      return {
+        runs: rows.map((r) => BackgroundTaskRunDAO.toRun(r)),
+        nextCursor: undefined,
+      };
     }
 
     const cursor = BackgroundTaskRunDAO.parseCursor(options.cursor);

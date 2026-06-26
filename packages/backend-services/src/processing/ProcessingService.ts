@@ -30,7 +30,7 @@ interface TriggerTaskEnv extends ProcessingServiceEnv {
 const ProcessingService = {
   async listTaskRuns(
     userEmail: string,
-    options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor'>,
+    options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor' | 'latestPerType'>,
     env: ProcessingServiceEnv,
   ): Promise<BackgroundTaskRunList> {
     const dao = new BackgroundTaskRunDAO(env.DB);
@@ -39,6 +39,7 @@ const ProcessingService = {
       applicationId: options.applicationId,
       status: options.status,
       cursor: options.cursor,
+      latestPerType: !options.taskType,
     });
   },
 

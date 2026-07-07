@@ -15,7 +15,7 @@
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "0.16.19",
+    "@cloudflare/vitest-pool-workers": "0.18.0",
     "@mail-otter/backend-services": "workspace:*",
     "@types/node": "26.0.1",
     "@types/react": "19.2.17",

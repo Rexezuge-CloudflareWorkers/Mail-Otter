@@ -119,7 +119,7 @@ class GoogleDriveProviderUtil {
 
       const changes: DriveChangeItem[] = data.changes ?? [];
       let hitMax = false;
-      for (let i = 0; i < changes.length && !hitMax; i++) {
+      for (let i = 0; !hitMax && i < changes.length; i++) {
         processChange(changes[i], files, removed);
         if (files.length >= maxFiles) {
           nextPageToken = data.nextPageToken ?? null;

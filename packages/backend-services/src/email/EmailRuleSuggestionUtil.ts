@@ -194,7 +194,7 @@ class EmailRuleSuggestionUtil {
         if (matcher['op'] === 'matches_sender' && matcher['field'] !== 'from') {
           return { ...matcher, op: 'contains' };
         }
-        if (matcher['field'] === 'detected_action_type' && actionType && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
+        if (actionType && matcher['field'] === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
           return { field: 'subject', op: 'contains', value: matcher['value'] ?? '' };
         }
         return matcher;

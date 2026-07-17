@@ -49,7 +49,7 @@ class ActionStatusSyncUtil {
 
   private async syncPackageAction(action: EmailAction, apiKey: string): Promise<void> {
     const payload = action.payload as DeliveryTrackPackageActionPayload;
-    if (!payload.trackingNumber || !apiKey) return;
+    if (!apiKey || !payload.trackingNumber) return;
 
     const url = new URL('https://api.aftership.com/tracking/2024-10/trackings');
     url.searchParams.set('tracking_numbers', payload.trackingNumber);
@@ -78,7 +78,7 @@ class ActionStatusSyncUtil {
 
   private async syncFlightAction(action: EmailAction, apiKey: string): Promise<void> {
     const payload = action.payload as TravelTrackFlightActionPayload;
-    if (!payload.flightNumber || !apiKey) return;
+    if (!apiKey || !payload.flightNumber) return;
 
     const syncStatus = await fetchFlightStatus(payload.flightNumber, apiKey);
     if (!syncStatus) return;

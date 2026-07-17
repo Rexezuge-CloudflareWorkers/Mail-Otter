@@ -121,7 +121,7 @@ class OneDriveProviderUtil {
 
       const pageItems: OneDriveItem[] = data.value ?? [];
       let hitMax = false;
-      for (let i = 0; i < pageItems.length && !hitMax; i++) {
+      for (let i = 0; !hitMax && i < pageItems.length; i++) {
         classifyDeltaItem(pageItems[i], items, deletedIds);
         if (items.length >= maxItems) {
           nextLink = data['@odata.nextLink'] ?? null;

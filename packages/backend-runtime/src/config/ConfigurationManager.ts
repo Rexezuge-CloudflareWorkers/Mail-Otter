@@ -45,6 +45,7 @@ import {
   DEFAULT_CHAT_VECTOR_QUERY_TOP_K,
   DEFAULT_CHAT_CONTEXT_TOP_K,
   DEFAULT_CHAT_MAX_HISTORY_MESSAGES,
+  DEFAULT_PUBLIC_BASE_URL,
 } from './ConfigurationDefaults';
 import { EnvParser } from './EnvParser';
 
@@ -94,6 +95,14 @@ class ConfigurationManager {
     getOutlookTtlDays: (env: unknown): number => EnvParser.positiveInt(env, 'OUTLOOK_SUBSCRIPTION_TTL_DAYS', DEFAULT_OUTLOOK_SUBSCRIPTION_TTL_DAYS),
     getRenewalRetryBaseDelaySeconds: (env: unknown): number => EnvParser.positiveInt(env, 'RENEWAL_RETRY_BASE_DELAY_SECONDS', DEFAULT_RENEWAL_RETRY_BASE_DELAY_SECONDS),
     getRenewalRetryMaxDelaySeconds: (env: unknown): number => EnvParser.positiveInt(env, 'RENEWAL_RETRY_MAX_DELAY_SECONDS', DEFAULT_RENEWAL_RETRY_MAX_DELAY_SECONDS),
+  };
+
+  public static readonly baseUrl = {
+    getPublicBaseUrl: (env: unknown): string => {
+      let url = EnvParser.string(env, 'PUBLIC_BASE_URL', DEFAULT_PUBLIC_BASE_URL);
+      while (url.endsWith('/')) url = url.slice(0, -1);
+      return url;
+    },
   };
 
   public static readonly action = {
@@ -171,6 +180,7 @@ class ConfigurationManager {
   public static getActionRetentionDays(env: unknown): number { return this.action.getRetentionDays(env); }
   public static getContextAuditLogRetentionDays(env: unknown): number { return this.context.getAuditLogRetentionDays(env); }
   public static getIntegrationDeliveryLogRetentionDays(env: unknown): number { return this.integrations.getDeliveryLogRetentionDays(env); }
+  public static getPublicBaseUrl(env: unknown): string { return this.baseUrl.getPublicBaseUrl(env); }
 }
 
 export { ConfigurationManager };

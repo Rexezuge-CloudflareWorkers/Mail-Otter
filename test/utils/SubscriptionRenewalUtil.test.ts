@@ -10,7 +10,7 @@ import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/ba
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
-import { ProviderApiRetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@mail-otter/backend-errors';
 
 const makeSubscription = (overrides: Partial<ProviderSubscription> = {}): ProviderSubscription => ({
   subscriptionId: 'subscription-id',
@@ -107,5 +107,70 @@ describe('SubscriptionRenewalUtil', () => {
     expect(nextRetryAt).toBeGreaterThan(now);
     expect(nextRetryAt).toBeLessThanOrEqual(now + 14_400);
     expect(ProviderSubscriptionDAO.prototype.markError).not.toHaveBeenCalled();
+  });
+
+  it('re-creates subscription via startWatch when renewWatch returns 404', async () => {
+    const subscription = makeSubscription();
+    const upsertActive = vi.fn().mockResolvedValue(subscription);
+
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'listActiveRenewalCandidates').mockResolvedValue([subscription]);
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'upsertActive').mockImplementation(upsertActive);
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'markError').mockResolvedValue(undefined);
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(makeApplication());
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'updateOAuth2RefreshToken').mockResolvedValue(undefined);
+    vi.spyOn(OAuth2AccessTokenService.prototype, 'getAccessToken').mockResolvedValue('access-token');
+    vi.spyOn(OutlookProviderUtil, 'renewSubscription').mockRejectedValue(
+      new ProviderApiNonRetryableError('Microsoft Graph request failed (404): The object was not found.'),
+    );
+    vi.spyOn(OutlookProviderUtil, 'createInboxSubscription').mockResolvedValue({
+      id: 'new-subscription-id',
+      resource: "/me/mailFolders('Inbox')/messages",
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const env = makeEnv();
+    (env as Record<string, unknown>).PUBLIC_BASE_URL = 'https://example.com';
+
+    await new SubscriptionRenewalUtil(env).renewDueSubscriptions();
+
+    expect(OutlookProviderUtil.renewSubscription).toHaveBeenCalledWith('access-token', 'graph-subscription-id', expect.any(Number));
+    expect(OutlookProviderUtil.createInboxSubscription).toHaveBeenCalledWith(
+      'access-token',
+      expect.stringContaining('https://example.com/api/webhooks/outlook/'),
+      expect.stringContaining('https://example.com/api/webhooks/outlook/lifecycle/'),
+      expect.any(String),
+      expect.any(Number),
+      undefined,
+    );
+    expect(upsertActive).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationId: 'application-id',
+        externalSubscriptionId: 'new-subscription-id',
+      }),
+    );
+    expect(ProviderSubscriptionDAO.prototype.markError).not.toHaveBeenCalled();
+  });
+
+  it('marks error when renewWatch returns 404 but PUBLIC_BASE_URL is not set', async () => {
+    const subscription = makeSubscription();
+    const markError = vi.fn().mockResolvedValue(undefined);
+
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'listActiveRenewalCandidates').mockResolvedValue([subscription]);
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'upsertActive').mockResolvedValue(subscription);
+    vi.spyOn(ProviderSubscriptionDAO.prototype, 'markError').mockImplementation(markError);
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(makeApplication());
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'updateOAuth2RefreshToken').mockResolvedValue(undefined);
+    vi.spyOn(OAuth2AccessTokenService.prototype, 'getAccessToken').mockResolvedValue('access-token');
+    vi.spyOn(OutlookProviderUtil, 'renewSubscription').mockRejectedValue(
+      new ProviderApiNonRetryableError('Microsoft Graph request failed (404): The object was not found.'),
+    );
+
+    await new SubscriptionRenewalUtil(makeEnv()).renewDueSubscriptions();
+
+    expect(markError).toHaveBeenCalledWith(
+      'subscription-id',
+      expect.stringContaining('404'),
+      expect.any(Number),
+    );
   });
 });

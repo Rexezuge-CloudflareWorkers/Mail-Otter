@@ -6,10 +6,10 @@ import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { RetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
-import type { AnyProviderCredentials } from '../provider/IEmailProvider';
+import type { AnyProviderCredentials, ProviderWatchResult } from '../provider/IEmailProvider';
 
 class SubscriptionRenewalUtil {
   constructor(private readonly env: SubscriptionRenewalEnv) {}
@@ -76,19 +76,52 @@ class SubscriptionRenewalUtil {
     subscriptionDAO: ProviderSubscriptionDAO,
   ): Promise<void> {
     const application: ConnectedApplication | undefined = await applicationDAO.getById(subscription.applicationId);
-    if (!application || !subscription.externalSubscriptionId) return;
+    if (!application) return;
     const credentials = await this.resolveCredentials(application);
     const ttlDays: number = ConfigurationManager.getOutlookSubscriptionTtlDays(this.env);
     const expiresAt: number = TimestampUtil.addDays(TimestampUtil.getCurrentUnixTimestampInSeconds(), ttlDays);
     const provider = EmailProviderRegistry.get(application.providerId);
-    const result = await provider.renewWatch(credentials, subscription.externalSubscriptionId, expiresAt);
+
+    let result: ProviderWatchResult;
+    if (subscription.externalSubscriptionId) {
+      try {
+        result = await provider.renewWatch(credentials, subscription.externalSubscriptionId, expiresAt);
+      } catch (error: unknown) {
+        if (error instanceof ProviderApiNonRetryableError && /\(404\)/.test(error.message)) {
+          const baseUrl: string = ConfigurationManager.getPublicBaseUrl(this.env);
+          if (!baseUrl) throw error;
+          const clientState: string = WebhookSecurityUtil.generateSecret().slice(0, 128);
+          result = await provider.startWatch(credentials, {
+            baseUrl,
+            applicationId: application.applicationId,
+            watchedFolderIds: application.watchedFolders?.map((f: { id: string }): string => f.id),
+            clientState,
+            expiresAt,
+          });
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      const baseUrl: string = ConfigurationManager.getPublicBaseUrl(this.env);
+      if (!baseUrl) throw new Error('PUBLIC_BASE_URL is required to create an Outlook subscription without an external subscription ID.');
+      const clientState: string = WebhookSecurityUtil.generateSecret().slice(0, 128);
+      result = await provider.startWatch(credentials, {
+        baseUrl,
+        applicationId: application.applicationId,
+        watchedFolderIds: application.watchedFolders?.map((f: { id: string }): string => f.id),
+        clientState,
+        expiresAt,
+      });
+    }
+
     if (result.type === 'webhook') {
       const webhookResult = result;
       await subscriptionDAO.upsertActive({
         applicationId: application.applicationId,
         providerId: application.providerId,
         externalSubscriptionId: webhookResult.externalSubscriptionId ?? subscription.externalSubscriptionId,
-        clientStateHash: subscription.clientStateHash || (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
+        clientStateHash: webhookResult.clientStateHash ?? subscription.clientStateHash ?? (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
         resource: webhookResult.resource ?? subscription.resource,
         expiresAt: webhookResult.expiresAt,
       });

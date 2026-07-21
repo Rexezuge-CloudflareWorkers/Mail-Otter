@@ -117,6 +117,7 @@ Enforced by ESLint `no-restricted-imports` in `eslint.config.mjs`.
 | Chat | `CHAT_MAX_RESPONSE_TOKENS` (`1000`), `CHAT_VECTOR_QUERY_TOP_K` (`20`), `CHAT_CONTEXT_TOP_K` (`5`), `CHAT_MAX_HISTORY_MESSAGES` (`10`) |
 | Tracking | `PACKAGE_TRACKING_API_KEY` (`""`), `FLIGHT_TRACKING_API_KEY` (`""`) |
 | Retention | `INTEGRATION_DELIVERY_LOG_RETENTION_DAYS` (`30`), `BACKGROUND_TASK_RUN_RETENTION_DAYS` (`30`) |
+| Base URL | `PUBLIC_BASE_URL` (`""`) — required for automatic recovery of deleted Outlook subscriptions |
 | Auth | `DEV_AUTH_EMAIL` — bypasses Cloudflare Access locally |
 
 ## Auth And Routing

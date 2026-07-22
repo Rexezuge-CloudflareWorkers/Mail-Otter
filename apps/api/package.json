@@ -15,7 +15,7 @@
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
     "chanfana": "3.3.0",
-    "hono": "4.12.30",
+    "hono": "4.12.31",
     "zod": "4.4.3"
   },
   "devDependencies": {

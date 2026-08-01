@@ -48,7 +48,7 @@
     "@mail-otter/backend-runtime": "workspace:*",
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "jose": "6.2.3"
+    "jose": "6.2.4"
   },
   "devDependencies": {
     "@types/node": "26.1.1",

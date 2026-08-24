@@ -98,6 +98,8 @@ export default tseslint.config(
       'unicorn/consistent-class-member-order': 'off',
       // Gmail API response fields (addLabelIds, removeLabelIds) use verb prefixes by convention
       'unicorn/no-non-function-verb-prefix': 'off',
+      // forEach is used intentionally throughout the codebase in provider and utility layers
+      'unicorn/no-for-each': 'off',
       // .then() chains in DAO and provider layers are often intentional — warn, don't block
       'unicorn/prefer-await': 'warn',
       // Callback references (e.g. .map(Number)) are sometimes intentional

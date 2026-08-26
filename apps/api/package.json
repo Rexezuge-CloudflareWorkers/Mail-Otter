@@ -14,7 +14,7 @@
     "@mail-otter/background": "workspace:*",
     "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
-    "chanfana": "3.3.0",
+    "chanfana": "3.4.0",
     "hono": "4.13.2",
     "zod": "4.4.3"
   },

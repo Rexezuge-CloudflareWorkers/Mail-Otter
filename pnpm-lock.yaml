@@ -42,8 +42,8 @@ importers:
         specifier: 7.1.1
         version: 7.1.1(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-regexp:
-        specifier: 3.1.1
-        version: 3.1.1(eslint@10.8.1(jiti@2.7.0))
+        specifier: 3.2.0
+        version: 3.2.0(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-sonarjs:
         specifier: 4.2.0
         version: 4.2.0(eslint@10.8.1(jiti@2.7.0))
@@ -1446,8 +1446,8 @@ packages:
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
-  comment-parser@1.4.7:
-    resolution: {integrity: sha512-0h+uSNtQGW3D98eQt3jJ8L06Fves8hncB4V/PKdw/Qb8Hnk19VaKuTr55UNRYiSoVa7WwrFls+rh3ux9agmkeQ==}
+  comment-parser@1.4.8:
+    resolution: {integrity: sha512-rKZTGo4fzKYna8UcL0isTg5wkBNla7bxTypLwZQXjIdi++IdP1OJ41rI5Mti3/jltkPujbu4i9LIARYA+zpotQ==}
     engines: {node: '>= 12.0.0'}
 
   convert-hrtime@5.0.0:
@@ -1574,8 +1574,8 @@ packages:
     peerDependencies:
       eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0 || ^10.0.0
 
-  eslint-plugin-regexp@3.1.1:
-    resolution: {integrity: sha512-MxR5nqoQCtVWmJwia0D2+NlXX1xzdpkslsVOZLEYQ4PQWEaL65PCZXURxaBc3lPnkNFpNxzMIRmYVxdl8giXRA==}
+  eslint-plugin-regexp@3.2.0:
+    resolution: {integrity: sha512-4yq47CnLxyfHFKJEo5kvNaiJ0aDtBxSJWk4M2LiamplUXdWxdlzDYqImb/ZVCp+2BqkQjBAmw4Xc07Q8SXVDZg==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
     peerDependencies:
       eslint: '>=9.38.0'
@@ -1799,9 +1799,9 @@ packages:
     resolution: {integrity: sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==}
     hasBin: true
 
-  jsdoc-type-pratt-parser@7.3.0:
-    resolution: {integrity: sha512-DoyJXo7x/n48M3NsGOs9QnEws0ft0tV3YsSgvWMNxz2hZtz+Q6fpqUD96lVYX4a+jcEkzHeFNDJOn68TzXfbdA==}
-    engines: {node: '>=20.0.0'}
+  jsdoc-type-pratt-parser@9.1.2:
+    resolution: {integrity: sha512-9EXymowgk1mb9RY1VxuwKc+AhaxfBk2CV0dWxgGM+l5RURTtiUoAx7MlKwcsiVcEXK5HEPa7FeH/tsRpqjEPRg==}
+    engines: {node: ^22.22.2 || >=24.15.0}
 
   jsesc@3.1.0:
     resolution: {integrity: sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA==}
@@ -3377,7 +3377,7 @@ snapshots:
 
   commander@2.20.3: {}
 
-  comment-parser@1.4.7: {}
+  comment-parser@1.4.8: {}
 
   convert-hrtime@5.0.0: {}
 
@@ -3528,13 +3528,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-regexp@3.1.1(eslint@10.8.1(jiti@2.7.0)):
+  eslint-plugin-regexp@3.2.0(eslint@10.8.1(jiti@2.7.0)):
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.8.1(jiti@2.7.0))
       '@eslint-community/regexpp': 4.12.2
-      comment-parser: 1.4.7
+      comment-parser: 1.4.8
       eslint: 10.8.1(jiti@2.7.0)
-      jsdoc-type-pratt-parser: 7.3.0
+      jsdoc-type-pratt-parser: 9.1.2
       refa: 0.12.1
       regexp-ast-analysis: 0.7.1
       scslre: 0.3.0
@@ -3780,7 +3780,9 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jsdoc-type-pratt-parser@7.3.0: {}
+  jsdoc-type-pratt-parser@9.1.2:
+    dependencies:
+      '@types/estree': 1.0.9
 
   jsesc@3.1.0: {}
 

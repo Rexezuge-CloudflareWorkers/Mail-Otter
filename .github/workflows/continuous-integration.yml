@@ -139,7 +139,7 @@ jobs:
         uses: ./.github/actions/retry-step
         with:
           command: gh pr merge --auto --merge "$PR_URL"
-          max_attempts: '2'
+          max_attempts: '5'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}

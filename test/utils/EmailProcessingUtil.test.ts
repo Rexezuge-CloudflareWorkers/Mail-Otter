@@ -155,10 +155,10 @@ describe('EmailProcessingUtil', () => {
       expect(summary).toContain('--- Debug Informations ---');
       expect(summary).toContain('Provider: microsoft-outlook');
       expect(summary).toContain('Application: app-1 (app-1)');
-      expect(summary).toContain('Model: @cf/moonshotai/kimi-k2.6');
+      expect(summary).toContain('Model: @cf/google/gemma-4-26b-a4b-it');
       expect(summary).toContain('Input chars: 33 / 12000');
       expect(summary).toContain('RAG context: not used');
-      expect(summary).toContain('AI usage: prompt=1000 completion=100 total=1100 estimatedNeurons=123');
+      expect(summary).toContain('AI usage: prompt=1000 completion=100 total=1100 estimatedNeurons=6');
       expect(summary).not.toContain('Please review the project update.');
       expect(summary).not.toContain('access-token');
     });
@@ -186,7 +186,7 @@ describe('EmailProcessingUtil', () => {
 
       expect(summarizeEmail).toHaveBeenCalledWith(
         expect.anything(),
-        '@cf/moonshotai/kimi-k2.6',
+        '@cf/google/gemma-4-26b-a4b-it',
         'Project update',
         'sender@example.com',
         'Please review the project update.',
@@ -196,7 +196,7 @@ describe('EmailProcessingUtil', () => {
       );
       expect(incrementUsage).toHaveBeenCalledWith({
         usageDate: expect.any(String),
-        estimatedNeurons: 123,
+        estimatedNeurons: 6,
         promptTokens: 1000,
         completionTokens: 100,
       });
@@ -266,7 +266,7 @@ describe('EmailProcessingUtil', () => {
       expect(summarizeEmail).toHaveBeenNthCalledWith(
         1,
         expect.anything(),
-        '@cf/moonshotai/kimi-k2.6',
+        '@cf/google/gemma-4-26b-a4b-it',
         'Project update',
         'sender@example.com',
         'Please review the project update.',
@@ -287,7 +287,7 @@ describe('EmailProcessingUtil', () => {
       );
       expect(incrementUsage).toHaveBeenNthCalledWith(1, {
         usageDate: expect.any(String),
-        estimatedNeurons: 341,
+        estimatedNeurons: 15,
         promptTokens: 1000,
         completionTokens: 700,
       });

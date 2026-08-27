@@ -11,6 +11,7 @@ const JSON_MODE_SUPPORTED_MODELS: ReadonlySet<string> = new Set<string>([
   '@hf/thebloke/deepseek-coder-6.7b-instruct-awq',
   '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
   '@cf/moonshotai/kimi-k2.6',
+  '@cf/google/gemma-4-26b-a4b-it',
 ]);
 
 class WorkersAiResponseUtil {

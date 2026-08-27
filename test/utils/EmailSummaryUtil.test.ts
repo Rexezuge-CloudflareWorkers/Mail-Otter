@@ -109,6 +109,43 @@ describe('EmailSummaryUtil', () => {
     );
   });
 
+  it('requests JSON mode and low reasoning from gemma-4 with thinking disabled', async () => {
+    const ai = {
+      run: vi.fn().mockResolvedValue({
+        response: `Here is the summary:
+
+\`\`\`json
+{
+  "gist": "The sender needs approval for the budget.",
+  "keyDetails": ["Budget is $12,000."]
+}
+\`\`\``,
+      }),
+    } as unknown as Ai;
+
+    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/google/gemma-4-26b-a4b-it', 'Campaign budget', 'sam@example.com', 'body')).resolves
+      .toBe(`<p>The sender needs approval for the budget.</p>
+
+<p><strong>Details:</strong></p>
+<ul>
+<li>Budget is $12,000.</li>
+</ul>`);
+    expect(ai.run).toHaveBeenCalledWith(
+      '@cf/google/gemma-4-26b-a4b-it',
+      expect.objectContaining({
+        response_format: {
+          type: 'json_schema',
+          json_schema: expect.objectContaining({
+            name: 'email_summary',
+            strict: true,
+          }),
+        },
+        reasoning_effort: 'low',
+        chat_template_kwargs: { thinking: false },
+      }),
+    );
+  });
+
   it('requests JSON mode and low reasoning from deepseek-r1 with thinking disabled', async () => {
     const ai = {
       run: vi.fn().mockResolvedValue({

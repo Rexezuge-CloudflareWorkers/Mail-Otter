@@ -265,7 +265,7 @@ File size limit reuses `MAX_ATTACHMENT_SIZE_BYTES` (2 MB). `MAX_DRIVE_FILES_PER_
 2. Embed query with `@cf/baai/bge-m3`; record usage.
 3. Query Vectorize using user namespace (`EmailContextUtil.getUserVectorNamespace`); filter by `applicationId` in-memory.
 4. Take top `CHAT_CONTEXT_TOP_K` matches; build system prompt from vector metadata (`title`, `sender`, `indexedText`).
-5. Call `@cf/moonshotai/kimi-k2.6` with system prompt + trimmed history + query; `thinking: false` for reasoning models.
+5. Call `@cf/google/gemma-4-26b-a4b-it` with system prompt + trimmed history + query; `thinking: false` for reasoning models.
 6. Record usage; return answer + source citations.
 
 No D1 migration needed. Usage tracked via `ai_daily_usage`.

@@ -24,6 +24,10 @@ const MODEL_NEURON_RATES: Readonly<Record<string, ModelNeuronRates>> = {
     outputNeuronsPerMillionTokens: 27_273,
   },
   '@cf/moonshotai/kimi-k2.6': KIMI_K2_6_RATES,
+  '@cf/google/gemma-4-26b-a4b-it': {
+    inputNeuronsPerMillionTokens: 4545,
+    outputNeuronsPerMillionTokens: 13_636,
+  },
   '@cf/baai/bge-m3': BGE_M3_RATES,
   '@cf/meta/llama-3.2-11b-vision-instruct': {
     inputNeuronsPerMillionTokens: 13_636,

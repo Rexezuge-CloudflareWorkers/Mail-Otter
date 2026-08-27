@@ -168,7 +168,7 @@ Set these in `wrangler.jsonc` under `vars` to override defaults:
 | `RAG_TOP_K`                                  | `5`                       | Context documents included in the RAG prompt                                                                 |
 | `RAG_VECTOR_QUERY_TOP_K`                     | `50`                      | Candidate documents retrieved from Vectorize before re-ranking                                               |
 | `MAX_EMAIL_BODY_CHARS`                       | `12000`                   | Characters of email body sent to AI for summarization                                                        |
-| `AI_SUMMARY_MODEL`                           | `@cf/moonshotai/kimi-k2.6` | Workers AI model for email summarization                                                                    |
+| `AI_SUMMARY_MODEL`                           | `@cf/google/gemma-4-26b-a4b-it` | Workers AI model for email summarization                                                                    |
 | `AI_SUMMARY_FALLBACK_MODEL`                  | `@cf/openai/gpt-oss-20b`  | Workers AI summary model used after the daily neuron fallback threshold is reached                           |
 | `AI_DAILY_NEURON_FALLBACK_THRESHOLD`         | `6000`                    | Estimated UTC daily Workers AI neuron usage where summaries switch to the fallback model; set `0` to disable |
 | `AI_DAILY_NEURON_FREE_TIER_LIMIT`            | `10000`                   | Estimated daily Workers AI free-tier neuron allowance, used to render the usage bar in the management UI      |

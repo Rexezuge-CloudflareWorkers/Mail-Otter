@@ -52,7 +52,7 @@
     "MAX_APPLICATIONS_PER_USER": "99",
     "MAX_CONTEXT_DOCUMENTS_PER_APPLICATION": "1000",
     "OAUTH2_STATE_EXPIRY_MINUTES": "15",
-    "AI_SUMMARY_MODEL": "@cf/moonshotai/kimi-k2.6",
+    "AI_SUMMARY_MODEL": "@cf/google/gemma-4-26b-a4b-it",
     "AI_SUMMARY_FALLBACK_MODEL": "@cf/openai/gpt-oss-20b",
     "AI_DAILY_NEURON_FALLBACK_THRESHOLD": "6000",
     "AI_EMBEDDING_MODEL": "@cf/baai/bge-m3",

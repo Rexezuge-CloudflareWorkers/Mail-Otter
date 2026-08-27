@@ -53,6 +53,7 @@ const SUMMARY_JSON_SCHEMA = {
 const REASONING_MODELS_REQUIRING_THINKING_DISABLED: ReadonlySet<string> = new Set<string>([
   '@cf/moonshotai/kimi-k2.6',
   '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
+  '@cf/google/gemma-4-26b-a4b-it',
 ]);
 
 class EmailSummaryUtil {

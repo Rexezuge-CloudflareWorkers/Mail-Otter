@@ -33,7 +33,7 @@
     "jsonc-parser": "3.3.1",
     "prettier": "3.9.6",
     "tailwindcss": "4.3.3",
-    "terser": "5.50.0",
+    "terser": "5.51.2",
     "tsx": "4.23.13",
     "typescript": "6.0.3",
     "typescript-eslint": "8.67.0",

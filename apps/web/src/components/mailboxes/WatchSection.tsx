@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ConnectedApplication } from '../../../components/types';
+import type { ConnectedApplication } from '../../types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';

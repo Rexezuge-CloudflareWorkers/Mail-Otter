@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { OutboundIntegration, OutboundIntegrationType } from '../../../components/types';
+import type { OutboundIntegration, OutboundIntegrationType } from '../../types';
 import { Button } from '../ui/Button';
+import { IntegrationHealthBadge } from '../ui/Badge';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
@@ -33,20 +34,6 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
     await onTestIntegration(integration.integrationId);
   };
 
-  const healthBadgeClass =
-    integration.lastDeliveryStatus === 'success'
-      ? 'bg-green-100 text-green-700'
-      : integration.lastDeliveryStatus === 'failure'
-        ? 'bg-red-100 text-red-700'
-        : 'bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]';
-
-  const healthLabel =
-    integration.lastDeliveryStatus === 'success'
-      ? 'Ok'
-      : integration.lastDeliveryStatus === 'failure'
-        ? `Failed (${integration.consecutiveFailures})`
-        : 'Never Sent';
-
   return (
     <div className="flex items-center gap-3 py-2 border-b border-[var(--color-border)] last:border-0">
       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] uppercase">
@@ -57,9 +44,10 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         <p className="text-xs text-[var(--color-text-muted)] truncate">{integration.maskedWebhookUrl}</p>
       </div>
       <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${healthBadgeClass}`}>
-          {healthLabel}
-        </span>
+        <IntegrationHealthBadge
+          status={integration.lastDeliveryStatus}
+          consecutiveFailures={integration.consecutiveFailures}
+        />
         {integration.lastDeliveryAt != null && (
           <span className="text-[10px] text-[var(--color-text-muted)]">
             {new Date(integration.lastDeliveryAt * 1000).toLocaleString()}

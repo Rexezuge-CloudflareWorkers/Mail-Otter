@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EmailAction, EmailActionExecution, EmailActionStatus } from '../../components/types';
+import type { EmailAction, EmailActionExecution, EmailActionStatus } from '../types';
 import * as actionSvc from '../services/actionService';
 
 interface UseActionsOptions {

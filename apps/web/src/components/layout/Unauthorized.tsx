@@ -1,4 +1,4 @@
-import { ZERO_TRUST_AUTHENTICATION_PATH } from './constants';
+import { ZERO_TRUST_AUTHENTICATION_PATH } from '../../lib/constants';
 
 function authenticateWithZeroTrust() {
   globalThis.location.assign(ZERO_TRUST_AUTHENTICATION_PATH);

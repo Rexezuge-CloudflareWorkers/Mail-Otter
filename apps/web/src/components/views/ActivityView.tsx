@@ -1,13 +1,16 @@
-import { Download, RefreshCw, ChevronDown } from 'lucide-react';
-import type { ConnectedApplication } from '../../../components/types';
+import { Download } from 'lucide-react';
+import type { ConnectedApplication } from '../../types';
 import type { ActivityEntry, ActivityEventType } from '../../services/activityService';
 import { Badge } from '../ui/Badge';
 import type { BadgeVariant } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
-import { Select } from '../ui/Input';
 import { FilterBar } from '../shared/FilterBar';
-import { formatTimestamp } from '../../../components/utils';
+import { LoadMoreButton } from '../shared/LoadMoreButton';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { RefreshButton } from '../shared/RefreshButton';
+import { appName } from '../../lib/applications';
+import { formatTimestamp } from '../../lib/format';
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
   'calendar.add_event': 'Calendar Event',
@@ -52,10 +55,6 @@ function eventBadgeLabel(entry: ActivityEntry): string {
   if (entry.eventType === 'email_processed') return 'Email';
   if (entry.eventType === 'action_created') return 'Action';
   return 'Execution';
-}
-
-function appName(applicationId: string, applications: ConnectedApplication[]): string {
-  return applications.find((a) => a.applicationId === applicationId)?.displayName ?? applicationId;
 }
 
 function ActivityRow({ entry, applications }: { entry: ActivityEntry; applications: ConnectedApplication[] }) {
@@ -119,16 +118,7 @@ export function ActivityView({
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
       <FilterBar>
-        <Select
-          value={applicationId}
-          onChange={(e) => setApplicationId(e.target.value)}
-          className="min-w-[180px]"
-        >
-          <option value="">All Mailboxes</option>
-          {applications.map((a) => (
-            <option key={a.applicationId} value={a.applicationId}>{a.displayName}</option>
-          ))}
-        </Select>
+        <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
 
         <div className="flex items-center gap-3">
           {EVENT_TYPE_OPTIONS.map((opt) => (
@@ -149,10 +139,7 @@ export function ActivityView({
           Export CSV
         </Button>
 
-        <Button variant="secondary" size="sm" onClick={onRefresh} loading={loading} className="ml-auto">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={onRefresh} loading={loading} className="ml-auto" />
       </FilterBar>
 
       <Card>
@@ -169,12 +156,7 @@ export function ActivityView({
               <ActivityRow key={`${entry.eventType}-${entry.timestamp}-${i}`} entry={entry} applications={applications} />
             ))}
             {cursor && (
-              <div className="flex justify-center py-3">
-                <Button variant="ghost" size="sm" onClick={onLoadMore} disabled={loading}>
-                  <ChevronDown className="h-3.5 w-3.5" />
-                  Load More
-                </Button>
-              </div>
+              <LoadMoreButton onLoadMore={onLoadMore} loading={loading} />
             )}
           </>
         )}

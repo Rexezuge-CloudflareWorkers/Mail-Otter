@@ -131,3 +131,21 @@ export function TaskRunStatusBadge({ status }: { status: TaskRunStatus }) {
 export function ProcessedMessageStatusBadge({ status }: { status: ProcessedMessageStatus }) {
   return <Badge variant={processedMsgVariant(status)}>{label(status)}</Badge>;
 }
+
+type DeliveryStatus = 'success' | 'failure';
+
+export function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
+  return <Badge variant={status === 'success' ? 'success' : 'error'}>{status === 'success' ? 'Success' : 'Failed'}</Badge>;
+}
+
+export function IntegrationHealthBadge({
+  status,
+  consecutiveFailures,
+}: {
+  status: 'success' | 'failure' | null;
+  consecutiveFailures: number;
+}) {
+  if (status === 'success') return <Badge variant="success">Ok</Badge>;
+  if (status === 'failure') return <Badge variant="error">Failed ({consecutiveFailures})</Badge>;
+  return <Badge variant="neutral">Never Sent</Badge>;
+}

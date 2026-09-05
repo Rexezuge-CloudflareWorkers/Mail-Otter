@@ -1,8 +1,9 @@
 import type { AnalyticsData } from '../types';
-import { apiFetch, readJson } from '../../components/utils';
+import { apiGet } from '../lib/api';
 
 export async function loadAnalytics(days: number, applicationId?: string): Promise<AnalyticsData> {
-  const p = new URLSearchParams({ days: String(days) });
-  if (applicationId) p.set('applicationId', applicationId);
-  return readJson<AnalyticsData>(await apiFetch(`/user/analytics?${p}`));
+  return apiGet<AnalyticsData>('/user/analytics', {
+    days: String(days),
+    applicationId,
+  });
 }

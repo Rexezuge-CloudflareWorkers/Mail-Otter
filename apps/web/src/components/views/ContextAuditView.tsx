@@ -1,16 +1,18 @@
-import { RefreshCw } from 'lucide-react';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDocument,
   ApplicationContextDocumentStatus,
   ConnectedApplication,
-} from '../../../components/types';
-import { formatTimestamp } from '../../../components/utils';
+} from '../../types';
+import { formatTimestamp } from '../../lib/format';
 import { ContextIndexBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Select } from '../ui/Input';
 import { FilterBar } from '../shared/FilterBar';
+import { LoadMoreButton } from '../shared/LoadMoreButton';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { RefreshButton } from '../shared/RefreshButton';
 import { ContextDocumentRow } from '../context/ContextDocumentRow';
 import { ContextDeletionRunRow } from '../context/ContextDeletionRunRow';
 
@@ -56,12 +58,7 @@ export function ContextAuditView({
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5 animate-fade-in-up">
       <FilterBar title="RAG Context">
-        <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} className="min-w-[180px]">
-          <option value="">All Mailboxes</option>
-          {applications.map((app) => (
-            <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
-          ))}
-        </Select>
+        <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value as ApplicationContextDocumentStatus | '')}
@@ -72,10 +69,7 @@ export function ContextAuditView({
           <option value="deleted">Deleted</option>
           <option value="error">Error</option>
         </Select>
-        <Button variant="secondary" size="sm" onClick={onRefresh} loading={busy}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={onRefresh} loading={busy} />
       </FilterBar>
 
       {selectedApplication && (
@@ -137,9 +131,7 @@ export function ContextAuditView({
             )}
           </div>
           {documentsCursor && (
-            <Button variant="secondary" size="sm" className="mt-3" onClick={onLoadMoreDocuments} disabled={busy}>
-              Load More Documents
-            </Button>
+            <LoadMoreButton onLoadMore={onLoadMoreDocuments} loading={busy} label="Load More Documents" />
           )}
         </div>
 
@@ -162,9 +154,7 @@ export function ContextAuditView({
             )}
           </div>
           {deletionRunsCursor && (
-            <Button variant="secondary" size="sm" className="mt-3" onClick={onLoadMoreDeletions} disabled={busy}>
-              Load More
-            </Button>
+            <LoadMoreButton onLoadMore={onLoadMoreDeletions} loading={busy} />
           )}
         </div>
       </div>

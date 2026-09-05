@@ -1,5 +1,19 @@
-import type { EmailAction, EmailActionExecution, EmailActionStatus } from '../../components/types';
-import { apiFetch, readJson } from '../../components/utils';
+import type { EmailAction, EmailActionExecution, EmailActionStatus } from '../types';
+import { apiGet, apiPost } from '../lib/api';
+
+function actionQuery(
+  applicationId: string,
+  status: EmailActionStatus | '',
+  cursor?: string,
+  showSnoozed?: boolean,
+): Record<string, string | undefined> {
+  return {
+    applicationId: applicationId || undefined,
+    status: status || undefined,
+    cursor,
+    showSnoozed: showSnoozed ? 'true' : undefined,
+  };
+}
 
 export async function loadActions(
   applicationId: string,
@@ -7,42 +21,30 @@ export async function loadActions(
   cursor?: string,
   showSnoozed?: boolean,
 ): Promise<{ actions: EmailAction[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (applicationId) p.set('applicationId', applicationId);
-  if (status) p.set('status', status);
-  if (cursor) p.set('cursor', cursor);
-  if (showSnoozed) p.set('showSnoozed', 'true');
-  return readJson<{ actions: EmailAction[]; nextCursor?: string }>(await apiFetch(`/user/actions?${p}`));
+  return apiGet<{ actions: EmailAction[]; nextCursor?: string }>(
+    '/user/actions',
+    actionQuery(applicationId, status, cursor, showSnoozed),
+  );
 }
 
 export async function loadActionExecutions(actionId: string): Promise<{ executions: EmailActionExecution[] }> {
-  return readJson<{ executions: EmailActionExecution[] }>(
-    await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/executions`),
+  return apiGet<{ executions: EmailActionExecution[] }>(
+    `/user/actions/${encodeURIComponent(actionId)}/executions`,
   );
 }
 
 export async function executeAction(actionId: string): Promise<{ action: EmailAction }> {
-  return readJson<{ action: EmailAction }>(
-    await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/execute`, { method: 'POST' }),
-  );
+  return apiPost<{ action: EmailAction }>(`/user/actions/${encodeURIComponent(actionId)}/execute`, {});
 }
 
 export async function snoozeAction(actionId: string, snoozedUntil: string | null): Promise<{ action: EmailAction }> {
-  return readJson<{ action: EmailAction }>(
-    await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/snooze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ snoozedUntil }),
-    }),
-  );
+  return apiPost<{ action: EmailAction }>(`/user/actions/${encodeURIComponent(actionId)}/snooze`, {
+    snoozedUntil,
+  });
 }
 
 export async function scheduleAction(actionId: string, scheduledFor: string | null): Promise<{ action: EmailAction }> {
-  return readJson<{ action: EmailAction }>(
-    await apiFetch(`/user/actions/${encodeURIComponent(actionId)}/schedule`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduledFor }),
-    }),
-  );
+  return apiPost<{ action: EmailAction }>(`/user/actions/${encodeURIComponent(actionId)}/schedule`, {
+    scheduledFor,
+  });
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../types';
 
 export interface MailboxCallbacksContextValue {
   busy: boolean;

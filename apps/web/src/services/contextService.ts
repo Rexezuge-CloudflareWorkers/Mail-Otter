@@ -1,5 +1,5 @@
-import type { ApplicationContextDocument, ApplicationContextDeletionRun, ApplicationContextDocumentStatus } from '../../components/types';
-import { apiFetch, readJson } from '../../components/utils';
+import type { ApplicationContextDocument, ApplicationContextDeletionRun, ApplicationContextDocumentStatus } from '../types';
+import { apiGet } from '../lib/api';
 
 export async function loadContextAudit(
   applicationId: string,
@@ -10,13 +10,16 @@ export async function loadContextAudit(
   deletionRuns: ApplicationContextDeletionRun[];
   deletionRunsCursor?: string;
 }> {
-  const dp = new URLSearchParams();
-  const xp = new URLSearchParams();
-  if (applicationId) { dp.set('applicationId', applicationId); xp.set('applicationId', applicationId); }
-  if (status) dp.set('status', status);
+  const base = applicationId ? { applicationId } : {};
   const [docData, delData] = await Promise.all([
-    readJson<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(await apiFetch(`/user/application/context/documents?${dp}`)),
-    readJson<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(await apiFetch(`/user/application/context/deletions?${xp}`)),
+    apiGet<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(
+      '/user/application/context/documents',
+      status ? { ...base, status } : base,
+    ),
+    apiGet<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
+      '/user/application/context/deletions',
+      base,
+    ),
   ]);
   return {
     documents: docData.documents,
@@ -26,17 +29,20 @@ export async function loadContextAudit(
   };
 }
 
+async function loadContextPage<T>(path: string, applicationId: string, extra: Record<string, string | undefined>, cursor: string): Promise<T> {
+  return apiGet<T>(path, { ...extra, ...(applicationId && { applicationId }), cursor });
+}
+
 export async function loadMoreDocuments(
   applicationId: string,
   status: ApplicationContextDocumentStatus | '',
   cursor: string,
 ): Promise<{ documents: ApplicationContextDocument[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (applicationId) p.set('applicationId', applicationId);
-  if (status) p.set('status', status);
-  p.set('cursor', cursor);
-  return readJson<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(
-    await apiFetch(`/user/application/context/documents?${p}`),
+  return loadContextPage<{ documents: ApplicationContextDocument[]; nextCursor?: string }>(
+    '/user/application/context/documents',
+    applicationId,
+    status ? { status } : {},
+    cursor,
   );
 }
 
@@ -44,16 +50,16 @@ export async function loadMoreDeletions(
   applicationId: string,
   cursor: string,
 ): Promise<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (applicationId) p.set('applicationId', applicationId);
-  p.set('cursor', cursor);
-  return readJson<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
-    await apiFetch(`/user/application/context/deletions?${p}`),
+  return loadContextPage<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
+    '/user/application/context/deletions',
+    applicationId,
+    {},
+    cursor,
   );
 }
 
 export async function openContextDocumentInProvider(contextDocumentId: string): Promise<{ url: string }> {
-  return readJson<{ url: string }>(
-    await apiFetch(`/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`),
+  return apiGet<{ url: string }>(
+    `/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`,
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { formatTimestamp } from '../../apps/web/components/utils';
+import { formatTimestamp } from '../../apps/web/src/lib/format';
 
 describe('formatTimestamp', () => {
   beforeEach(() => {

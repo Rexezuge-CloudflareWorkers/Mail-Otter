@@ -1,6 +1,6 @@
 
-import { RefreshCw, ChevronDown, Play } from 'lucide-react';
-import type { ConnectedApplication } from '../../../components/types';
+import { Play } from 'lucide-react';
+import type { ConnectedApplication } from '../../types';
 import type {
   BackgroundTaskRun,
   BackgroundTaskRunStatus,
@@ -14,7 +14,11 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Select } from '../ui/Input';
 import { FilterBar } from '../shared/FilterBar';
-import { formatTimestamp } from '../../../components/utils';
+import { LoadMoreButton } from '../shared/LoadMoreButton';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { RefreshButton } from '../shared/RefreshButton';
+import { appName } from '../../lib/applications';
+import { formatDuration, formatTimestamp } from '../../lib/format';
 import { cn } from '../../lib/utils';
 
 const TASK_TYPE_OPTIONS = [
@@ -42,19 +46,6 @@ const MESSAGE_STATUS_OPTIONS = [
   { value: 'error', label: 'Error' },
   { value: 'processing', label: 'Processing' },
 ];
-
-function formatDuration(startedAt: number, completedAt: number | null): string {
-  if (!completedAt) return '—';
-  const ms = (completedAt - startedAt) * 1000;
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.floor(ms / 60_000)}m ${Math.floor((ms % 60_000) / 1000)}s`;
-}
-
-function appName(applicationId: string | null, applications: ConnectedApplication[]): string {
-  if (!applicationId) return '—';
-  return applications.find((a) => a.applicationId === applicationId)?.displayName ?? applicationId;
-}
 
 function TaskRunRow({ run, applications }: { run: BackgroundTaskRun; applications: ConnectedApplication[] }) {
   return (
@@ -173,16 +164,7 @@ export function ProcessingView({
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
       <FilterBar>
-        <Select
-          value={applicationId}
-          onChange={(e) => setApplicationId(e.target.value)}
-          className="min-w-[180px]"
-        >
-          <option value="">All Mailboxes</option>
-          {applications.map((a) => (
-            <option key={a.applicationId} value={a.applicationId}>{a.displayName}</option>
-          ))}
-        </Select>
+        <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
         <Select
           value={taskType}
           onChange={(e) => setTaskType(e.target.value)}
@@ -210,10 +192,7 @@ export function ProcessingView({
           <Play className="h-3.5 w-3.5" />
           Run Now
         </Button>
-        <Button variant="secondary" size="sm" onClick={handleRefresh} loading={refreshing} className="ml-auto">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={handleRefresh} loading={refreshing} className="ml-auto" />
       </FilterBar>
 
       {/* Background Task Runs — full width */}
@@ -231,12 +210,7 @@ export function ProcessingView({
               <TaskRunRow key={run.runId} run={run} applications={applications} />
             ))}
             {taskRunsCursor && (
-              <div className="flex justify-center py-3">
-                <Button variant="ghost" size="sm" onClick={onLoadMoreTaskRuns} disabled={taskRunsLoading}>
-                  <ChevronDown className="h-3.5 w-3.5" />
-                  Load More
-                </Button>
-              </div>
+              <LoadMoreButton onLoadMore={onLoadMoreTaskRuns} loading={taskRunsLoading} />
             )}
           </>
         )}
@@ -268,12 +242,7 @@ export function ProcessingView({
                 <ProcessedMessageRow key={msg.processedMessageId} message={msg} applications={applications} />
               ))}
               {processedMessagesCursor && (
-                <div className="flex justify-center py-3">
-                  <Button variant="ghost" size="sm" onClick={onLoadMoreProcessedMessages} disabled={processedMessagesLoading}>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Load More
-                  </Button>
-                </div>
+                <LoadMoreButton onLoadMore={onLoadMoreProcessedMessages} loading={processedMessagesLoading} />
               )}
             </>
           )}
@@ -294,12 +263,7 @@ export function ProcessingView({
                 <CalendarEventRow key={event.syncEventId} event={event} applications={applications} />
               ))}
               {calendarEventsCursor && (
-                <div className="flex justify-center py-3">
-                  <Button variant="ghost" size="sm" onClick={onLoadMoreCalendarEvents} disabled={calendarEventsLoading}>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Load More
-                  </Button>
-                </div>
+                <LoadMoreButton onLoadMore={onLoadMoreCalendarEvents} loading={calendarEventsLoading} />
               )}
             </>
           )}

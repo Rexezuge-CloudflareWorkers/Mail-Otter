@@ -1,11 +1,10 @@
-import { RefreshCw } from 'lucide-react';
-import type { ConnectedApplication } from '../../../components/types';
+import type { ConnectedApplication } from '../../types';
 import type { AnalyticsData } from '../../types';
-import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
-import { Select } from '../ui/Input';
 import { Metric } from '../shared/Metric';
 import { FilterBar } from '../shared/FilterBar';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { RefreshButton } from '../shared/RefreshButton';
 import { LineChart } from '../analytics/LineChart';
 import { StackedBarChart } from '../analytics/StackedBarChart';
 import { HorizontalBarList } from '../analytics/HorizontalBarList';
@@ -51,10 +50,7 @@ export function AnalyticsView({
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Analytics</h1>
           <p className="mt-1 text-sm text-[var(--color-text-muted)]">Usage Trends And Processing Stats</p>
         </div>
-        <Button variant="secondary" size="sm" onClick={onRefresh} loading={loading}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={onRefresh} loading={loading} />
       </div>
 
       <FilterBar>
@@ -74,14 +70,7 @@ export function AnalyticsView({
             </button>
           ))}
         </div>
-        <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)}>
-          <option value="">All Mailboxes</option>
-          {applications.map((app) => (
-            <option key={app.applicationId} value={app.applicationId}>
-              {app.displayName}
-            </option>
-          ))}
-        </Select>
+        <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
       </FilterBar>
 
       {!loading && !data && (

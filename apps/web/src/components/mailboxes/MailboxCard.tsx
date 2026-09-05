@@ -1,5 +1,5 @@
-import type { ConnectedApplication } from '../../../components/types';
-import { providerLabels } from '../../../components/utils';
+import type { ConnectedApplication } from '../../types';
+import { providerLabels } from '../../lib/providers';
 import { ConnectionBadge, ContextIndexBadge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 

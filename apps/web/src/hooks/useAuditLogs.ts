@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { ContextAuditLog } from '../../components/types';
+import type { ContextAuditLog } from '../types';
 import { fetchDocumentAuditLogs } from '../services/userService';
 
 interface UseAuditLogsOptions {

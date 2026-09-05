@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Unauthorized from '../components/Unauthorized';
+import Unauthorized from './components/layout/Unauthorized';
 import type { ActiveView } from './types';
 import { Header } from './components/layout/Header';
 import { NoticeBar } from './components/layout/NoticeBar';
@@ -29,7 +29,7 @@ import { useActivity } from './hooks/useActivity';
 import { useChat } from './hooks/useChat';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
-import type { ApplicationContextDocumentStatus, EmailActionStatus } from '../components/types';
+import type { ApplicationContextDocumentStatus, EmailActionStatus } from './types';
 
 // Read URL params synchronously before first render so useState initializers can use them
 const initialView = getUrlParam('view', 'mailboxes') as ActiveView;
@@ -79,50 +79,46 @@ export default function SpaApp() {
 
   // Load view-specific data when the active view becomes visible
   useEffect(() => {
-    if (authorized && activeView === 'context') {
-      void contextAudit.loadContextAudit();
-    }
-  }, [activeView, authorized]);
-
-  useEffect(() => {
-    if (authorized && activeView === 'actions') {
-      void actions.loadActions();
-    }
-  }, [activeView, authorized]);
-
-  useEffect(() => {
-    if (authorized && activeView === 'analytics') {
-      void analytics.loadAnalytics();
-    }
-  }, [activeView, authorized]);
-
-  useEffect(() => {
-    if (authorized && activeView === 'processing') {
-      void processing.loadProcessing();
-    }
-  }, [activeView, authorized]);
-
-  useEffect(() => {
-    if (authorized && activeView === 'activity') {
-      void activity.loadActivity();
+    if (!authorized) return;
+    switch (activeView) {
+      case 'context': {
+        void contextAudit.loadContextAudit();
+        break;
+      }
+      case 'actions': {
+        void actions.loadActions();
+        break;
+      }
+      case 'analytics': {
+        void analytics.loadAnalytics();
+        break;
+      }
+      case 'processing': {
+        void processing.loadProcessing();
+        break;
+      }
+      case 'activity': {
+        void activity.loadActivity();
+        break;
+      }
+      default: {
+        break;
+      }
     }
   }, [activeView, authorized]);
 
   // Sync current state back to the URL
-  const effectiveAppId =
-    activeView === 'mailboxes'
-      ? mailboxes.selectedApplicationId
-      : activeView === 'context'
-        ? contextAudit.auditApplicationId
-        : activeView === 'analytics'
-          ? analytics.analyticsApplicationId
-          : activeView === 'processing'
-            ? processing.processingApplicationId
-            : activeView === 'activity'
-              ? activity.activityApplicationId
-              : activeView === 'chat'
-                ? chat.chatApplicationId
-                : actions.actionApplicationId;
+  const appIdByView: Record<ActiveView, string> = {
+    mailboxes: mailboxes.selectedApplicationId,
+    context: contextAudit.auditApplicationId,
+    actions: actions.actionApplicationId,
+    activity: activity.activityApplicationId,
+    chat: chat.chatApplicationId,
+    analytics: analytics.analyticsApplicationId,
+    processing: processing.processingApplicationId,
+    help: '',
+  };
+  const effectiveAppId = appIdByView[activeView];
 
   useSyncedUrl({
     view: activeView,

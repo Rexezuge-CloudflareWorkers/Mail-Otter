@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { CurrentUser } from '../../components/types';
+import type { CurrentUser } from '../types';
 
 export const UserContext = createContext<CurrentUser | null>(null);
 

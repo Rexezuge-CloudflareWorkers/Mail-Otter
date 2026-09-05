@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import type { ProviderId } from '../../../components/types';
-import { OAUTH2_FEATURES, OAUTH2_FEATURE_SCOPES } from '../../../components/constants';
-import type { OAuth2Feature } from '../../../components/constants';
-import { providerLabels, providerConnectionMethods, methodLabels } from '../../../components/utils';
+import type { ProviderId } from '../../types';
+import { OAUTH2_FEATURES, OAUTH2_FEATURE_SCOPES } from '../../lib/constants';
+import type { OAuth2Feature } from '../../lib/constants';
+import { methodLabels, providerConnectionMethods, providerLabels } from '../../lib/providers';
 import { Input, Select } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';

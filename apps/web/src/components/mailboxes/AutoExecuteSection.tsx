@@ -1,4 +1,4 @@
-import type { ConnectedApplication, EmailActionType } from '../../../components/types';
+import type { ConnectedApplication, EmailActionType } from '../../types';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 

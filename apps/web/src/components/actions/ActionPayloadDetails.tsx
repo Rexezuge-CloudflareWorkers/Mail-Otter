@@ -1,4 +1,4 @@
-import type { EmailAction } from '../../../components/types';
+import type { EmailAction } from '../../types';
 
 export function ActionPayloadDetails({ action }: { action: EmailAction }) {
   const { payload } = action;

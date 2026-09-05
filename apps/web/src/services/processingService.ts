@@ -1,4 +1,5 @@
-import { apiFetch, readJson } from '../../components/utils';
+import { apiGet, readJson } from '../lib/api';
+import { apiFetch } from '../lib/api';
 
 export const TRIGGERABLE_TASK_TYPES = ['calendar_sync', 'action_status_sync'] as const;
 
@@ -46,7 +47,7 @@ export interface SyncedCalendarEvent {
   syncedAt: number;
 }
 
-export const TASK_TYPE_LABELS: Record<string, string> = {
+const TASK_TYPE_LABELS: Record<string, string> = {
   calendar_sync: 'Calendar Sync',
   action_status_sync: 'Action Status Sync',
   imap_polling: 'IMAP Polling',
@@ -67,28 +68,22 @@ export async function loadTaskRuns(options: {
   status?: string;
   cursor?: string;
 }): Promise<{ runs: BackgroundTaskRun[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (options.taskType) p.set('taskType', options.taskType);
-  if (options.applicationId) p.set('applicationId', options.applicationId);
-  if (options.status) p.set('status', options.status);
-  if (options.cursor) p.set('cursor', options.cursor);
-  const qs = p.toString();
-  return readJson<{ runs: BackgroundTaskRun[]; nextCursor?: string }>(
-    await apiFetch(`/user/processing/task-runs${qs ? `?${qs}` : ''}`),
-  );
+  return apiGet<{ runs: BackgroundTaskRun[]; nextCursor?: string }>('/user/processing/task-runs', {
+    taskType: options.taskType,
+    applicationId: options.applicationId,
+    status: options.status,
+    cursor: options.cursor,
+  });
 }
 
 export async function loadCalendarEvents(options: {
   applicationId?: string;
   cursor?: string;
 }): Promise<{ events: SyncedCalendarEvent[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (options.applicationId) p.set('applicationId', options.applicationId);
-  if (options.cursor) p.set('cursor', options.cursor);
-  const qs = p.toString();
-  return readJson<{ events: SyncedCalendarEvent[]; nextCursor?: string }>(
-    await apiFetch(`/user/processing/calendar-events${qs ? `?${qs}` : ''}`),
-  );
+  return apiGet<{ events: SyncedCalendarEvent[]; nextCursor?: string }>('/user/processing/calendar-events', {
+    applicationId: options.applicationId,
+    cursor: options.cursor,
+  });
 }
 
 export async function triggerTaskRun(taskType: string, applicationId: string): Promise<void> {
@@ -105,12 +100,9 @@ export async function loadProcessedMessages(options: {
   status?: string;
   cursor?: string;
 }): Promise<{ messages: ProcessedMessage[]; nextCursor?: string }> {
-  const p = new URLSearchParams();
-  if (options.applicationId) p.set('applicationId', options.applicationId);
-  if (options.status) p.set('status', options.status);
-  if (options.cursor) p.set('cursor', options.cursor);
-  const qs = p.toString();
-  return readJson<{ messages: ProcessedMessage[]; nextCursor?: string }>(
-    await apiFetch(`/user/processing/messages${qs ? `?${qs}` : ''}`),
-  );
+  return apiGet<{ messages: ProcessedMessage[]; nextCursor?: string }>('/user/processing/messages', {
+    applicationId: options.applicationId,
+    status: options.status,
+    cursor: options.cursor,
+  });
 }

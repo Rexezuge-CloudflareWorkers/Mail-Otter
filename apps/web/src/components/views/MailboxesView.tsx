@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ConnectedApplication } from '../../../components/types';
+import type { ConnectedApplication } from '../../types';
 import { MailboxCard } from '../mailboxes/MailboxCard';
 import { MailboxDetail } from '../mailboxes/MailboxDetail';
 import type { ApplicationFormState } from '../mailboxes/MailboxForm';

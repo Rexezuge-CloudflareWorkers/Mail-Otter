@@ -1,10 +1,8 @@
-import type { CurrentUser } from '../../components/types';
-import { apiFetch, readJson,  } from '../../components/utils';
+import type { CurrentUser } from '../types';
+import { apiGet } from '../lib/api';
 
 export async function loadCurrentUser(): Promise<CurrentUser> {
-  return readJson<CurrentUser>(await apiFetch('/user/me'));
+  return apiGet<CurrentUser>('/user/me');
 }
 
-
-
-export {fetchDocumentAuditLogs} from '../../components/utils';
+export { fetchDocumentAuditLogs } from '../lib/api';

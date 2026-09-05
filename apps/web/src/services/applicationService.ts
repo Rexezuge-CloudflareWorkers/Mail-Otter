@@ -1,9 +1,26 @@
-import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
-import { apiFetch, readJson } from '../../components/utils';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters, ApplicationContextDeletionRun } from '../types';
+import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
+type ApplicationResult = { application: ConnectedApplication };
+
+async function updateContextField(applicationId: string, field: Record<string, unknown>): Promise<ApplicationResult> {
+  return apiPut<ApplicationResult>('/user/application/context', { applicationId, ...field });
+}
+
+function baseApplicationPayload(app: ConnectedApplication): Record<string, unknown> {
+  return {
+    applicationId: app.applicationId,
+    displayName: app.displayName,
+    providerId: app.providerId,
+    connectionMethod: app.connectionMethod,
+    enabledFeatures: app.enabledFeatures,
+    ...(app.providerId === 'google-gmail' && { gmailPubsubTopicName: app.gmailPubsubTopicName }),
+  };
+}
+
 export async function loadApplications(): Promise<{ applications: ConnectedApplication[] }> {
-  return readJson<{ applications: ConnectedApplication[] }>(await apiFetch('/user/applications'));
+  return apiGet<{ applications: ConnectedApplication[] }>('/user/applications');
 }
 
 export async function saveApplication(form: ApplicationFormState): Promise<{ application: ConnectedApplication }> {
@@ -17,7 +34,7 @@ export async function saveApplication(form: ApplicationFormState): Promise<{ app
     ...(form.clientSecret && !isImapPassword && { clientSecret: form.clientSecret }),
     enabledFeatures: form.enabledFeatures,
     timeZone: form.timeZone,
-    ...((form.providerId === 'google-gmail') && { gmailPubsubTopicName: form.gmailPubsubTopicName }),
+    ...(form.providerId === 'google-gmail' && { gmailPubsubTopicName: form.gmailPubsubTopicName }),
     ...(form.imapHost && { imapHost: form.imapHost }),
     ...(form.imapPort && { imapPort: Number(form.imapPort) }),
     ...(form.imapUsername && { imapUsername: form.imapUsername }),
@@ -25,111 +42,59 @@ export async function saveApplication(form: ApplicationFormState): Promise<{ app
     ...(form.smtpHost && { smtpHost: form.smtpHost }),
     ...(form.smtpPort && { smtpPort: Number(form.smtpPort) }),
   };
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application', {
-      method: form.applicationId ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }),
-  );
+  return form.applicationId
+    ? apiPut<{ application: ConnectedApplication }>('/user/application', payload)
+    : apiPost<{ application: ConnectedApplication }>('/user/application', payload);
 }
 
 export async function deleteApplication(applicationId: string): Promise<void> {
-  await readJson<{ success: boolean }>(
-    await apiFetch('/user/application', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+  await apiDelete<{ success: boolean }>('/user/application', { applicationId });
 }
 
 export async function startOAuth2(applicationId: string): Promise<{ authorizationUrl: string }> {
-  return readJson<{ authorizationUrl: string }>(
-    await apiFetch('/user/application/oauth2/authorize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+  return apiPost<{ authorizationUrl: string }>('/user/application/oauth2/authorize', { applicationId });
 }
 
 export async function startWatch(applicationId: string): Promise<{ message: string; webhookUrl: string }> {
-  return readJson<{ message: string; webhookUrl: string }>(
-    await apiFetch('/user/application/watch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+  return apiPost<{ message: string; webhookUrl: string }>('/user/application/watch', { applicationId });
 }
 
 export async function stopWatch(applicationId: string): Promise<{ message: string }> {
-  return readJson<{ message: string }>(
-    await apiFetch('/user/application/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+  return apiPost<{ message: string }>('/user/application/stop', { applicationId });
 }
 
 export async function updateContextIndexing(
   applicationId: string,
   contextIndexingEnabled: boolean,
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/context', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, contextIndexingEnabled }),
-    }),
-  );
+  return updateContextField(applicationId, { contextIndexingEnabled });
 }
 
 export async function updateRagRetrieval(
   applicationId: string,
   ragRetrievalEnabled: boolean,
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/context', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, ragRetrievalEnabled }),
-    }),
-  );
+  return updateContextField(applicationId, { ragRetrievalEnabled });
 }
 
 export async function updateAttachmentVisionEnabled(
   applicationId: string,
   attachmentVisionEnabled: boolean,
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/context', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, attachmentVisionEnabled }),
-    }),
-  );
+  return updateContextField(applicationId, { attachmentVisionEnabled });
 }
 
 export async function updateMaxContextDocuments(
   applicationId: string,
   maxContextDocuments: number | null,
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/context', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, maxContextDocuments }),
-    }),
-  );
+  return updateContextField(applicationId, { maxContextDocuments });
 }
 
 export async function loadFolders(applicationId: string): Promise<{ folders: Array<{ id: string; name: string }> }> {
-  return readJson<{ folders: Array<{ id: string; name: string }> }>(
-    await apiFetch(`/user/application/folders?applicationId=${encodeURIComponent(applicationId)}`),
-  );
+  return apiGet<{ folders: Array<{ id: string; name: string }> }>('/user/application/folders', {
+    applicationId,
+  });
 }
 
 export async function updateWatchedFolderIds(
@@ -144,84 +109,53 @@ export async function updateWatchedFolderIds(
       if (folder) folderNames[id] = folder.name;
     }
   }
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/watch-settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, folderIds, folderNames }),
-    }),
-  );
+  return apiPut<{ application: ConnectedApplication }>('/user/application/watch-settings', {
+    applicationId,
+    folderIds,
+    folderNames,
+  });
 }
 
 export async function updateSenderFilters(
   app: ConnectedApplication,
   filters: SenderDomainFilters,
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        applicationId: app.applicationId,
-        displayName: app.displayName,
-        providerId: app.providerId,
-        connectionMethod: app.connectionMethod,
-        enabledFeatures: app.enabledFeatures,
-        ...((app.providerId === 'google-gmail') && { gmailPubsubTopicName: app.gmailPubsubTopicName }),
-        senderDomainFilters: filters,
-      }),
-    }),
-  );
+  return apiPut<{ application: ConnectedApplication }>('/user/application', {
+    ...baseApplicationPayload(app),
+    senderDomainFilters: filters,
+  });
 }
 
 export async function updateAutoExecuteActionTypes(
   app: ConnectedApplication,
   types: string[],
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        applicationId: app.applicationId,
-        displayName: app.displayName,
-        providerId: app.providerId,
-        connectionMethod: app.connectionMethod,
-        enabledFeatures: app.enabledFeatures,
-        ...((app.providerId === 'google-gmail') && { gmailPubsubTopicName: app.gmailPubsubTopicName }),
-        autoExecuteActionTypes: types,
-      }),
-    }),
-  );
+  return apiPut<{ application: ConnectedApplication }>('/user/application', {
+    ...baseApplicationPayload(app),
+    autoExecuteActionTypes: types,
+  });
 }
 
-export async function deleteContextDocuments(applicationId: string): Promise<{ deletionRun: import('../../components/types').ApplicationContextDeletionRun }> {
-  return readJson<{ deletionRun: import('../../components/types').ApplicationContextDeletionRun }>(
-    await apiFetch('/user/application/context/delete-documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+export async function deleteContextDocuments(applicationId: string): Promise<{ deletionRun: ApplicationContextDeletionRun }> {
+  return apiPost<{ deletionRun: ApplicationContextDeletionRun }>('/user/application/context/delete-documents', {
+    applicationId,
+  });
 }
 
 export async function dismissError(
   applicationId: string,
   errorType: 'processing' | 'context',
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/dismiss-error', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, errorType }),
-    }),
-  );
+  return apiPost<{ application: ConnectedApplication }>('/user/application/dismiss-error', {
+    applicationId,
+    errorType,
+  });
 }
 
 export async function loadIntegrations(applicationId: string): Promise<{ integrations: OutboundIntegration[] }> {
-  return readJson<{ integrations: OutboundIntegration[] }>(
-    await apiFetch(`/user/application/integrations?applicationId=${encodeURIComponent(applicationId)}`),
-  );
+  return apiGet<{ integrations: OutboundIntegration[] }>('/user/application/integrations', {
+    applicationId,
+  });
 }
 
 export async function createIntegration(
@@ -230,105 +164,69 @@ export async function createIntegration(
   name: string,
   webhookUrl: string,
 ): Promise<{ integration: OutboundIntegration }> {
-  return readJson<{ integration: OutboundIntegration }>(
-    await apiFetch('/user/application/integration', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, integrationType, name, webhookUrl }),
-    }),
-  );
+  return apiPost<{ integration: OutboundIntegration }>('/user/application/integration', {
+    applicationId,
+    integrationType,
+    name,
+    webhookUrl,
+  });
 }
 
 export async function updateIntegration(
   integrationId: string,
   patch: { name?: string; enabled?: boolean; webhookUrl?: string },
 ): Promise<{ integration: OutboundIntegration }> {
-  return readJson<{ integration: OutboundIntegration }>(
-    await apiFetch('/user/application/integration', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ integrationId, ...patch }),
-    }),
-  );
+  return apiPut<{ integration: OutboundIntegration }>('/user/application/integration', {
+    integrationId,
+    ...patch,
+  });
 }
 
 export async function deleteIntegration(integrationId: string): Promise<{ success: boolean }> {
-  return readJson<{ success: boolean }>(
-    await apiFetch('/user/application/integration', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ integrationId }),
-    }),
-  );
+  return apiDelete<{ success: boolean }>('/user/application/integration', { integrationId });
 }
 
 export async function testIntegration(integrationId: string): Promise<{ success: boolean }> {
-  return readJson<{ success: boolean }>(
-    await apiFetch('/user/application/integration/test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ integrationId }),
-    }),
-  );
+  return apiPost<{ success: boolean }>('/user/application/integration/test', { integrationId });
 }
 
 export async function fetchIntegrationDeliveries(integrationId: string, limit = 20): Promise<{ logs: IntegrationDeliveryLog[] }> {
-  return readJson<{ logs: IntegrationDeliveryLog[] }>(
-    await apiFetch(`/user/application/integration/deliveries?integrationId=${encodeURIComponent(integrationId)}&limit=${limit}`),
-  );
+  return apiGet<{ logs: IntegrationDeliveryLog[] }>('/user/application/integration/deliveries', {
+    integrationId,
+    limit: String(limit),
+  });
 }
 
 export async function updateRules(
   applicationId: string,
   rules: EmailProcessingRule[],
 ): Promise<{ application: ConnectedApplication }> {
-  return readJson<{ application: ConnectedApplication }>(
-    await apiFetch('/user/application/rules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, rules }),
-    }),
-  );
+  return apiPut<{ application: ConnectedApplication }>('/user/application/rules', { applicationId, rules });
 }
 
 export async function suggestRule(
   applicationId: string,
   description: string,
 ): Promise<{ rule: Omit<EmailProcessingRule, 'ruleId'> }> {
-  return readJson<{ rule: Omit<EmailProcessingRule, 'ruleId'> }>(
-    await apiFetch('/user/application/rules/suggest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, description }),
-    }),
-  );
+  return apiPost<{ rule: Omit<EmailProcessingRule, 'ruleId'> }>('/user/application/rules/suggest', {
+    applicationId,
+    description,
+  });
 }
 
 export async function loadLabels(applicationId: string): Promise<{ labels: Array<{ id: string; name: string }> }> {
-  return readJson<{ labels: Array<{ id: string; name: string }> }>(
-    await apiFetch(`/user/application/labels?applicationId=${encodeURIComponent(applicationId)}`),
-  );
+  return apiGet<{ labels: Array<{ id: string; name: string }> }>('/user/application/labels', {
+    applicationId,
+  });
 }
 
 export async function saveDigestConfig(
   applicationId: string,
   config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>,
 ): Promise<{ digestConfig: DigestConfig }> {
-  return readJson<{ digestConfig: DigestConfig }>(
-    await apiFetch('/user/application/digest', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, ...config }),
-    }),
-  );
+  return apiPut<{ digestConfig: DigestConfig }>('/user/application/digest', { applicationId, ...config });
 }
 
 export async function sendDigestNow(applicationId: string): Promise<{ sent: boolean }> {
-  return readJson<{ sent: boolean }>(
-    await apiFetch('/user/application/digest/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    }),
-  );
+  return apiPost<{ sent: boolean }>('/user/application/digest/send', { applicationId });
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CurrentUser } from '../../components/types';
+import type { CurrentUser } from '../types';
 import { loadCurrentUser } from '../services/userService';
 
 export function useCurrentUser() {

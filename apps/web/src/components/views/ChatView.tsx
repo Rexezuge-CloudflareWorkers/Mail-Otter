@@ -1,17 +1,14 @@
 import { useRef, useEffect, useState } from 'react';
 import { Send, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import type { ConnectedApplication } from '../../../components/types';
+import type { ConnectedApplication } from '../../types';
 import type { ChatMessage, ChatSource } from '../../services/chatService';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Select } from '../ui/Input';
 import { FilterBar } from '../shared/FilterBar';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { appName } from '../../lib/applications';
 import { cn } from '../../lib/utils';
-
-function appName(applicationId: string, applications: ConnectedApplication[]): string {
-  return applications.find((a) => a.applicationId === applicationId)?.displayName ?? applicationId;
-}
 
 function SourcesToggle({ sources, applications }: { sources: ChatSource[]; applications: ConnectedApplication[] }) {
   const [open, setOpen] = useState(false);
@@ -119,18 +116,7 @@ export function ChatView({
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6 animate-fade-in-up">
       <FilterBar>
-        <Select
-          value={applicationId}
-          onChange={(e) => setApplicationId(e.target.value)}
-          className="min-w-[180px]"
-        >
-          <option value="">All Mailboxes</option>
-          {applications.map((a) => (
-            <option key={a.applicationId} value={a.applicationId}>
-              {a.displayName}
-            </option>
-          ))}
-        </Select>
+        <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
 
         <Button
           variant="ghost"

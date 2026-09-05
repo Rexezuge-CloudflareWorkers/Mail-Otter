@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ConnectedApplication, SenderDomainFilters } from '../../../components/types';
+import type { ConnectedApplication, SenderDomainFilters } from '../../types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';

@@ -1,5 +1,6 @@
-import type { ConnectedApplication } from '../../../components/types';
-import { formatTimestamp, formatExpiryTimestamp, providerLabels } from '../../../components/utils';
+import type { ConnectedApplication } from '../../types';
+import { formatExpiryTimestamp, formatTimestamp } from '../../lib/format';
+import { providerLabels } from '../../lib/providers';
 import { ConnectionBadge, WatchBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';

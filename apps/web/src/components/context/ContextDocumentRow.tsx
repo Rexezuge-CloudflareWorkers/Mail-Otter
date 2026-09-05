@@ -1,6 +1,7 @@
 import { ExternalLink, ScrollText } from 'lucide-react';
-import type { ApplicationContextDocument, ConnectedApplication } from '../../../components/types';
-import { formatTimestamp, providerLabels } from '../../../components/utils';
+import type { ApplicationContextDocument, ConnectedApplication } from '../../types';
+import { formatTimestamp } from '../../lib/format';
+import { providerLabels } from '../../lib/providers';
 import { DocStatusBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 

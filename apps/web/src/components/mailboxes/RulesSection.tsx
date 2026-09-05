@@ -6,7 +6,7 @@ import type {
   EmailRuleActionType,
   EmailRuleConditionMatcher,
   EmailRuleConditionMatcherField,
-} from '../../../components/types';
+} from '../../types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Input } from '../ui/Input';

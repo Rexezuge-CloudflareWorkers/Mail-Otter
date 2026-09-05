@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { RefreshCw, AlarmClock, CalendarClock, X } from 'lucide-react';
-import type { ConnectedApplication, EmailAction, EmailActionExecution, EmailActionStatus } from '../../../components/types';
-import { formatTimestamp, formatExpiryTimestamp } from '../../../components/utils';
+import { AlarmClock, CalendarClock, RefreshCw, X } from 'lucide-react';
+import type { ConnectedApplication, EmailAction, EmailActionExecution, EmailActionStatus } from '../../types';
+import { formatExpiryTimestamp, formatFutureDuration, formatTimestamp } from '../../lib/format';
 import { ActionStatusBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Select, Label } from '../ui/Input';
 import { Metric } from '../shared/Metric';
 import { FilterBar } from '../shared/FilterBar';
+import { LoadMoreButton } from '../shared/LoadMoreButton';
+import { MailboxSelect } from '../shared/MailboxSelect';
+import { RefreshButton } from '../shared/RefreshButton';
 import { ActionPayloadDetails } from '../actions/ActionPayloadDetails';
 import { cn } from '../../lib/utils';
 
@@ -38,16 +41,7 @@ const SNOOZE_PRESETS: { label: string; getValue: () => string }[] = [
 ];
 
 function formatSnoozedUntil(ts: number): string {
-  const date = new Date(ts * 1000);
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString();
+  return formatFutureDuration(ts);
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -201,21 +195,13 @@ export function ActionsView({
             Review AI-Proposed Actions, Execution Results, Audit Trail, And Expiry.
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={onRefresh} loading={busy}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={onRefresh} loading={busy} />
       </div>
 
       <FilterBar>
         <div className="flex flex-col gap-1.5">
           <Label>Mailbox</Label>
-          <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} className="min-w-[180px]">
-            <option value="">All Mailboxes</option>
-            {applications.map((app) => (
-              <option key={app.applicationId} value={app.applicationId}>{app.displayName}</option>
-            ))}
-          </Select>
+          <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Status</Label>
@@ -288,7 +274,7 @@ export function ActionsView({
           </div>
           {actionsCursor && (
             <div className="px-5 py-3 border-t border-[var(--color-border)]">
-              <Button variant="secondary" size="sm" onClick={onLoadMore} disabled={busy}>Load More</Button>
+              <LoadMoreButton onLoadMore={onLoadMore} loading={busy} />
             </div>
           )}
         </Card>

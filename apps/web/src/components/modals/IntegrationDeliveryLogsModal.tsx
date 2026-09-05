@@ -1,7 +1,7 @@
-import { X } from 'lucide-react';
-import type { IntegrationDeliveryLog } from '../../../components/types';
-import { formatTimestamp } from '../../../components/utils';
-import { ModalShell } from './ModalShell';
+import type { IntegrationDeliveryLog } from '../../types';
+import { formatTimestamp } from '../../lib/format';
+import { DeliveryStatusBadge } from '../ui/Badge';
+import { ModalBody, ModalEmpty, ModalHeader, ModalRow, ModalShell, WIDE_MODAL_CLASS } from './ModalShell';
 
 export function IntegrationDeliveryLogsModal({
   logs,
@@ -13,32 +13,20 @@ export function IntegrationDeliveryLogsModal({
   onClose: () => void;
 }) {
   return (
-    <ModalShell onClose={onClose} widthClass="w-full max-w-2xl max-h-[82vh] overflow-hidden mx-4" ariaLabel="Integration Delivery History">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Delivery History</h2>
-        <button
-          className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors p-1 rounded-lg hover:bg-[var(--color-surface-3)]"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+    <ModalShell onClose={onClose} widthClass={WIDE_MODAL_CLASS} ariaLabel="Integration Delivery History">
+      <ModalHeader title="Delivery History" onClose={onClose} />
 
-      <div className="overflow-y-auto p-5 space-y-2.5 max-h-[calc(82vh-4rem)]">
+      <ModalBody>
         {loading && logs.length === 0 && (
-          <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">Loading...</div>
+          <ModalEmpty message="Loading..." />
         )}
         {!loading && logs.length === 0 && (
-          <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">No Delivery Logs Found.</div>
+          <ModalEmpty message="No Delivery Logs Found." />
         )}
         {logs.map((log) => {
           const isSuccess = log.status === 'success';
-          const badgeClass = isSuccess
-            ? 'bg-green-100 text-green-700'
-            : 'bg-red-100 text-red-700';
           return (
-            <div key={log.logId} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-base)] p-4">
+            <ModalRow key={log.logId}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
@@ -56,14 +44,12 @@ export function IntegrationDeliveryLogsModal({
                     </p>
                   )}
                 </div>
-                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${badgeClass}`}>
-                  {isSuccess ? 'Success' : 'Failed'}
-                </span>
+                <DeliveryStatusBadge status={isSuccess ? 'success' : 'failure'} />
               </div>
-            </div>
+            </ModalRow>
           );
         })}
-      </div>
+      </ModalBody>
     </ModalShell>
   );
 }

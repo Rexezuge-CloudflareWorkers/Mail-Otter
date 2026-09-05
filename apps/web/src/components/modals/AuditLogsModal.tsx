@@ -1,9 +1,9 @@
-import { X, RefreshCw } from 'lucide-react';
-import type { ContextAuditLog } from '../../../components/types';
-import { formatTimestamp } from '../../../components/utils';
+import type { ContextAuditLog } from '../../types';
+import { formatTimestamp } from '../../lib/format';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
-import { ModalShell } from './ModalShell';
+import { RefreshButton } from '../shared/RefreshButton';
+import { ModalBody, ModalEmpty, ModalHeader, ModalRow, ModalShell, WIDE_MODAL_CLASS } from './ModalShell';
 
 const auditEventLabels: Record<string, string> = {
   processing_started: 'Processing Started',
@@ -36,27 +36,16 @@ export function AuditLogsModal({
   onRefresh: () => void;
 }) {
   return (
-    <ModalShell onClose={onClose} widthClass="w-full max-w-2xl max-h-[82vh] overflow-hidden mx-4" ariaLabel="Document Audit Logs">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-        <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Document Audit Logs</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" loading={loading} onClick={onRefresh}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          <button
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors p-1 rounded-lg hover:bg-[var(--color-surface-3)]"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+    <ModalShell onClose={onClose} widthClass={WIDE_MODAL_CLASS} ariaLabel="Document Audit Logs">
+      <ModalHeader
+        title="Document Audit Logs"
+        onClose={onClose}
+        actions={<RefreshButton onRefresh={onRefresh} loading={loading} />}
+      />
 
-      <div className="overflow-y-auto p-5 space-y-2.5 max-h-[calc(82vh-4rem)]">
+      <ModalBody>
         {logs.length === 0 && !loading && (
-          <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">No Audit Logs Found For This Document.</div>
+          <ModalEmpty message="No Audit Logs Found For This Document." />
         )}
         {logs.map((log, index) => {
           const dotClass =
@@ -67,7 +56,7 @@ export function AuditLogsModal({
                 : 'bg-[var(--color-success-text)]';
           const attemptNumber = (log.eventData as { attempt?: number })?.attempt;
           return (
-            <div key={log.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-base)] p-4">
+            <ModalRow key={log.id}>
               <div className="flex items-start gap-2.5">
                 <span className={cn('inline-block w-2 h-2 rounded-full shrink-0 mt-1.5', dotClass)} />
                 <div className="min-w-0 flex-1">
@@ -93,7 +82,7 @@ export function AuditLogsModal({
                   )}
                 </div>
               </div>
-            </div>
+            </ModalRow>
           );
         })}
         {cursor && (
@@ -101,7 +90,7 @@ export function AuditLogsModal({
             Load More
           </Button>
         )}
-      </div>
+      </ModalBody>
     </ModalShell>
   );
 }

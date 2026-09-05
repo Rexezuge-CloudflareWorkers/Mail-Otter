@@ -1,4 +1,4 @@
-import { apiFetch, readJson } from '../../components/utils';
+import { apiPost } from '../lib/api';
 
 export interface ChatSource {
   vectorId: string;
@@ -24,11 +24,5 @@ export async function sendChatMessage(options: {
   applicationId?: string;
   history: ChatMessage[];
 }): Promise<ChatResponse> {
-  return readJson<ChatResponse>(
-    await apiFetch('/user/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(options),
-    }),
-  );
+  return apiPost<ChatResponse>('/user/chat', options);
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ApplicationContextDocument, ApplicationContextDeletionRun, ApplicationContextDocumentStatus } from '../../components/types';
+import type { ApplicationContextDocument, ApplicationContextDeletionRun, ApplicationContextDocumentStatus } from '../types';
 import * as contextSvc from '../services/contextService';
 
 interface UseContextAuditOptions {

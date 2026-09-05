@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../../components/types';
+import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
 import * as appSvc from '../services/applicationService';

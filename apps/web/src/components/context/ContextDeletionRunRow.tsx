@@ -1,5 +1,5 @@
-import type { ApplicationContextDeletionRun, ConnectedApplication } from '../../../components/types';
-import { formatTimestamp } from '../../../components/utils';
+import type { ApplicationContextDeletionRun, ConnectedApplication } from '../../types';
+import { formatTimestamp } from '../../lib/format';
 import { DeletionStatusBadge } from '../ui/Badge';
 
 export function ContextDeletionRunRow({

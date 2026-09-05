@@ -1,5 +1,5 @@
-import type { ConnectedApplication } from '../../../components/types';
-import { formatTimestamp } from '../../../components/utils';
+import type { ConnectedApplication } from '../../types';
+import { formatTimestamp } from '../../lib/format';
 import { Button } from '../ui/Button';
 import { Metric } from '../shared/Metric';
 import { CollapsibleSection } from '../shared/CollapsibleSection';

@@ -1,19 +1,22 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { Button } from '../ui/Button';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
-const ALL_SECTIONS: Array<{ key: string; label: string; description: string }> = [
-  { key: 'calendar', label: 'Calendar Events', description: "Today's events from your calendar." },
-  { key: 'tasks', label: 'Pending Tasks', description: 'Outstanding to-do actions extracted from emails.' },
-  { key: 'packages', label: 'Package Deliveries', description: 'Active package tracking from processed emails.' },
-  { key: 'flights', label: 'Upcoming Flights', description: 'Flight details extracted from booking emails.' },
-  { key: 'bills', label: 'Bills Due Soon', description: 'Bills due within 7 days found in emails.' },
-  { key: 'appointments', label: 'Appointments', description: 'Confirmed or upcoming appointments within 48 hours.' },
+const ALL_SECTIONS: Array<{ key: string }> = [
+  { key: 'calendar' },
+  { key: 'tasks' },
+  { key: 'packages' },
+  { key: 'flights' },
+  { key: 'bills' },
+  { key: 'appointments' },
 ];
 
 export function DigestSection({ application }: { application: ConnectedApplication }) {
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   const { busy, onSaveDigestConfig, onSendDigestNow } = useMailboxCallbacks();
   const cfg = application.digestConfig;
 
@@ -42,15 +45,33 @@ export function DigestSection({ application }: { application: ConnectedApplicati
     setDirty(false);
   };
 
-  const lastSentLabel = cfg?.lastSentAt
-    ? new Date(cfg.lastSentAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-    : 'Never';
+  const sectionLabels: Record<string, string> = {
+    calendar: t('digest.sectionCalendar', "Calendar Events"),
+    tasks: t('digest.sectionTasks', 'Pending Tasks'),
+    packages: t('digest.sectionPackages', 'Package Deliveries'),
+    flights: t('digest.sectionFlights', 'Upcoming Flights'),
+    bills: t('digest.sectionBills', 'Bills Due Soon'),
+    appointments: t('digest.sectionAppointments', 'Appointments'),
+  };
+  const sectionDescriptions: Record<string, string> = {
+    calendar: t('digest.sectionCalendarDesc', "Today's events from your calendar."),
+    tasks: t('digest.sectionTasksDesc', 'Outstanding to-do actions extracted from emails.'),
+    packages: t('digest.sectionPackagesDesc', 'Active package tracking from processed emails.'),
+    flights: t('digest.sectionFlightsDesc', 'Flight details extracted from booking emails.'),
+    bills: t('digest.sectionBillsDesc', 'Bills due within 7 days found in emails.'),
+    appointments: t('digest.sectionAppointmentsDesc', 'Confirmed or upcoming appointments within 48 hours.'),
+  };
+
+  const lastSentDate = cfg?.lastSentAt
+    ? new Date(cfg.lastSentAt).toLocaleString(lng, { dateStyle: 'medium', timeStyle: 'short' })
+    : t('common.never', 'Never');
+  const lastSentLabel = t('digest.lastSentAt', 'Last Sent: {{date}}', { date: lastSentDate });
 
   return (
-    <CollapsibleSection title="Daily Digest">
+    <CollapsibleSection title={t('digest.title', 'Daily Digest')}>
 
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        Receive a daily digest email summarizing your pending tasks, calendar events, package deliveries, and more.
+        {t('digest.description', 'Receive a daily digest email summarizing your pending tasks, calendar events, package deliveries, and more.')}
       </p>
 
       <div className="space-y-4">
@@ -62,13 +83,13 @@ export function DigestSection({ application }: { application: ConnectedApplicati
             disabled={busy}
             onChange={(e) => handleEnabledChange(e.target.checked)}
           />
-          <span className="text-sm font-medium text-[var(--color-text-primary)]">Enable Daily Digest</span>
+          <span className="text-sm font-medium text-[var(--color-text-primary)]">{t('digest.enableDailyDigest', 'Enable Daily Digest')}</span>
         </label>
 
         {enabled && (
           <>
             <div className="flex items-center gap-3">
-              <label className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">Send Time</label>
+              <label className="text-sm text-[var(--color-text-muted)] whitespace-nowrap">{t('digest.sendTime', 'Send Time')}</label>
               <input
                 type="time"
                 value={sendTime}
@@ -76,13 +97,13 @@ export function DigestSection({ application }: { application: ConnectedApplicati
                 onChange={(e) => handleTimeChange(e.target.value)}
                 className="text-sm border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
               />
-              <span className="text-xs text-[var(--color-text-muted)]">in {application.timeZone || 'UTC'}</span>
+              <span className="text-xs text-[var(--color-text-muted)]">{t('digest.inTimeZone', 'in {{tz}}', { tz: application.timeZone || 'UTC' })}</span>
             </div>
 
             <div>
-              <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase">Sections</p>
+              <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase">{t('digest.sections', 'Sections')}</p>
               <div className="space-y-2">
-                {ALL_SECTIONS.map(({ key, label, description }) => (
+                {ALL_SECTIONS.map(({ key }) => (
                   <label
                     key={key}
                     className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -99,8 +120,8 @@ export function DigestSection({ application }: { application: ConnectedApplicati
                       onChange={() => toggleSection(key)}
                     />
                     <div className="min-w-0">
-                      <span className="text-sm font-medium text-[var(--color-text-primary)]">{label}</span>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">{sectionLabels[key] ?? key}</span>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{sectionDescriptions[key] ?? ''}</p>
                     </div>
                   </label>
                 ))}
@@ -110,7 +131,7 @@ export function DigestSection({ application }: { application: ConnectedApplicati
         )}
 
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-xs text-[var(--color-text-muted)]">Last Sent: {lastSentLabel}</span>
+          <span className="text-xs text-[var(--color-text-muted)]">{lastSentLabel}</span>
           <div className="flex items-center gap-2">
             {cfg && (
               <Button
@@ -119,12 +140,12 @@ export function DigestSection({ application }: { application: ConnectedApplicati
                 disabled={busy}
                 onClick={() => onSendDigestNow(application.applicationId)}
               >
-                Send Now
+                {t('digest.sendNowShort', 'Send Now')}
               </Button>
             )}
             {dirty && (
               <Button size="sm" disabled={busy} onClick={save}>
-                Save
+                {t('common.save', 'Save')}
               </Button>
             )}
           </div>

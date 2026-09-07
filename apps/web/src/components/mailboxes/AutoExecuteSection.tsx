@@ -1,24 +1,24 @@
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication, EmailActionType } from '../../types';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
+type AutoExecuteRisk = 'low' | 'medium' | 'high';
+
 interface ActionTypeConfig {
   type: EmailActionType;
-  label: string;
-  description: string;
-  risk: 'low' | 'medium' | 'high';
-  warning?: string;
+  risk: AutoExecuteRisk;
 }
 
 const ACTION_TYPES: ActionTypeConfig[] = [
-  { type: 'delivery.track_package', label: 'Track Package', description: 'Notes tracking number and opens tracking link.', risk: 'low' },
-  { type: 'travel.track_flight', label: 'Track Flight', description: 'Notes flight details and opens tracking link.', risk: 'low' },
-  { type: 'finance.pay_bill', label: 'Pay Bill', description: 'Notes bill details and opens payment link.', risk: 'low' },
-  { type: 'appointment.confirm', label: 'Confirm Appointment', description: 'Notes appointment details.', risk: 'low' },
-  { type: 'external.open_link', label: 'Open Link', description: 'Marks the link as reviewed.', risk: 'low' },
-  { type: 'manual.todo', label: 'Manual Todo', description: 'Acknowledges the task immediately.', risk: 'low' },
-  { type: 'email.draft_reply', label: 'Draft Reply', description: 'Creates a draft reply in your mailbox.', risk: 'medium', warning: 'Creates drafts without review.' },
-  { type: 'calendar.add_event', label: 'Add Calendar Event', description: 'Adds the event to your calendar.', risk: 'high', warning: 'Adds events to your calendar without review. Requires the calendar feature to be enabled.' },
+  { type: 'delivery.track_package', risk: 'low' },
+  { type: 'travel.track_flight', risk: 'low' },
+  { type: 'finance.pay_bill', risk: 'low' },
+  { type: 'appointment.confirm', risk: 'low' },
+  { type: 'external.open_link', risk: 'low' },
+  { type: 'manual.todo', risk: 'low' },
+  { type: 'email.draft_reply', risk: 'medium' },
+  { type: 'calendar.add_event', risk: 'high' },
 ];
 
 const RISK_COLORS: Record<'low' | 'medium' | 'high', string> = {
@@ -28,8 +28,39 @@ const RISK_COLORS: Record<'low' | 'medium' | 'high', string> = {
 };
 
 export function AutoExecuteSection({ application }: { application: ConnectedApplication }) {
+  const { t } = useTranslation();
   const { busy, onUpdateAutoExecuteActionTypes } = useMailboxCallbacks();
   const enabled = new Set(application.autoExecuteActionTypes);
+
+  const actionLabels: Record<EmailActionType, string> = {
+    'delivery.track_package': t('autoExecute.trackPackage', 'Track Package'),
+    'travel.track_flight': t('autoExecute.trackFlight', 'Track Flight'),
+    'finance.pay_bill': t('autoExecute.payBill', 'Pay Bill'),
+    'appointment.confirm': t('autoExecute.confirmAppointment', 'Confirm Appointment'),
+    'external.open_link': t('autoExecute.openLink', 'Open Link'),
+    'manual.todo': t('autoExecute.manualTodo', 'Manual Todo'),
+    'email.draft_reply': t('autoExecute.draftReply', 'Draft Reply'),
+    'calendar.add_event': t('autoExecute.addCalendarEvent', 'Add Calendar Event'),
+  };
+  const actionDescriptions: Record<EmailActionType, string> = {
+    'delivery.track_package': t('autoExecute.trackPackageDesc', 'Notes tracking number and opens tracking link.'),
+    'travel.track_flight': t('autoExecute.trackFlightDesc', 'Notes flight details and opens tracking link.'),
+    'finance.pay_bill': t('autoExecute.payBillDesc', 'Notes bill details and opens payment link.'),
+    'appointment.confirm': t('autoExecute.confirmAppointmentDesc', 'Notes appointment details.'),
+    'external.open_link': t('autoExecute.openLinkDesc', 'Marks the link as reviewed.'),
+    'manual.todo': t('autoExecute.manualTodoDesc', 'Acknowledges the task immediately.'),
+    'email.draft_reply': t('autoExecute.draftReplyDesc', 'Creates a draft reply in your mailbox.'),
+    'calendar.add_event': t('autoExecute.addCalendarEventDesc', 'Adds the event to your calendar.'),
+  };
+  const actionWarnings: Partial<Record<EmailActionType, string>> = {
+    'email.draft_reply': t('autoExecute.draftReplyWarning', 'Creates drafts without review.'),
+    'calendar.add_event': t('autoExecute.addCalendarEventWarning', 'Adds events to your calendar without review. Requires the calendar feature to be enabled.'),
+  };
+  const riskLabels: Record<'low' | 'medium' | 'high', string> = {
+    low: t('autoExecute.risk.low', 'low'),
+    medium: t('autoExecute.risk.medium', 'medium'),
+    high: t('autoExecute.risk.high', 'high'),
+  };
 
   const toggle = (type: EmailActionType) => {
     const next = new Set(enabled);
@@ -42,13 +73,16 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
   };
 
   return (
-    <CollapsibleSection title="Action Auto-Execution">
+    <CollapsibleSection title={t('autoExecute.title', 'Action Auto-Execution')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        Automatically execute these action types when a matching email is processed. Results appear in the Actions view without requiring a manual click.
+        {t('autoExecute.description', 'Automatically execute these action types when a matching email is processed. Results appear in the Actions view without requiring a manual click.')}
       </p>
       <div className="space-y-2">
-        {ACTION_TYPES.map(({ type, label, description, risk, warning }) => {
+        {ACTION_TYPES.map(({ type, risk }) => {
           const isEnabled = enabled.has(type);
+          const label = actionLabels[type];
+          const description = actionDescriptions[type];
+          const warning = actionWarnings[type];
           return (
             <label
               key={type}
@@ -68,7 +102,7 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--color-text-primary)]">{label}</span>
-                  <span className={`text-[10px] font-semibold uppercase ${RISK_COLORS[risk]}`}>{risk}</span>
+                  <span className={`text-[10px] font-semibold uppercase ${RISK_COLORS[risk]}`}>{riskLabels[risk]}</span>
                 </div>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>
                 {warning && (

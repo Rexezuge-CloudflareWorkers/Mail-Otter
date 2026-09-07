@@ -17,7 +17,7 @@ import type {
   OAuth2Credentials,
   SenderDomainFilters,
 } from '@mail-otter/shared/model';
-import { TimestampUtil, TimeZoneUtil, UUIDUtil } from '@mail-otter/shared/utils';
+import { LocaleUtil, TimestampUtil, TimeZoneUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { EncryptedDAO } from './BaseDAO';
 
 class ConnectedApplicationDAO extends EncryptedDAO {
@@ -33,6 +33,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     enabledFeatures?: string[] | null,
     timeZone?: string | null,
     imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
+    contentLanguage?: string | null,
   ): Promise<ConnectedApplicationMetadata> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const applicationId: string = UUIDUtil.getRandomUUID();
@@ -72,6 +73,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     }
     if (timeZone) {
       await this.setProviderConfig(applicationId, 'calendar_time_zone', TimeZoneUtil.normalize(timeZone), now);
+    }
+    if (contentLanguage) {
+      await this.setProviderConfig(applicationId, 'content_language', LocaleUtil.normalize(contentLanguage), now);
     }
     if (imapConfig) {
       await this.saveImapConfig(applicationId, imapConfig, now);
@@ -149,6 +153,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     timeZone?: string | null,
     imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
     autoExecuteActionTypes?: string[] | null,
+    contentLanguage?: string | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
@@ -185,6 +190,11 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       await this.setProviderConfig(applicationId, 'calendar_time_zone', TimeZoneUtil.normalize(timeZone), now);
     } else if (timeZone === null) {
       await this.deleteProviderConfig(applicationId, 'calendar_time_zone');
+    }
+    if (contentLanguage) {
+      await this.setProviderConfig(applicationId, 'content_language', LocaleUtil.normalize(contentLanguage), now);
+    } else if (contentLanguage === null) {
+      await this.deleteProviderConfig(applicationId, 'content_language');
     }
     if (imapConfig) {
       await this.saveImapConfig(applicationId, imapConfig, now);
@@ -530,8 +540,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr, autoExecuteActionTypesJson, attachmentVisionEnabledStr]: [
+    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, contentLanguage, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr, autoExecuteActionTypesJson, attachmentVisionEnabledStr]: [
       Array<{ folderPath: string; folderName: string }>,
+      string | null,
       string | null,
       string | null,
       string | null,
@@ -550,6 +561,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       this.getProviderConfig(row.application_id, 'oauth2_enabled_features'),
       this.getProviderConfig(row.application_id, 'sender_domain_filters'),
       this.getProviderConfig(row.application_id, 'calendar_time_zone'),
+      this.getProviderConfig(row.application_id, 'content_language'),
       this.getProviderConfig(row.application_id, 'email_processing_rules'),
       this.getProviderConfig(row.application_id, 'imap_host'),
       this.getProviderConfig(row.application_id, 'imap_port'),
@@ -603,6 +615,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       maxContextDocuments: row.max_context_documents ?? null,
       enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
       timeZone: timeZone ?? null,
+      contentLanguage: contentLanguage ?? null,
       senderDomainFilters,
       emailProcessingRules: resolvedRulesJson ? (JSON.parse(resolvedRulesJson) as EmailProcessingRule[]) : null,
       watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
@@ -626,6 +639,19 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     enabled: boolean,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     await this.setProviderConfig(applicationId, 'attachment_vision_enabled', enabled ? 'true' : 'false');
+    return this.getMetadataByIdForUser(applicationId, userEmail);
+  }
+
+  public async updateContentLanguageForUser(
+    applicationId: string,
+    userEmail: string,
+    contentLanguage: string | null,
+  ): Promise<ConnectedApplicationMetadata | undefined> {
+    if (contentLanguage) {
+      await this.setProviderConfig(applicationId, 'content_language', LocaleUtil.normalize(contentLanguage));
+    } else {
+      await this.deleteProviderConfig(applicationId, 'content_language');
+    }
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 

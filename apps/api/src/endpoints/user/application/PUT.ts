@@ -42,6 +42,7 @@ interface UpdateApplicationRequest extends IRequest {
   smtpPort?: number;
   enabledFeatures?: string[] | null;
   timeZone?: string;
+  contentLanguage?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
   autoExecuteActionTypes?: string[] | null;
 }

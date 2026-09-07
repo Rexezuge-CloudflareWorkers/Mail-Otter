@@ -19,9 +19,10 @@ class GetCurrentUserRoute extends IUserRoute<GetCurrentUserRequest, GetCurrentUs
     env: GetCurrentUserEnv,
     cxt: RouteContext<GetCurrentUserEnv>,
   ): Promise<GetCurrentUserResponse> {
-    const summary = await new UserService(env).getCurrentUserSummary();
+    const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
+    const summary = await new UserService(env).getCurrentUserSummary(userEmail);
     return {
-      email: this.getAuthenticatedUserEmailAddress(cxt),
+      email: userEmail,
       ...summary,
     };
   }
@@ -31,6 +32,7 @@ type GetCurrentUserRequest = IRequest;
 
 interface GetCurrentUserResponse extends IResponse {
   email: string;
+  preferredLanguage: string | null;
   limits: {
     maxApplicationsPerUser: number;
     maxContextDocumentsPerApplication: number;

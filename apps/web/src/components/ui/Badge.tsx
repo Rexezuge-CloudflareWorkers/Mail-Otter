@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
 const badgeVariants = cva(
@@ -56,32 +57,39 @@ function variantFor(status: string): BadgeVariant {
   }
 }
 
-function label(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+function useStatusLabel(status: string): string {
+  const { t } = useTranslation();
+  return t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
 }
 
 export function ConnectionBadge({ status }: { status: ConnectionStatus }) {
-  return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={variantFor(status)}>{label}</Badge>;
 }
 
 export function WatchBadge({ status }: { status: WatchStatus }) {
-  return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={variantFor(status)}>{label}</Badge>;
 }
 
 export function ContextIndexBadge({ enabled }: { enabled: boolean }) {
-  return <Badge variant={enabled ? 'success' : 'neutral'}>{enabled ? 'Indexed' : 'Not Indexed'}</Badge>;
+  const { t } = useTranslation();
+  return <Badge variant={enabled ? 'success' : 'neutral'}>{enabled ? t('badges.indexed', 'Indexed') : t('badges.notIndexed', 'Not Indexed')}</Badge>;
 }
 
 export function DocStatusBadge({ status }: { status: ContextDocStatus }) {
-  return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={variantFor(status)}>{label}</Badge>;
 }
 
 export function DeletionStatusBadge({ status }: { status: DeletionStatus }) {
-  return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={variantFor(status)}>{label}</Badge>;
 }
 
 export function ActionStatusBadge({ status }: { status: ActionStatus }) {
-  return <Badge variant={variantFor(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={variantFor(status)}>{label}</Badge>;
 }
 
 type TaskRunStatus = 'running' | 'success' | 'partial_success' | 'error' | 'skipped';
@@ -104,9 +112,10 @@ function taskRunVariant(status: TaskRunStatus): BadgeVariant {
   }
 }
 
-function taskRunLabel(status: TaskRunStatus): string {
-  if (status === 'partial_success') return 'Partial';
-  return label(status);
+function useTaskRunLabel(status: TaskRunStatus): string {
+  const { t } = useTranslation();
+  if (status === 'partial_success') return t('badges.partial', 'Partial');
+  return t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
 }
 
 function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
@@ -125,17 +134,20 @@ function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
 }
 
 export function TaskRunStatusBadge({ status }: { status: TaskRunStatus }) {
-  return <Badge variant={taskRunVariant(status)}>{taskRunLabel(status)}</Badge>;
+  const label = useTaskRunLabel(status);
+  return <Badge variant={taskRunVariant(status)}>{label}</Badge>;
 }
 
 export function ProcessedMessageStatusBadge({ status }: { status: ProcessedMessageStatus }) {
-  return <Badge variant={processedMsgVariant(status)}>{label(status)}</Badge>;
+  const label = useStatusLabel(status);
+  return <Badge variant={processedMsgVariant(status)}>{label}</Badge>;
 }
 
 type DeliveryStatus = 'success' | 'failure';
 
 export function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
-  return <Badge variant={status === 'success' ? 'success' : 'error'}>{status === 'success' ? 'Success' : 'Failed'}</Badge>;
+  const { t } = useTranslation();
+  return <Badge variant={status === 'success' ? 'success' : 'error'}>{status === 'success' ? t('badges.success', 'Success') : t('badges.failed', 'Failed')}</Badge>;
 }
 
 export function IntegrationHealthBadge({
@@ -145,7 +157,8 @@ export function IntegrationHealthBadge({
   status: 'success' | 'failure' | null;
   consecutiveFailures: number;
 }) {
-  if (status === 'success') return <Badge variant="success">Ok</Badge>;
-  if (status === 'failure') return <Badge variant="error">Failed ({consecutiveFailures})</Badge>;
-  return <Badge variant="neutral">Never Sent</Badge>;
+  const { t } = useTranslation();
+  if (status === 'success') return <Badge variant="success">{t('badges.ok', 'Ok')}</Badge>;
+  if (status === 'failure') return <Badge variant="error">{t('badges.failedWithCount', 'Failed ({{count}})', { count: consecutiveFailures })}</Badge>;
+  return <Badge variant="neutral">{t('badges.neverSent', 'Never Sent')}</Badge>;
 }

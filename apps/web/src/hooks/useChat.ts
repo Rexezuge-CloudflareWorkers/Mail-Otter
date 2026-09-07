@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as chatService from '../services/chatService';
 import type { ChatMessage, ChatSource } from '../services/chatService';
 
@@ -7,6 +8,7 @@ interface UseChatOptions {
 }
 
 export function useChat({ showNotice }: UseChatOptions) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sources, setSources] = useState<ChatSource[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -28,7 +30,7 @@ export function useChat({ showNotice }: UseChatOptions) {
       setSources(result.sources);
     } catch (e) {
       setMessages(previousMessages);
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Send Chat Message.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.chatSendFailed', 'Unable To Send Chat Message.'));
     } finally {
       setChatLoading(false);
     }

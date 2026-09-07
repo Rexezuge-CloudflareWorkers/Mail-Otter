@@ -9,7 +9,8 @@ import {
   EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
   EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
-import { TimestampUtil } from '@mail-otter/shared/utils';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
+import { LocaleUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import type {
   EmailAction,
   EmailActionPayload,
@@ -42,9 +43,10 @@ function escapeHtml(value: string): string {
   });
 }
 
-function renderPage(title: string, body: string): string {
+function renderPage(title: string, body: string, locale?: string | null): string {
+  const lang = LocaleUtil.normalize(locale);
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,147 +66,156 @@ function renderPage(title: string, body: string): string {
 </html>`;
 }
 
-function renderMessagePage(title: string, message: string): string {
-  return renderPage(title, `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>`);
+function renderMessagePage(title: string, message: string, locale?: string | null): string {
+  return renderPage(title, `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>`, locale);
 }
 
-function renderResultDetails(result: EmailActionResult): string {
+function renderResultDetails(result: EmailActionResult, locale?: string | null): string {
+  const strings = getBackendStrings(locale);
   return [
     '<section>',
-    '<h2>Result</h2>',
+    `<h2>${escapeHtml(strings.actionPage.resultHeading)}</h2>`,
     `<p>${escapeHtml(result.summary)}</p>`,
     result.providerUrl || result.externalUrl
-      ? `<p><a href="${escapeHtml(result.providerUrl || result.externalUrl || '')}" rel="noopener noreferrer">Open result</a></p>`
+      ? `<p><a href="${escapeHtml(result.providerUrl || result.externalUrl || '')}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.openResult)}</a></p>`
       : '',
     '</section>',
   ].join('\n');
 }
 
-function renderActionDetails(action: EmailAction): string {
+function renderActionDetails(action: EmailAction, locale?: string | null): string {
+  const strings = getBackendStrings(locale);
   const payload: EmailActionPayload = action.payload;
   if (payload.type === EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT) {
     return [
-      '<section><h2>Calendar Event</h2>',
-      `<p><strong>Title:</strong> ${escapeHtml(payload.eventTitle)}</p>`,
-      `<p><strong>Start:</strong> ${escapeHtml(payload.startTime)} ${escapeHtml(payload.timeZone)}</p>`,
-      `<p><strong>End:</strong> ${escapeHtml(payload.endTime)} ${escapeHtml(payload.timeZone)}</p>`,
-      payload.location ? `<p><strong>Location:</strong> ${escapeHtml(payload.location)}</p>` : '',
+      `<section><h2>${escapeHtml(strings.actionPage.calendarEvent)}</h2>`,
+      `<p><strong>${escapeHtml(strings.actionPage.titleLabel)}</strong> ${escapeHtml(payload.eventTitle)}</p>`,
+      `<p><strong>${escapeHtml(strings.actionPage.startLabel)}</strong> ${escapeHtml(payload.startTime)} ${escapeHtml(payload.timeZone)}</p>`,
+      `<p><strong>${escapeHtml(strings.actionPage.endLabel)}</strong> ${escapeHtml(payload.endTime)} ${escapeHtml(payload.timeZone)}</p>`,
+      payload.location ? `<p><strong>${escapeHtml(strings.actionPage.locationLabel)}</strong> ${escapeHtml(payload.location)}</p>` : '',
       '</section>',
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY) {
-    return `<section><h2>Draft Reply</h2><pre>${escapeHtml(payload.draftBody)}</pre></section>`;
+    return `<section><h2>${escapeHtml(strings.actionPage.draftReply)}</h2><pre>${escapeHtml(payload.draftBody)}</pre></section>`;
   }
   if (payload.type === EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK) {
-    return `<section><h2>Link</h2><p>${escapeHtml(payload.url)}</p></section>`;
+    return `<section><h2>${escapeHtml(strings.actionPage.linkHeading)}</h2><p>${escapeHtml(payload.url)}</p></section>`;
   }
   if (payload.type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
     const p = payload;
     return [
-      '<section><h2>Package Tracking</h2>',
-      `<p><strong>Tracking Number:</strong> ${escapeHtml(p.trackingNumber)}</p>`,
-      p.carrier ? `<p><strong>Carrier:</strong> ${escapeHtml(p.carrier)}</p>` : '',
-      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">Track package</a></p>` : '',
+      `<section><h2>${escapeHtml(strings.actionPage.packageTracking)}</h2>`,
+      `<p><strong>${escapeHtml(strings.actionPage.trackingNumberLabel)}</strong> ${escapeHtml(p.trackingNumber)}</p>`,
+      p.carrier ? `<p><strong>${escapeHtml(strings.actionPage.carrierLabel)}</strong> ${escapeHtml(p.carrier)}</p>` : '',
+      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackPackageLink)}</a></p>` : '',
       '</section>',
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
     const p = payload;
     return [
-      '<section><h2>Flight</h2>',
-      `<p><strong>Flight:</strong> ${escapeHtml(p.flightNumber)}</p>`,
-      p.airline ? `<p><strong>Airline:</strong> ${escapeHtml(p.airline)}</p>` : '',
+      `<section><h2>${escapeHtml(strings.actionPage.flightHeading)}</h2>`,
+      `<p><strong>${escapeHtml(strings.actionPage.flightLabel)}</strong> ${escapeHtml(p.flightNumber)}</p>`,
+      p.airline ? `<p><strong>${escapeHtml(strings.actionPage.airlineLabel)}</strong> ${escapeHtml(p.airline)}</p>` : '',
       p.departureAirport || p.arrivalAirport
-        ? `<p><strong>Route:</strong> ${escapeHtml(p.departureAirport || '?')} → ${escapeHtml(p.arrivalAirport || '?')}</p>`
+        ? `<p><strong>${escapeHtml(strings.actionPage.routeLabel)}</strong> ${escapeHtml(p.departureAirport || '?')} → ${escapeHtml(p.arrivalAirport || '?')}</p>`
         : '',
-      p.departureTime ? `<p><strong>Departure:</strong> ${escapeHtml(p.departureTime)}</p>` : '',
-      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">Track flight</a></p>` : '',
+      p.departureTime ? `<p><strong>${escapeHtml(strings.actionPage.departureLabel)}</strong> ${escapeHtml(p.departureTime)}</p>` : '',
+      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackFlightLink)}</a></p>` : '',
       '</section>',
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
     const p = payload;
     return [
-      '<section><h2>Bill Payment</h2>',
-      p.payee ? `<p><strong>Payee:</strong> ${escapeHtml(p.payee)}</p>` : '',
-      p.amount ? `<p><strong>Amount:</strong> ${escapeHtml(p.amount)}${p.currency ? ` ${escapeHtml(p.currency)}` : ''}</p>` : '',
-      p.dueDate ? `<p><strong>Due:</strong> ${escapeHtml(p.dueDate)}</p>` : '',
-      p.invoiceNumber ? `<p><strong>Invoice:</strong> ${escapeHtml(p.invoiceNumber)}</p>` : '',
-      p.paymentUrl ? `<p><a href="${escapeHtml(p.paymentUrl)}" rel="noopener noreferrer">Pay now</a></p>` : '',
+      `<section><h2>${escapeHtml(strings.actionPage.billPayment)}</h2>`,
+      p.payee ? `<p><strong>${escapeHtml(strings.actionPage.payeeLabel)}</strong> ${escapeHtml(p.payee)}</p>` : '',
+      p.amount ? `<p><strong>${escapeHtml(strings.actionPage.amountLabel)}</strong> ${escapeHtml(p.amount)}${p.currency ? ` ${escapeHtml(p.currency)}` : ''}</p>` : '',
+      p.dueDate ? `<p><strong>${escapeHtml(strings.actionPage.dueLabel)}</strong> ${escapeHtml(p.dueDate)}</p>` : '',
+      p.invoiceNumber ? `<p><strong>${escapeHtml(strings.actionPage.invoiceLabel)}</strong> ${escapeHtml(p.invoiceNumber)}</p>` : '',
+      p.paymentUrl ? `<p><a href="${escapeHtml(p.paymentUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.payNowLink)}</a></p>` : '',
       '</section>',
     ].join('\n');
   }
   if (payload.type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
     const p = payload;
     return [
-      '<section><h2>Appointment</h2>',
-      p.serviceType ? `<p><strong>Service:</strong> ${escapeHtml(p.serviceType)}</p>` : '',
-      p.providerName ? `<p><strong>Provider:</strong> ${escapeHtml(p.providerName)}</p>` : '',
-      p.appointmentTime ? `<p><strong>When:</strong> ${escapeHtml(p.appointmentTime)}</p>` : '',
-      p.location ? `<p><strong>Location:</strong> ${escapeHtml(p.location)}</p>` : '',
-      p.confirmationNumber ? `<p><strong>Confirmation:</strong> ${escapeHtml(p.confirmationNumber)}</p>` : '',
-      p.notes ? `<p><strong>Notes:</strong> ${escapeHtml(p.notes)}</p>` : '',
+      `<section><h2>${escapeHtml(strings.actionPage.appointmentHeading)}</h2>`,
+      p.serviceType ? `<p><strong>${escapeHtml(strings.actionPage.serviceLabel)}</strong> ${escapeHtml(p.serviceType)}</p>` : '',
+      p.providerName ? `<p><strong>${escapeHtml(strings.actionPage.providerLabel)}</strong> ${escapeHtml(p.providerName)}</p>` : '',
+      p.appointmentTime ? `<p><strong>${escapeHtml(strings.actionPage.whenLabel)}</strong> ${escapeHtml(p.appointmentTime)}</p>` : '',
+      p.location ? `<p><strong>${escapeHtml(strings.actionPage.locationLabel)}</strong> ${escapeHtml(p.location)}</p>` : '',
+      p.confirmationNumber ? `<p><strong>${escapeHtml(strings.actionPage.confirmationLabel)}</strong> ${escapeHtml(p.confirmationNumber)}</p>` : '',
+      p.notes ? `<p><strong>${escapeHtml(strings.actionPage.notesLabel)}</strong> ${escapeHtml(p.notes)}</p>` : '',
       '</section>',
     ].join('\n');
   }
   const manualPayload = payload;
-  return `<section><h2>Manual Task</h2><p>${escapeHtml(manualPayload.instructions)}</p></section>`;
+  return `<section><h2>${escapeHtml(strings.actionPage.manualTask)}</h2><p>${escapeHtml(manualPayload.instructions)}</p></section>`;
 }
 
-function renderConfirmationPage(action: EmailAction, token: string): string {
+function renderConfirmationPage(action: EmailAction, token: string, locale?: string | null): string {
+  const strings = getBackendStrings(locale);
   const expired: boolean = action.expiresAt <= TimestampUtil.getCurrentUnixTimestampInSeconds() || action.status === EMAIL_ACTION_STATUS_EXPIRED;
   const alreadyDone: boolean = action.status !== EMAIL_ACTION_STATUS_PENDING;
-  const details: string = renderActionDetails(action);
+  const details: string = renderActionDetails(action, locale);
   return renderPage(
-    `Confirm ${action.title}`,
+    `${strings.actionPage.confirmTitlePrefix}${action.title}`,
     [
       `<h1>${escapeHtml(action.title)}</h1>`,
       `<p>${escapeHtml(action.description)}</p>`,
       details,
-      `<p><strong>Status:</strong> ${escapeHtml(action.status)}</p>`,
-      `<p><strong>Expires:</strong> ${escapeHtml(new Date(action.expiresAt * 1000).toUTCString())}</p>`,
+      `<p><strong>${escapeHtml(strings.actionPage.statusLabel)}</strong> ${escapeHtml(action.status)}</p>`,
+      `<p><strong>${escapeHtml(strings.actionPage.expiresLabel)}</strong> ${escapeHtml(new Date(action.expiresAt * 1000).toUTCString())}</p>`,
       expired
-        ? '<p class="error">This action has expired.</p>'
+        ? `<p class="error">${escapeHtml(strings.actionPage.expiredError)}</p>`
         : alreadyDone
-          ? '<p>This action is no longer pending. The latest result is shown below.</p>'
-          : `<form method="post" action="/api/actions/${encodeURIComponent(action.actionId)}/execute?token=${encodeURIComponent(token)}"><button type="submit">Confirm action</button></form>`,
-      action.result ? renderResultDetails(action.result) : '',
+          ? `<p>${escapeHtml(strings.actionPage.noLongerPending)}</p>`
+          : `<form method="post" action="/api/actions/${encodeURIComponent(action.actionId)}/execute?token=${encodeURIComponent(token)}"><button type="submit">${escapeHtml(strings.actionPage.confirmButton)}</button></form>`,
+      action.result ? renderResultDetails(action.result, locale) : '',
     ].join('\n'),
+    locale,
   );
 }
 
-function renderResultPage(action: EmailAction): string {
+function renderResultPage(action: EmailAction, locale?: string | null): string {
+  const strings = getBackendStrings(locale);
   return renderPage(
-    `Action ${action.status}`,
+    `${strings.actionPage.resultTitlePrefix}${action.status}`,
     [
       `<h1>${escapeHtml(action.title)}</h1>`,
-      `<p><strong>Status:</strong> ${escapeHtml(action.status)}</p>`,
+      `<p><strong>${escapeHtml(strings.actionPage.statusLabel)}</strong> ${escapeHtml(action.status)}</p>`,
       action.errorMessage ? `<p class="error">${escapeHtml(action.errorMessage)}</p>` : '',
-      action.result ? renderResultDetails(action.result) : '',
+      action.result ? renderResultDetails(action.result, locale) : '',
     ].join('\n'),
+    locale,
   );
 }
 
-function renderActionItems(actions: CreatedEmailAction[]): string[] {
+function renderActionItems(actions: CreatedEmailAction[], locale?: string | null): string[] {
+  const strings = getBackendStrings(locale);
+  const tag = LocaleUtil.normalize(locale);
   return actions.map((item: CreatedEmailAction): string => {
-    const expires: string = new Date(item.action.expiresAt * 1000).toLocaleString('en-US', { timeZone: 'UTC', timeZoneName: 'short' });
+    const expires: string = new Date(item.action.expiresAt * 1000).toLocaleString(tag, { timeZone: 'UTC', timeZoneName: 'short' });
     return [
       '<li>',
       `<strong><a href="${escapeHtml(item.confirmationUrl)}">${escapeHtml(item.action.title)}</a></strong><br>`,
       `${escapeHtml(item.action.description)}<br>`,
-      ` <span style="color:#666;">Expires ${escapeHtml(expires)}</span>`,
+      ` <span style="color:#666;">${escapeHtml(`${strings.actionPage.expiresPrefix}${expires}`)}</span>`,
       '</li>',
     ].join('');
   });
 }
 
-function renderEmailActionSection(actions: CreatedEmailAction[]): string {
+function renderEmailActionSection(actions: CreatedEmailAction[], locale?: string | null): string {
   if (actions.length === 0) return '';
+  const strings = getBackendStrings(locale);
   return [
     '',
-    '<p><strong>Actions:</strong></p>',
+    `<p><strong>${escapeHtml(strings.actionPage.actionsHeading)}</strong></p>`,
     '<ul>',
-    ...renderActionItems(actions),
+    ...renderActionItems(actions, locale),
     '</ul>',
   ].join('\n');
 }

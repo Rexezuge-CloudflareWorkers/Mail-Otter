@@ -1,4 +1,6 @@
-export function formatTimestamp(timestampSeconds: number | null | undefined): string {
+import { resolveLocale } from './locale';
+
+export function formatTimestamp(timestampSeconds: number | null | undefined, lng?: string | null): string {
   if (timestampSeconds === null || timestampSeconds === undefined) return 'Never';
   const date = new Date(timestampSeconds * 1000);
   const now = new Date();
@@ -10,10 +12,10 @@ export function formatTimestamp(timestampSeconds: number | null | undefined): st
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(resolveLocale(lng));
 }
 
-export function formatExpiryTimestamp(timestampSeconds: number | null | undefined): string {
+export function formatExpiryTimestamp(timestampSeconds: number | null | undefined, lng?: string | null): string {
   if (timestampSeconds === null || timestampSeconds === undefined) return 'Never';
   const date = new Date(timestampSeconds * 1000);
   const now = new Date();
@@ -26,10 +28,10 @@ export function formatExpiryTimestamp(timestampSeconds: number | null | undefine
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `Expires in ${diffDays}d`;
   if (diffDays < 30) return `Expires in ${diffDays}d`;
-  return `Expires ${date.toLocaleDateString()}`;
+  return `Expires ${date.toLocaleDateString(resolveLocale(lng))}`;
 }
 
-export function formatFutureDuration(timestampSeconds: number): string {
+export function formatFutureDuration(timestampSeconds: number, lng?: string | null): string {
   const date = new Date(timestampSeconds * 1000);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
@@ -39,7 +41,7 @@ export function formatFutureDuration(timestampSeconds: number): string {
   if (diffHours < 24) return `${diffHours}h`;
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(resolveLocale(lng));
 }
 
 export function formatDuration(startedAt: number, completedAt: number | null): string {

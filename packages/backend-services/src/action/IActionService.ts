@@ -6,7 +6,7 @@ import type { ListActionsInput, UserActionListEnv } from './ActionService';
 
 interface IActionService {
   createActionsForSummary(input: CreateActionsForSummaryInput, env: ActionCreationEnv): Promise<CreatedEmailAction[]>;
-  renderEmailActionSection(actions: CreatedEmailAction[]): string;
+  renderEmailActionSection(actions: CreatedEmailAction[], locale?: string | null): string;
   getConfirmationResponse(actionId: string, token: string, env: ActionCallbackEnv): Promise<ActionHtmlResponse>;
   executeActionWithToken(actionId: string, token: string, request: Request, env: ActionCallbackEnv): Promise<ActionHtmlResponse>;
   executeActionForUser(actionId: string, userEmail: string, request: Request, env: UserActionEnv): Promise<EmailAction>;

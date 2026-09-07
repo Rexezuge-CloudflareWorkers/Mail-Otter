@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as processingService from '../services/processingService';
 import type { BackgroundTaskRun, BackgroundTaskRunStatus, ProcessedMessage, ProcessedMessageStatus, SyncedCalendarEvent } from '../services/processingService';
 
@@ -7,6 +8,7 @@ interface UseProcessingOptions {
 }
 
 export function useProcessing({ showNotice }: UseProcessingOptions) {
+  const { t } = useTranslation();
   const [processingApplicationId, setProcessingApplicationId] = useState('');
   const [processingTaskType, setProcessingTaskType] = useState('');
   const [processingRunStatus, setProcessingRunStatus] = useState<BackgroundTaskRunStatus | ''>('');
@@ -38,7 +40,7 @@ export function useProcessing({ showNotice }: UseProcessingOptions) {
       setTaskRuns(append ? (prev) => [...prev, ...result.runs] : result.runs);
       setTaskRunsCursor(result.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Task Runs.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.taskRunsLoadFailed', 'Unable To Load Task Runs.'));
     } finally {
       setTaskRunsLoading(false);
     }
@@ -54,7 +56,7 @@ export function useProcessing({ showNotice }: UseProcessingOptions) {
       setCalendarEvents(append ? (prev) => [...prev, ...result.events] : result.events);
       setCalendarEventsCursor(result.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Calendar Events.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.calendarEventsLoadFailed', 'Unable To Load Calendar Events.'));
     } finally {
       setCalendarEventsLoading(false);
     }
@@ -71,7 +73,7 @@ export function useProcessing({ showNotice }: UseProcessingOptions) {
       setProcessedMessages(append ? (prev) => [...prev, ...result.messages] : result.messages);
       setProcessedMessagesCursor(result.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Processed Messages.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.processedMessagesLoadFailed', 'Unable To Load Processed Messages.'));
     } finally {
       setProcessedMessagesLoading(false);
     }
@@ -85,10 +87,10 @@ export function useProcessing({ showNotice }: UseProcessingOptions) {
     setTriggeringTask(true);
     try {
       await processingService.triggerTaskRun(processingTaskType, processingApplicationId);
-      showNotice('success', 'Task Triggered Successfully.');
+      showNotice('success', t('toasts.taskTriggered', 'Task Triggered Successfully.'));
       await loadTaskRuns();
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Trigger Task.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.taskTriggerFailed', 'Unable To Trigger Task.'));
     } finally {
       setTriggeringTask(false);
     }

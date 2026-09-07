@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { OutboundIntegration, OutboundIntegrationType } from '../../types';
 import { Button } from '../ui/Button';
 import { IntegrationHealthBadge } from '../ui/Badge';
@@ -12,13 +13,9 @@ const TYPE_LABELS: Record<OutboundIntegrationType, string> = {
   webhook: 'Webhook',
 };
 
-const WEBHOOK_URL_LABEL: Record<OutboundIntegrationType, string> = {
-  slack: 'Slack Webhook URL',
-  discord: 'Discord Webhook URL',
-  webhook: 'Endpoint URL',
-};
-
 function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   const { busy, onUpdateIntegration, onDeleteIntegration, onTestIntegration, onFetchDeliveryLogs } = useMailboxCallbacks();
 
   const handleToggle = async () => {
@@ -26,7 +23,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
   };
 
   const handleDelete = async () => {
-    if (!globalThis.confirm(`Delete Integration "${integration.name}"?`)) return;
+    if (!globalThis.confirm(t('integrations.deleteConfirm', 'Delete Integration "{{name}}"?', { name: integration.name }))) return;
     await onDeleteIntegration(integration.integrationId);
   };
 
@@ -34,10 +31,16 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
     await onTestIntegration(integration.integrationId);
   };
 
+  const typeLabels: Record<OutboundIntegrationType, string> = {
+    slack: t('integrations.typeSlack', 'Slack'),
+    discord: t('integrations.typeDiscord', 'Discord'),
+    webhook: t('integrations.typeWebhook', 'Webhook'),
+  };
+
   return (
     <div className="flex items-center gap-3 py-2 border-b border-[var(--color-border)] last:border-0">
       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] uppercase">
-        {TYPE_LABELS[integration.integrationType] ?? integration.integrationType}
+        {typeLabels[integration.integrationType] ?? TYPE_LABELS[integration.integrationType] ?? integration.integrationType}
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{integration.name}</p>
@@ -50,12 +53,12 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         />
         {integration.lastDeliveryAt != null && (
           <span className="text-[10px] text-[var(--color-text-muted)]">
-            {new Date(integration.lastDeliveryAt * 1000).toLocaleString()}
+            {new Date(integration.lastDeliveryAt * 1000).toLocaleString(lng)}
           </span>
         )}
       </div>
       <Button size="sm" variant="ghost" onClick={() => onFetchDeliveryLogs(integration.integrationId)} disabled={busy}>
-        History
+        {t('integrations.history', 'History')}
       </Button>
       <button
         type="button"
@@ -64,7 +67,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
           integration.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
         } disabled:opacity-50`}
-        title={integration.enabled ? 'Disable Integration' : 'Enable Integration'}
+        title={integration.enabled ? t('integrations.disableIntegration', 'Disable Integration') : t('integrations.enableIntegration', 'Enable Integration')}
       >
         <span
           className={`inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transform transition-transform duration-200 ${
@@ -73,16 +76,17 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         />
       </button>
       <Button size="sm" variant="ghost" onClick={handleTest} disabled={busy}>
-        Test
+        {t('common.test', 'Test')}
       </Button>
       <Button size="sm" variant="ghost" onClick={handleDelete} disabled={busy} className="text-[var(--color-error)]">
-        Delete
+        {t('common.delete', 'Delete')}
       </Button>
     </div>
   );
 }
 
 function AddIntegrationForm({ applicationId, onCancel }: { applicationId: string; onCancel: () => void }) {
+  const { t } = useTranslation();
   const { busy, onCreateIntegration } = useMailboxCallbacks();
   const [integrationType, setIntegrationType] = useState<OutboundIntegrationType>('slack');
   const [name, setName] = useState('');
@@ -96,6 +100,13 @@ function AddIntegrationForm({ applicationId, onCancel }: { applicationId: string
     onCancel();
   };
 
+  const webhookUrlPlaceholders: Record<OutboundIntegrationType, string> = {
+    slack: t('integrations.slackWebhookUrl', 'Slack Webhook URL'),
+    discord: t('integrations.discordWebhookUrl', 'Discord Webhook URL'),
+    webhook: t('integrations.endpointUrl', 'Endpoint URL'),
+  };
+  const webhookUrlPlaceholder = webhookUrlPlaceholders[integrationType];
+
   return (
     <div className="mt-3 space-y-2 border-t border-[var(--color-border)] pt-3">
       <div className="flex gap-2">
@@ -105,14 +116,14 @@ function AddIntegrationForm({ applicationId, onCancel }: { applicationId: string
           disabled={busy}
           className="text-sm rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
         >
-          <option value="slack">Slack</option>
-          <option value="discord">Discord</option>
-          <option value="webhook">Webhook</option>
+          <option value="slack">{t('integrations.typeSlack', 'Slack')}</option>
+          <option value="discord">{t('integrations.typeDiscord', 'Discord')}</option>
+          <option value="webhook">{t('integrations.typeWebhook', 'Webhook')}</option>
         </select>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Integration Name"
+          placeholder={t('integrations.namePlaceholder', 'Integration Name')}
           disabled={busy}
           className="flex-1"
         />
@@ -120,16 +131,16 @@ function AddIntegrationForm({ applicationId, onCancel }: { applicationId: string
       <Input
         value={webhookUrl}
         onChange={(e) => setWebhookUrl(e.target.value)}
-        placeholder={WEBHOOK_URL_LABEL[integrationType]}
+        placeholder={webhookUrlPlaceholder}
         disabled={busy}
         type="url"
       />
       <div className="flex gap-2 justify-end">
         <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
-          Cancel
+          {t('common.cancel', 'Cancel')}
         </Button>
         <Button size="sm" onClick={handleSave} disabled={busy || !name.trim() || !webhookUrl.trim()}>
-          Save Integration
+          {t('integrations.saveIntegration', 'Save Integration')}
         </Button>
       </div>
     </div>
@@ -137,6 +148,7 @@ function AddIntegrationForm({ applicationId, onCancel }: { applicationId: string
 }
 
 export function IntegrationsSection({ applicationId }: { applicationId: string }) {
+  const { t } = useTranslation();
   const { integrationsByApplicationId, loadingIntegrations, onLoadIntegrations } = useMailboxCallbacks();
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -148,15 +160,15 @@ export function IntegrationsSection({ applicationId }: { applicationId: string }
   const atLimit = integrations.length >= 5;
 
   return (
-    <CollapsibleSection title="Outbound Integrations">
+    <CollapsibleSection title={t('integrations.outboundTitle', 'Outbound Integrations')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-3">
-        Forward email summaries to Slack, Discord, or a custom webhook.
+        {t('integrations.description', 'Forward email summaries to Slack, Discord, or a custom webhook.')}
       </p>
       <div className="px-4 pb-4">
         {loadingIntegrations && integrations.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('common.loading', 'Loading…')}</p>
         ) : integrations.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)]">No Integrations Configured.</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{t('integrations.empty', 'No Integrations Configured.')}</p>
         ) : (
           <div>
             {integrations.map((integration) => (
@@ -166,11 +178,11 @@ export function IntegrationsSection({ applicationId }: { applicationId: string }
         )}
         {!showAddForm && !atLimit && (
           <Button size="sm" variant="ghost" onClick={() => setShowAddForm(true)} className="mt-3">
-            + Add Integration
+            + {t('integrations.add', 'Add Integration')}
           </Button>
         )}
         {atLimit && !showAddForm && (
-          <p className="text-xs text-[var(--color-text-muted)] mt-2">Maximum of 5 integrations reached.</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-2">{t('integrations.maxReached', 'Maximum of 5 integrations reached.')}</p>
         )}
         {showAddForm && (
           <AddIntegrationForm applicationId={applicationId} onCancel={() => setShowAddForm(false)} />

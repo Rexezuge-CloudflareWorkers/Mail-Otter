@@ -40,6 +40,7 @@ interface CreateApplicationRequest extends IRequest {
   smtpPort?: number;
   enabledFeatures?: string[];
   timeZone?: string;
+  contentLanguage?: string;
 }
 
 interface CreateApplicationResponse extends IResponse {

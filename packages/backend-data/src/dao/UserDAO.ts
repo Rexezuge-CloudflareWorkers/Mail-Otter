@@ -31,15 +31,29 @@ class UserDAO extends BaseDAO {
 
   public async getByEmail(email: string): Promise<User | undefined> {
     const row: UserInternal | null = await this.database
-      .prepare('SELECT email, created_at, updated_at FROM users WHERE email = ? LIMIT 1')
+      .prepare('SELECT email, preferred_language, created_at, updated_at FROM users WHERE email = ? LIMIT 1')
       .bind(email)
       .first<UserInternal>();
     return row ? this.toUser(row) : undefined;
   }
 
+  public async updatePreferredLanguage(email: string, preferredLanguage: string | null): Promise<User | undefined> {
+    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    await executeD1WithRetry(
+      (): Promise<D1Result> =>
+        this.database
+          .prepare('UPDATE users SET preferred_language = ?, updated_at = ? WHERE email = ?')
+          .bind(preferredLanguage, now, email)
+          .run(),
+      'update user language',
+    );
+    return this.getByEmail(email);
+  }
+
   private toUser(row: UserInternal): User {
     return {
       email: row.email,
+      preferredLanguage: row.preferred_language ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

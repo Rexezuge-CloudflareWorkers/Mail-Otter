@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+import { formatNumberLocale } from '../../lib/locale';
+
 export function AiUsageBar({
   estimatedNeurons,
   dailyNeuronLimit,
@@ -22,9 +25,18 @@ export function AiUsageBar({
     barColor = '#22c55e';
   }
 
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   const label = isOver
-    ? `${estimatedNeurons.toLocaleString()} / ${dailyNeuronLimit.toLocaleString()} Neurons · Over Limit`
-    : `${estimatedNeurons.toLocaleString()} / ${dailyNeuronLimit.toLocaleString()} Neurons · ${pct}%`;
+    ? t('analytics.overLimit', '{{used}} / {{limit}} Neurons · Over Limit', {
+        used: formatNumberLocale(estimatedNeurons, lng),
+        limit: formatNumberLocale(dailyNeuronLimit, lng),
+      })
+    : t('analytics.neurons', '{{used}} / {{limit}} Neurons · {{pct}}%', {
+        used: formatNumberLocale(estimatedNeurons, lng),
+        limit: formatNumberLocale(dailyNeuronLimit, lng),
+        pct,
+      });
 
   return (
     <div>

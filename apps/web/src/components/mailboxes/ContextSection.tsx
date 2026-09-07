@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import { formatTimestamp } from '../../lib/format';
 import { Button } from '../ui/Button';
@@ -7,11 +8,13 @@ import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 import { useCurrentUserData } from '../../contexts/UserContext';
 
 export function ContextSection({ application }: { application: ConnectedApplication }) {
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   const user = useCurrentUserData();
   const { busy, onUpdateContextIndexing, onUpdateRagRetrieval, onUpdateAttachmentVisionEnabled, onUpdateMaxContextDocuments, onOpenContextAudit, onDeleteContextDocuments, onDismissContextError } = useMailboxCallbacks();
 
   return (
-    <CollapsibleSection title="RAG Context">
+    <CollapsibleSection title={t('context.title', 'RAG Context')}>
       <div className="flex flex-wrap items-center gap-4 mb-4">
         <label className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
           <input
@@ -21,7 +24,7 @@ export function ContextSection({ application }: { application: ConnectedApplicat
             disabled={busy}
             className="h-4 w-4 accent-[var(--color-accent)] rounded"
           />
-          Index New Emails
+          {t('context.indexNewEmails', 'Index New Emails')}
         </label>
         <label className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
           <input
@@ -31,7 +34,7 @@ export function ContextSection({ application }: { application: ConnectedApplicat
             disabled={busy}
             className="h-4 w-4 accent-[var(--color-accent)] rounded"
           />
-          Retrieve Context For Summaries
+          {t('context.retrieveForSummaries', 'Retrieve Context For Summaries')}
         </label>
         <label className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
           <input
@@ -41,15 +44,15 @@ export function ContextSection({ application }: { application: ConnectedApplicat
             disabled={busy}
             className="h-4 w-4 accent-[var(--color-accent)] rounded"
           />
-          Analyze Image Attachments
+          {t('context.analyzeImageAttachments', 'Analyze Image Attachments')}
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-          Max Docs
+          {t('context.maxDocs', 'Max Docs')}
           <input
             type="number"
             min={1}
             max={user.limits.maxContextDocumentsPerApplication}
-            placeholder={`Default (${user.limits.maxContextDocumentsPerApplication})`}
+            placeholder={t('context.maxDocsDefault', 'Default ({{max}})', { max: user.limits.maxContextDocumentsPerApplication })}
             value={application.maxContextDocuments ?? ''}
             onChange={(e) => {
               const val = e.target.value === '' ? null : Number(e.target.value);
@@ -62,21 +65,21 @@ export function ContextSection({ application }: { application: ConnectedApplicat
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Metric label="Indexed Docs" value={String(application.contextDocumentCount || 0)} />
-        <Metric label="Last Indexed" value={formatTimestamp(application.contextLastIndexedAt)} />
-        <Metric label="Last Deletion" value={formatTimestamp(application.contextLastDeleteAcceptedAt)} />
+        <Metric label={t('context.indexedDocs', 'Indexed Docs')} value={String(application.contextDocumentCount || 0)} />
+        <Metric label={t('context.lastIndexed', 'Last Indexed')} value={formatTimestamp(application.contextLastIndexedAt, lng)} />
+        <Metric label={t('context.lastDeletion', 'Last Deletion')} value={formatTimestamp(application.contextLastDeleteAcceptedAt, lng)} />
         <Metric
-          label="Context Error"
-          value={application.contextLastError || 'None'}
+          label={t('context.contextError', 'Context Error')}
+          value={application.contextLastError || t('common.none', 'None')}
           tone={application.contextLastError ? 'error' : 'muted'}
-          subtitle={application.contextLastError ? formatTimestamp(application.contextLastErrorAt) : undefined}
+          subtitle={application.contextLastError ? formatTimestamp(application.contextLastErrorAt, lng) : undefined}
           onDismiss={application.contextLastError ? () => onDismissContextError(application.applicationId) : undefined}
         />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="secondary" size="sm" onClick={() => onOpenContextAudit(application.applicationId)}>
-          View RAG Context
+          {t('context.viewRagContext', 'View RAG Context')}
         </Button>
         <Button
           variant="danger"
@@ -84,7 +87,7 @@ export function ContextSection({ application }: { application: ConnectedApplicat
           onClick={() => onDeleteContextDocuments(application.applicationId)}
           disabled={busy || (application.contextDocumentCount || 0) === 0}
         >
-          Delete Indexed Documents
+          {t('context.deleteIndexedDocuments', 'Delete Indexed Documents')}
         </Button>
       </div>
     </CollapsibleSection>

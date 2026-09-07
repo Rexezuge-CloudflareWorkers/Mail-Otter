@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES } from '../../i18n';
 import type { ProviderId } from '../../types';
 import { OAUTH2_FEATURES, OAUTH2_FEATURE_SCOPES } from '../../lib/constants';
 import type { OAuth2Feature } from '../../lib/constants';
@@ -25,6 +27,7 @@ export interface ApplicationFormState {
   smtpPort: string;
   enabledFeatures: string[];
   timeZone: string;
+  contentLanguage: string;
 }
 
 function getBrowserTimeZone(): string {
@@ -59,6 +62,7 @@ export const emptyForm: ApplicationFormState = {
   smtpPort: '587',
   enabledFeatures: getDefaultFeatures('google-gmail'),
   timeZone: getBrowserTimeZone(),
+  contentLanguage: 'en',
 };
 
 export function MailboxForm({
@@ -78,6 +82,7 @@ export function MailboxForm({
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
+  const { t } = useTranslation();
   const formRef = useRef<HTMLDivElement>(null);
   const [isHighlighted, setIsHighlighted] = useState(false);
   const prevApplicationId = useRef<string | undefined>(form.applicationId);
@@ -133,7 +138,7 @@ export function MailboxForm({
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--color-surface-2)] transition-colors duration-150"
       >
         <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
-          {form.applicationId ? 'Edit Mailbox' : 'New Mailbox'}
+          {form.applicationId ? t('mailboxes.editMailbox', 'Edit Mailbox') : t('mailboxes.newMailbox', 'New Mailbox')}
         </h2>
         <ChevronDown
           className={cn(
@@ -147,7 +152,7 @@ export function MailboxForm({
           <Input
             value={form.displayName}
             onChange={(e) => update({ displayName: e.target.value })}
-            placeholder="Display Name"
+            placeholder={t('mailboxes.displayName', 'Display Name')}
           />
 
           {/* Provider selector */}
@@ -194,12 +199,12 @@ export function MailboxForm({
               <Input
                 value={form.clientId}
                 onChange={(e) => update({ clientId: e.target.value })}
-                placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
+                placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')}
               />
               <Input
                 value={form.clientSecret}
                 onChange={(e) => update({ clientSecret: e.target.value })}
-                placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
+                placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')}
                 type="password"
               />
             </>
@@ -210,7 +215,7 @@ export function MailboxForm({
             <Input
               value={form.imapUsername}
               onChange={(e) => update({ imapUsername: e.target.value })}
-              placeholder="Yahoo Email Address (for IMAP)"
+              placeholder={t('mailboxes.yahooEmail', 'Yahoo Email Address (for IMAP)')}
             />
           )}
 
@@ -232,7 +237,7 @@ export function MailboxForm({
                   <Input
                     value={form.imapHost}
                     onChange={(e) => update({ imapHost: e.target.value })}
-                    placeholder="IMAP Host"
+                    placeholder={t('mailboxes.imapHost', 'IMAP Host')}
                     className="flex-1"
                   />
                   <Input
@@ -247,7 +252,7 @@ export function MailboxForm({
               <Input
                 value={form.imapUsername}
                 onChange={(e) => update({ imapUsername: e.target.value })}
-                placeholder={isFixedHostImapProvider ? 'Email Address' : 'IMAP Username'}
+                placeholder={isFixedHostImapProvider ? t('mailboxes.emailAddress', 'Email Address') : t('mailboxes.imapUsername', 'IMAP Username')}
               />
               {isImapPasswordMethod && (
                 <Input
@@ -255,10 +260,10 @@ export function MailboxForm({
                   onChange={(e) => update({ imapPassword: e.target.value })}
                   placeholder={
                     form.applicationId
-                      ? '(Unchanged)'
+                      ? t('mailboxes.unchanged', '(Unchanged)')
                       : isFixedHostImapProvider || form.providerId === 'apple-icloud'
-                        ? 'App Password'
-                        : 'IMAP Password'
+                        ? t('mailboxes.appPassword', 'App Password')
+                        : t('mailboxes.imapPassword', 'IMAP Password')
                   }
                   type="password"
                 />
@@ -268,12 +273,12 @@ export function MailboxForm({
                   <Input
                     value={form.clientId}
                     onChange={(e) => update({ clientId: e.target.value })}
-                    placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client ID'}
+                    placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')}
                   />
                   <Input
                     value={form.clientSecret}
                     onChange={(e) => update({ clientSecret: e.target.value })}
-                    placeholder={form.applicationId ? '(Unchanged)' : 'OAuth2 Client Secret'}
+                    placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')}
                     type="password"
                   />
                 </>
@@ -283,7 +288,7 @@ export function MailboxForm({
                   <Input
                     value={form.smtpHost}
                     onChange={(e) => update({ smtpHost: e.target.value })}
-                    placeholder="SMTP Host"
+                    placeholder={t('mailboxes.smtpHost', 'SMTP Host')}
                     className="flex-1"
                   />
                   <Input
@@ -301,7 +306,7 @@ export function MailboxForm({
           {/* Optional features for OAuth2 providers */}
           {providerFeatures.length > 0 && showOAuth2Fields && (
             <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-[var(--color-text-secondary)]">Optional Features{form.applicationId ? ' (Requires Re-Authorization)' : ''}</p>
+              <p className="text-xs font-medium text-[var(--color-text-secondary)]">{t('mailboxes.featuresTitle', 'Optional Features (Requires Re-Authorization)')}</p>
               {providerFeatures.map(([featureId, feature]) => (
                 <label key={featureId} className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
                   <input
@@ -317,7 +322,7 @@ export function MailboxForm({
           )}
 
           <div className="space-y-1.5 pt-1">
-            <p className="text-xs font-medium text-[var(--color-text-secondary)]">Time Zone</p>
+            <p className="text-xs font-medium text-[var(--color-text-secondary)]">{t('mailboxes.timeZone', 'Time Zone')}</p>
             <Select value={form.timeZone} onChange={(e) => update({ timeZone: e.target.value })} className="w-full">
               {timeZones.map((tz) => (
                 <option key={tz} value={tz}>
@@ -326,12 +331,23 @@ export function MailboxForm({
               ))}
             </Select>
           </div>
+          <div className="space-y-1.5 pt-1">
+            <p className="text-xs font-medium text-[var(--color-text-secondary)]">{t('mailboxes.contentLanguage', 'Content Language')}</p>
+            <Select value={form.contentLanguage} onChange={(e) => update({ contentLanguage: e.target.value })} className="w-full">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <option key={lng} value={lng}>
+                  {lng}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-[var(--color-text-muted)]">{t('mailboxes.contentLanguageHelp', 'Language for AI summaries, digests and action pages for this mailbox.')}</p>
+          </div>
           <div className="flex gap-2 pt-1">
             <Button variant="primary" className="flex-1" onClick={onSave} loading={busy}>
-              {form.applicationId ? 'Save Changes' : 'Create Mailbox'}
+              {form.applicationId ? t('mailboxes.saveChanges', 'Save Changes') : t('mailboxes.createMailbox', 'Create Mailbox')}
             </Button>
             <Button variant="ghost" onClick={onCancel} disabled={busy}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
           </div>
         </div>

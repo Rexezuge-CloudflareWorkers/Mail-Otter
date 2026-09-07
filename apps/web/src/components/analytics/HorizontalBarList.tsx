@@ -1,11 +1,14 @@
+import { useTranslation } from 'react-i18next';
+
 interface HorizontalBarItem {
   label: string;
   value: number;
 }
 
 export function HorizontalBarList({ items }: { items: HorizontalBarItem[] }) {
+  const { t } = useTranslation();
   if (items.length === 0) {
-    return <div className="py-4 text-sm text-[var(--color-text-muted)]">No Data.</div>;
+    return <div className="py-4 text-sm text-[var(--color-text-muted)]">{t('analytics.noData', 'No Data.')}</div>;
   }
 
   const max = Math.max(...items.map((i) => i.value), 1);

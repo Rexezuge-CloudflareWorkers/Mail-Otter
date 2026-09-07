@@ -1,6 +1,9 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { ConnectedApplicationDAO, UserDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { AI_LANGUAGE_NAMES, formatBackendString, getBackendStrings } from '@mail-otter/shared/i18n';
+import { LocaleUtil } from '@mail-otter/shared/utils';
 import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { WorkersAiResponseUtil } from '../email/WorkersAiResponseUtil';
 import { EmailContextUtil } from '../email/EmailContextUtil';
@@ -24,6 +27,9 @@ class ChatService {
       throw new BadRequestError('Daily AI usage quota has been reached. Please try again tomorrow.');
     }
 
+    const locale = await this.resolveLocale(env, userEmail, applicationId);
+    const strings = getBackendStrings(locale);
+
     const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(userEmail);
     const embeddingModel = ConfigurationManager.getAiEmbeddingModel(env);
     const embedding = await AiClient.embed(env.AI, embeddingModel, query);
@@ -44,14 +50,14 @@ class ChatService {
 
     const sources: ChatSource[] = topMatches.map((m) => ({
       vectorId: m.id,
-      title: AiClient.getStringMetadata(m.metadata, 'title') ?? '(no subject)',
-      sender: AiClient.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)',
+      title: AiClient.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject,
+      sender: AiClient.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender,
       applicationId: AiClient.getStringMetadata(m.metadata, 'applicationId') ?? '',
       score: m.score,
     }));
 
-    const contextBlock = this.buildContextBlock(topMatches);
-    const systemPrompt = this.buildSystemPrompt(contextBlock);
+    const contextBlock = this.buildContextBlock(topMatches, locale);
+    const systemPrompt = this.buildSystemPrompt(contextBlock, locale);
 
     const maxHistory = ConfigurationManager.chat.getMaxHistoryMessages(env);
     const rawHistory = history ?? [];
@@ -74,33 +80,54 @@ class ChatService {
 
     const result = await (env.AI as unknown as { run: (...args: unknown[]) => Promise<unknown> }).run(chatModel, aiRequest);
     const aiUsage: AiTextGenerationUsage | undefined = WorkersAiResponseUtil.extractUsage(result);
-    const answerText = WorkersAiResponseUtil.extractResponseText(result) ?? 'No response from AI.';
+    const answerText = WorkersAiResponseUtil.extractResponseText(result) ?? strings.chat.noResponse;
 
     await this.recordTextGenerationUsage(env, chatModel, aiUsage, messages, answerText);
 
     return { answer: answerText, sources, truncated };
   }
 
-  private static buildSystemPrompt(contextBlock: string): string {
+  private static async resolveLocale(env: ChatEnv, userEmail: string, applicationId?: string): Promise<string> {
+    try {
+      if (applicationId && env.AES_ENCRYPTION_KEY_SECRET) {
+        const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+        const application = await new ConnectedApplicationDAO(env.DB, masterKey).getMetadataByIdForUser(applicationId, userEmail);
+        if (application?.contentLanguage) return LocaleUtil.normalize(application.contentLanguage);
+      }
+      const user = await new UserDAO(env.DB).getByEmail(userEmail);
+      if (user?.preferredLanguage) return LocaleUtil.normalize(user.preferredLanguage);
+    } catch {
+      // Fall through to default locale.
+    }
+    return 'en';
+  }
+
+  private static buildSystemPrompt(contextBlock: string, locale?: string | null): string {
+    const normalized = LocaleUtil.normalize(locale);
+    const strings = getBackendStrings(normalized);
     const lines = [
-      "You are a helpful assistant that answers questions about the user's emails.",
-      'Answer concisely and factually, drawing only on the provided email excerpts below.',
-      'If the excerpts do not contain relevant information, say so clearly.',
-      'Never invent email content or fabricate facts.',
+      strings.chat.systemIntro1,
+      strings.chat.systemIntro2,
+      strings.chat.systemIntro3,
+      strings.chat.systemIntro4,
     ];
+    if (normalized !== 'en') {
+      lines.push(formatBackendString(strings.chat.answerLanguageInstruction, { language: AI_LANGUAGE_NAMES[normalized] }));
+    }
     if (contextBlock) {
-      lines.push('', '--- Email Excerpts ---', contextBlock);
+      lines.push('', strings.chat.excerptsHeading, contextBlock);
     } else {
-      lines.push('', 'No relevant email context was found for this query.');
+      lines.push('', strings.chat.noContext);
     }
     return lines.join('\n');
   }
 
-  private static buildContextBlock(matches: VectorizeMatch[]): string {
+  private static buildContextBlock(matches: VectorizeMatch[], locale?: string | null): string {
+    const strings = getBackendStrings(locale);
     return matches
       .map((m, i) => {
-        const title = AiClient.getStringMetadata(m.metadata, 'title') ?? '(no subject)';
-        const sender = AiClient.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)';
+        const title = AiClient.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject;
+        const sender = AiClient.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender;
         const indexedText = AiClient.getStringMetadata(m.metadata, 'indexedText') ?? '';
         return [`${i + 1}. "${title}" from ${sender}`, indexedText].filter(Boolean).join('\n');
       })
@@ -141,6 +168,7 @@ class ChatService {
 interface ChatEnv {
   DB: D1Queryable;
   AI: Ai;
+  AES_ENCRYPTION_KEY_SECRET?: SecretsStoreSecret;
   EMAIL_CONTEXT_INDEX?: Vectorize;
   AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
   AI_EMBEDDING_MODEL?: string;

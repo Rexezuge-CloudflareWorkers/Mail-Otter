@@ -1,6 +1,8 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { ExtendedResponse, IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
+import { UserDAO } from '@mail-otter/backend-data/dao';
 import { ActivityService } from '@mail-otter/backend-services/activity';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
 import type { ActivityEntry } from '@mail-otter/shared/model';
 
 class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResponse, ListActivityEnv> {
@@ -29,7 +31,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
         { applicationId, types: types.length > 0 ? types : undefined, limit: 1000 },
         env,
       );
-      const csv = toCsv(result.entries);
+      const csv = toCsv(result.entries, await resolveUserLocale(env, userEmail));
       return {
         rawBody: csv,
         statusCode: 200,
@@ -59,19 +61,17 @@ function csvCell(value: string): string {
   return value;
 }
 
-function toCsv(entries: ActivityEntry[]): string {
-  const header = [
-    'Event Type',
-    'Application ID',
-    'Timestamp ISO',
-    'Provider Message ID',
-    'Status / Execution Status',
-    'Error Message',
-    'Action ID',
-    'Action Type',
-    'Risk Level',
-    'Triggered By',
-  ].join(',');
+async function resolveUserLocale(env: ListActivityEnv, userEmail: string): Promise<string> {
+  try {
+    const user = await new UserDAO(env.DB).getByEmail(userEmail);
+    return user?.preferredLanguage ?? 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+function toCsv(entries: ActivityEntry[], locale?: string | null): string {
+  const header = getBackendStrings(locale).csv.header;
 
   const rows = entries.map((entry) => {
     const ts = new Date(entry.timestamp * 1000).toISOString();

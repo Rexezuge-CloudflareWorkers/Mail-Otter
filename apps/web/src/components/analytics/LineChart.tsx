@@ -1,11 +1,14 @@
+import { useTranslation } from 'react-i18next';
+
 interface LineChartPoint {
   date: string;
   value: number;
 }
 
 export function LineChart({ points, label }: { points: LineChartPoint[]; label: string }) {
+  const { t, i18n } = useTranslation();
   if (points.length === 0) {
-    return <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">No Data.</div>;
+    return <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">{t('analytics.noData', 'No Data.')}</div>;
   }
 
   const W = 600;
@@ -29,7 +32,7 @@ export function LineChart({ points, label }: { points: LineChartPoint[]; label: 
         <polyline points={polyPoints} fill="none" stroke="var(--color-accent)" strokeWidth="1.5" />
         {points.map((p, i) => (
           <circle key={p.date} cx={toX(i)} cy={toY(p.value)} r="3" fill="var(--color-accent)">
-            <title>{`${p.date}: ${p.value.toLocaleString()}`}</title>
+            <title>{`${p.date}: ${p.value.toLocaleString(i18n.resolvedLanguage)}`}</title>
           </circle>
         ))}
       </svg>

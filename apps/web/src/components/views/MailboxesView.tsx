@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import { MailboxCard } from '../mailboxes/MailboxCard';
 import { MailboxDetail } from '../mailboxes/MailboxDetail';
@@ -35,6 +36,7 @@ export function MailboxesView({
   isFormExpanded: boolean;
   setIsFormExpanded: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const user = useCurrentUserData();
   const { busy } = useMailboxCallbacks();
   const selectedApplication = useMemo(
@@ -46,7 +48,7 @@ export function MailboxesView({
     <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6 animate-fade-in-up">
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Connected Mailboxes</h1>
+          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{t('mailboxes.title', 'Connected Mailboxes')}</h1>
           <span className="text-sm text-[var(--color-text-muted)]">
             {applications.length}/{user.limits.maxApplicationsPerUser}
           </span>
@@ -67,7 +69,7 @@ export function MailboxesView({
           ))}
           {applications.length === 0 && (
             <Card className="text-center text-[var(--color-text-muted)] text-sm py-8">
-              No Mailboxes Yet. Add One Below.
+              {t('mailboxes.empty', 'No Mailboxes Yet. Add One Below.')}
             </Card>
           )}
         </div>
@@ -93,7 +95,7 @@ export function MailboxesView({
           />
         ) : (
           <Card className="text-center text-[var(--color-text-muted)] py-16 text-sm">
-            Select Or Create A Mailbox To Get Started.
+            {t('mailboxes.selectPlaceholder', 'Select Or Create A Mailbox…')}
           </Card>
         )}
       </section>

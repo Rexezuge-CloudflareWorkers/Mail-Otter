@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { EmailAction, EmailActionExecution, EmailActionStatus } from '../types';
 import * as actionSvc from '../services/actionService';
 
@@ -8,6 +9,7 @@ interface UseActionsOptions {
 }
 
 export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
+  const { t } = useTranslation();
   const [actions, setActions] = useState<EmailAction[]>([]);
   const [actionsCursor, setActionsCursor] = useState<string | undefined>();
   const [actionApplicationId, setActionApplicationId] = useState('');
@@ -23,7 +25,7 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
       setActionsCursor(data.nextCursor);
       setSelectedActionId((c) => c || data.actions[0]?.actionId || '');
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Actions.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.actionsLoadFailed', 'Unable To Load Actions.'));
     }
   };
 
@@ -33,7 +35,7 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
       const data = await actionSvc.loadActionExecutions(actionId);
       setActionExecutions(data.executions);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Action Audit.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.actionAuditLoadFailed', 'Unable To Load Action Audit.'));
     }
   };
 
@@ -48,7 +50,7 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
         data.action.result?.summary || data.action.errorMessage || data.action.status,
       );
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Execute Action.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.actionFailed', 'Unable To Execute Action.'));
     } finally {
       setIsBusy(false);
     }
@@ -59,9 +61,9 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
     try {
       const data = await actionSvc.snoozeAction(actionId, snoozedUntil);
       setActions((c) => c.map((a) => (a.actionId === data.action.actionId ? data.action : a)));
-      showNotice('success', snoozedUntil ? 'Action Snoozed.' : 'Snooze Cancelled.');
+      showNotice('success', snoozedUntil ? t('toasts.actionSnoozed', 'Action Snoozed.') : t('toasts.snoozeCancelled', 'Snooze Cancelled.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Snooze Action.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.actionSnoozeFailed', 'Unable To Snooze Action.'));
     } finally {
       setIsBusy(false);
     }
@@ -72,9 +74,9 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
     try {
       const data = await actionSvc.scheduleAction(actionId, scheduledFor);
       setActions((c) => c.map((a) => (a.actionId === data.action.actionId ? data.action : a)));
-      showNotice('success', scheduledFor ? 'Action Scheduled.' : 'Schedule Cancelled.');
+      showNotice('success', scheduledFor ? t('toasts.actionScheduled', 'Action Scheduled.') : t('toasts.scheduleCancelled', 'Schedule Cancelled.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Schedule Action.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.actionScheduleFailed', 'Unable To Schedule Action.'));
     } finally {
       setIsBusy(false);
     }

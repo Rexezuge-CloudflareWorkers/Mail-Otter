@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ApplicationContextDeletionRun, ConnectedApplication } from '../../types';
 import { formatTimestamp } from '../../lib/format';
 import { DeletionStatusBadge } from '../ui/Badge';
@@ -9,6 +10,8 @@ export function ContextDeletionRunRow({
   run: ApplicationContextDeletionRun;
   application: ConnectedApplication | undefined;
 }) {
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   return (
     <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 min-w-0 animate-fade-in-up">
       <div className="flex items-start justify-between gap-3">
@@ -17,15 +20,15 @@ export function ContextDeletionRunRow({
             {application?.displayName || run.applicationId}
           </div>
           <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            {run.deletedVectorCount}/{run.requestedVectorCount} Vectors Deleted
+            {t('context.vectorsDeleted', '{{deleted}}/{{requested}} Vectors Deleted', { deleted: run.deletedVectorCount, requested: run.requestedVectorCount })}
           </div>
-          <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatTimestamp(run.createdAt)}</div>
+          <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatTimestamp(run.createdAt, lng)}</div>
         </div>
         <DeletionStatusBadge status={run.status} />
       </div>
       {run.mutationIds.length > 0 && (
         <div className="mt-3 text-xs text-[var(--color-text-muted)] break-words">
-          Mutations: {run.mutationIds.join(', ')}
+          {t('context.mutations', 'Mutations: {{ids}}', { ids: run.mutationIds.join(', ') })}
         </div>
       )}
       {run.errorMessage && (

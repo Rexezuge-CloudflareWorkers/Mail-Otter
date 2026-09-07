@@ -14,6 +14,8 @@ import { ChatView } from './components/views/ChatView';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
+import { useTranslation } from 'react-i18next';
+import { LANGUAGE_STORAGE_KEY, loadLanguage, normalizeLanguage } from './i18n';
 import { NoticeContext } from './contexts/NoticeContext';
 import { UserContext } from './contexts/UserContext';
 import { MailboxCallbacksContext } from './contexts/MailboxCallbacksContext';
@@ -29,6 +31,7 @@ import { useActivity } from './hooks/useActivity';
 import { useChat } from './hooks/useChat';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
+import { updatePreferredLanguage } from './services/userService';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from './types';
 
 // Read URL params synchronously before first render so useState initializers can use them
@@ -69,6 +72,54 @@ export default function SpaApp() {
     if (initialView === 'mailboxes' && initialAppId) mailboxes.setSelectedApplicationId(initialAppId);
     if (initialView === 'context' && initialLogDocId) void auditLogs.openAuditLogs(initialLogDocId);
   }, []);
+
+  const { i18n } = useTranslation();
+
+  // Apply the backend language preference once the user is known.
+  // Precedence: backend preferredLanguage > localStorage > navigator > en.
+  useEffect(() => {
+    if (!user) return;
+    const preferred = normalizeLanguage(
+      user.preferredLanguage ??
+        (() => {
+          try {
+            return localStorage.getItem(LANGUAGE_STORAGE_KEY);
+          } catch {
+            return null;
+          }
+        })(),
+    );
+    if (normalizeLanguage(i18n.resolvedLanguage ?? i18n.language) !== preferred) {
+      void loadLanguage(preferred);
+    }
+    try {
+      document.documentElement.lang = preferred;
+    } catch {
+      // Ignore DOM errors in non-browser environments.
+    }
+  }, [user, i18n]);
+
+  // Keep <html lang> in sync for screen readers and action-page parity.
+  useEffect(() => {
+    try {
+      document.documentElement.lang = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language);
+    } catch {
+      // Ignore DOM errors in non-browser environments.
+    }
+  }, [i18n.resolvedLanguage, i18n.language]);
+
+  const handleLanguageChange = (lng: string) => {
+    const normalized = normalizeLanguage(lng);
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
+    } catch {
+      // Ignore storage errors.
+    }
+    void loadLanguage(normalized).then(() => {
+      // Persist to the backend profile; toast on failure only to avoid noise.
+      updatePreferredLanguage(normalized).catch(() => showNotice('error', 'Unable To Save Language.'));
+    });
+  };
 
   // Load applications once the user is authorized
   useEffect(() => {
@@ -144,7 +195,14 @@ export default function SpaApp() {
     <NoticeContext.Provider value={{ showNotice }}>
       <UserContext.Provider value={user}>
         <div className="min-h-screen bg-[var(--color-surface-base)] text-[var(--color-text-primary)]">
-          <Header activeView={activeView} onViewChange={setActiveView} userEmail={user.email} aiUsage={user.aiUsage} />
+          <Header
+            activeView={activeView}
+            onViewChange={setActiveView}
+            userEmail={user.email}
+            aiUsage={user.aiUsage}
+            language={normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)}
+            onLanguageChange={handleLanguageChange}
+          />
 
           {notice && <NoticeBar notice={notice} />}
 

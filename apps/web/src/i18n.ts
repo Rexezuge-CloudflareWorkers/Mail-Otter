@@ -1,0 +1,97 @@
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import en from './locales/en/translation.json';
+
+export const SUPPORTED_LANGUAGES = [
+  'en',
+  'de',
+  'fr',
+  'es',
+  'it',
+  'nl',
+  'pt',
+  'pl',
+  'ja',
+  'zh-CN',
+  'zh-TW',
+  'ko',
+] as const;
+
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+export const LANGUAGE_STORAGE_KEY = 'mail-otter-lng';
+
+const baseResources = {
+  en: { translation: en },
+} as const;
+
+function canonicalizeTag(tag: string): string {
+  // eslint-disable-next-line unicorn/prefer-string-replace-all -- tsconfig lib is ES2020 (no replaceAll types)
+  const normalized = tag.trim().replace(/_/g, '-');
+  const parts = normalized.split('-').filter(Boolean);
+  if (parts.length === 0) return 'en';
+  const language = (parts[0] ?? 'en').toLowerCase();
+  if (parts.length === 1) return language;
+  const rest = parts.slice(1).map((part: string) => (part.length === 2 ? part.toUpperCase() : part.toLowerCase()));
+  return [language, ...rest].join('-');
+}
+
+export function normalizeLanguage(tag: string | null | undefined): SupportedLanguage {
+  if (!tag || typeof tag !== 'string') return 'en';
+  const canonical = canonicalizeTag(tag);
+  if ((SUPPORTED_LANGUAGES as readonly string[]).includes(canonical)) {
+    return canonical as SupportedLanguage;
+  }
+  const base = canonical.split('-', 1)[0]?.toLowerCase() ?? 'en';
+  if (base === 'zh') return 'zh-CN';
+  const match = (SUPPORTED_LANGUAGES as readonly string[]).find((l) => l.toLowerCase() === base);
+  if (match) return match as SupportedLanguage;
+  return 'en';
+}
+
+export function detectInitialLanguage(): SupportedLanguage {
+  try {
+    const stored = typeof localStorage === 'undefined' ? null : localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored) return normalizeLanguage(stored);
+  } catch {
+    // Ignore storage errors (private mode) and fall through.
+  }
+  try {
+    const nav = typeof navigator === 'undefined' ? null : navigator.language;
+    if (nav) return normalizeLanguage(nav);
+  } catch {
+    // Ignore and fall through to default.
+  }
+  return 'en';
+}
+
+const loadedLanguages = new Set<string>(['en']);
+
+export async function loadLanguage(lng: string): Promise<void> {
+  const normalized = normalizeLanguage(lng);
+  if (loadedLanguages.has(normalized)) {
+    await i18n.changeLanguage(normalized);
+    return;
+  }
+  try {
+    const mod = await import(`./locales/${normalized}/translation.json`);
+    const dict = (mod as { default: Record<string, unknown> }).default;
+    i18n.addResourceBundle(normalized, 'translation', dict, true, true);
+    loadedLanguages.add(normalized);
+  } catch {
+    // Missing bundle: fall back to English resources already registered.
+  }
+  await i18n.changeLanguage(normalized);
+}
+
+if (!i18n.isInitialized) {
+  void i18n.use(initReactI18next).init({
+    resources: baseResources,
+    lng: detectInitialLanguage(),
+    fallbackLng: 'en',
+    supportedLngs: [...SUPPORTED_LANGUAGES],
+    defaultNS: 'translation',
+    interpolation: { escapeValue: false },
+    returnEmptyString: false,
+  });
+}

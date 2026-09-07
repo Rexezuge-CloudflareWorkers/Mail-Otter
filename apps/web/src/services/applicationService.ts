@@ -34,6 +34,7 @@ export async function saveApplication(form: ApplicationFormState): Promise<{ app
     ...(form.clientSecret && !isImapPassword && { clientSecret: form.clientSecret }),
     enabledFeatures: form.enabledFeatures,
     timeZone: form.timeZone,
+    contentLanguage: form.contentLanguage,
     ...(form.providerId === 'google-gmail' && { gmailPubsubTopicName: form.gmailPubsubTopicName }),
     ...(form.imapHost && { imapHost: form.imapHost }),
     ...(form.imapPort && { imapPort: Number(form.imapPort) }),

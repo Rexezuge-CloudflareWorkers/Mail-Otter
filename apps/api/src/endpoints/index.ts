@@ -2,6 +2,7 @@
 
 import { GetAnalyticsRoute as OriginalGetAnalyticsRoute } from './user/analytics/GET';
 import { GetCurrentUserRoute as OriginalGetCurrentUserRoute } from './user/me/GET';
+import { UpdateCurrentUserRoute as OriginalUpdateCurrentUserRoute } from './user/me/PUT';
 import { ListApplicationsRoute as OriginalListApplicationsRoute } from './user/applications/GET';
 import { CreateApplicationRoute as OriginalCreateApplicationRoute } from './user/application/POST';
 import { UpdateApplicationRoute as OriginalUpdateApplicationRoute } from './user/application/PUT';
@@ -53,6 +54,7 @@ import { ChatRoute as OriginalChatRoute } from './user/chat/POST';
 
 export const GetAnalyticsRoute: any = OriginalGetAnalyticsRoute;
 export const GetCurrentUserRoute: any = OriginalGetCurrentUserRoute;
+export const UpdateCurrentUserRoute: any = OriginalUpdateCurrentUserRoute;
 export const ListApplicationsRoute: any = OriginalListApplicationsRoute;
 export const CreateApplicationRoute: any = OriginalCreateApplicationRoute;
 export const UpdateApplicationRoute: any = OriginalUpdateApplicationRoute;

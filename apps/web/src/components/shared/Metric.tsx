@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { X } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export function Metric({
   subtitle?: string;
   onDismiss?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 min-w-0 relative">
       <div className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">{label}</div>
@@ -24,10 +26,10 @@ export function Metric({
       {onDismiss && tone === 'error' && (
         <button
           onClick={onDismiss}
-          title="Dismiss Error"
+          title={t('common.dismissError', 'Dismiss Error')}
           className="absolute top-1 right-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] leading-none text-xs flex items-center gap-0.5 whitespace-nowrap"
         >
-          Dismiss <X className="h-2.5 w-2.5" />
+          {t('common.dismiss', 'Dismiss')} <X className="h-2.5 w-2.5" />
         </button>
       )}
     </div>

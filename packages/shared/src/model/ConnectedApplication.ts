@@ -32,6 +32,7 @@ interface ConnectedAppMetadata {
   maxContextDocuments?: number | null;
   enabledFeatures?: string[] | null;
   timeZone?: string | null;
+  contentLanguage?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
   emailProcessingRules?: EmailProcessingRule[] | null;
   autoExecuteActionTypes?: string[] | null;

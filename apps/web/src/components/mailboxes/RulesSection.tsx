@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   ConnectedApplication,
   EmailProcessingRule,
@@ -59,26 +60,30 @@ const ACTION_BADGE_COLORS: Record<EmailRuleActionType, string> = {
   star_message: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
 };
 
-function getActionLabel(action: EmailRuleAction): string {
-  return ACTION_LABELS[action.type];
+type TranslateFn = ReturnType<typeof useTranslation>['t'];
+
+function getActionLabel(action: EmailRuleAction, t: TranslateFn): string {
+  return t(`rules.actions.${action.type}`, ACTION_LABELS[action.type]);
 }
 
 function getActionBadgeColor(action: EmailRuleAction): string {
   return ACTION_BADGE_COLORS[action.type];
 }
 
-function formatConditionSummary(rule: EmailProcessingRule): string {
+function formatConditionSummary(rule: EmailProcessingRule, t: TranslateFn): string {
   const { operator, matchers } = rule.conditions;
   return matchers
     .map((m) => {
-      if (m.field === 'always') return 'Always (Match All Emails)';
-      if (m.field === 'has_attachment') return `Has Attachment Is ${m.value === 'true' ? 'True' : 'False'}`;
+      if (m.field === 'always') return t('rules.fields.always', 'Always (Match All Emails)');
+      if (m.field === 'has_attachment') return `${t('rules.fields.has_attachment', 'Has Attachment')} ${t('rules.ops.is', 'Is')} ${m.value === 'true' ? t('rules.trueValue', 'True') : t('rules.falseValue', 'False')}`;
       if (m.field === 'detected_action_type') {
-        const opLabel = m.op === 'includes' ? 'Includes' : 'Does Not Include';
-        return `Detected Action Type ${opLabel} "${m.value}"`;
+        const opLabel = m.op === 'includes' ? t('rules.ops.includes', 'Includes') : t('rules.ops.not_includes', 'Does Not Include');
+        return `${t('rules.fields.detected_action_type', 'Detected Action Type')} ${opLabel} "${m.value}"`;
       }
-      const fieldLabel = FIELD_LABELS[m.field];
-      const opLabel = m.op === 'contains' ? 'Contains' : m.op === 'not_contains' ? 'Does Not Contain' : 'Matches Sender';
+      const fieldLabel = t(`rules.fields.${m.field}`, FIELD_LABELS[m.field]);
+      const opKey = m.op === 'contains' ? 'rules.ops.contains' : m.op === 'not_contains' ? 'rules.ops.not_contains' : 'rules.ops.matches_sender';
+      const opFallback = m.op === 'contains' ? 'Contains' : m.op === 'not_contains' ? 'Does Not Contain' : 'Matches Sender';
+      const opLabel = t(opKey, opFallback);
       return `${fieldLabel} ${opLabel.toLowerCase()} "${m.value}"`;
     })
     .join(operator === 'any' ? ' OR ' : ' AND ');
@@ -176,6 +181,7 @@ function RuleForm({
   onAdd: (rule: EmailProcessingRule) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<RuleDraft>(initialRule ? ruleToDraft(initialRule) : emptyDraft());
   const [labelState, setLabelState] = useState<LabelState>({ phase: 'idle' });
 
@@ -270,7 +276,7 @@ function RuleForm({
     })) return false;
     if (draft.actionType === 'prepend_instruction' && !draft.instruction.trim()) return false;
     if (draft.actionType === 'apply_label' && !draft.labelName.trim()) return false;
-    return !(!POST_PROCESSING_ACTION_TYPES.has(draft.actionType) && draft.matchers.some((m) => m.field === 'detected_action_type'));
+    return POST_PROCESSING_ACTION_TYPES.has(draft.actionType) || draft.matchers.every((m) => m.field !== 'detected_action_type');
   };
 
   const handleAdd = () => {
@@ -298,8 +304,8 @@ function RuleForm({
           onChange={(e) => setMatcher(i, { value: e.target.value })}
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex-1"
         >
-          <option value="true">True</option>
-          <option value="false">False</option>
+          <option value="true">{t('rules.trueValue', 'True')}</option>
+          <option value="false">{t('rules.falseValue', 'False')}</option>
         </select>
       );
     }
@@ -311,7 +317,7 @@ function RuleForm({
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex-1"
         >
           {DETECTED_ACTION_TYPE_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
+            <option key={opt} value={opt}>{t(`actionTypes.${opt}`, opt)}</option>
           ))}
         </select>
       );
@@ -321,7 +327,7 @@ function RuleForm({
         type="text"
         value={m.value}
         onChange={(e) => setMatcher(i, { value: e.target.value })}
-        placeholder={m.op === 'matches_sender' ? '@domain.com or user@example.com' : 'value'}
+        placeholder={m.op === 'matches_sender' ? t('rules.senderPlaceholder', '@domain.com or user@example.com') : t('rules.valuePlaceholder', 'value')}
         className="text-sm flex-1 min-w-0"
         maxLength={200}
       />
@@ -337,7 +343,7 @@ function RuleForm({
           disabled
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] opacity-60"
         >
-          <option value="is">Is</option>
+          <option value="is">{t('rules.ops.is', 'Is')}</option>
         </select>
       );
     }
@@ -348,8 +354,8 @@ function RuleForm({
           onChange={(e) => setMatcher(i, { op: e.target.value })}
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
         >
-          <option value="includes">Includes</option>
-          <option value="not_includes">Does Not Include</option>
+          <option value="includes">{t('rules.ops.includes', 'Includes')}</option>
+          <option value="not_includes">{t('rules.ops.not_includes', 'Does Not Include')}</option>
         </select>
       );
     }
@@ -359,9 +365,9 @@ function RuleForm({
         onChange={(e) => setMatcher(i, { op: e.target.value })}
         className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
       >
-        <option value="contains">Contains</option>
-        <option value="not_contains">Does Not Contain</option>
-        {m.field === 'from' && <option value="matches_sender">Matches Sender</option>}
+        <option value="contains">{t('rules.ops.contains', 'Contains')}</option>
+        <option value="not_contains">{t('rules.ops.not_contains', 'Does Not Contain')}</option>
+        {m.field === 'from' && <option value="matches_sender">{t('rules.ops.matches_sender', 'Matches Sender')}</option>}
       </select>
     );
   };
@@ -369,10 +375,10 @@ function RuleForm({
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 flex flex-col gap-3 bg-[var(--color-surface-raised)]">
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Rule Name</label>
+        <label className="text-xs font-medium text-[var(--color-text-secondary)]">{t('rules.ruleName', 'Rule Name')}</label>
         <Input
           type="text"
-          placeholder="e.g. Skip Newsletters"
+          placeholder={t('rules.ruleNamePlaceholder', 'e.g. Skip Newsletters')}
           value={draft.name}
           onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
           className="text-sm"
@@ -382,14 +388,14 @@ function RuleForm({
 
       {!(draft.matchers.length === 1 && draft.matchers[0].field === 'always') && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--color-text-muted)]">Match</span>
+          <span className="text-xs text-[var(--color-text-muted)]">{t('rules.match', 'Match')}</span>
           <select
             value={draft.operator}
             onChange={(e) => setDraft((d) => ({ ...d, operator: e.target.value as 'all' | 'any' }))}
             className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
           >
-            <option value="any">Any Condition</option>
-            <option value="all">All Conditions</option>
+            <option value="any">{t('rules.anyCondition', 'Any Condition')}</option>
+            <option value="all">{t('rules.allConditions', 'All Conditions')}</option>
           </select>
         </div>
       )}
@@ -402,12 +408,12 @@ function RuleForm({
               onChange={(e) => setMatcher(i, { field: e.target.value as EmailRuleConditionMatcherField })}
               className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
             >
-              <option value="from">From</option>
-              <option value="subject">Subject</option>
-              <option value="body">Body</option>
-              <option value="has_attachment">Has Attachment</option>
-              <option value="detected_action_type">Detected Action Type</option>
-              <option value="always">Always (Match All Emails)</option>
+              <option value="from">{t('rules.fields.from', 'From')}</option>
+              <option value="subject">{t('rules.fields.subject', 'Subject')}</option>
+              <option value="body">{t('rules.fields.body', 'Body')}</option>
+              <option value="has_attachment">{t('rules.fields.has_attachment', 'Has Attachment')}</option>
+              <option value="detected_action_type">{t('rules.fields.detected_action_type', 'Detected Action Type')}</option>
+              <option value="always">{t('rules.fields.always', 'Always (Match All Emails)')}</option>
             </select>
             {renderOpSelect(m, i)}
             {renderMatcherValueInput(m, i)}
@@ -416,7 +422,7 @@ function RuleForm({
                 type="button"
                 onClick={() => removeMatcher(i)}
                 className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-sm"
-                aria-label="Remove Matcher"
+                aria-label={t('rules.removeMatcher', 'Remove Matcher')}
               >
                 ×
               </button>
@@ -429,35 +435,35 @@ function RuleForm({
             onClick={addMatcher}
             className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] text-left w-fit"
           >
-            + Add Condition
+            + {t('rules.addCondition', 'Add Condition')}
           </button>
         )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Action</label>
+        <label className="text-xs font-medium text-[var(--color-text-secondary)]">{t('rules.action', 'Action')}</label>
         <select
           value={draft.actionType}
           onChange={(e) => setActionType(e.target.value as EmailRuleActionType)}
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)]"
         >
-          <optgroup label="Pre-Processing (First Match Wins)">
-            <option value="skip">Skip — Don't Summarize This Email</option>
-            <option value="skip_actions">Skip Actions — Summarize But Don't Create Action Proposals</option>
-            <option value="prepend_instruction">Custom Instruction — Add Extra Instructions To The AI Prompt</option>
+          <optgroup label={t('rules.preProcessing', 'Pre-Processing (First Match Wins)')}>
+            <option value="skip">{t('rules.actionSkipDesc', "Skip — Don't Summarize This Email")}</option>
+            <option value="skip_actions">{t('rules.actionSkipActionsDesc', "Skip Actions — Summarize But Don't Create Action Proposals")}</option>
+            <option value="prepend_instruction">{t('rules.actionPrependInstructionDesc', 'Custom Instruction — Add Extra Instructions To The AI Prompt')}</option>
           </optgroup>
-          <optgroup label="Post-Processing (All Matches Execute)">
-            <option value="apply_label">Apply Label — Add A Label Or Category</option>
-            <option value="archive_message">Archive — Move To Archive</option>
-            <option value="mark_read">Mark Read — Mark As Read</option>
-            <option value="star_message">Star — Star Or Flag The Email</option>
+          <optgroup label={t('rules.postProcessing', 'Post-Processing (All Matches Execute)')}>
+            <option value="apply_label">{t('rules.actionApplyLabelDesc', 'Apply Label — Add A Label Or Category')}</option>
+            <option value="archive_message">{t('rules.actionArchiveDesc', 'Archive — Move To Archive')}</option>
+            <option value="mark_read">{t('rules.actionMarkReadDesc', 'Mark Read — Mark As Read')}</option>
+            <option value="star_message">{t('rules.actionStarDesc', 'Star — Star Or Flag The Email')}</option>
           </optgroup>
         </select>
         {draft.actionType === 'prepend_instruction' && (
           <textarea
             value={draft.instruction}
             onChange={(e) => setDraft((d) => ({ ...d, instruction: e.target.value }))}
-            placeholder="e.g. Always extract invoice number and due date."
+            placeholder={t('rules.instructionPlaceholder', 'e.g. Always extract invoice number and due date.')}
             className="text-sm border border-[var(--color-border)] rounded px-3 py-2 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] resize-none mt-1"
             rows={2}
             maxLength={500}
@@ -467,14 +473,14 @@ function RuleForm({
           <div className="flex flex-col gap-1 mt-1">
             <Input
               type="text"
-              placeholder="Label name (e.g. Shopping)"
+              placeholder={t('rules.labelPlaceholder', 'Label name (e.g. Shopping)')}
               value={draft.labelName}
               onChange={(e) => setDraft((d) => ({ ...d, labelName: e.target.value }))}
               className="text-sm"
               maxLength={100}
             />
             {labelState.phase === 'loading' && (
-              <p className="text-xs text-[var(--color-text-muted)]">Loading Labels…</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t('rules.loadingLabels', 'Loading Labels…')}</p>
             )}
             {labelState.phase === 'loaded' && labelState.labels.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
@@ -495,8 +501,8 @@ function RuleForm({
       </div>
 
       <div className="flex gap-2 justify-end">
-        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>{initialRule ? 'Save Rule' : 'Add Rule'}</Button>
+        <Button variant="secondary" size="sm" onClick={onCancel}>{t('common.cancel', 'Cancel')}</Button>
+        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>{initialRule ? t('rules.saveRule', 'Save Rule') : t('rules.addRule', 'Add Rule')}</Button>
       </div>
     </div>
   );
@@ -518,6 +524,7 @@ function SuggestRuleForm({
   onAdd: (rule: EmailProcessingRule) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [description, setDescription] = useState('');
   const [state, setState] = useState<SuggestState>({ phase: 'idle' });
 
@@ -542,7 +549,7 @@ function SuggestRuleForm({
       const { rule } = await apiSuggestRule(applicationId, desc);
       setState({ phase: 'preview', rule, description: desc });
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Could Not Generate A Rule. Try Rephrasing Your Description.';
+      const message = e instanceof Error ? e.message : t('rules.suggestErrorFallback', 'Could Not Generate A Rule. Try Rephrasing Your Description.');
       setState({ phase: 'error', message, description: desc });
     }
   };
@@ -566,11 +573,11 @@ function SuggestRuleForm({
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 flex flex-col gap-3 bg-[var(--color-surface-raised)]">
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[var(--color-text-secondary)]">Describe A Rule</label>
+        <label className="text-xs font-medium text-[var(--color-text-secondary)]">{t('rules.describeRule', 'Describe A Rule')}</label>
         <div className="flex gap-2">
           <Input
             type="text"
-            placeholder="e.g. Skip newsletters from Substack"
+            placeholder={t('rules.suggestInputPlaceholder', 'e.g. Skip newsletters from Substack')}
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
@@ -587,7 +594,7 @@ function SuggestRuleForm({
             onClick={handleGenerate}
             disabled={!description.trim() || state.phase === 'loading'}
           >
-            {state.phase === 'loading' ? 'Generating…' : 'Generate'}
+            {state.phase === 'loading' ? t('common.generating', 'Generating…') : t('common.generate', 'Generate')}
           </Button>
         </div>
       </div>
@@ -600,31 +607,31 @@ function SuggestRuleForm({
         <div className="border border-[var(--color-border)] rounded-lg p-3 flex flex-col gap-1 bg-[var(--color-surface-base)]">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${getActionBadgeColor(state.rule.action)}`}>
-              {getActionLabel(state.rule.action)}
+              {getActionLabel(state.rule.action, t)}
             </span>
             <span className="text-sm font-medium text-[var(--color-text-primary)]">{state.rule.name}</span>
           </div>
-          <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary({ ...state.rule, ruleId: '' })}</p>
+          <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary({ ...state.rule, ruleId: '' }, t)}</p>
           {state.rule.action.type === 'prepend_instruction' && state.rule.action.instruction && (
             <p className="text-xs text-[var(--color-text-secondary)] italic">"{state.rule.action.instruction}"</p>
           )}
           {state.rule.action.type === 'apply_label' && (
-            <p className="text-xs text-[var(--color-text-secondary)]">Label: {state.rule.action.labelName}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{t('rules.labelValue', 'Label: {{name}}', { name: state.rule.action.labelName })}</p>
           )}
         </div>
       )}
 
       <div className="flex gap-2 justify-end">
-        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
+        <Button variant="secondary" size="sm" onClick={onCancel}>{t('common.cancel', 'Cancel')}</Button>
         {state.phase === 'preview' && (
           <>
-            <Button variant="secondary" size="sm" onClick={handleRegenerate}>Regenerate</Button>
-            <Button variant="secondary" size="sm" onClick={() => setState({ phase: 'edit', rule: { ...state.rule, ruleId: crypto.randomUUID() }, description: state.description })}>Edit</Button>
-            <Button variant="primary" size="sm" onClick={handleAccept}>Add Rule</Button>
+            <Button variant="secondary" size="sm" onClick={handleRegenerate}>{t('common.regenerate', 'Regenerate')}</Button>
+            <Button variant="secondary" size="sm" onClick={() => setState({ phase: 'edit', rule: { ...state.rule, ruleId: crypto.randomUUID() }, description: state.description })}>{t('common.edit', 'Edit')}</Button>
+            <Button variant="primary" size="sm" onClick={handleAccept}>{t('rules.addRule', 'Add Rule')}</Button>
           </>
         )}
         {state.phase === 'error' && (
-          <Button variant="secondary" size="sm" onClick={handleRegenerate}>Retry</Button>
+          <Button variant="secondary" size="sm" onClick={handleRegenerate}>{t('common.retry', 'Retry')}</Button>
         )}
       </div>
     </div>
@@ -652,11 +659,12 @@ function RuleRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={`flex flex-col gap-1 py-3 border-b border-[var(--color-border)] last:border-0 ${rule.enabled ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${getActionBadgeColor(rule.action)}`}>
-          {getActionLabel(rule.action)}
+          {getActionLabel(rule.action, t)}
         </span>
         <span className="text-sm font-medium text-[var(--color-text-primary)] flex-1">{rule.name}</span>
         <div className="flex items-center gap-1 ml-auto">
@@ -665,7 +673,7 @@ function RuleRow({
             onClick={onMoveUp}
             disabled={busy || index === 0}
             className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] disabled:opacity-30 px-1"
-            aria-label="Move Up"
+            aria-label={t('rules.moveUp', 'Move Up')}
           >
             ↑
           </button>
@@ -674,7 +682,7 @@ function RuleRow({
             onClick={onMoveDown}
             disabled={busy || index === total - 1}
             className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] disabled:opacity-30 px-1"
-            aria-label="Move Down"
+            aria-label={t('rules.moveDown', 'Move Down')}
           >
             ↓
           </button>
@@ -683,36 +691,36 @@ function RuleRow({
             onClick={onToggle}
             disabled={busy}
             className={`text-xs px-2 py-0.5 rounded border ${rule.enabled ? 'border-[var(--color-border)] text-[var(--color-text-secondary)]' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'} disabled:opacity-40`}
-            aria-label={rule.enabled ? 'Disable Rule' : 'Enable Rule'}
+            aria-label={rule.enabled ? t('rules.disableRule', 'Disable Rule') : t('rules.enableRule', 'Enable Rule')}
           >
-            {rule.enabled ? 'Enabled' : 'Disabled'}
+            {rule.enabled ? t('rules.enabled', 'Enabled') : t('rules.disabled', 'Disabled')}
           </button>
           <button
             type="button"
             onClick={onEdit}
             disabled={busy}
             className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-40 px-1"
-            aria-label="Edit Rule"
+            aria-label={t('rules.editRule', 'Edit Rule')}
           >
-            Edit
+            {t('common.edit', 'Edit')}
           </button>
           <button
             type="button"
             onClick={onDelete}
             disabled={busy}
             className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 px-1"
-            aria-label="Delete Rule"
+            aria-label={t('rules.deleteRule', 'Delete Rule')}
           >
-            Delete
+            {t('common.delete', 'Delete')}
           </button>
         </div>
       </div>
-      <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary(rule)}</p>
+      <p className="text-xs text-[var(--color-text-muted)]">{formatConditionSummary(rule, t)}</p>
       {rule.action.type === 'prepend_instruction' && rule.action.instruction && (
         <p className="text-xs text-[var(--color-text-secondary)] italic">"{rule.action.instruction}"</p>
       )}
       {rule.action.type === 'apply_label' && (
-        <p className="text-xs text-[var(--color-text-secondary)]">Label: {rule.action.labelName}</p>
+        <p className="text-xs text-[var(--color-text-secondary)]">{t('rules.labelValue', 'Label: {{name}}', { name: rule.action.labelName })}</p>
       )}
     </div>
   );
@@ -721,6 +729,7 @@ function RuleRow({
 type FormMode = 'none' | 'manual' | 'suggest';
 
 export function RulesSection({ application }: { application: ConnectedApplication }) {
+  const { t } = useTranslation();
   const { busy, onUpdateRules } = useMailboxCallbacks();
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -756,11 +765,9 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
   const canAddMore = rules.length < MAX_RULES;
 
   return (
-    <CollapsibleSection title="Email Processing Rules">
+    <CollapsibleSection title={t('rules.title', 'Email Processing Rules')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        Rules Run In Two Phases.
-        Pre-Processing Rules (Skip, Skip Actions, Custom Instruction) Run Before AI Summarization — First Match Wins.
-        Post-Processing Rules (Apply Label, Archive, Mark Read, Star) Run After Summarization — All Matching Rules Execute.
+        {t('rules.description', 'Rules Run In Two Phases. Pre-Processing Rules (Skip, Skip Actions, Custom Instruction) Run Before AI Summarization — First Match Wins. Post-Processing Rules (Apply Label, Archive, Mark Read, Star) Run After Summarization — All Matching Rules Execute.')}
       </p>
       {rules.length > 0 && (
         <div className="mb-3">
@@ -791,7 +798,7 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
         </div>
       )}
       {formMode === 'none' && rules.length === 0 && (
-        <p className="text-xs text-[var(--color-text-muted)] mb-3">No Rules Configured.</p>
+        <p className="text-xs text-[var(--color-text-muted)] mb-3">{t('rules.empty', 'No Rules Configured.')}</p>
       )}
       {formMode === 'manual' && (
         <RuleForm applicationId={application.applicationId} onAdd={addRule} onCancel={() => setFormMode('none')} />
@@ -807,14 +814,14 @@ export function RulesSection({ application }: { application: ConnectedApplicatio
         canAddMore ? (
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setFormMode('manual')} disabled={busy}>
-              Add Rule
+              {t('rules.addRule', 'Add Rule')}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setFormMode('suggest')} disabled={busy}>
-              Generate With AI
+              {t('rules.generateWithAI', 'Generate With AI')}
             </Button>
           </div>
         ) : (
-          <p className="text-xs text-[var(--color-text-muted)]">Maximum {MAX_RULES} Rules Reached.</p>
+          <p className="text-xs text-[var(--color-text-muted)]">{t('rules.maxReached', 'Maximum {{max}} Rules Reached.', { max: MAX_RULES })}</p>
         )
       )}
     </CollapsibleSection>

@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import type { ActivityEntry, ActivityEventType } from '../../services/activityService';
 import { Badge } from '../ui/Badge';
@@ -12,33 +13,6 @@ import { RefreshButton } from '../shared/RefreshButton';
 import { appName } from '../../lib/applications';
 import { formatTimestamp } from '../../lib/format';
 
-const ACTION_TYPE_LABELS: Record<string, string> = {
-  'calendar.add_event': 'Calendar Event',
-  'email.draft_reply': 'Email Draft Reply',
-  'external.open_link': 'Open Link',
-  'manual.todo': 'To-Do',
-  'delivery.track_package': 'Package Tracking',
-  'travel.track_flight': 'Flight Tracking',
-  'finance.pay_bill': 'Bill Payment',
-  'appointment.confirm': 'Appointment',
-};
-
-function eventDescription(entry: ActivityEntry): string {
-  if (entry.eventType === 'email_processed') {
-    if (entry.status === 'summarized') return 'Email Summarized';
-    if (entry.status === 'skipped') return 'Email Skipped';
-    return 'Email Processing Error';
-  }
-  if (entry.eventType === 'action_created') {
-    const label = ACTION_TYPE_LABELS[entry.actionType] ?? entry.actionType;
-    return `${label} Action Detected`;
-  }
-  if (entry.executionStatus === 'succeeded') return 'Action Executed';
-  if (entry.executionStatus === 'failed') return 'Action Execution Failed';
-  if (entry.executionStatus === 'expired') return 'Action Expired';
-  return 'Action Executed';
-}
-
 function eventBadgeVariant(entry: ActivityEntry): BadgeVariant {
   if (entry.eventType === 'email_processed') {
     if (entry.status === 'summarized') return 'success';
@@ -51,34 +25,56 @@ function eventBadgeVariant(entry: ActivityEntry): BadgeVariant {
   return 'neutral';
 }
 
-function eventBadgeLabel(entry: ActivityEntry): string {
-  if (entry.eventType === 'email_processed') return 'Email';
-  if (entry.eventType === 'action_created') return 'Action';
-  return 'Execution';
-}
-
 function ActivityRow({ entry, applications }: { entry: ActivityEntry; applications: ConnectedApplication[] }) {
+  const { t, i18n } = useTranslation();
+  const badgeLabel =
+    entry.eventType === 'email_processed'
+      ? t('activity.email', 'Email')
+      : entry.eventType === 'action_created'
+        ? t('activity.action', 'Action')
+        : t('activity.execution', 'Execution');
+  let description: string;
+  switch (entry.eventType) {
+    case 'email_processed': {
+      switch (entry.status) {
+        case 'summarized': { description = t('activity.emailSummarized', 'Email Summarized'); break; }
+        case 'skipped': { description = t('activity.emailSkipped', 'Email Skipped'); break; }
+        default: { description = t('activity.emailError', 'Email Processing Error'); break; }
+      }
+      break;
+    }
+    case 'action_created': {
+      const label = t(`actionTypes.${entry.actionType}`, entry.actionType);
+      description = t('activity.actionDetected', '{{label}} Action Detected', { label });
+      break;
+    }
+    default: {
+      switch (entry.executionStatus) {
+        case 'succeeded': { description = t('activity.actionExecuted', 'Action Executed'); break; }
+        case 'failed': { description = t('activity.actionFailed', 'Action Execution Failed'); break; }
+        case 'expired': { description = t('activity.actionExpired', 'Action Expired'); break; }
+        default: { description = t('activity.actionExecuted', 'Action Executed'); break; }
+      }
+      break;
+    }
+  }
   return (
     <div className="flex items-center gap-3 flex-wrap px-4 py-2.5 border-b border-[var(--color-border)] last:border-0">
-      <Badge variant={eventBadgeVariant(entry)}>{eventBadgeLabel(entry)}</Badge>
+      <Badge variant={eventBadgeVariant(entry)}>{badgeLabel}</Badge>
       <span className="text-sm text-[var(--color-text-primary)] flex-1 min-w-0 truncate">
-        {eventDescription(entry)}
+        {description}
       </span>
       <span className="text-xs text-[var(--color-text-muted)] shrink-0">
         {appName(entry.applicationId, applications)}
       </span>
       <span className="text-xs text-[var(--color-text-muted)] shrink-0 ml-auto">
-        {formatTimestamp(entry.timestamp)}
+        {formatTimestamp(entry.timestamp, i18n.resolvedLanguage)}
       </span>
     </div>
   );
 }
 
-const EVENT_TYPE_OPTIONS: { value: ActivityEventType; label: string }[] = [
-  { value: 'email_processed', label: 'Email Processed' },
-  { value: 'action_created', label: 'Action Created' },
-  { value: 'action_executed', label: 'Action Executed' },
-];
+const EVENT_TYPE_VALUES: ActivityEventType[] = ['email_processed', 'action_created', 'action_executed'];
 
 export function ActivityView({
   applications,
@@ -107,9 +103,10 @@ export function ActivityView({
   onLoadMore: () => void;
   onExportCsv: () => void;
 }) {
+  const { t } = useTranslation();
   const toggleEventType = (type: ActivityEventType) => {
     if (eventTypes.includes(type)) {
-      setEventTypes(eventTypes.filter((t) => t !== type));
+      setEventTypes(eventTypes.filter((x) => x !== type));
     } else {
       setEventTypes([...eventTypes, type]);
     }
@@ -121,22 +118,22 @@ export function ActivityView({
         <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
 
         <div className="flex items-center gap-3">
-          {EVENT_TYPE_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer text-sm text-[var(--color-text-secondary)]">
+          {EVENT_TYPE_VALUES.map((value) => (
+            <label key={value} className="flex items-center gap-1.5 cursor-pointer text-sm text-[var(--color-text-secondary)]">
               <input
                 type="checkbox"
-                checked={eventTypes.includes(opt.value)}
-                onChange={() => toggleEventType(opt.value)}
+                checked={eventTypes.includes(value)}
+                onChange={() => toggleEventType(value)}
                 className="accent-[var(--color-accent)]"
               />
-              {opt.label}
+              {t(`activity.filters.${value}`, value)}
             </label>
           ))}
         </div>
 
         <Button variant="secondary" size="sm" onClick={onExportCsv} loading={exporting}>
           <Download className="h-3.5 w-3.5" />
-          Export CSV
+          {t('activity.exportCsv', 'Export CSV')}
         </Button>
 
         <RefreshButton onRefresh={onRefresh} loading={loading} className="ml-auto" />
@@ -144,12 +141,12 @@ export function ActivityView({
 
       <Card>
         <CardHeader>
-          <CardTitle>Activity Feed</CardTitle>
+          <CardTitle>{t('activity.title', 'Activity Feed')}</CardTitle>
         </CardHeader>
         {loading && entries.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">Loading…</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('activity.loading', 'Loading…')}</div>
         ) : entries.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">No Activity Found</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('activity.empty', 'No Activity Found')}</div>
         ) : (
           <>
             {entries.map((entry, i) => (

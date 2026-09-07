@@ -193,6 +193,7 @@ describe('EmailProcessingUtil', () => {
         undefined,
         undefined,
         undefined,
+        null,
       );
       expect(incrementUsage).toHaveBeenCalledWith({
         usageDate: expect.any(String),
@@ -232,6 +233,7 @@ describe('EmailProcessingUtil', () => {
         undefined,
         undefined,
         undefined,
+        null,
       );
       expect(incrementUsage).toHaveBeenCalledWith({
         usageDate: expect.any(String),
@@ -273,6 +275,7 @@ describe('EmailProcessingUtil', () => {
         undefined,
         undefined,
         undefined,
+        null,
       );
       expect(summarizeEmail).toHaveBeenNthCalledWith(
         2,
@@ -284,6 +287,7 @@ describe('EmailProcessingUtil', () => {
         undefined,
         undefined,
         undefined,
+        null,
       );
       expect(incrementUsage).toHaveBeenNthCalledWith(1, {
         usageDate: expect.any(String),
@@ -596,6 +600,7 @@ describe('EmailProcessingUtil', () => {
         undefined,
         undefined,
         'Always extract invoice number and due date.',
+        null,
       );
     });
   });

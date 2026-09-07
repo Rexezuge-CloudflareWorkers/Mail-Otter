@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication, SenderDomainFilters } from '../../types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
@@ -6,6 +7,7 @@ import { Input } from '../ui/Input';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 export function SenderFilterSection({ application }: { application: ConnectedApplication }) {
+  const { t } = useTranslation();
   const { busy, onUpdateSenderFilters } = useMailboxCallbacks();
   const [draft, setDraft] = useState('');
   const current: SenderDomainFilters = application.senderDomainFilters ?? { includeRules: [] };
@@ -22,11 +24,14 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
   };
 
   return (
-    <CollapsibleSection title="Sender Allowlist">
+    <CollapsibleSection title={t('senderFilter.allowlistTitle', 'Sender Allowlist')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        When set, only emails from matching senders are processed. Leave empty to process all senders.
-        Use <code className="font-mono">@domain.com</code> to match a domain or <code className="font-mono">user@domain.com</code> for an exact address.
-        To block specific senders, create a rule with Field: From, Operator: Matches Sender, Action: Skip.
+        {t('senderFilter.description1', 'When set, only emails from matching senders are processed. Leave empty to process all senders. Use')}{' '}
+        <code className="font-mono">@domain.com</code>{' '}
+        {t('senderFilter.description2', 'to match a domain or')}{' '}
+        <code className="font-mono">user@domain.com</code>{' '}
+        {t('senderFilter.description3', 'for an exact address.')}{' '}
+        {t('senderFilter.description4', 'To block specific senders, create a rule with Field: From, Operator: Matches Sender, Action: Skip.')}
       </p>
       {current.includeRules.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -41,7 +46,7 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
                 onClick={() => handleRemove(rule)}
                 disabled={busy}
                 className="ml-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
-                aria-label={`Remove ${rule}`}
+                aria-label={t('senderFilter.removeRule', 'Remove {{rule}}', { rule })}
               >
                 ×
               </button>
@@ -59,12 +64,12 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
           }
 
           e.preventDefault(); handleAdd(); }}
-          placeholder="@domain.com or user@domain.com"
+          placeholder={t('senderFilter.placeholder', '@domain.com or user@domain.com')}
           disabled={busy}
           className="text-sm"
         />
         <Button variant="secondary" size="sm" onClick={handleAdd} disabled={busy || !draft.trim()}>
-          Add
+          {t('common.add', 'Add')}
         </Button>
       </div>
     </CollapsibleSection>

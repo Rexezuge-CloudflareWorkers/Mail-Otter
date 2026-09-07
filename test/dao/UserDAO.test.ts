@@ -52,12 +52,39 @@ describe('UserDAO', () => {
       expect(user!.updatedAt).toBe(2000);
     });
 
+    it('maps the stored language preference', async () => {
+      mockFirst.mockResolvedValue({ email: 'existing@example.com', preferred_language: 'de', created_at: 1000, updated_at: 2000 });
+
+      const user = await dao.getByEmail('existing@example.com');
+
+      expect(user!.preferredLanguage).toBe('de');
+    });
+
+    it('defaults the language preference to null when unset', async () => {
+      mockFirst.mockResolvedValue({ email: 'existing@example.com', created_at: 1000, updated_at: 2000 });
+
+      const user = await dao.getByEmail('existing@example.com');
+
+      expect(user!.preferredLanguage).toBeNull();
+    });
+
     it('returns undefined when user not found', async () => {
       mockFirst.mockResolvedValue(null);
 
       const user = await dao.getByEmail('nonexistent@example.com');
 
       expect(user).toBeUndefined();
+    });
+  });
+
+  describe('updatePreferredLanguage', () => {
+    it('persists the preference and returns the updated user', async () => {
+      mockFirst.mockResolvedValue({ email: 'existing@example.com', preferred_language: 'ja', created_at: 1000, updated_at: 2000 });
+
+      const user = await dao.updatePreferredLanguage('existing@example.com', 'ja');
+
+      expect(mockRun).toHaveBeenCalled();
+      expect(user!.preferredLanguage).toBe('ja');
     });
   });
 });

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface StackedBarDay {
   date: string;
   summarized: number;
@@ -6,8 +8,9 @@ interface StackedBarDay {
 }
 
 export function StackedBarChart({ days }: { days: StackedBarDay[] }) {
+  const { t } = useTranslation();
   if (days.length === 0) {
-    return <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">No Data.</div>;
+    return <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">{t('analytics.noData', 'No Data.')}</div>;
   }
 
   const maxTotal = Math.max(...days.map((d) => d.summarized + d.skipped + d.error), 1);
@@ -22,7 +25,7 @@ export function StackedBarChart({ days }: { days: StackedBarDay[] }) {
             key={d.date}
             className="flex flex-col-reverse flex-1 min-w-[6px] rounded-t-sm overflow-hidden"
             style={{ height: `${heightPct}%` }}
-            title={`${d.date}: ${total} total`}
+            title={t('analytics.barTotal', '{{date}}: {{total}} total', { date: d.date, total })}
           >
             {d.summarized > 0 && <div className="bg-[var(--color-accent)]" style={{ flex: d.summarized }} />}
             {d.skipped > 0 && <div className="bg-[var(--color-text-muted)] opacity-50" style={{ flex: d.skipped }} />}

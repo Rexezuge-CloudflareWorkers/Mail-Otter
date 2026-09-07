@@ -92,6 +92,7 @@ export interface SenderDomainFilters {
 
 export interface CurrentUser {
   email: string;
+  preferredLanguage?: string | null;
   limits: {
     maxApplicationsPerUser: number;
     maxContextDocumentsPerApplication: number;
@@ -113,6 +114,7 @@ export interface ConnectedApplication {
   status: 'draft' | 'connected' | 'error';
   enabledFeatures?: string[] | null;
   timeZone?: string | null;
+  contentLanguage?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
   emailProcessingRules?: EmailProcessingRule[] | null;
   autoExecuteActionTypes?: string[] | null;

@@ -1,3 +1,6 @@
+import { getBackendStrings } from '@mail-otter/shared/i18n';
+import { LocaleUtil } from '@mail-otter/shared/utils';
+
 const AFTERSHIP_API_BASE = 'https://api.aftership.com/tracking/2024-10';
 
 // Maps common carrier name substrings (lower-cased) to Aftership slugs.
@@ -28,6 +31,22 @@ const TAG_LABELS: Record<string, string> = {
   Expired: 'Expired',
 };
 
+function tagLabelFor(tag: string, locale?: string | null): string {
+  const strings = getBackendStrings(locale);
+  switch (tag) {
+    case 'Delivered': { return strings.tracking.tagDelivered; }
+    case 'OutForDelivery': { return strings.tracking.tagOutForDelivery; }
+    case 'InTransit': { return strings.tracking.tagInTransit; }
+    case 'AttemptFail': { return strings.tracking.tagAttemptFail; }
+    case 'Exception': { return strings.tracking.tagException; }
+    case 'AvailableForPickup': { return strings.tracking.tagAvailableForPickup; }
+    case 'Pending':
+    case 'InfoReceived': { return strings.tracking.tagLabelCreated; }
+    case 'Expired': { return strings.tracking.tagExpired; }
+    default: { return tag; }
+  }
+}
+
 interface AftershippCheckpoint {
   message?: string;
   city?: string;
@@ -55,15 +74,16 @@ function resolveSlug(carrier: string | undefined): string | undefined {
   return undefined;
 }
 
-function formatExpectedDelivery(raw: string): string {
+function formatExpectedDelivery(raw: string, locale?: string | null): string {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString(LocaleUtil.normalize(locale), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function buildSummary(tracking: AftershippTracking): string {
+function buildSummary(tracking: AftershippTracking, locale?: string | null): string {
   const tag = tracking.tag ?? '';
-  const statusLabel = TAG_LABELS[tag] ?? tag;
+  const statusLabel = tagLabelFor(tag, locale);
+  const strings = getBackendStrings(locale);
 
   const checkpoints = tracking.checkpoints ?? [];
   const latest = checkpoints.at(-1);
@@ -77,12 +97,12 @@ function buildSummary(tracking: AftershippTracking): string {
   let summary = statusLabel;
   if (locationParts.length > 0) summary += ` — ${locationParts.join(', ')}`;
   if (tracking.expected_delivery) {
-    summary += `. Expected: ${formatExpectedDelivery(tracking.expected_delivery)}`;
+    summary += `. ${strings.tracking.expectedPrefix}${formatExpectedDelivery(tracking.expected_delivery, locale)}`;
   }
   return summary;
 }
 
-async function fetchStatus(trackingNumber: string, carrier: string | undefined, apiKey: string): Promise<PackageTrackingStatus | null> {
+async function fetchStatus(trackingNumber: string, carrier: string | undefined, apiKey: string, locale?: string | null): Promise<PackageTrackingStatus | null> {
   const slug = resolveSlug(carrier);
   const body: Record<string, unknown> = { tracking_number: trackingNumber };
   if (slug) body.slug = slug;
@@ -104,7 +124,7 @@ async function fetchStatus(trackingNumber: string, carrier: string | undefined, 
     const tracking = json?.data?.tracking;
     if (!tracking) return null;
 
-    return { summary: buildSummary(tracking) };
+    return { summary: buildSummary(tracking, locale) };
   } catch {
     return null;
   }

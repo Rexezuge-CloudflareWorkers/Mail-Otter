@@ -1,5 +1,6 @@
-import { ApplicationIntegrationDAO, IntegrationDeliveryLogDAO } from '@mail-otter/backend-data/dao';
+import { ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDeliveryLogDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
 import type { GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData } from '../email/EmailProcessingUtil';
 
@@ -58,12 +59,14 @@ class IntegrationService {
     const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
     const emailSubject = summaryData.emailSubject?.slice(0, 255) ?? null;
 
+    const locale = summaryData.application.contentLanguage ?? null;
+
     await Promise.allSettled(
       integrations.map(async (integration) => {
         let result: DispatchResult;
         try {
           const webhookUrl = await dao.getDecryptedWebhookUrl(integration.integrationId);
-          result = await this.dispatchToIntegration(integration, webhookUrl, notification);
+          result = await this.dispatchToIntegration(integration, webhookUrl, notification, locale);
         } catch (error: unknown) {
           const msg = error instanceof Error ? error.message : String(error);
           result = { status: 'failure', httpStatus: null, errorMessage: msg };
@@ -93,30 +96,42 @@ class IntegrationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
     const webhookUrl = await dao.getDecryptedWebhookUrl(integration.integrationId);
+    const locale = await this.resolveApplicationLocale(integration.applicationId);
+    const strings = getBackendStrings(locale);
 
     const testNotification: EmailSummaryNotification = {
       applicationId: integration.applicationId,
-      emailSubject: 'Test Email From Mail-Otter',
-      emailFrom: 'test@example.com',
-      gist: 'This is a test notification from Mail-Otter to verify your integration is working.',
-      keyDetails: ['Integration test triggered manually', 'No real email was processed'],
+      emailSubject: strings.notify.testSubject,
+      emailFrom: strings.notify.testFrom,
+      gist: strings.notify.testGist,
+      keyDetails: [strings.notify.testDetail1, strings.notify.testDetail2],
       actions: [],
       processedAt: Math.floor(Date.now() / 1000),
     };
 
-    const result = await this.dispatchToIntegration(integration, webhookUrl, testNotification);
+    const result = await this.dispatchToIntegration(integration, webhookUrl, testNotification, locale);
     if (result.status === 'failure') {
       throw new Error(result.errorMessage ?? `Webhook returned HTTP ${result.httpStatus ?? 'error'}`);
     }
   }
 
-  private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification): Promise<DispatchResult> {
+  private async resolveApplicationLocale(applicationId: string): Promise<string> {
+    try {
+      const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
+      const application = await new ConnectedApplicationDAO(this.env.DB, masterKey).getById(applicationId);
+      return application?.contentLanguage ?? 'en';
+    } catch {
+      return 'en';
+    }
+  }
+
+  private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification, locale?: string | null): Promise<DispatchResult> {
     switch (integration.integrationType) {
       case 'slack': {
-        return this.postJson(webhookUrl, this.buildSlackPayload(notification));
+        return this.postJson(webhookUrl, this.buildSlackPayload(notification, locale));
       }
       case 'discord': {
-        return this.postJson(webhookUrl, this.buildDiscordPayload(notification));
+        return this.postJson(webhookUrl, this.buildDiscordPayload(notification, locale));
       }
       case 'webhook': {
         return this.postJson(webhookUrl, this.buildWebhookPayload(notification));
@@ -142,17 +157,18 @@ class IntegrationService {
     }
   }
 
-  private buildSlackPayload(n: EmailSummaryNotification): unknown {
+  private buildSlackPayload(n: EmailSummaryNotification, locale?: string | null): unknown {
+    const strings = getBackendStrings(locale);
     const blocks: unknown[] = [
       {
         type: 'header',
-        text: { type: 'plain_text', text: `New Email: ${n.emailSubject}`.slice(0, 150) },
+        text: { type: 'plain_text', text: `${strings.notify.newEmailPrefix}${n.emailSubject}`.slice(0, 150) },
       },
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*From:* ${n.emailFrom || '(unknown)'}\n*Summary:* ${n.gist}`,
+          text: `*${strings.notify.slackFromLabel}* ${n.emailFrom || strings.notify.unknownFrom}\n*${strings.notify.slackSummaryLabel}* ${n.gist}`,
         },
       },
     ];
@@ -162,7 +178,7 @@ class IntegrationService {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Key Details:*\n${n.keyDetails.slice(0, 10).map((d) => `• ${d}`).join('\n')}`,
+          text: `*${strings.notify.slackDetailsLabel}*\n${n.keyDetails.slice(0, 10).map((d) => `• ${d}`).join('\n')}`,
         },
       });
     }
@@ -171,24 +187,25 @@ class IntegrationService {
       const actionText = n.actions.map((a) => `• <${a.callbackUrl}|${a.title}> _(${a.type.replace('.', ' ')})_`).join('\n');
       blocks.push({
         type: 'section',
-        text: { type: 'mrkdwn', text: `*Suggested Actions:*\n${actionText}` },
+        text: { type: 'mrkdwn', text: `*${strings.notify.slackActionsLabel}*\n${actionText}` },
       });
     }
 
     blocks.push({
       type: 'context',
-      elements: [{ type: 'mrkdwn', text: `Mail-Otter · <${n.applicationId}>` }],
+      elements: [{ type: 'mrkdwn', text: `${strings.notify.footerBrand} · <${n.applicationId}>` }],
     });
 
     return { blocks };
   }
 
-  private buildDiscordPayload(n: EmailSummaryNotification): unknown {
-    const fields: unknown[] = [{ name: 'From', value: n.emailFrom || '(unknown)', inline: true }];
+  private buildDiscordPayload(n: EmailSummaryNotification, locale?: string | null): unknown {
+    const strings = getBackendStrings(locale);
+    const fields: unknown[] = [{ name: strings.notify.discordFromField, value: n.emailFrom || strings.notify.unknownFrom, inline: true }];
 
     if (n.keyDetails.length > 0) {
       fields.push({
-        name: 'Key Details',
+        name: strings.notify.discordDetailsField,
         value: n.keyDetails.slice(0, 10).map((d) => `• ${d}`).join('\n').slice(0, 1024),
         inline: false,
       });
@@ -196,7 +213,7 @@ class IntegrationService {
 
     if (n.actions.length > 0) {
       fields.push({
-        name: 'Suggested Actions',
+        name: strings.notify.discordActionsField,
         value: n.actions.map((a) => `[${a.title}](${a.callbackUrl})`).join('\n').slice(0, 1024),
         inline: false,
       });
@@ -205,11 +222,11 @@ class IntegrationService {
     return {
       embeds: [
         {
-          title: `New Email: ${n.emailSubject}`.slice(0, 256),
+          title: `${strings.notify.newEmailPrefix}${n.emailSubject}`.slice(0, 256),
           description: n.gist.slice(0, 4096),
           color: 0x58_65_F2,
           fields,
-          footer: { text: `Mail-Otter · ${n.applicationId}` },
+          footer: { text: `${strings.notify.footerBrand} · ${n.applicationId}` },
         },
       ],
     };

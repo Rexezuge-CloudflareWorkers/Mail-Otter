@@ -31,6 +31,7 @@ import type {
   TravelTrackFlightActionPayload,
 } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import { createActionDAO, hashToken } from './ActionServiceUtils';
@@ -61,6 +62,16 @@ async function getActionForToken(actionId: string, token: string, env: ActionCal
   return dao.getByTokenHash(actionId, tokenHash);
 }
 
+async function resolveActionLocale(action: EmailAction, env: ActionCallbackEnv): Promise<string> {
+  try {
+    const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());
+    const application = await applicationDAO.getMetadataByIdForUser(action.applicationId, action.userEmail);
+    return application?.contentLanguage ?? 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 async function hashUserAgent(request: Request | null, env: ActionExecutionEnv): Promise<string | null> {
   if (!request) return null;
   const userAgent: string = request.headers.get('User-Agent')?.trim() || '';
@@ -84,23 +95,25 @@ async function executeDraftReplyAction(
 }
 
 async function executeProviderOperation(action: EmailAction, env: ActionExecutionEnv): Promise<EmailActionResult> {
+  const locale = await resolveActionLocale(action, env);
+  const strings = getBackendStrings(locale);
   if (action.actionType === EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK) {
     const payload = action.payload as ExternalOpenLinkActionPayload;
-    return { summary: 'External link reviewed.', externalUrl: payload.url, providerUrl: payload.url };
+    return { summary: strings.results.externalLinkReviewed, externalUrl: payload.url, providerUrl: payload.url };
   }
   if (action.actionType === EMAIL_ACTION_TYPE_MANUAL_TODO) {
-    return { summary: 'Manual action acknowledged.' };
+    return { summary: strings.results.manualAcknowledged };
   }
   if (action.actionType === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
     const payload = action.payload as DeliveryTrackPackageActionPayload;
     const trackingApiKey = ConfigurationManager.digest.getPackageTrackingApiKey(env);
     if (trackingApiKey) {
-      const status = await PackageTrackingService.fetchStatus(payload.trackingNumber, payload.carrier, trackingApiKey);
+      const status = await PackageTrackingService.fetchStatus(payload.trackingNumber, payload.carrier, trackingApiKey, locale);
       if (status) return { summary: status.summary, externalUrl: payload.trackingUrl ?? undefined };
     }
-    if (payload.trackingUrl) return { summary: 'Package tracking link opened.', externalUrl: payload.trackingUrl };
-    const via = payload.carrier ? ` via ${payload.carrier}` : '';
-    return { summary: `Package tracking noted: ${payload.trackingNumber}${via}.` };
+    if (payload.trackingUrl) return { summary: strings.results.packageLinkOpened, externalUrl: payload.trackingUrl };
+    const via = payload.carrier ? `${strings.results.packageNotedVia}${payload.carrier}` : '';
+    return { summary: `${strings.results.packageNotedPrefix}${payload.trackingNumber}${via}.` };
   }
   if (action.actionType === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
     const payload = action.payload as TravelTrackFlightActionPayload;
@@ -111,23 +124,23 @@ async function executeProviderOperation(action: EmailAction, env: ActionExecutio
         const actionDAO = await createActionDAO(env);
         await actionDAO.updateSyncStatus(action.actionId, JSON.stringify(syncStatus));
         return {
-          summary: FlightTrackingService.formatFlightSummary(payload.flightNumber, syncStatus),
+          summary: FlightTrackingService.formatFlightSummary(payload.flightNumber, syncStatus, locale),
           externalUrl: payload.trackingUrl ?? undefined,
         };
       }
     }
-    if (payload.trackingUrl) return { summary: 'Flight tracking link opened.', externalUrl: payload.trackingUrl };
-    return { summary: `Flight ${payload.flightNumber} details noted.` };
+    if (payload.trackingUrl) return { summary: strings.results.flightLinkOpened, externalUrl: payload.trackingUrl };
+    return { summary: `${strings.results.flightNotedPrefix}${payload.flightNumber}${strings.results.flightNotedSuffix}` };
   }
   if (action.actionType === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
     const payload = action.payload as FinancePayBillActionPayload;
-    if (payload.paymentUrl) return { summary: 'Payment link opened.', externalUrl: payload.paymentUrl };
-    return { summary: 'Bill payment reminder noted.' };
+    if (payload.paymentUrl) return { summary: strings.results.paymentLinkOpened, externalUrl: payload.paymentUrl };
+    return { summary: strings.results.billReminderNoted };
   }
   if (action.actionType === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
     const payload = action.payload as AppointmentConfirmActionPayload;
-    const when = payload.appointmentTime ? ` on ${payload.appointmentTime}` : '';
-    return { summary: `Appointment${when} details noted.` };
+    const when = payload.appointmentTime ? `${strings.results.appointmentNotedOn}${payload.appointmentTime}` : '';
+    return { summary: `${strings.results.appointmentNotedPrefix}${when}${strings.results.appointmentNotedSuffix}` };
   }
 
   const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());
@@ -203,19 +216,23 @@ async function executeAction(
 
 async function getConfirmationResponse(actionId: string, token: string, env: ActionCallbackEnv): Promise<ActionHtmlResponse> {
   const action: EmailAction | undefined = await getActionForToken(actionId, token, env);
+  const locale = action ? await resolveActionLocale(action, env) : 'en';
+  const strings = getBackendStrings(locale);
   if (!action) {
-    return { statusCode: 404, html: renderMessagePage('Action not found', 'This action link is invalid or has expired.') };
+    return { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
   }
-  return { statusCode: 200, html: renderConfirmationPage(action, token) };
+  return { statusCode: 200, html: renderConfirmationPage(action, token, locale) };
 }
 
 async function executeActionWithToken(actionId: string, token: string, request: Request, env: ActionCallbackEnv): Promise<ActionHtmlResponse> {
   const action: EmailAction | undefined = await getActionForToken(actionId, token, env);
+  const locale = action ? await resolveActionLocale(action, env) : 'en';
+  const strings = getBackendStrings(locale);
   if (!action) {
-    return { statusCode: 404, html: renderMessagePage('Action not found', 'This action link is invalid or has expired.') };
+    return { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
   }
   const result: EmailAction = await executeAction(action, EMAIL_ACTION_TRIGGER_EMAIL_CALLBACK, request, env);
-  return { statusCode: 200, html: renderResultPage(result) };
+  return { statusCode: 200, html: renderResultPage(result, locale) };
 }
 
 async function executeActionForUser(actionId: string, userEmail: string, request: Request, env: UserActionEnv): Promise<EmailAction> {

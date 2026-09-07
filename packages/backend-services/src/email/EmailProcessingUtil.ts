@@ -10,6 +10,7 @@ import type { GmailMessage } from '@mail-otter/provider-clients/gmail';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { ProviderId } from '@mail-otter/shared/constants';
@@ -361,10 +362,11 @@ class EmailProcessingUtil {
     const existing = await processedDAO.getByMessageId(data.application.applicationId, data.messageId);
     if (existing?.status === PROCESSED_MESSAGE_STATUS_SUMMARIZED) return;
     try {
+      const summaryPrefix = getBackendStrings(data.application.contentLanguage ?? null).summary.summarySubjectPrefix;
       const summaryRfc2822 = [
         `From: ${data.application.providerEmail ?? data.application.userEmail}`,
         `To: ${data.application.providerEmail ?? data.application.userEmail}`,
-        `Subject: [Mail-Otter Summary] ${data.emailSubject}`,
+        `Subject: ${summaryPrefix}${data.emailSubject}`,
         `X-Mail-Otter-Summary: true`,
         `Content-Type: text/html; charset=utf-8`,
         '',

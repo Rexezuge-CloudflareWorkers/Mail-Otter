@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ContextAuditLog } from '../types';
 import { fetchDocumentAuditLogs } from '../services/userService';
 
@@ -7,6 +8,7 @@ interface UseAuditLogsOptions {
 }
 
 export function useAuditLogs({ showNotice }: UseAuditLogsOptions) {
+  const { t } = useTranslation();
   const [auditLogDocumentId, setAuditLogDocumentId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<ContextAuditLog[]>([]);
   const [auditLogsCursor, setAuditLogsCursor] = useState<string | undefined>();
@@ -22,7 +24,7 @@ export function useAuditLogs({ showNotice }: UseAuditLogsOptions) {
       setAuditLogs(data.logs);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Audit Logs.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.auditLogsLoadFailed', 'Unable To Load Audit Logs.'));
       setAuditLogDocumentId(null);
     } finally {
       setLoadingAuditLogs(false);
@@ -43,7 +45,7 @@ export function useAuditLogs({ showNotice }: UseAuditLogsOptions) {
       setAuditLogs((p) => [...p, ...data.logs]);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load More Audit Logs.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.auditLogsMoreFailed', 'Unable To Load More Audit Logs.'));
     } finally {
       setLoadingAuditLogs(false);
     }
@@ -57,11 +59,11 @@ export function useAuditLogs({ showNotice }: UseAuditLogsOptions) {
       setAuditLogs(data.logs);
       setAuditLogsCursor(data.nextCursor ?? undefined);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Refresh Audit Logs.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.auditLogsRefreshFailed', 'Unable To Refresh Audit Logs.'));
     } finally {
       setLoadingAuditLogs(false);
     }
-  }, [auditLogDocumentId, showNotice]);
+  }, [auditLogDocumentId, showNotice, t]);
 
   return {
     auditLogDocumentId,

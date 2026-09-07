@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDocument,
@@ -53,21 +54,23 @@ export function ContextAuditView({
   onDeleteDocuments: (id: string) => void;
   busy: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const lng = i18n.resolvedLanguage;
   const selectedApplication = applications.find((a) => a.applicationId === applicationId);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5 animate-fade-in-up">
-      <FilterBar title="RAG Context">
+      <FilterBar title={t('context.title', 'RAG Context')}>
         <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value as ApplicationContextDocumentStatus | '')}
           className="min-w-[130px]"
         >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="deleted">Deleted</option>
-          <option value="error">Error</option>
+          <option value="">{t('actions.allStatuses', 'All Statuses')}</option>
+          <option value="active">{t('status.active', 'Active')}</option>
+          <option value="deleted">{t('status.deleted', 'Deleted')}</option>
+          <option value="error">{t('status.error', 'Error')}</option>
         </Select>
         <RefreshButton onRefresh={onRefresh} loading={busy} />
       </FilterBar>
@@ -83,7 +86,7 @@ export function ContextAuditView({
                 <ContextIndexBadge enabled={selectedApplication.contextIndexingEnabled} />
               </div>
               <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-                {selectedApplication.contextDocumentCount || 0} Active Docs · Last Indexed {formatTimestamp(selectedApplication.contextLastIndexedAt)}
+                {t('context.docsSummary', '{{count}} Active Docs · Last Indexed {{date}}', { count: selectedApplication.contextDocumentCount || 0, date: formatTimestamp(selectedApplication.contextLastIndexedAt, lng) })}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -93,7 +96,7 @@ export function ContextAuditView({
                 onClick={() => onToggleIndexing(selectedApplication.applicationId, !selectedApplication.contextIndexingEnabled)}
                 disabled={busy}
               >
-                {selectedApplication.contextIndexingEnabled ? 'Disable Indexing' : 'Enable Indexing'}
+                {selectedApplication.contextIndexingEnabled ? t('context.disableIndexing', 'Disable Indexing') : t('context.enableIndexing', 'Enable Indexing')}
               </Button>
               <Button
                 variant="danger"
@@ -101,7 +104,7 @@ export function ContextAuditView({
                 onClick={() => onDeleteDocuments(selectedApplication.applicationId)}
                 disabled={busy || (selectedApplication.contextDocumentCount || 0) === 0}
               >
-                Delete Documents
+                {t('context.deleteDocuments', 'Delete Documents')}
               </Button>
             </div>
           </div>
@@ -111,8 +114,8 @@ export function ContextAuditView({
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-5">
         <div>
           <CardHeader className="mb-3 px-0">
-            <CardTitle>Indexed Documents</CardTitle>
-            <span className="text-sm text-[var(--color-text-muted)]">{documents.length} Loaded</span>
+            <CardTitle>{t('context.indexedDocuments', 'Indexed Documents')}</CardTitle>
+            <span className="text-sm text-[var(--color-text-muted)]">{t('actions.loaded', '{{count}} Loaded', { count: documents.length })}</span>
           </CardHeader>
           <div className="space-y-2.5">
             {documents.map((doc) => (
@@ -126,18 +129,18 @@ export function ContextAuditView({
             ))}
             {documents.length === 0 && (
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-10 text-center text-sm text-[var(--color-text-muted)]">
-                No Context Documents Found.
+                {t('context.noDocumentsFound', 'No Context Documents Found.')}
               </div>
             )}
           </div>
           {documentsCursor && (
-            <LoadMoreButton onLoadMore={onLoadMoreDocuments} loading={busy} label="Load More Documents" />
+            <LoadMoreButton onLoadMore={onLoadMoreDocuments} loading={busy} label={t('context.loadMoreDocuments', 'Load More Documents')} />
           )}
         </div>
 
         <div>
           <CardHeader className="mb-3 px-0">
-            <CardTitle>Deletion History</CardTitle>
+            <CardTitle>{t('context.deletionHistory', 'Deletion History')}</CardTitle>
           </CardHeader>
           <div className="space-y-2.5">
             {deletionRuns.map((run) => (
@@ -149,7 +152,7 @@ export function ContextAuditView({
             ))}
             {deletionRuns.length === 0 && (
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-10 text-center text-sm text-[var(--color-text-muted)]">
-                No Deletion History.
+                {t('context.noDeletionHistory', 'No Deletion History.')}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { ConnectedApplication, EmailActionProposal } from '@mail-otter/shared/model';
+import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import { ActionService } from '../action';
@@ -116,7 +117,7 @@ class EmailSummaryOrchestrator {
       try {
         const visionModel = ConfigurationManager.ai.getAttachmentVisionModel(this.env);
         const visionResult = await AttachmentAnalysisUtil.analyzeAttachments(
-          this.env.AI, visionModel, subject, from, attachmentImages,
+          this.env.AI, visionModel, subject, from, attachmentImages, application.contentLanguage ?? null,
         );
         attachmentSummaries = visionResult.attachmentSummaries;
         visionProposals = visionResult.actionProposals;
@@ -159,10 +160,11 @@ class EmailSummaryOrchestrator {
         }
       }
     }
+    const locale: string | null = application.contentLanguage ?? null;
     const summaryWithAttachments: string = attachmentSummaries.length > 0
-      ? `${summary.html}\n${this.renderAttachmentSection(attachmentSummaries)}`
+      ? `${summary.html}\n${this.renderAttachmentSection(attachmentSummaries, locale)}`
       : summary.html;
-    return { summaryHtml: this.withActionSection(summaryWithAttachments, actions), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
+    return { summaryHtml: this.withActionSection(summaryWithAttachments, actions, locale), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
   }
 
   private async summarize(
@@ -178,11 +180,12 @@ class EmailSummaryOrchestrator {
     const bodyText: string = body || '(empty message body)';
     const input: string = EmailContentUtil.truncate(bodyText, maxChars);
     const timeZone: string | undefined = application.timeZone ?? undefined;
-    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext, timeZone, customInstruction);
+    const locale: string | null = application.contentLanguage ?? null;
+    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext, timeZone, customInstruction, locale);
     let model: string = await this.resolveSummaryModel(promptText);
     let result: EmailSummaryResult;
     try {
-      result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction);
+      result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction, locale);
     } catch (error: unknown) {
       if (!(error instanceof AiSummaryRetryableError)) throw error;
       await this.recordSummaryFailureUsage(model, error, promptText);
@@ -192,7 +195,7 @@ class EmailSummaryOrchestrator {
       await this.auditLogger.logModelFallback(application, sourceDocumentId, model, error);
       model = fallbackModel;
       try {
-        result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction);
+        result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction, locale);
       } catch (fallbackError: unknown) {
         if (fallbackError instanceof AiSummaryRetryableError) {
           await this.recordSummaryFailureUsage(model, fallbackError, promptText);
@@ -232,15 +235,17 @@ class EmailSummaryOrchestrator {
     };
   }
 
-  private renderAttachmentSection(summaries: string[]): string {
+  private renderAttachmentSection(summaries: string[], locale?: string | null): string {
+    const strings = getBackendStrings(locale);
     const items = summaries.map((s) => `<li>${EmailContentUtil.escapeHtml(s)}</li>`).join('\n');
-    return `<p><strong>Attachments:</strong></p>\n<ul>\n${items}\n</ul>`;
+    return `<p><strong>${strings.summary.attachmentsHeading}</strong></p>\n<ul>\n${items}\n</ul>`;
   }
 
-  private withActionSection(summaryHtml: string, actions: CreatedEmailAction[]): string {
-    const actionSection = ActionService.renderEmailActionSection(actions);
+  private withActionSection(summaryHtml: string, actions: CreatedEmailAction[], locale?: string | null): string {
+    const strings = getBackendStrings(locale);
+    const actionSection = ActionService.renderEmailActionSection(actions, locale);
     const parts = [summaryHtml, actionSection].filter(Boolean);
-    return [...parts, '', '<p><em>Powered by Mail-Otter</em></p>'].join('\n');
+    return [...parts, '', `<p><em>${strings.summary.poweredBy}</em></p>`].join('\n');
   }
 
   private async resolveSummaryModel(estimatedPromptText: string): Promise<string> {

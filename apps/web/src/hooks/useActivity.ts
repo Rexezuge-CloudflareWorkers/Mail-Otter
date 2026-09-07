@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as activityService from '../services/activityService';
 import type { ActivityEntry, ActivityEventType } from '../services/activityService';
 
@@ -7,6 +8,7 @@ interface UseActivityOptions {
 }
 
 export function useActivity({ showNotice }: UseActivityOptions) {
+  const { t } = useTranslation();
   const [activityApplicationId, setActivityApplicationId] = useState('');
   const [activityEventTypes, setActivityEventTypes] = useState<ActivityEventType[]>([]);
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
@@ -25,7 +27,7 @@ export function useActivity({ showNotice }: UseActivityOptions) {
       setEntries(append ? (prev) => [...prev, ...result.entries] : result.entries);
       setActivityCursor(result.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Activity.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.activityLoadFailed', 'Unable To Load Activity.'));
     } finally {
       setActivityLoading(false);
     }
@@ -39,7 +41,7 @@ export function useActivity({ showNotice }: UseActivityOptions) {
         types: activityEventTypes.length > 0 ? activityEventTypes : undefined,
       });
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Export Activity.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.activityExportFailed', 'Unable To Export Activity.'));
     } finally {
       setActivityExporting(false);
     }

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Send, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import type { ChatMessage, ChatSource } from '../../services/chatService';
 import { Button } from '../ui/Button';
@@ -11,6 +12,7 @@ import { appName } from '../../lib/applications';
 import { cn } from '../../lib/utils';
 
 function SourcesToggle({ sources, applications }: { sources: ChatSource[]; applications: ConnectedApplication[] }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (sources.length === 0) return null;
   return (
@@ -20,7 +22,9 @@ function SourcesToggle({ sources, applications }: { sources: ChatSource[]; appli
         className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        {sources.length} Source{sources.length !== 1 ? 's' : ''}
+        {sources.length === 1
+          ? t('chat.sources', '{{count}} Source', { count: sources.length })
+          : t('chat.sources_plural', '{{count}} Sources', { count: sources.length })}
       </button>
       {open && (
         <div className="mt-1.5 flex flex-col gap-1">
@@ -92,6 +96,7 @@ export function ChatView({
   onSend: (query: string) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -107,10 +112,9 @@ export function ChatView({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    handleSend();
   };
 
   return (
@@ -126,7 +130,7 @@ export function ChatView({
           className="ml-auto"
         >
           <Trash2 className="h-3.5 w-3.5" />
-          Clear Chat
+          {t('chat.clear', 'Clear Chat')}
         </Button>
       </FilterBar>
 
@@ -135,10 +139,10 @@ export function ChatView({
           {messages.length === 0 && !loading && (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-12 gap-3">
               <p className="text-[var(--color-text-secondary)] text-sm font-medium">
-                Ask Anything About Your Emails
+                {t('chat.emptyTitle', 'Ask Anything About Your Emails')}
               </p>
               <p className="text-[var(--color-text-muted)] text-xs max-w-xs">
-                Try: "What packages am I expecting?" or "Summarize my invoice emails this month"
+                {t('chat.emptyHint', 'Try: "What packages am I expecting?" or "Summarize my invoice emails this month"')}
               </p>
             </div>
           )}
@@ -159,7 +163,7 @@ export function ChatView({
             <div className="flex justify-start">
               <div className="bg-[var(--color-surface-3)] rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-text-muted)]" />
-                <span className="text-sm text-[var(--color-text-muted)]">Thinking…</span>
+                <span className="text-sm text-[var(--color-text-muted)]">{t('chat.thinking', 'Thinking…')}</span>
               </div>
             </div>
           )}
@@ -172,7 +176,7 @@ export function ChatView({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question about your emails… (Enter to send, Shift+Enter for new line)"
+            placeholder={t('chat.placeholder', 'Ask a question about your emails… (Enter to send, Shift+Enter for new line)')}
             rows={2}
             disabled={loading}
             className={cn(
@@ -188,7 +192,7 @@ export function ChatView({
             disabled={!input.trim() || loading}
           >
             <Send className="h-4 w-4" />
-            Ask
+            {t('chat.ask', 'Ask')}
           </Button>
         </div>
       </Card>

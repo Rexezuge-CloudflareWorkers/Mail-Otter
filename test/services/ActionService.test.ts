@@ -54,7 +54,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
     };
   }),
   ConnectedApplicationDAO: vi.fn(function () {
-    return { getById: mockGetById };
+    return { getById: mockGetById, getMetadataByIdForUser: vi.fn(async () => undefined) };
   }),
 }));
 
@@ -70,20 +70,25 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
   },
 }));
 
-vi.mock('@mail-otter/shared/utils', () => ({
-  TimestampUtil: {
-    getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000),
-    addHours: vi.fn((ts: number, h: number) => ts + h * 3600),
-    subtractDays: vi.fn((ts: number, d: number) => ts - d * 86_400),
-  },
-  CryptoUtil: {
-    randomBase64Url: vi.fn(() => 'random-token'),
-    hmacSha256Hex: vi.fn(async () => 'hashed-token'),
-  },
-  UUIDUtil: {
-    getRandomUUID: vi.fn(() => 'action-uuid'),
-  },
-}));
+vi.mock('@mail-otter/shared/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mail-otter/shared/utils')>();
+  return {
+    TimestampUtil: {
+      getCurrentUnixTimestampInSeconds: vi.fn(() => 1_778_200_000),
+      addHours: vi.fn((ts: number, h: number) => ts + h * 3600),
+      subtractDays: vi.fn((ts: number, d: number) => ts - d * 86_400),
+    },
+    CryptoUtil: {
+      randomBase64Url: vi.fn(() => 'random-token'),
+      hmacSha256Hex: vi.fn(async () => 'hashed-token'),
+    },
+    UUIDUtil: {
+      getRandomUUID: vi.fn(() => 'action-uuid'),
+    },
+    LocaleUtil: actual.LocaleUtil,
+    TimeZoneUtil: actual.TimeZoneUtil,
+  };
+});
 
 vi.mock('../../packages/backend-services/src/oauth2/OAuth2AccessTokenService', () => ({
   OAuth2AccessTokenService: vi.fn(function () {
@@ -1052,7 +1057,7 @@ describe('ActionService', () => {
 
       await ActionService.executeActionWithToken('action-1', 'token', new Request('https://example.com'), makeEnv());
 
-      expect(mockFetchStatus).toHaveBeenCalledWith('1Z999', 'UPS', 'aftership-key');
+      expect(mockFetchStatus).toHaveBeenCalledWith('1Z999', 'UPS', 'aftership-key', 'en');
       expect(mockMarkSucceeded).toHaveBeenCalledWith('action-1', expect.objectContaining({
         summary: 'In Transit — In transit, Louisville, KY',
         externalUrl: 'https://track.example.com/1Z999',

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import { providerLabels } from '../../lib/providers';
 import { ConnectionBadge, ContextIndexBadge } from '../ui/Badge';
@@ -12,6 +13,7 @@ export function MailboxCard({
   selected: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
@@ -29,11 +31,11 @@ export function MailboxCard({
             {providerLabels[application.providerId]}
           </div>
           <div className="text-xs text-[var(--color-text-muted)] truncate mt-0.5">
-            {application.providerEmail || 'Not Authorized'}
+            {application.providerEmail || t('mailboxes.notAuthorized', 'Not Authorized')}
           </div>
           <div className="mt-2 flex items-center gap-2">
             <ContextIndexBadge enabled={application.contextIndexingEnabled} />
-            <span className="text-xs text-[var(--color-text-muted)]">{application.contextDocumentCount || 0} Docs</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t('mailboxes.docsCount', '{{count}} Docs', { count: application.contextDocumentCount || 0 })}</span>
           </div>
         </div>
         <ConnectionBadge status={application.status} />

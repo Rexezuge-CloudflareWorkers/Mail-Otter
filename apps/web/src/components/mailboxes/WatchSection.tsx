@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
 import { Button } from '../ui/Button';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
@@ -19,6 +20,7 @@ export function WatchSection({
   availableFolders: Array<{ id: string; name: string }> | null;
   loadingFolders: boolean;
 }) {
+  const { t } = useTranslation();
   const { busy, onLoadFolders, onUpdateWatchedFolders } = useMailboxCallbacks();
   const isOutlook = application.providerId === 'microsoft-outlook';
   const [pendingIds, setPendingIds] = useState<string[] | null>(null);
@@ -37,7 +39,7 @@ export function WatchSection({
   const isUnchanged = setsEqual(pendingIds, originalIds);
 
   return (
-    <CollapsibleSection title="Watch Folders">
+    <CollapsibleSection title={t('watch.watchFolders', 'Watch Folders')}>
       <div className="mb-4">
         <Button
           variant="secondary"
@@ -46,13 +48,13 @@ export function WatchSection({
           loading={loadingFolders}
           disabled={busy || loadingFolders || application.status !== 'connected'}
         >
-          Load Folders
+          {t('watch.loadFolders', 'Load Folders')}
         </Button>
       </div>
 
       {availableFolders ? (
         availableFolders.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">No Folders Found.</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">{t('watch.noFolders', 'No Folders Found.')}</p>
         ) : (
           <>
             <div className="flex flex-col gap-2">
@@ -92,18 +94,18 @@ export function WatchSection({
                 onClick={() => onUpdateWatchedFolders(application.applicationId, pendingIds)}
                 disabled={busy || isUnchanged}
               >
-                Save Folders
+                {t('watch.saveFolders', 'Save Folders')}
               </Button>
             </div>
           </>
         )
       ) : application.watchedFolders && application.watchedFolders.length > 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Watching: {application.watchedFolders.map((wf) => wf.name).join(', ')} — Click &quot;Load Folders&quot; To Change.
+          {t('watch.watchingList', 'Watching: {{names}} — Click "Load Folders" To Change.', { names: application.watchedFolders.map((wf) => wf.name).join(', ') })}
         </p>
       ) : (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Watching Default Folder (Inbox). Click &quot;Load Folders&quot; To Customize.
+          {t('watch.watchingDefault', 'Watching Default Folder (Inbox). Click "Load Folders" To Customize.')}
         </p>
       )}
     </CollapsibleSection>

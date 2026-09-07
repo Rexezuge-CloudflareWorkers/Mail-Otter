@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters } from '../types';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 import { emptyForm } from '../components/mailboxes/MailboxForm';
@@ -11,6 +12,7 @@ interface UseMailboxesOptions {
 }
 
 export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMailboxesOptions) {
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<ConnectedApplication[]>([]);
   const [selectedApplicationId, setSelectedApplicationId] = useState('');
   const [applicationForm, setApplicationForm] = useState<ApplicationFormState>(emptyForm);
@@ -59,6 +61,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       smtpPort: app.smtpPort == null ? '587' : String(app.smtpPort),
       enabledFeatures: app.enabledFeatures || [],
       timeZone: app.timeZone || new Intl.DateTimeFormat().resolvedOptions().timeZone,
+      contentLanguage: app.contentLanguage || 'en',
     });
     setIsFormExpanded(true);
   };
@@ -67,12 +70,12 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     setIsBusy(true);
     try {
       const data = await appSvc.saveApplication(applicationForm);
-      showNotice('success', applicationForm.applicationId ? 'Mailbox Updated.' : 'Mailbox Created.');
+      showNotice('success', applicationForm.applicationId ? t('toasts.mailboxUpdated', 'Mailbox Updated.') : t('toasts.mailboxCreated', 'Mailbox Created.'));
       resetForm();
       await loadApplications();
       setSelectedApplicationId(data.application.applicationId);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Save Mailbox.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.saveFailed', 'Unable To Save Mailbox.'));
     } finally {
       setIsBusy(false);
     }
@@ -82,12 +85,12 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     setIsBusy(true);
     try {
       await appSvc.deleteApplication(applicationId);
-      showNotice('success', 'Mailbox Deleted.');
+      showNotice('success', t('toasts.mailboxDeleted', 'Mailbox Deleted.'));
       setSelectedApplicationId('');
       setWatchWebhookUrl('');
       await loadApplications();
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Mailbox.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.deleteFailed', 'Unable To Delete Mailbox.'));
     } finally {
       setIsBusy(false);
     }
@@ -99,7 +102,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.startOAuth2(applicationId);
       globalThis.location.assign(data.authorizationUrl);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Start OAuth2.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.oauthStartFailed', 'Unable To Start OAuth2.'));
       setIsBusy(false);
     }
   };
@@ -112,7 +115,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       await loadApplications();
       showNotice('success', data.message);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Start Watch.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.watchStartFailed', 'Unable To Start Watch.'));
     } finally {
       setIsBusy(false);
     }
@@ -126,7 +129,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       await loadApplications();
       showNotice('success', data.message);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Stop Watch.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.watchStopFailed', 'Unable To Stop Watch.'));
     } finally {
       setIsBusy(false);
     }
@@ -137,10 +140,10 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateContextIndexing(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? 'Context Indexing Enabled.' : 'Context Indexing Disabled.');
+      showNotice('success', enabled ? t('toasts.contextIndexingEnabled', 'Context Indexing Enabled.') : t('toasts.contextIndexingDisabled', 'Context Indexing Disabled.'));
       onContextChanged?.();
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Context Setting.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextUpdateFailed', 'Unable To Update Context Setting.'));
     } finally {
       setIsBusy(false);
     }
@@ -151,9 +154,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateRagRetrieval(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? 'Context Retrieval Enabled.' : 'Context Retrieval Disabled.');
+      showNotice('success', enabled ? t('toasts.contextRetrievalEnabled', 'Context Retrieval Enabled.') : t('toasts.contextRetrievalDisabled', 'Context Retrieval Disabled.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Context Retrieval Setting.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextRetrievalFailed', 'Unable To Update Context Retrieval Setting.'));
     } finally {
       setIsBusy(false);
     }
@@ -164,9 +167,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateAttachmentVisionEnabled(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? 'Attachment Vision Enabled.' : 'Attachment Vision Disabled.');
+      showNotice('success', enabled ? t('toasts.attachmentVisionEnabled', 'Attachment Vision Enabled.') : t('toasts.attachmentVisionDisabled', 'Attachment Vision Disabled.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Attachment Vision Setting.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.attachmentVisionFailed', 'Unable To Update Attachment Vision Setting.'));
     } finally {
       setIsBusy(false);
     }
@@ -177,9 +180,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateMaxContextDocuments(applicationId, maxContextDocuments);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', maxContextDocuments == null ? 'Document Limit Reset.' : `Document Limit Set To ${maxContextDocuments}.`);
+      showNotice('success', maxContextDocuments == null ? t('toasts.documentLimitReset', 'Document Limit Reset.') : t('toasts.documentLimitSet', 'Document Limit Set To {{count}}.', { count: maxContextDocuments }));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Document Limit.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.documentLimitFailed', 'Unable To Update Document Limit.'));
     } finally {
       setIsBusy(false);
     }
@@ -191,7 +194,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.loadFolders(applicationId);
       setAvailableFolders(data.folders);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Folders.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.foldersLoadFailed', 'Unable To Load Folders.'));
     } finally {
       setLoadingFolders(false);
     }
@@ -203,7 +206,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.updateWatchedFolderIds(applicationId, folderIds, availableFolders);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Watch Folders.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.watchFoldersFailed', 'Unable To Update Watch Folders.'));
     } finally {
       setIsBusy(false);
     }
@@ -216,9 +219,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateSenderFilters(app, filters);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', 'Sender Filter Rules Updated.');
+      showNotice('success', t('toasts.filtersSaved', 'Sender Filter Rules Updated.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Sender Filters.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.senderFiltersFailed', 'Unable To Update Sender Filters.'));
     } finally {
       setIsBusy(false);
     }
@@ -231,9 +234,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.updateAutoExecuteActionTypes(app, types);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', 'Auto-Execution Settings Updated.');
+      showNotice('success', t('toasts.autoExecuteUpdated', 'Auto-Execution Settings Updated.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Auto-Execution Settings.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.autoExecuteFailed', 'Unable To Update Auto-Execution Settings.'));
     } finally {
       setIsBusy(false);
     }
@@ -244,9 +247,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     try {
       const data = await appSvc.saveDigestConfig(applicationId, config);
       setApplications((c) => c.map((a) => (a.applicationId === applicationId ? { ...a, digestConfig: data.digestConfig } : a)));
-      showNotice('success', 'Digest Settings Saved.');
+      showNotice('success', t('toasts.digestSaved', 'Digest Settings Saved.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Save Digest Settings.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.digestSaveFailed', 'Unable To Save Digest Settings.'));
     } finally {
       setIsBusy(false);
     }
@@ -256,9 +259,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     setIsBusy(true);
     try {
       await appSvc.sendDigestNow(applicationId);
-      showNotice('success', 'Digest Sent.');
+      showNotice('success', t('toasts.digestSent', 'Digest Sent.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Send Digest.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.digestSendFailed', 'Unable To Send Digest.'));
     } finally {
       setIsBusy(false);
     }
@@ -274,10 +277,10 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       onContextChanged?.();
       showNotice(
         data.deletionRun.status === 'accepted' ? 'success' : 'error',
-        data.deletionRun.status === 'accepted' ? 'Context Documents Deletion Accepted.' : data.deletionRun.errorMessage || 'Context Deletion Failed.',
+        data.deletionRun.status === 'accepted' ? t('toasts.contextDeletionAccepted', 'Context Documents Deletion Accepted.') : data.deletionRun.errorMessage || t('toasts.contextDeletionFailed', 'Context Deletion Failed.'),
       );
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Context Documents.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextDeleteFailed', 'Unable To Delete Context Documents.'));
     } finally {
       setIsBusy(false);
     }
@@ -289,7 +292,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.dismissError(applicationId, errorType);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Dismiss Error.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.dismissErrorFailed', 'Unable To Dismiss Error.'));
     } finally {
       setIsBusy(false);
     }
@@ -307,7 +310,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.loadIntegrations(applicationId);
       setIntegrationsByApplicationId((c) => ({ ...c, [applicationId]: data.integrations }));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Integrations.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.integrationsLoadFailed', 'Unable To Load Integrations.'));
     } finally {
       setLoadingIntegrations(false);
     }
@@ -326,9 +329,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
         ...c,
         [applicationId]: [...(c[applicationId] ?? []), data.integration],
       }));
-      showNotice('success', 'Integration Created.');
+      showNotice('success', t('toasts.integrationCreated', 'Integration Created.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Create Integration.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.integrationCreateFailed', 'Unable To Create Integration.'));
     } finally {
       setIsBusy(false);
     }
@@ -349,7 +352,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
         };
       });
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Integration.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.integrationUpdateFailed', 'Unable To Update Integration.'));
     } finally {
       setIsBusy(false);
     }
@@ -363,9 +366,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
         ...c,
         [applicationId]: (c[applicationId] ?? []).filter((i) => i.integrationId !== integrationId),
       }));
-      showNotice('success', 'Integration Deleted.');
+      showNotice('success', t('toasts.integrationDeleted', 'Integration Deleted.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Delete Integration.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.integrationDeleteFailed', 'Unable To Delete Integration.'));
     } finally {
       setIsBusy(false);
     }
@@ -375,9 +378,9 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
     setIsBusy(true);
     try {
       await appSvc.testIntegration(integrationId);
-      showNotice('success', 'Test Notification Sent.');
+      showNotice('success', t('toasts.integrationTestSent', 'Test Notification Sent.'));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Send Test Notification.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.integrationTestFailed', 'Unable To Send Test Notification.'));
     } finally {
       setIsBusy(false);
     }
@@ -390,7 +393,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.fetchIntegrationDeliveries(integrationId, 20);
       setDeliveryLogsByIntegrationId((c) => ({ ...c, [integrationId]: data.logs }));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Delivery History.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.deliveryHistoryFailed', 'Unable To Load Delivery History.'));
       setOpenDeliveryLogsIntegrationId(null);
     } finally {
       setLoadingDeliveryLogs(false);
@@ -407,7 +410,7 @@ export function useMailboxes({ setIsBusy, showNotice, onContextChanged }: UseMai
       const data = await appSvc.updateRules(applicationId, rules);
       setApplications((apps) => apps.map((a) => (a.applicationId === applicationId ? { ...a, emailProcessingRules: data.application.emailProcessingRules } : a)));
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Update Rules.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.rulesSaveFailed', 'Unable To Update Rules.'));
     } finally {
       setIsBusy(false);
     }

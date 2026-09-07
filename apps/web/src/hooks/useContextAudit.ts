@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ApplicationContextDocument, ApplicationContextDeletionRun, ApplicationContextDocumentStatus } from '../types';
 import * as contextSvc from '../services/contextService';
 
@@ -7,6 +8,7 @@ interface UseContextAuditOptions {
 }
 
 export function useContextAudit({ showNotice }: UseContextAuditOptions) {
+  const { t } = useTranslation();
   const [auditApplicationId, setAuditApplicationId] = useState('');
   const [auditStatus, setAuditStatus] = useState<ApplicationContextDocumentStatus | ''>('');
   const [contextDocuments, setContextDocuments] = useState<ApplicationContextDocument[]>([]);
@@ -22,7 +24,7 @@ export function useContextAudit({ showNotice }: UseContextAuditOptions) {
       setContextDeletionRuns(data.deletionRuns);
       setContextDeletionRunsCursor(data.deletionRunsCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load Context.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextLoadFailed', 'Unable To Load Context.'));
     }
   };
 
@@ -33,7 +35,7 @@ export function useContextAudit({ showNotice }: UseContextAuditOptions) {
       setContextDocuments((c) => [...c, ...data.documents]);
       setContextDocumentsCursor(data.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load More Documents.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextDocumentsMoreFailed', 'Unable To Load More Documents.'));
     }
   };
 
@@ -44,7 +46,7 @@ export function useContextAudit({ showNotice }: UseContextAuditOptions) {
       setContextDeletionRuns((c) => [...c, ...data.deletionRuns]);
       setContextDeletionRunsCursor(data.nextCursor);
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Load More Deletions.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.contextDeletionsMoreFailed', 'Unable To Load More Deletions.'));
     }
   };
 
@@ -53,7 +55,7 @@ export function useContextAudit({ showNotice }: UseContextAuditOptions) {
       const data = await contextSvc.openContextDocumentInProvider(contextDocumentId);
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : 'Unable To Open Provider Document.');
+      showNotice('error', e instanceof Error ? e.message : t('toasts.providerDocumentOpenFailed', 'Unable To Open Provider Document.'));
     }
   };
 

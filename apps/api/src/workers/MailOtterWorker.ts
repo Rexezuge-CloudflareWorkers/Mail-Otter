@@ -31,6 +31,7 @@ import {
   ExecuteUserEmailActionRoute,
   GetActionConfirmationRoute,
   GetCurrentUserRoute,
+  UpdateCurrentUserRoute,
   GetApplicationContextDocumentProviderLinkRoute,
   GetApplicationFoldersRoute,
   FastmailWebhookRoute,
@@ -121,6 +122,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
 
   private registerUserRoutes(openapi: AppRouter): void {
     openapi.get('/user/me', GetCurrentUserRoute);
+    openapi.put('/user/me', UpdateCurrentUserRoute);
     openapi.get('/user/analytics', GetAnalyticsRoute);
 
     openapi.get('/user/applications', ListApplicationsRoute);

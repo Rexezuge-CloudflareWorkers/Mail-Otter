@@ -78,6 +78,7 @@ class ApplicationService {
       input.enabledFeatures || null,
       input.timeZone || null,
       imapConfig,
+      input.contentLanguage || null,
     );
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
@@ -135,6 +136,7 @@ class ApplicationService {
       input.timeZone,
       imapConfig,
       input.autoExecuteActionTypes,
+      input.contentLanguage,
     );
     if (!application) {
       throw new BadRequestError('Connected application was not found.');
@@ -329,6 +331,7 @@ interface CreateUserApplicationInput {
   smtpPort?: number;
   enabledFeatures?: string[] | null;
   timeZone?: string | null;
+  contentLanguage?: string | null;
   senderDomainFilters?: SenderDomainFilters | null;
 }
 

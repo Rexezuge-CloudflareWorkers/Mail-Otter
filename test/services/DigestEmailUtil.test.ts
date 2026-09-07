@@ -287,3 +287,22 @@ describe('DigestEmailUtil', () => {
     });
   });
 });
+
+describe('DigestEmailUtil localization', () => {
+  it('renders German headings and localized date in buildHtml', () => {
+    const sections = { ...makeSections(), calendarEvents: [makeCalendarEvent()] };
+    const html = DigestEmailUtil.buildHtml(sections, [DIGEST_SECTION_CALENDAR], 'de');
+    expect(html).toContain('Kalenderereignisse');
+    expect(html).not.toContain("Today's Calendar Events");
+  });
+
+  it('prefixes the German subject correctly', () => {
+    const subject = DigestEmailUtil.buildSubject(new Date('2026-07-01T12:00:00Z'), 'UTC', 'de');
+    expect(subject.startsWith('Mail-Otter Tagesübersicht')).toBe(true);
+  });
+
+  it('falls back to English for unsupported locales', () => {
+    const html = DigestEmailUtil.buildHtml(makeSections(), [], 'xx');
+    expect(html).toContain('Nothing to report today.');
+  });
+});

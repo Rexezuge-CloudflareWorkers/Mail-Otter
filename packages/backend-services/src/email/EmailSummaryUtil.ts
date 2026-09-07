@@ -1,6 +1,7 @@
 import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
-import { TimeZoneUtil } from '@mail-otter/shared/utils';
+import { AI_LANGUAGE_NAMES, formatBackendString, getBackendStrings } from '@mail-otter/shared/i18n';
+import { LocaleUtil, TimeZoneUtil } from '@mail-otter/shared/utils';
 import type { EmailActionProposal } from '@mail-otter/shared/model';
 import { WorkersAiResponseUtil } from './WorkersAiResponseUtil';
 import type { AiTextGenerationUsage } from './WorkersAiResponseUtil';
@@ -66,8 +67,9 @@ class EmailSummaryUtil {
     ragContext?: string,
     timeZone?: string,
     customInstruction?: string,
+    locale?: string | null,
   ): Promise<string> {
-    const result: EmailSummaryResult = await this.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone, customInstruction);
+    const result: EmailSummaryResult = await this.summarizeEmailWithUsage(ai, model, subject, from, body, ragContext, timeZone, customInstruction, locale);
     return result.summary;
   }
 
@@ -80,8 +82,9 @@ class EmailSummaryUtil {
     ragContext?: string,
     timeZone?: string,
     customInstruction?: string,
+    locale?: string | null,
   ): Promise<EmailSummaryResult> {
-    const instructions: string = this.buildSummaryInstructions(timeZone, customInstruction);
+    const instructions: string = this.buildSummaryInstructions(timeZone, customInstruction, locale);
     const input: string = this.buildSummaryInput(subject, from, body, ragContext);
 
     const request: AiTextGenerationRequest = {
@@ -121,14 +124,14 @@ class EmailSummaryUtil {
     if (!summary) {
       throw new AiSummaryRetryableError('Workers AI did not return a valid summary.', { aiUsage: usage, aiOutputText: summaryText });
     }
-    return { summary: this.renderHtmlSummary(summary), emailSummary: summary, actionProposals: summary.actions, usage };
+    return { summary: this.renderHtmlSummary(summary, locale), emailSummary: summary, actionProposals: summary.actions, usage };
   }
 
-  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string  , timeZone?: string  , customInstruction?: string): string {
-    return [this.buildSummaryInstructions(timeZone, customInstruction), this.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
+  public static buildEmailSummaryPromptText(subject: string, from: string, body: string, ragContext?: string  , timeZone?: string  , customInstruction?: string, locale?: string | null): string {
+    return [this.buildSummaryInstructions(timeZone, customInstruction, locale), this.buildSummaryInput(subject, from, body, ragContext)].join('\n\n');
   }
 
-  private static buildSummaryInstructions(timeZone?: string  , customInstruction?: string): string {
+  private static buildSummaryInstructions(timeZone?: string  , customInstruction?: string, locale?: string | null): string {
     const zone: string = TimeZoneUtil.normalize(timeZone);
     const currentDate: string = TimeZoneUtil.todayInZone(zone);
     const parts: string[] = [
@@ -149,6 +152,14 @@ class EmailSummaryUtil {
       'Do not create callback URLs or invent links.',
       'Do not invent facts. Do not include a greeting.',
     ];
+    const normalizedLocale = LocaleUtil.normalize(locale);
+    if (normalizedLocale !== 'en') {
+      parts.push(
+        formatBackendString('Write the gist, key details, and action titles and descriptions in {language}.', {
+          language: AI_LANGUAGE_NAMES[normalizedLocale],
+        }),
+      );
+    }
     if (customInstruction) {
       parts.push(`Additional instructions: ${customInstruction}`);
     }
@@ -184,22 +195,23 @@ class EmailSummaryUtil {
     };
   }
 
-  static renderHtmlSummary(summary: EmailSummary): string {
-    const gist: string = this.normalizeSentence(summary.gist) || 'No clear gist available.';
+  static renderHtmlSummary(summary: EmailSummary, locale?: string | null): string {
+    const strings = getBackendStrings(locale);
+    const gist: string = this.normalizeSentence(summary.gist) || strings.summary.noGist;
     const keyDetails: string[] = this.normalizeItems(summary.keyDetails);
 
     return [
       `<p>${EmailContentUtil.sanitizeHtml(gist)}</p>`,
       '',
-      '<p><strong>Details:</strong></p>',
+      `<p><strong>${strings.summary.detailsHeading}</strong></p>`,
       '<ul>',
-      ...this.renderHtmlList(keyDetails, '<li>No key details noted.</li>'),
+      ...this.renderHtmlList(keyDetails, `<li>${strings.summary.noDetails}</li>`),
       '</ul>',
     ].join('\n');
   }
 
-  static renderPlainTextSummary(summary: EmailSummary): string {
-    return EmailContentUtil.stripHtml(this.renderHtmlSummary(summary));
+  static renderPlainTextSummary(summary: EmailSummary, locale?: string | null): string {
+    return EmailContentUtil.stripHtml(this.renderHtmlSummary(summary, locale));
   }
 
   private static parseLooseText(response: string): EmailSummary {

@@ -1,5 +1,6 @@
 import { AiDailyUsageDAO, UserDAO } from '@mail-otter/backend-data/dao';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { LocaleUtil } from '@mail-otter/shared/utils';
 
 interface UserServiceEnv {
   DB: D1Database;
@@ -10,6 +11,7 @@ interface UserServiceEnv {
 }
 
 interface CurrentUserSummary {
+  preferredLanguage: string | null;
   limits: {
     maxApplicationsPerUser: number;
     maxContextDocumentsPerApplication: number;
@@ -28,10 +30,20 @@ class UserService {
     await new UserDAO(this.env.DB).upsertByEmail(email);
   }
 
-  async getCurrentUserSummary(): Promise<CurrentUserSummary> {
+  async getCurrentUserSummary(userEmail?: string): Promise<CurrentUserSummary> {
     const today = new Date().toISOString().slice(0, 10);
     const usage = await new AiDailyUsageDAO(this.env.DB).getByDate(today);
+    let preferredLanguage: string | null = null;
+    if (userEmail) {
+      try {
+        const user = await new UserDAO(this.env.DB).getByEmail(userEmail);
+        preferredLanguage = user?.preferredLanguage ? LocaleUtil.normalize(user.preferredLanguage) : null;
+      } catch {
+        preferredLanguage = null;
+      }
+    }
     return {
+      preferredLanguage,
       limits: {
         maxApplicationsPerUser: ConfigurationManager.getMaxApplicationsPerUser(this.env),
         maxContextDocumentsPerApplication: ConfigurationManager.getMaxContextDocumentsPerApplication(this.env),
@@ -42,6 +54,13 @@ class UserService {
         fallbackThreshold: ConfigurationManager.getAiDailyNeuronFallbackThreshold(this.env),
       },
     };
+  }
+
+  async updatePreferredLanguage(userEmail: string, preferredLanguage: string): Promise<string> {
+    const normalized = LocaleUtil.normalize(preferredLanguage);
+    await new UserDAO(this.env.DB).upsertByEmail(userEmail);
+    await new UserDAO(this.env.DB).updatePreferredLanguage(userEmail, normalized);
+    return normalized;
   }
 }
 

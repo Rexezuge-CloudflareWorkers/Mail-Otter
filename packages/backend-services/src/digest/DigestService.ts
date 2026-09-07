@@ -81,8 +81,9 @@ class DigestService {
       return;
     }
 
-    const subject = DigestEmailUtil.buildSubject(now, timeZone);
-    const htmlBody = DigestEmailUtil.buildHtml(sections, enabledSections);
+    const locale = application.contentLanguage ?? null;
+    const subject = DigestEmailUtil.buildSubject(now, timeZone, locale);
+    const htmlBody = DigestEmailUtil.buildHtml(sections, enabledSections, locale);
 
     const to = application.providerEmail ?? '';
     if (!to) return;

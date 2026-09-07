@@ -1,5 +1,7 @@
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
+import { AI_LANGUAGE_NAMES } from '@mail-otter/shared/i18n';
 import type { EmailActionProposal } from '@mail-otter/shared/model';
+import { LocaleUtil } from '@mail-otter/shared/utils';
 import { WorkersAiResponseUtil } from './WorkersAiResponseUtil';
 import type { AiTextGenerationUsage } from './WorkersAiResponseUtil';
 
@@ -71,6 +73,7 @@ class AttachmentAnalysisUtil {
     subject: string,
     from: string,
     attachments: ProviderImageAttachment[],
+    locale?: string | null,
   ): Promise<AttachmentAnalysisResult> {
     const attachmentSummaries: string[] = [];
     const actionProposals: EmailActionProposal[] = [];
@@ -81,7 +84,7 @@ class AttachmentAnalysisUtil {
 
     for (const attachment of attachments) {
       try {
-        const result = await this.analyzeOne(ai, visionModel, subject, from, attachment);
+        const result = await this.analyzeOne(ai, visionModel, subject, from, attachment, locale);
         if (result.summary) {
           attachmentSummaries.push(`${attachment.filename}: ${result.summary}`);
         }
@@ -110,10 +113,15 @@ class AttachmentAnalysisUtil {
     subject: string,
     from: string,
     attachment: ProviderImageAttachment,
+    locale?: string | null,
   ): Promise<{ summary?: string; proposals: EmailActionProposal[]; usage?: AiTextGenerationUsage }> {
+    const normalizedLocale = LocaleUtil.normalize(locale);
+    const systemPrompt = normalizedLocale === 'en'
+      ? VISION_SYSTEM_PROMPT
+      : `${VISION_SYSTEM_PROMPT} Write the summary and action titles and descriptions in ${AI_LANGUAGE_NAMES[normalizedLocale]}.`;
     const request = {
       messages: [
-        { role: 'system', content: VISION_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: [

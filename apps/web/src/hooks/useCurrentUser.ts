@@ -15,5 +15,5 @@ export function useCurrentUser() {
       .catch(() => setAuthorized(false));
   }, []);
 
-  return { user, authorized };
+  return { user, setUser, authorized };
 }

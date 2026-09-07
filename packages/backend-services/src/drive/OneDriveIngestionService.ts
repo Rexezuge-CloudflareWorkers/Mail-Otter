@@ -1,23 +1,18 @@
-import { AiDailyUsageDAO, ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { OneDriveProviderUtil } from '@mail-otter/provider-clients/onedrive';
 import type { OneDriveItem } from '@mail-otter/provider-clients/onedrive';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import {
-  CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
-  CONTEXT_AUDIT_LOG_SEVERITY_INFO,
   CONTEXT_SOURCE_TYPE_ONEDRIVE,
 } from '@mail-otter/shared/constants';
 import { UnauthorizedError } from '@mail-otter/backend-errors';
-import { CryptoUtil } from '@mail-otter/shared/utils';
-import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { EmailContextUtil, AiUsageUtil } from '../email';
-import type { WorkersAiEmbeddingResult } from '../email';
+import { AbstractDriveIngestionService } from './AbstractDriveIngestionService';
+import type { DriveIngestionEnv } from './AbstractDriveIngestionService';
 import { DriveDocumentUtil } from './DriveDocumentUtil';
 import type { DriveIngestionResult } from './GoogleDriveIngestionService';
 
-interface OneDriveIngestionEnv {
+interface OneDriveIngestionEnv extends DriveIngestionEnv {
   DB: D1Queryable;
   AI: Ai;
   EMAIL_CONTEXT_INDEX?: VectorizeIndex;
@@ -29,23 +24,22 @@ interface OneDriveIngestionEnv {
   AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
 }
 
-class OneDriveIngestionService {
-  constructor(private readonly env: OneDriveIngestionEnv) {}
+class OneDriveIngestionService extends AbstractDriveIngestionService {
+  constructor(env: OneDriveIngestionEnv) {
+    super(env);
+  }
 
   public async ingestForApplication(
     application: ConnectedApplication,
     accessToken: string,
   ): Promise<DriveIngestionResult> {
-    if (!this.env.EMAIL_CONTEXT_INDEX) {
+    const ctx = await this.requireContext(application);
+    if (ctx.skipped) {
       return { indexed: 0, skipped: 0, failed: 0, newCursor: null };
     }
-
-    const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(application.userEmail);
-    const contextDAO = new ApplicationContextDAO(this.env.DB);
+    const { vectorNamespace, contextDAO, maxBytes, maxFiles } = ctx;
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-    const maxFiles = ConfigurationManager.drive.getMaxFilesPerSync(this.env);
-    const maxBytes = ConfigurationManager.attachment.getMaxSizeBytes(this.env);
 
     const storedLink = await applicationDAO.getProviderConfig(
       application.applicationId,
@@ -83,25 +77,13 @@ class OneDriveIngestionService {
     let skipped = 0;
     let failed = 0;
 
-    for (const itemId of delta.deletedIds) {
-      try {
-        const info = await contextDAO.getDocumentSourceInfo(
-          application.applicationId,
-          itemId,
-          CONTEXT_SOURCE_TYPE_ONEDRIVE,
-        );
-        if (info) {
-          await this.env.EMAIL_CONTEXT_INDEX.deleteByIds([info.vectorId]);
-          await contextDAO.markDocumentsDeletedByVectorIds(
-            application.applicationId,
-            info.userEmail,
-            [info.vectorId],
-          );
-        }
-      } catch (error: unknown) {
-        console.warn(`[OneDriveIngestionService] Failed to delete removed item ${itemId}:`, error);
-      }
-    }
+    await this.deleteRemovedDocuments(
+      contextDAO,
+      application,
+      delta.deletedIds,
+      CONTEXT_SOURCE_TYPE_ONEDRIVE,
+      '[OneDriveIngestionService]',
+    );
 
     for (const item of delta.items) {
       try {
@@ -110,7 +92,6 @@ class OneDriveIngestionService {
           accessToken,
           item,
           vectorNamespace,
-          contextDAO,
           maxBytes,
         );
         if (result === 'indexed') indexed++;
@@ -118,21 +99,7 @@ class OneDriveIngestionService {
       } catch (error: unknown) {
         failed++;
         console.warn(`[OneDriveIngestionService] Failed to ingest item ${item.id}:`, error);
-        try {
-          const info = await contextDAO.getDocumentSourceInfo(
-            application.applicationId,
-            item.id,
-            CONTEXT_SOURCE_TYPE_ONEDRIVE,
-          );
-          if (info) {
-            await contextDAO.markDocumentError(
-              info.contextDocumentId,
-              error instanceof Error ? error.message : String(error),
-            );
-          }
-        } catch {
-          // non-fatal
-        }
+        await this.markIngestError(contextDAO, application, item.id, CONTEXT_SOURCE_TYPE_ONEDRIVE, error);
       }
     }
 
@@ -153,7 +120,6 @@ class OneDriveIngestionService {
     accessToken: string,
     item: OneDriveItem,
     vectorNamespace: string,
-    contextDAO: ApplicationContextDAO,
     maxBytes: number,
   ): Promise<'indexed' | 'skipped'> {
     if (item.size !== undefined && item.size > maxBytes) {
@@ -182,99 +148,19 @@ class OneDriveIngestionService {
       return 'skipped';
     }
 
-    const maxChars = ConfigurationManager.getMaxContextMemoryChars(this.env);
-    const indexedText = DriveDocumentUtil.buildIndexedText(
+    const indexedText = this.buildIndexedText(item.name, application.displayName, rawText);
+    const ctx = await this.requireContext(application);
+    if (ctx.skipped) return 'skipped';
+    return this.ingestTextDocument(
+      application,
+      item.id,
       item.name,
-      application.displayName,
-      rawText,
-      maxChars,
-    );
-
-    const secret = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const sourceDocumentFingerprint = await CryptoUtil.hmacSha256Hex(
-      `source-document\n${item.id}`,
-      secret,
-    );
-    const titleFingerprint = await CryptoUtil.hmacSha256Hex(`title\n${item.name}`, secret);
-    const contentFingerprint = await CryptoUtil.hmacSha256Hex(
-      `indexed-text\n${indexedText}`,
-      secret,
-    );
-
-    const document = await contextDAO.upsertDriveDocument({
-      applicationId: application.applicationId,
-      userEmail: application.userEmail,
-      sourceProviderId: application.providerId,
-      sourceType: CONTEXT_SOURCE_TYPE_ONEDRIVE,
-      sourceDocumentId: item.id,
+      indexedText,
       vectorNamespace,
-      sourceDocumentFingerprint,
-      titleFingerprint,
-      contentFingerprint,
-      indexedTextChars: indexedText.length,
-    });
-
-    if (document.contentFingerprint === contentFingerprint && document.indexedAt !== null) {
-      return 'skipped';
-    }
-
-    const embeddingModel = ConfigurationManager.getAiEmbeddingModel(this.env);
-    const embedding = await this.embed(embeddingModel, indexedText);
-
-    await this.env.EMAIL_CONTEXT_INDEX!.upsert([
-      {
-        id: document.vectorId,
-        namespace: vectorNamespace,
-        values: embedding,
-        metadata: {
-          applicationId: application.applicationId,
-          sourceType: CONTEXT_SOURCE_TYPE_ONEDRIVE,
-          sourceProviderId: application.providerId,
-          sourceDocumentId: item.id,
-          title: item.name.slice(0, 512),
-          indexedText,
-          indexedAt: Date.now(),
-        },
-      },
-    ]);
-
-    await contextDAO.markDocumentIndexed(document.contextDocumentId);
-    await contextDAO.insertAuditLog({
-      contextDocumentId: document.contextDocumentId,
-      applicationId: application.applicationId,
-      userEmail: application.userEmail,
-      sourceDocumentId: item.id,
-      eventType: CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
-      eventLabel: 'OneDrive File Indexed Into Context',
-      eventData: { indexedTextChars: indexedText.length, sourceProviderId: application.providerId, vectorId: document.vectorId },
-      severity: CONTEXT_AUDIT_LOG_SEVERITY_INFO,
-    });
-
-    await this.recordEmbeddingUsage(embeddingModel, indexedText);
-
-    return 'indexed';
-  }
-
-  private async embed(model: string, text: string): Promise<number[]> {
-    const result = (await this.env.AI.run(model, { text: [text] })) as WorkersAiEmbeddingResult;
-    const embedding: unknown = Array.isArray(result.data?.[0]) ? result.data[0] : result.data;
-    if (!Array.isArray(embedding) || !embedding.every((v: unknown): v is number => typeof v === 'number')) {
-      throw new Error('Workers AI did not return an embedding vector.');
-    }
-    return embedding;
-  }
-
-  private async recordEmbeddingUsage(model: string, text: string): Promise<void> {
-    try {
-      const estimate = AiUsageUtil.estimateEmbeddingUsage(model, text);
-      await new AiDailyUsageDAO(this.env.DB).incrementUsage({
-        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
-        estimatedNeurons: estimate.estimatedNeurons,
-        embeddingTokens: estimate.embeddingTokens,
-      });
-    } catch (error: unknown) {
-      console.warn('[OneDriveIngestionService] Failed to record embedding usage:', error);
-    }
+      ctx.contextDAO,
+      CONTEXT_SOURCE_TYPE_ONEDRIVE,
+      'OneDrive',
+    );
   }
 }
 

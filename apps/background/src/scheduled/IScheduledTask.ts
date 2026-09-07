@@ -32,20 +32,27 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     let runId: string | undefined;
     if (taskType && db) {
       const dao = new BackgroundTaskRunDAO(db);
-      runId = await dao.startRun({ taskType }).catch(() => undefined);
+      runId = await dao.startRun({ taskType }).catch((error: unknown) => {
+        console.warn(`[${this.constructor.name}] Failed to start task run record:`, error);
+        return undefined;
+      });
     }
 
     try {
       const result = await this.handleScheduledTask(event, tEnv, ctx);
       if (runId && db) {
         const dao = new BackgroundTaskRunDAO(db);
-        await dao.succeedRun(runId, result ?? { itemsProcessed: 0, itemsFailed: 0 }).catch(() => {});
+        await dao.succeedRun(runId, result ?? { itemsProcessed: 0, itemsFailed: 0 }).catch((error: unknown) => {
+          console.warn(`[${this.constructor.name}] Failed to mark task run succeeded:`, error);
+        });
       }
     } catch (error: unknown) {
       console.error(`[${this.constructor.name}] Uncaught error:`, error);
       if (runId && db) {
         const dao = new BackgroundTaskRunDAO(db);
-        await dao.failRun(runId, String(error)).catch(() => {});
+        await dao.failRun(runId, String(error)).catch((recordError: unknown) => {
+          console.warn(`[${this.constructor.name}] Failed to mark task run failed:`, recordError);
+        });
       }
     }
   }
@@ -55,11 +62,14 @@ abstract class IScheduledTask<TEnv extends IEnv> {
   protected async createApplicationRun(taskType: string, applicationId: string, db: D1Queryable): Promise<ApplicationRunHandle> {
     const dao = new BackgroundTaskRunDAO(db);
     const runId = await dao.startRun({ taskType, applicationId });
+    const warn = (op: string) => (error: unknown): void => {
+      console.warn(`[${this.constructor.name}] Failed to mark application run ${op}:`, error);
+    };
     return {
-      succeed: (result: TaskRunSummary): Promise<void> => dao.succeedRun(runId, result).catch(() => {}),
+      succeed: (result: TaskRunSummary): Promise<void> => dao.succeedRun(runId, result).catch(warn('succeeded')).then(() => undefined),
       fail: (errorMessage: string, partial?: Partial<TaskRunSummary>): Promise<void> =>
-        dao.failRun(runId, errorMessage, partial).catch(() => {}),
-      skip: (reason?: string): Promise<void> => dao.skipRun(runId, reason).catch(() => {}),
+        dao.failRun(runId, errorMessage, partial).catch(warn('failed')).then(() => undefined),
+      skip: (reason?: string): Promise<void> => dao.skipRun(runId, reason).catch(warn('skipped')).then(() => undefined),
     };
   }
 

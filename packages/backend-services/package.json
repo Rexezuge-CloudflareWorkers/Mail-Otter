@@ -34,6 +34,8 @@
     "./processing/*": "./src/processing/*.ts",
     "./drive": "./src/drive/index.ts",
     "./drive/*": "./src/drive/*.ts",
+    "./ai": "./src/ai/index.ts",
+    "./ai/*": "./src/ai/*.ts",
     "./activity": "./src/activity/index.ts",
     "./activity/*": "./src/activity/*.ts",
     "./chat": "./src/chat/index.ts",

@@ -1,4 +1,5 @@
 import { BackgroundTaskRunDAO } from '@mail-otter/backend-data/dao';
+import { pruneInBatches } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { IScheduledTask } from './IScheduledTask';
@@ -13,7 +14,7 @@ class BackgroundTaskRunPruningTask extends IScheduledTask<BackgroundTaskRunPruni
     const retentionDays = ConfigurationManager.processing.getTaskRunRetentionDays(env);
     const cutoff = TimestampUtil.getCurrentUnixTimestampInSeconds() - retentionDays * 86_400;
     const dao = new BackgroundTaskRunDAO(env.DB);
-    const deleted = await dao.pruneOldRuns(cutoff, 500);
+    const deleted = await pruneInBatches((batchSize) => dao.pruneOldRuns(cutoff, batchSize));
     return { itemsProcessed: deleted, itemsFailed: 0 };
   }
 }

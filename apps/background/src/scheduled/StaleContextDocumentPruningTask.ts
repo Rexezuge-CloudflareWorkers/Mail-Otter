@@ -1,10 +1,8 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import { computeUnixCutoffSeconds, createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
-
-const BATCH_SIZE: number = 500;
 
 class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumentPruningTaskEnv> {
   protected async handleScheduledTask(
@@ -14,25 +12,15 @@ class StaleContextDocumentPruningTask extends IScheduledTask<StaleContextDocumen
   ): Promise<void> {
     const deletedGraceDays: number = ConfigurationManager.getStaleContextDocumentDeletedGraceDays(env);
     const errorGraceDays: number = ConfigurationManager.getStaleContextDocumentErrorGraceDays(env);
-    const deletedBefore: number = Math.floor(Date.now() / 1000) - deletedGraceDays * 86_400;
-    const errorBefore: number = Math.floor(Date.now() / 1000) - errorGraceDays * 86_400;
+    const deletedBefore: number = computeUnixCutoffSeconds(deletedGraceDays);
+    const errorBefore: number = computeUnixCutoffSeconds(errorGraceDays);
     const sessionEnv = createD1SessionEnv(env);
     const dao = new ApplicationContextDAO(sessionEnv.DB);
 
-    let totalDeleted: number = 0;
-    let deleted: number = BATCH_SIZE;
-    while (deleted >= BATCH_SIZE) {
-      deleted = await dao.deleteStaleDeletedDocuments(deletedBefore, BATCH_SIZE);
-      totalDeleted += deleted;
-    }
+    const totalDeleted = await pruneInBatches((batchSize) => dao.deleteStaleDeletedDocuments(deletedBefore, batchSize));
     console.log(`StaleContextDocumentPruningTask: deleted ${totalDeleted} stale deleted documents`);
 
-    let totalError: number = 0;
-    let errorDeleted: number = BATCH_SIZE;
-    while (errorDeleted >= BATCH_SIZE) {
-      errorDeleted = await dao.deleteStaleErrorDocuments(errorBefore, BATCH_SIZE);
-      totalError += errorDeleted;
-    }
+    const totalError = await pruneInBatches((batchSize) => dao.deleteStaleErrorDocuments(errorBefore, batchSize));
     console.log(`StaleContextDocumentPruningTask: deleted ${totalError} stale error documents`);
   }
 }

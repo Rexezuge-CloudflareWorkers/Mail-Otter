@@ -1,11 +1,10 @@
-import { AiDailyUsageDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { AiUsageUtil } from '../email/AiUsageUtil';
 import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { WorkersAiResponseUtil } from '../email/WorkersAiResponseUtil';
 import { EmailContextUtil } from '../email/EmailContextUtil';
+import { AiClient } from '../ai/AiClient';
 
 const REASONING_MODELS_REQUIRING_THINKING_DISABLED: ReadonlySet<string> = new Set<string>([
   '@cf/moonshotai/kimi-k2.6',
@@ -27,8 +26,8 @@ class ChatService {
 
     const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(userEmail);
     const embeddingModel = ConfigurationManager.getAiEmbeddingModel(env);
-    const embedding = await this.embed(env.AI, embeddingModel, query);
-    await this.recordEmbeddingUsage(env, embeddingModel, query);
+    const embedding = await AiClient.embed(env.AI, embeddingModel, query);
+    await AiClient.recordEmbeddingUsage(env.DB, embeddingModel, query, '[ChatService]');
 
     const vectorQueryTopK = ConfigurationManager.chat.getVectorQueryTopK(env);
     const matches: VectorizeMatches = await env.EMAIL_CONTEXT_INDEX.query(embedding, {
@@ -39,15 +38,15 @@ class ChatService {
 
     const contextTopK = ConfigurationManager.chat.getContextTopK(env);
     const filteredMatches: VectorizeMatch[] = applicationId
-      ? matches.matches.filter((m) => this.getStringMetadata(m.metadata, 'applicationId') === applicationId)
+      ? matches.matches.filter((m) => AiClient.getStringMetadata(m.metadata, 'applicationId') === applicationId)
       : matches.matches;
     const topMatches: VectorizeMatch[] = filteredMatches.slice(0, contextTopK);
 
     const sources: ChatSource[] = topMatches.map((m) => ({
       vectorId: m.id,
-      title: this.getStringMetadata(m.metadata, 'title') ?? '(no subject)',
-      sender: this.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)',
-      applicationId: this.getStringMetadata(m.metadata, 'applicationId') ?? '',
+      title: AiClient.getStringMetadata(m.metadata, 'title') ?? '(no subject)',
+      sender: AiClient.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)',
+      applicationId: AiClient.getStringMetadata(m.metadata, 'applicationId') ?? '',
       score: m.score,
     }));
 
@@ -100,34 +99,20 @@ class ChatService {
   private static buildContextBlock(matches: VectorizeMatch[]): string {
     return matches
       .map((m, i) => {
-        const title = this.getStringMetadata(m.metadata, 'title') ?? '(no subject)';
-        const sender = this.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)';
-        const indexedText = this.getStringMetadata(m.metadata, 'indexedText') ?? '';
+        const title = AiClient.getStringMetadata(m.metadata, 'title') ?? '(no subject)';
+        const sender = AiClient.getStringMetadata(m.metadata, 'sender') ?? '(unknown sender)';
+        const indexedText = AiClient.getStringMetadata(m.metadata, 'indexedText') ?? '';
         return [`${i + 1}. "${title}" from ${sender}`, indexedText].filter(Boolean).join('\n');
       })
       .join('\n\n');
   }
 
   private static async embed(ai: Ai, model: string, text: string): Promise<number[]> {
-    const result = (await ai.run(model, { text: [text] })) as WorkersAiEmbeddingResult;
-    const embedding: unknown = Array.isArray(result.data?.[0]) ? result.data[0] : result.data;
-    if (!Array.isArray(embedding) || !embedding.every((item: unknown): item is number => typeof item === 'number')) {
-      throw new Error('Workers AI did not return an embedding vector.');
-    }
-    return embedding;
+    return AiClient.embed(ai, model, text);
   }
 
   private static async recordEmbeddingUsage(env: ChatEnv, model: string, text: string): Promise<void> {
-    try {
-      const estimate = AiUsageUtil.estimateEmbeddingUsage(model, text);
-      await new AiDailyUsageDAO(env.DB).incrementUsage({
-        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
-        estimatedNeurons: estimate.estimatedNeurons,
-        embeddingTokens: estimate.embeddingTokens,
-      });
-    } catch (error: unknown) {
-      console.warn('Failed to record AI embedding usage for chat:', error);
-    }
+    await AiClient.recordEmbeddingUsage(env.DB, model, text, '[ChatService]');
   }
 
   private static async recordTextGenerationUsage(
@@ -137,40 +122,19 @@ class ChatService {
     messages: Array<{ role: string; content: string }>,
     answerText: string,
   ): Promise<void> {
-    try {
-      const fallbackInput = messages.map((m) => m.content).join('\n');
-      const estimate = AiUsageUtil.estimateTextGenerationUsage(model, usage, fallbackInput, answerText);
-      await new AiDailyUsageDAO(env.DB).incrementUsage({
-        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
-        estimatedNeurons: estimate.estimatedNeurons,
-        promptTokens: estimate.promptTokens,
-        completionTokens: estimate.completionTokens,
-      });
-    } catch (error: unknown) {
-      console.warn('Failed to record AI text generation usage for chat:', error);
-    }
+    const fallbackInput = messages.map((m) => m.content).join('\n');
+    await AiClient.recordTextGenerationUsage(env.DB, model, usage, fallbackInput, answerText, '[ChatService]');
   }
 
   private static async shouldSkipForDailyUsage(env: ChatEnv): Promise<boolean> {
-    const fallbackThreshold = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
-    if (fallbackThreshold <= 0) return false;
-    try {
-      const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(
-        AiUsageUtil.getCurrentUtcUsageDate(),
-      );
-      return estimatedNeurons >= fallbackThreshold;
-    } catch (error: unknown) {
-      console.warn('Failed to read AI daily usage for chat:', error);
-      return false;
-    }
+    return AiClient.shouldSkipForDailyUsage(env, '[ChatService]');
   }
 
   private static getStringMetadata(
     metadata: Record<string, VectorizeVectorMetadata> | undefined,
     key: string,
   ): string | undefined {
-    const value: VectorizeVectorMetadata | undefined = metadata?.[key];
-    return typeof value === 'string' ? value : undefined;
+    return AiClient.getStringMetadata(metadata, key);
   }
 }
 
@@ -219,10 +183,6 @@ interface AiChatRequest {
   max_tokens: number;
   temperature: number;
   chat_template_kwargs?: { thinking: boolean };
-}
-
-interface WorkersAiEmbeddingResult {
-  data?: number[] | number[][];
 }
 
 export { ChatService };

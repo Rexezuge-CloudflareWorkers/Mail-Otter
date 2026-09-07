@@ -13,6 +13,7 @@ export function Header({
   aiUsage,
   language,
   onLanguageChange,
+  languageDisabled,
 }: {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
@@ -20,6 +21,7 @@ export function Header({
   aiUsage?: { estimatedNeurons: number; dailyNeuronLimit: number; fallbackThreshold: number } | null;
   language?: string;
   onLanguageChange?: (lng: string) => void;
+  languageDisabled?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -50,7 +52,9 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-3">
-          {onLanguageChange && <LanguageSelector value={language} onChange={onLanguageChange} />}
+          {onLanguageChange && (
+            <LanguageSelector value={language} onChange={onLanguageChange} disabled={languageDisabled} />
+          )}
           <div className="text-sm text-[var(--color-text-muted)] truncate max-w-xs">{userEmail}</div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Unauthorized from './components/layout/Unauthorized';
 import type { ActiveView } from './types';
 import { Header } from './components/layout/Header';
@@ -15,7 +15,7 @@ import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGE_STORAGE_KEY, loadLanguage, normalizeLanguage } from './i18n';
+import { LANGUAGE_STORAGE_KEY, detectInitialLanguage, loadLanguage, normalizeLanguage } from './i18n';
 import { NoticeContext } from './contexts/NoticeContext';
 import { UserContext } from './contexts/UserContext';
 import { MailboxCallbacksContext } from './contexts/MailboxCallbacksContext';
@@ -46,7 +46,10 @@ export default function SpaApp() {
   const [isBusy, setIsBusy] = useState(false);
 
   const { notice, showNotice } = useNotice();
-  const { user, authorized } = useCurrentUser();
+  const { user, setUser, authorized } = useCurrentUser();
+  const [language, setLanguage] = useState<string>(() => detectInitialLanguage());
+  const [languageStatus, setLanguageStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [languagePending, setLanguagePending] = useState(false);
   const auditLogs = useAuditLogs({ showNotice });
 
   const contextAudit = useContextAudit({ showNotice });
@@ -74,11 +77,27 @@ export default function SpaApp() {
   }, []);
 
   const { i18n } = useTranslation();
+  const languagePendingRef = useRef(false);
+
+  // Keep explicit language state in sync with i18next so the controlled
+  // LanguageSelector re-renders even when only the i18n instance changes.
+  useEffect(() => {
+    const handler = (lng: string) => {
+      setLanguage(normalizeLanguage(lng));
+      setLanguageStatus('ready');
+    };
+    i18n.on('languageChanged', handler);
+    return () => {
+      i18n.off('languageChanged', handler);
+    };
+  }, [i18n]);
 
   // Apply the backend language preference once the user is known.
   // Precedence: backend preferredLanguage > localStorage > navigator > en.
+  // Skipped while a blocking manual change is in flight to avoid reverting it.
   useEffect(() => {
     if (!user) return;
+    if (languagePendingRef.current) return;
     const preferred = normalizeLanguage(
       user.preferredLanguage ??
         (() => {
@@ -89,36 +108,68 @@ export default function SpaApp() {
           }
         })(),
     );
-    if (normalizeLanguage(i18n.resolvedLanguage ?? i18n.language) !== preferred) {
-      void loadLanguage(preferred);
-    }
-    try {
-      document.documentElement.lang = preferred;
-    } catch {
-      // Ignore DOM errors in non-browser environments.
-    }
-  }, [user, i18n]);
+    let cancelled = false;
+    setLanguageStatus('loading');
+    loadLanguage(preferred)
+      .then(() => {
+        if (cancelled) return;
+        setLanguage(preferred);
+        setLanguageStatus('ready');
+        try {
+          document.documentElement.lang = preferred;
+        } catch {
+          // Ignore DOM errors in non-browser environments.
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLanguage('unknown');
+        setLanguageStatus('error');
+        showNotice('error', 'Unable To Load Language.');
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: user-only trigger + ref guard
+  }, [user]);
 
   // Keep <html lang> in sync for screen readers and action-page parity.
   useEffect(() => {
+    if (languageStatus === 'error') return;
     try {
-      document.documentElement.lang = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language);
+      document.documentElement.lang = normalizeLanguage(language);
     } catch {
       // Ignore DOM errors in non-browser environments.
     }
-  }, [i18n.resolvedLanguage, i18n.language]);
+  }, [language, languageStatus]);
 
   const handleLanguageChange = (lng: string) => {
+    if (languagePending || languagePendingRef.current) return;
     const normalized = normalizeLanguage(lng);
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
-    } catch {
-      // Ignore storage errors.
-    }
-    void loadLanguage(normalized).then(() => {
-      // Persist to the backend profile; toast on failure only to avoid noise.
-      updatePreferredLanguage(normalized).catch(() => showNotice('error', 'Unable To Save Language.'));
-    });
+    languagePendingRef.current = true;
+    setLanguagePending(true);
+    setLanguageStatus('loading');
+    void (async () => {
+      try {
+        await loadLanguage(normalized);
+        const updated = await updatePreferredLanguage(normalized);
+        try {
+          localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
+        } catch {
+          // Ignore storage errors.
+        }
+        setUser(updated);
+        setLanguage(normalized);
+        setLanguageStatus('ready');
+      } catch {
+        setLanguage('unknown');
+        setLanguageStatus('error');
+        showNotice('error', 'Unable To Save Language.');
+      } finally {
+        languagePendingRef.current = false;
+        setLanguagePending(false);
+      }
+    })();
   };
 
   // Load applications once the user is authorized
@@ -200,8 +251,9 @@ export default function SpaApp() {
             onViewChange={setActiveView}
             userEmail={user.email}
             aiUsage={user.aiUsage}
-            language={normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)}
+            language={languageStatus === 'error' ? 'unknown' : language}
             onLanguageChange={handleLanguageChange}
+            languageDisabled={languagePending || languageStatus !== 'ready'}
           />
 
           {notice && <NoticeBar notice={notice} />}

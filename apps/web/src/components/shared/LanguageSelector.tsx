@@ -26,6 +26,23 @@ export function LanguageSelector({
   disabled?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const unknownLabel = t('header.unknownLanguage', 'Unknown');
+  if (value === 'unknown') {
+    return (
+      <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+        <span className="sr-only">{t('header.selectLanguage', 'Select Language')}</span>
+        <select
+          aria-label={t('header.selectLanguage', 'Select Language')}
+          value="unknown"
+          disabled
+          onChange={(e) => onChange(e.target.value)}
+          className="rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+        >
+          <option value="unknown">{unknownLabel}</option>
+        </select>
+      </label>
+    );
+  }
   const current = normalizeLanguage(value ?? i18n.resolvedLanguage ?? i18n.language);
   return (
     <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">

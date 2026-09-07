@@ -314,6 +314,7 @@
   "header": {
     "language": "言語",
     "selectLanguage": "言語を選択してください",
+    "unknownLanguage": "不明",
     "tabs": {
       "actions": "アクション",
       "activity": "アクティビティ",

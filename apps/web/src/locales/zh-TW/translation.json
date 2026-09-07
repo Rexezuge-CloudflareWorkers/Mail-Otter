@@ -314,6 +314,7 @@
   "header": {
     "language": "語言",
     "selectLanguage": "選擇語言",
+    "unknownLanguage": "未知",
     "tabs": {
       "actions": "動作",
       "activity": "動態",

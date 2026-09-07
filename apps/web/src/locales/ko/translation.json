@@ -314,6 +314,7 @@
   "header": {
     "language": "언어",
     "selectLanguage": "언어를 선택해 주세요",
+    "unknownLanguage": "알 수 없음",
     "tabs": {
       "actions": "작업",
       "activity": "활동",

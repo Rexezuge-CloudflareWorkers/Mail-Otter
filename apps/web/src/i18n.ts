@@ -67,20 +67,31 @@ export function detectInitialLanguage(): SupportedLanguage {
 
 const loadedLanguages = new Set<string>(['en']);
 
+// Static glob so Vite emits one chunk per locale instead of relying on a
+// variable dynamic import (which warns INEFFECTIVE_DYNAMIC_IMPORT and can 404
+// under Workers Assets serving).
+const localeModules = import.meta.glob('./locales/*/translation.json');
+
 export async function loadLanguage(lng: string): Promise<void> {
   const normalized = normalizeLanguage(lng);
   if (loadedLanguages.has(normalized)) {
     await i18n.changeLanguage(normalized);
     return;
   }
-  try {
-    const mod = await import(`./locales/${normalized}/translation.json`);
-    const dict = (mod as { default: Record<string, unknown> }).default;
-    i18n.addResourceBundle(normalized, 'translation', dict, true, true);
-    loadedLanguages.add(normalized);
-  } catch {
-    // Missing bundle: fall back to English resources already registered.
+  const loader = localeModules[`./locales/${normalized}/translation.json`];
+  if (!loader) {
+    throw new Error(`Unsupported language bundle: ${normalized}`);
   }
+  let dict: Record<string, unknown>;
+  try {
+    const mod = (await loader()) as { default: Record<string, unknown> };
+    dict = mod.default;
+  } catch (error) {
+    console.error(`Failed to load language bundle: ${normalized}`, error);
+    throw error instanceof Error ? error : new Error(`Failed to load language bundle: ${normalized}`);
+  }
+  i18n.addResourceBundle(normalized, 'translation', dict, true, true);
+  loadedLanguages.add(normalized);
   await i18n.changeLanguage(normalized);
 }
 

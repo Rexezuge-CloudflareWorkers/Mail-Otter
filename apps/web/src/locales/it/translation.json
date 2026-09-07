@@ -314,6 +314,7 @@
   "header": {
     "language": "Lingua",
     "selectLanguage": "Seleziona la lingua",
+    "unknownLanguage": "Sconosciuto",
     "tabs": {
       "actions": "Azioni",
       "activity": "Attività",

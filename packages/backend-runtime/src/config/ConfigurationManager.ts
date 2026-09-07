@@ -125,6 +125,11 @@ class ConfigurationManager {
   };
 
   public static readonly digest = {
+    getPackageTrackingApiKey: (env: unknown): string => ConfigurationManager.tracking.getPackageTrackingApiKey(env),
+    getFlightTrackingApiKey: (env: unknown): string => ConfigurationManager.tracking.getFlightTrackingApiKey(env),
+  };
+
+  public static readonly tracking = {
     getPackageTrackingApiKey: (env: unknown): string => EnvParser.string(env, 'PACKAGE_TRACKING_API_KEY', DEFAULT_PACKAGE_TRACKING_API_KEY),
     getFlightTrackingApiKey: (env: unknown): string => EnvParser.string(env, 'FLIGHT_TRACKING_API_KEY', DEFAULT_FLIGHT_TRACKING_API_KEY),
   };
@@ -181,6 +186,15 @@ class ConfigurationManager {
   public static getContextAuditLogRetentionDays(env: unknown): number { return this.context.getAuditLogRetentionDays(env); }
   public static getIntegrationDeliveryLogRetentionDays(env: unknown): number { return this.integrations.getDeliveryLogRetentionDays(env); }
   public static getPublicBaseUrl(env: unknown): string { return this.baseUrl.getPublicBaseUrl(env); }
+  public static getPackageTrackingApiKey(env: unknown): string { return this.tracking.getPackageTrackingApiKey(env); }
+  public static getFlightTrackingApiKey(env: unknown): string { return this.tracking.getFlightTrackingApiKey(env); }
+  public static getMaxDriveFilesPerSync(env: unknown): number { return this.drive.getMaxFilesPerSync(env); }
+  public static getChatMaxResponseTokens(env: unknown): number { return this.chat.getMaxResponseTokens(env); }
+  public static getChatVectorQueryTopK(env: unknown): number { return this.chat.getVectorQueryTopK(env); }
+  public static getChatContextTopK(env: unknown): number { return this.chat.getContextTopK(env); }
+  public static getChatMaxHistoryMessages(env: unknown): number { return this.chat.getMaxHistoryMessages(env); }
+  public static getMaxAttachmentSizeBytes(env: unknown): number { return this.attachment.getMaxSizeBytes(env); }
+  public static getMaxAttachmentsPerEmail(env: unknown): number { return this.attachment.getMaxPerEmail(env); }
 }
 
 export { ConfigurationManager };

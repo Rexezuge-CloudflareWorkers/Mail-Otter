@@ -1,8 +1,8 @@
-import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
+import { BaseWebhookService } from './BaseWebhookService';
 
 interface FastmailWebhookInput {
   applicationId: string;
@@ -16,10 +16,9 @@ interface FastmailWebhookEnv {
   EMAIL_EVENTS_QUEUE: Queue<EmailQueueMessage>;
 }
 
-class FastmailWebhookService {
+class FastmailWebhookService extends BaseWebhookService {
   public static async handleNotification(input: FastmailWebhookInput, env: FastmailWebhookEnv): Promise<void> {
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const subscription = await subscriptionDAO.getByApplication(input.applicationId);
+    const { dao: subscriptionDAO, subscription } = await this.getSubscriptionByApplication(env.DB, input.applicationId);
     if (!subscription || !subscription.webhookSecretHash) {
       throw new BadRequestError('Fastmail webhook: application subscription not found or not configured.');
     }
@@ -27,14 +26,17 @@ class FastmailWebhookService {
       throw new BadRequestError('Fastmail webhook: invalid token.');
     }
 
-    await env.EMAIL_EVENTS_QUEUE.send({
-      type: 'jmap-notification',
-      applicationId: input.applicationId,
-      emailId: input.emailId,
-      callbackBaseUrl: input.callbackBaseUrl,
-    });
-
-    await subscriptionDAO.touchNotification(subscription.subscriptionId);
+    await this.enqueueAndTouch(
+      env.EMAIL_EVENTS_QUEUE,
+      subscriptionDAO,
+      subscription.subscriptionId,
+      {
+        type: 'jmap-notification',
+        applicationId: input.applicationId,
+        emailId: input.emailId,
+        callbackBaseUrl: input.callbackBaseUrl,
+      },
+    );
   }
 }
 

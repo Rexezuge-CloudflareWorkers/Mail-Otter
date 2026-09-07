@@ -1,9 +1,7 @@
 import { OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import { createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
-
-const BATCH_SIZE: number = 500;
 
 class OAuth2SessionPruningTask extends IScheduledTask<OAuth2SessionPruningTaskEnv> {
   protected async handleScheduledTask(
@@ -14,12 +12,7 @@ class OAuth2SessionPruningTask extends IScheduledTask<OAuth2SessionPruningTaskEn
     const sessionEnv = createD1SessionEnv(env);
     const dao = new OAuth2AuthorizationSessionDAO(sessionEnv.DB);
 
-    let total: number = 0;
-    let deleted: number = BATCH_SIZE;
-    while (deleted >= BATCH_SIZE) {
-      deleted = await dao.deleteExpiredSessions(BATCH_SIZE);
-      total += deleted;
-    }
+    const total = await pruneInBatches((batchSize) => dao.deleteExpiredSessions(batchSize));
     console.log(`OAuth2SessionPruningTask: deleted ${total} expired sessions`);
   }
 }

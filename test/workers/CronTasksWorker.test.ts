@@ -83,6 +83,37 @@ vi.mock('@mail-otter/background/scheduled', () => ({
   OneDriveSyncTask: class {
     handle = taskSpies.oneDriveSync;
   },
+  SubscriptionRenewalTask: class {
+    handle = taskSpies.subscriptionRenewal;
+  },
+  tasksForPhase: (phase: 1 | 2): Array<{ handle: (...args: unknown[]) => Promise<unknown> }> => {
+    if (phase === 1) {
+      return [
+        { handle: taskSpies.oauth2Refresh },
+        { handle: taskSpies.contextPruning },
+        { handle: taskSpies.imapPolling },
+        { handle: taskSpies.calendarEventSync },
+        { handle: taskSpies.googleDriveSync },
+        { handle: taskSpies.oneDriveSync },
+        { handle: taskSpies.actionStatusSync },
+        { handle: taskSpies.subscriptionRenewal },
+      ];
+    }
+    return [
+      { handle: taskSpies.processedMessagePruning },
+      { handle: taskSpies.staleContextDocumentPruning },
+      { handle: taskSpies.oauth2SessionPruning },
+      { handle: taskSpies.contextDeletionRunPruning },
+      { handle: taskSpies.aiDailyUsagePruning },
+      { handle: taskSpies.emailActionPruning },
+      { handle: taskSpies.auditLogPruning },
+      { handle: taskSpies.integrationDeliveryLogPruning },
+      { handle: taskSpies.scheduledDigest },
+      { handle: taskSpies.syncedCalendarEventPruning },
+      { handle: taskSpies.backgroundTaskRunPruning },
+      { handle: taskSpies.scheduledActionExecution },
+    ];
+  },
 }));
 
 vi.mock('@mail-otter/backend-services/subscription', () => ({
@@ -161,7 +192,7 @@ describe('CronTasksWorker', () => {
     expect(taskSpies.auditLogPruning).toHaveBeenCalledOnce();
     expect(taskSpies.googleDriveSync).toHaveBeenCalledOnce();
     expect(taskSpies.oneDriveSync).toHaveBeenCalledOnce();
-    expect(taskSpies.subscriptionRenewal).toHaveBeenCalledWith();
+    expect(taskSpies.subscriptionRenewal).toHaveBeenCalledOnce();
     expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.contextPruning.mock.invocationCallOrder[0]);
     expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.processedMessagePruning.mock.invocationCallOrder[0]);
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(

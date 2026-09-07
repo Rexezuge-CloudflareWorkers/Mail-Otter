@@ -1,4 +1,4 @@
-import { AiDailyUsageDAO, ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
@@ -6,7 +6,7 @@ import type { ApplicationContextDocument, ConnectedApplication } from '@mail-ott
 import { CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED, CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED, CONTEXT_AUDIT_EVENT_RAG_QUERIED, CONTEXT_AUDIT_EVENT_ERROR, CONTEXT_AUDIT_LOG_SEVERITY_INFO, CONTEXT_AUDIT_LOG_SEVERITY_WARNING } from '@mail-otter/shared/constants';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { AiUsageUtil, type AiEmbeddingUsageEstimate } from './AiUsageUtil';
+import { AiClient } from '../ai/AiClient';
 import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
 
 class EmailContextUtil {
@@ -85,8 +85,8 @@ class EmailContextUtil {
               sourceProviderId: input.application.providerId,
               sourceDocumentId: input.sourceDocumentId,
               sourceThreadId: input.sourceThreadId || '',
-              title: this.truncateMetadata(input.subject),
-              sender: this.truncateMetadata(input.from),
+              title: AiClient.truncateMetadata(input.subject),
+              sender: AiClient.truncateMetadata(input.from),
               indexedText,
               indexedAt: Date.now(),
             },
@@ -154,53 +154,31 @@ class EmailContextUtil {
   private static async buildAuditMetadata(input: PrepareEmailRagContextInput, indexedText: string): Promise<EmailDocumentAuditMetadata> {
     const secret: string = await input.env.AES_ENCRYPTION_KEY_SECRET.get();
     return {
-      sourceDocumentFingerprint: await this.fingerprint(secret, 'source-document', input.sourceDocumentId),
+      sourceDocumentFingerprint: await AiClient.fingerprint(secret, 'source-document', input.sourceDocumentId),
       sourceThreadFingerprint: input.sourceThreadId
-        ? await this.fingerprint(secret, 'source-thread', input.sourceThreadId)
+        ? await AiClient.fingerprint(secret, 'source-thread', input.sourceThreadId)
         : null,
-      titleFingerprint: input.subject ? await this.fingerprint(secret, 'title', input.subject) : null,
-      senderFingerprint: input.from ? await this.fingerprint(secret, 'sender', input.from) : null,
-      contentFingerprint: await this.fingerprint(secret, 'indexed-text', indexedText),
+      titleFingerprint: input.subject ? await AiClient.fingerprint(secret, 'title', input.subject) : null,
+      senderFingerprint: input.from ? await AiClient.fingerprint(secret, 'sender', input.from) : null,
+      contentFingerprint: await AiClient.fingerprint(secret, 'indexed-text', indexedText),
       indexedTextChars: indexedText.length,
     };
   }
 
   private static async fingerprint(secret: string, label: string, value: string): Promise<string> {
-    return CryptoUtil.hmacSha256Hex(`${label}\n${value}`, secret);
+    return AiClient.fingerprint(secret, label, value);
   }
 
   private static async embed(ai: Ai, model: string, text: string): Promise<number[]> {
-    const result = (await ai.run(model, { text: [text] })) as WorkersAiEmbeddingResult;
-    const embedding: unknown = Array.isArray(result.data?.[0]) ? result.data[0] : result.data;
-    if (!Array.isArray(embedding) || !embedding.every((item: unknown): item is number => typeof item === 'number')) {
-      throw new Error('Workers AI did not return an embedding vector.');
-    }
-    return embedding;
+    return AiClient.embed(ai, model, text);
   }
 
   private static async recordEmbeddingUsage(env: EmailContextEnv, model: string, text: string): Promise<void> {
-    try {
-      const estimate: AiEmbeddingUsageEstimate = AiUsageUtil.estimateEmbeddingUsage(model, text);
-      await new AiDailyUsageDAO(env.DB).incrementUsage({
-        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
-        estimatedNeurons: estimate.estimatedNeurons,
-        embeddingTokens: estimate.embeddingTokens,
-      });
-    } catch (error: unknown) {
-      console.warn('Failed to record Workers AI embedding usage estimate:', error);
-    }
+    await AiClient.recordEmbeddingUsage(env.DB, model, text, '[EmailContextUtil]');
   }
 
   private static async shouldSkipWorkersAiForDailyUsage(env: EmailContextEnv): Promise<boolean> {
-    const fallbackThreshold: number = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
-    if (fallbackThreshold <= 0) return false;
-    try {
-      const estimatedNeurons: number = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(AiUsageUtil.getCurrentUtcUsageDate());
-      return estimatedNeurons >= fallbackThreshold;
-    } catch (error: unknown) {
-      console.warn('Failed to read Workers AI daily usage estimate for context:', error);
-      return false;
-    }
+    return AiClient.shouldSkipForDailyUsage(env, '[EmailContextUtil]');
   }
 
   private static async queryRelevantContext(
@@ -222,7 +200,7 @@ class EmailContextUtil {
     const snippets: string[] = matches.matches
       .filter((match: VectorizeMatch): boolean => match.id !== excludedVectorId)
       .filter((match: VectorizeMatch): boolean => {
-        const applicationId = this.getStringMetadata(match.metadata, 'applicationId');
+        const applicationId = AiClient.getStringMetadata(match.metadata, 'applicationId');
         return Boolean(applicationId && enabledApplicationIds.has(applicationId));
       })
       .slice(0, ragTopK)
@@ -233,19 +211,18 @@ class EmailContextUtil {
   }
 
   private static renderMatch(index: number, match: VectorizeMatch): string {
-    const title: string = this.getStringMetadata(match.metadata, 'title') || '(untitled)';
-    const sender: string = this.getStringMetadata(match.metadata, 'sender') || '(unknown sender)';
-    const indexedText: string = this.getStringMetadata(match.metadata, 'indexedText') || '';
+    const title: string = AiClient.getStringMetadata(match.metadata, 'title') || '(untitled)';
+    const sender: string = AiClient.getStringMetadata(match.metadata, 'sender') || '(unknown sender)';
+    const indexedText: string = AiClient.getStringMetadata(match.metadata, 'indexedText') || '';
     return [`${index}. ${title}`, `From: ${sender}`, indexedText].filter(Boolean).join('\n');
   }
 
   private static getStringMetadata(metadata: Record<string, VectorizeVectorMetadata> | undefined, key: string): string | undefined {
-    const value: VectorizeVectorMetadata | undefined = metadata?.[key];
-    return typeof value === 'string' ? value : undefined;
+    return AiClient.getStringMetadata(metadata, key);
   }
 
   private static truncateMetadata(value: string): string {
-    return value.length <= 512 ? value : value.slice(0, 512);
+    return AiClient.truncateMetadata(value);
   }
 }
 

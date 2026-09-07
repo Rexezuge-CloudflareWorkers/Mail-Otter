@@ -7,6 +7,7 @@ import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import { ActionService } from '../action';
 import type { ActionExecutionEnv, CreatedEmailAction } from '../action';
+import { AiClient } from '../ai/AiClient';
 import { EmailContextUtil } from './EmailContextUtil';
 import { EmailProcessingAuditLogger } from './EmailProcessingAuditLogger';
 import { EmailRulesUtil } from './EmailRulesUtil';
@@ -270,19 +271,15 @@ class EmailSummaryOrchestrator {
     fallbackInputText: string,
     fallbackOutputText: string,
   ): Promise<AiTextGenerationUsageEstimate | undefined> {
-    let estimate: AiTextGenerationUsageEstimate | undefined;
-    try {
-      estimate = AiUsageUtil.estimateTextGenerationUsage(model, usage, fallbackInputText, fallbackOutputText);
-      await new AiDailyUsageDAO(this.env.DB).incrementUsage({
-        usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
-        estimatedNeurons: estimate.estimatedNeurons,
-        promptTokens: estimate.promptTokens,
-        completionTokens: estimate.completionTokens,
-      });
-    } catch (error: unknown) {
-      console.warn('Failed to record Workers AI summary usage estimate:', error);
-    }
-    return estimate;
+    const estimate = await AiClient.recordTextGenerationUsage(
+      this.env.DB,
+      model,
+      usage,
+      fallbackInputText,
+      fallbackOutputText,
+      '[EmailSummaryOrchestrator]',
+    );
+    return estimate ?? undefined;
   }
 
   private async recordSummaryFailureUsage(model: string, error: AiSummaryRetryableError, fallbackInputText: string): Promise<void> {

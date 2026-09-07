@@ -1,26 +1,29 @@
-import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError, UnauthorizedError } from '@mail-otter/backend-errors';
-import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
+import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import { BaseWebhookService } from './BaseWebhookService';
 
-class GmailWebhookService {
+class GmailWebhookService extends BaseWebhookService {
   public static async handleNotification(input: GmailWebhookInput, env: GmailWebhookEnv): Promise<void> {
-    const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(input.applicationId);
-    if (!subscription || !(await WebhookSecurityUtil.matchesSecret(input.token, subscription.webhookSecretHash))) {
+    const { dao: subscriptionDAO, subscription } = await this.getSubscriptionByApplication(env.DB, input.applicationId);
+    if (!subscription || !(await this.matchesSecret(input.token, subscription.webhookSecretHash))) {
       throw new UnauthorizedError('Invalid Gmail webhook token.');
     }
     const decoded = JSON.parse(WebhookSecurityUtil.base64UrlDecodeToString(input.messageData)) as GmailNotificationData;
     if (!decoded.historyId) throw new BadRequestError('Gmail notification was missing historyId.');
-    await env.EMAIL_EVENTS_QUEUE.send({
-      type: 'gmail-notification',
-      applicationId: input.applicationId,
-      notificationHistoryId: decoded.historyId,
-      pubsubMessageId: input.pubsubMessageId,
-      callbackBaseUrl: input.callbackBaseUrl,
-    });
-    await subscriptionDAO.touchNotification(subscription.subscriptionId);
+    await this.enqueueAndTouch(
+      env.EMAIL_EVENTS_QUEUE,
+      subscriptionDAO,
+      subscription.subscriptionId,
+      {
+        type: 'gmail-notification',
+        applicationId: input.applicationId,
+        notificationHistoryId: decoded.historyId,
+        pubsubMessageId: input.pubsubMessageId,
+        callbackBaseUrl: input.callbackBaseUrl,
+      },
+    );
   }
 }
 

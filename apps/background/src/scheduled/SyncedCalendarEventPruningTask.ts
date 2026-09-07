@@ -1,10 +1,9 @@
 import { SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import { createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
 
-const BATCH_SIZE = 500;
 const PRUNE_BEFORE_DAYS = 1;
 
 class SyncedCalendarEventPruningTask extends IScheduledTask<SyncedCalendarEventPruningTaskEnv> {
@@ -17,12 +16,7 @@ class SyncedCalendarEventPruningTask extends IScheduledTask<SyncedCalendarEventP
     const eventDAO = new SyncedCalendarEventDAO(sessionEnv.DB);
     const pruneBeforeUnix = TimestampUtil.getCurrentUnixTimestampInSeconds() - PRUNE_BEFORE_DAYS * 86_400;
 
-    let deletedTotal = 0;
-    let deleted = BATCH_SIZE;
-    while (deleted >= BATCH_SIZE) {
-      deleted = await eventDAO.pruneOldEvents(pruneBeforeUnix, BATCH_SIZE);
-      deletedTotal += deleted;
-    }
+    const deletedTotal = await pruneInBatches((batchSize) => eventDAO.pruneOldEvents(pruneBeforeUnix, batchSize));
     console.log(`[SyncedCalendarEventPruningTask] Pruned ${deletedTotal} old calendar events`);
   }
 }

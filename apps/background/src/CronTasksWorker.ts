@@ -1,27 +1,5 @@
 import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
-import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
-import {
-  ActionStatusSyncTask,
-  AiDailyUsagePruningTask,
-  AuditLogPruningTask,
-  BackgroundTaskRunPruningTask,
-  CalendarEventSyncTask,
-  ContextDeletionRunPruningTask,
-  ContextDocumentPruningTask,
-  EmailActionPruningTask,
-  GoogleDriveSyncTask,
-  ImapPollingTask,
-  IntegrationDeliveryLogPruningTask,
-  OAuth2AccessTokenRefreshTask,
-  OAuth2SessionPruningTask,
-  OneDriveSyncTask,
-  ProcessedMessagePruningTask,
-  ScheduledActionExecutionTask,
-  ScheduledDigestTask,
-  StaleContextDocumentPruningTask,
-  SyncedCalendarEventPruningTask,
-} from '@mail-otter/background/scheduled';
-import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
+import { tasksForPhase } from '@mail-otter/background/scheduled';
 
 const CRON_TASKS_RUN_PATH: string = '/run';
 
@@ -85,30 +63,8 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
 
   protected async runScheduledTasks(event: ScheduledController): Promise<void> {
     const ctx: ExecutionContext = this.createExecutionContext();
-    await Promise.all([
-      new OAuth2AccessTokenRefreshTask().handle(event, this.env, ctx),
-      new ContextDocumentPruningTask().handle(event, this.env, ctx),
-      new ImapPollingTask().handle(event, this.env, ctx),
-      new CalendarEventSyncTask().handle(event, this.env, ctx),
-      new GoogleDriveSyncTask().handle(event, this.env, ctx),
-      new OneDriveSyncTask().handle(event, this.env, ctx),
-      new ActionStatusSyncTask().handle(event, this.env, ctx),
-      new SubscriptionRenewalUtil(createD1SessionEnv(this.env)).renewDueSubscriptions(),
-    ]);
-    await Promise.all([
-      new ProcessedMessagePruningTask().handle(event, this.env, ctx),
-      new StaleContextDocumentPruningTask().handle(event, this.env, ctx),
-      new OAuth2SessionPruningTask().handle(event, this.env, ctx),
-      new ContextDeletionRunPruningTask().handle(event, this.env, ctx),
-      new AiDailyUsagePruningTask().handle(event, this.env, ctx),
-      new EmailActionPruningTask().handle(event, this.env, ctx),
-      new AuditLogPruningTask().handle(event, this.env, ctx),
-      new IntegrationDeliveryLogPruningTask().handle(event, this.env, ctx),
-      new ScheduledDigestTask().handle(event, this.env, ctx),
-      new SyncedCalendarEventPruningTask().handle(event, this.env, ctx),
-      new BackgroundTaskRunPruningTask().handle(event, this.env, ctx),
-      new ScheduledActionExecutionTask().handle(event, this.env, ctx),
-    ]);
+    await Promise.all(tasksForPhase(1).map((task) => task.handle(event, this.env, ctx)));
+    await Promise.all(tasksForPhase(2).map((task) => task.handle(event, this.env, ctx)));
   }
 }
 

@@ -88,8 +88,11 @@ class ContextDeletionRunDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM application_context_deletion_runs
-              WHERE created_at < ?
-              LIMIT ?
+              WHERE deletion_run_id IN (
+                SELECT deletion_run_id FROM application_context_deletion_runs
+                WHERE created_at < ?
+                LIMIT ?
+              )
             `,
           )
           .bind(olderThan, limit)

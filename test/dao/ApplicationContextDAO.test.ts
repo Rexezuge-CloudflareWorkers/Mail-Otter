@@ -306,6 +306,22 @@ describe('ApplicationContextDAO', () => {
       const result = await dao.deleteStaleErrorDocuments(1_778_000_000, 100);
       expect(result).toBe(2);
     });
+
+    it('scopes LIMIT inside a subselect (D1 rejects bare DELETE ... LIMIT)', async () => {
+      const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result) });
+      dao = new ApplicationContextDAO(db);
+
+      await dao.deleteStaleDeletedDocuments(1_778_000_000, 100);
+      await dao.deleteStaleErrorDocuments(1_778_000_000, 100);
+
+      const prepareFn = db.prepare as ReturnType<typeof vi.fn>;
+      expect(prepareFn).toHaveBeenCalledTimes(2);
+      for (const call of prepareFn.mock.calls) {
+        const sql = (call as unknown[])[0] as string;
+        expect(sql).toMatch(/IN\s*\(\s*SELECT/);
+        expect(sql.slice(0, sql.indexOf('('))).not.toMatch(/LIMIT/i);
+      }
+    });
   });
 
   describe('insertAuditLog / insertAuditLogs', () => {

@@ -454,8 +454,11 @@ class ApplicationContextDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM application_context_documents
-              WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
-              LIMIT ?
+              WHERE context_document_id IN (
+                SELECT context_document_id FROM application_context_documents
+                WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
+                LIMIT ?
+              )
             `,
           )
           .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit)
@@ -472,8 +475,11 @@ class ApplicationContextDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM application_context_documents
-              WHERE status = ? AND updated_at < ?
-              LIMIT ?
+              WHERE context_document_id IN (
+                SELECT context_document_id FROM application_context_documents
+                WHERE status = ? AND updated_at < ?
+                LIMIT ?
+              )
             `,
           )
           .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit)

@@ -54,8 +54,11 @@ class OAuth2AuthorizationSessionDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM oauth2_authorization_sessions
-              WHERE expires_at < ? OR consumed_at IS NOT NULL
-              LIMIT ?
+              WHERE session_id IN (
+                SELECT session_id FROM oauth2_authorization_sessions
+                WHERE expires_at < ? OR consumed_at IS NOT NULL
+                LIMIT ?
+              )
             `,
           )
           .bind(now, limit)

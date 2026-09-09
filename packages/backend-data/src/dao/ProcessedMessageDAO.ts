@@ -88,8 +88,11 @@ class ProcessedMessageDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM processed_messages
-              WHERE updated_at < ? AND status IN (${placeholders})
-              LIMIT ?
+              WHERE processed_message_id IN (
+                SELECT processed_message_id FROM processed_messages
+                WHERE updated_at < ? AND status IN (${placeholders})
+                LIMIT ?
+              )
             `,
           )
           .bind(olderThan, ...statuses, limit)

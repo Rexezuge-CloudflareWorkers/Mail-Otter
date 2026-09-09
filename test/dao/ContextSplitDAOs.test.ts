@@ -52,6 +52,19 @@ describe('Context split DAOs', () => {
     await expect(dao.deleteOldDeletionRuns(100, 500)).resolves.toBe(2);
   });
 
+  it('prune deletes scope LIMIT inside a subselect (D1 rejects bare DELETE ... LIMIT)', async () => {
+    const auditDb = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }) });
+    await new ContextAuditLogDAO(auditDb).deleteOldAuditLogs(100, 500);
+    const deletionDb = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } }) });
+    await new ContextDeletionRunDAO(deletionDb).deleteOldDeletionRuns(100, 500);
+    for (const db of [auditDb, deletionDb]) {
+      const prepareFn = db.prepare as unknown as ReturnType<typeof vi.fn>;
+      const sql = (prepareFn.mock.calls[0] as unknown[])[0] as string;
+      expect(sql).toMatch(/IN\s*\(\s*SELECT/);
+      expect(sql.slice(0, sql.indexOf('('))).not.toMatch(/LIMIT/i);
+    }
+  });
+
   it('ApplicationContextDAO delegates audit/deletion-run calls (facade)', async () => {
     const run = vi.fn().mockResolvedValue({ success: true, meta: { changes: 4 } });
     const dao = new ApplicationContextDAO(makeDb({ run }));

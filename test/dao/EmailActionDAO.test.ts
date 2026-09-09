@@ -264,6 +264,17 @@ describe('EmailActionDAO', () => {
       const result = await dao.deleteOlderThan(mockNow - 86_400 * 30, 100);
       expect(result).toBe(3);
     });
+
+    it('scopes LIMIT inside a subselect (D1 rejects bare DELETE ... LIMIT)', async () => {
+      const db = makeDb({ run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result) });
+      dao = new EmailActionDAO(db, 'key');
+
+      await dao.deleteOlderThan(mockNow - 86_400 * 30, 100);
+
+      const sql = ((db.prepare as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[])[0] as string;
+      expect(sql).toMatch(/IN\s*\(\s*SELECT/);
+      expect(sql.slice(0, sql.indexOf('('))).not.toMatch(/LIMIT/i);
+    });
   });
 
   describe('recordExecution', () => {

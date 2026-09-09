@@ -110,8 +110,11 @@ class ContextAuditLogDAO extends BaseDAO {
           .prepare(
             `
               DELETE FROM context_audit_logs
-              WHERE created_at < ?
-              LIMIT ?
+              WHERE id IN (
+                SELECT id FROM context_audit_logs
+                WHERE created_at < ?
+                LIMIT ?
+              )
             `,
           )
           .bind(olderThan, limit)

@@ -413,8 +413,11 @@ class EmailActionDAO extends EncryptedDAO {
           .prepare(
             `
               DELETE FROM email_summary_actions
-              WHERE updated_at < ? AND status IN (?, ?, ?, ?)
-              LIMIT ?
+              WHERE action_id IN (
+                SELECT action_id FROM email_summary_actions
+                WHERE updated_at < ? AND status IN (?, ?, ?, ?)
+                LIMIT ?
+              )
             `,
           )
           .bind(

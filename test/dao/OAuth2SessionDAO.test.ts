@@ -93,6 +93,19 @@ describe('OAuth2AuthorizationSessionDAO', () => {
 
       expect(count).toBe(0);
     });
+
+    it('scopes LIMIT inside a subselect (D1 rejects bare DELETE ... LIMIT)', async () => {
+      mockRun.mockResolvedValue({ success: true, meta: { changes: 1 } });
+      const db = createMockDb();
+      const localDao = new OAuth2AuthorizationSessionDAO(db);
+
+      await localDao.deleteExpiredSessions(100);
+
+      const prepareFn = db.prepare;
+      const sql = (prepareFn.mock.calls[0] as unknown[])[0] as string;
+      expect(sql).toMatch(/IN\s*\(\s*SELECT/);
+      expect(sql.slice(0, sql.indexOf('('))).not.toMatch(/LIMIT/i);
+    });
   });
 
   describe('consume', () => {

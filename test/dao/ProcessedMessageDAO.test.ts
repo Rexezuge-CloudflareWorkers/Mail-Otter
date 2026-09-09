@@ -242,6 +242,17 @@ describe('ProcessedMessageDAO (mock-based)', () => {
       expect(bindings[1]).toBe(PROCESSED_MESSAGE_STATUS_ERROR);
       expect(bindings[2]).toBe(50);
     });
+
+    it('scopes LIMIT inside a subselect (D1 rejects bare DELETE ... LIMIT)', async () => {
+      const { db } = makeDb();
+      const dao = new ProcessedMessageDAO(db);
+
+      await dao.deleteOlderThan(9999, [PROCESSED_MESSAGE_STATUS_ERROR], 50);
+
+      const sql = ((db.prepare as ReturnType<typeof vi.fn>).mock.calls[0] as unknown[])[0] as string;
+      expect(sql).toMatch(/IN\s*\(\s*SELECT/);
+      expect(sql.slice(0, sql.indexOf('('))).not.toMatch(/LIMIT/i);
+    });
   });
 
   describe('getLatestForApplication', () => {

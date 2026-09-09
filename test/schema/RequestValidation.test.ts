@@ -93,6 +93,33 @@ describe('Request input schemas', () => {
     expect((result as { success: true; data: Record<string, unknown> }).data.timeZone).toBe('America/New_York');
   });
 
+  it('passes contentLanguage through PUT /user/application schema', async () => {
+    const request = new Request('https://mail.example.com/user/application', { method: 'PUT' });
+    const result = await validateRequestInput(request, {
+      applicationId: '11111111-1111-4111-8111-111111111111',
+      displayName: 'Outlook inbox',
+      providerId: 'microsoft-outlook',
+      connectionMethod: 'oauth2',
+      contentLanguage: 'de',
+    });
+    expect(result).toMatchObject({ success: true });
+    expect((result as { success: true; data: Record<string, unknown> }).data.contentLanguage).toBe('de');
+  });
+
+  it('passes contentLanguage through POST /user/application schema', async () => {
+    const request = new Request('https://mail.example.com/user/application', { method: 'POST' });
+    const result = await validateRequestInput(request, {
+      displayName: 'Outlook inbox',
+      providerId: 'microsoft-outlook',
+      connectionMethod: 'oauth2',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      contentLanguage: 'ja',
+    });
+    expect(result).toMatchObject({ success: true });
+    expect((result as { success: true; data: Record<string, unknown> }).data.contentLanguage).toBe('ja');
+  });
+
   it('rejects unsupported providers', async () => {
     const request = new Request('https://mail.example.com/user/application', { method: 'POST' });
 
@@ -123,6 +150,13 @@ describe('Request input schemas', () => {
     it('accepts body with only maxContextDocuments', async () => {
       const request = new Request('https://mail.example.com/user/application/context', { method: 'PUT' });
       await expect(validateRequestInput(request, { applicationId, maxContextDocuments: 10 })).resolves.toMatchObject({ success: true });
+    });
+
+    it('passes attachmentVisionEnabled through PUT /user/application/context schema', async () => {
+      const request = new Request('https://mail.example.com/user/application/context', { method: 'PUT' });
+      const result = await validateRequestInput(request, { applicationId, attachmentVisionEnabled: false });
+      expect(result).toMatchObject({ success: true });
+      expect((result as { success: true; data: Record<string, unknown> }).data.attachmentVisionEnabled).toBe(false);
     });
   });
 

@@ -21,7 +21,11 @@ interface RequestInputSchema {
   query?: z.ZodType;
 }
 
-const CreateAppBodySchema = ConnectedAppBaseSchema;
+const CreateAppBodySchema = ConnectedAppBaseSchema.extend({
+  enabledFeatures: z.array(z.string()).optional().nullable(),
+  timeZone: z.string().max(64).optional().nullable(),
+  contentLanguage: z.string().max(32).optional().nullable(),
+});
 
 const UpdateAppBodySchema = z
   .object({
@@ -40,6 +44,7 @@ const UpdateAppBodySchema = z
       .optional()
       .nullable(),
     timeZone: z.string().max(64).optional().nullable(),
+    contentLanguage: z.string().max(32).optional().nullable(),
     autoExecuteActionTypes: z.array(z.string()).optional().nullable(),
     imapHost: z.string().max(253).optional(),
     imapPort: z.number().int().min(1).max(65_535).optional(),
@@ -70,6 +75,7 @@ const UpdateAppContextBodySchema = z.object({
   contextIndexingEnabled: z.boolean().optional(),
   ragRetrievalEnabled: z.boolean().optional(),
   maxContextDocuments: z.number().int().positive().nullable().optional(),
+  attachmentVisionEnabled: z.boolean().optional(),
 });
 
 const DeleteAppContextDocumentsBodySchema = z.object({

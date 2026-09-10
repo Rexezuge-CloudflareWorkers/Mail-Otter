@@ -4,6 +4,8 @@ import unicorn from 'eslint-plugin-unicorn';
 import sonarjs from 'eslint-plugin-sonarjs';
 import reactHooks from 'eslint-plugin-react-hooks';
 import pluginRegexp from 'eslint-plugin-regexp';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import prettier from 'eslint-plugin-prettier';
 
 export default tseslint.config(
   { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'node_modules/**', 'test/**'] },
@@ -141,6 +143,15 @@ export default tseslint.config(
 
   // --- Regexp: static analysis for regular expressions ---
   pluginRegexp.configs['flat/recommended'],
+
+  // --- Prettier: report formatting drift as lint warnings; disable conflicting stylistic rules ---
+  eslintConfigPrettier,
+  {
+    plugins: { prettier },
+    rules: {
+      'prettier/prettier': 'warn',
+    },
+  },
 
   // --- Import direction guardrails ---
   // Layer 0: shared — zero @mail-otter/* deps

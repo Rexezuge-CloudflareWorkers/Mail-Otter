@@ -12,7 +12,6 @@
     "@mail-otter/backend-runtime": "workspace:*",
     "@mail-otter/backend-services": "workspace:*",
     "@mail-otter/background": "workspace:*",
-    "@mail-otter/provider-clients": "workspace:*",
     "@mail-otter/shared": "workspace:*",
     "chanfana": "3.4.0",
     "hono": "4.13.5",

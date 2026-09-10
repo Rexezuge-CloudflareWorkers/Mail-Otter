@@ -8,7 +8,9 @@ interface ProviderFolder {
 interface ProviderCredentials {
   type: 'oauth2';
   accessToken: string;
-  /** For IMAP XOAUTH2: the mailbox email address to authenticate as. */
+  /**
+  For IMAP XOAUTH2: the mailbox email address to authenticate as.
+  */
   imapUsername?: string;
 }
 

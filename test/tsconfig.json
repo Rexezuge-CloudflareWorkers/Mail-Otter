@@ -1,7 +1,24 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "paths": {
+      "@/*": ["../apps/api/src/*"],
+      "@mail-otter/background": ["../apps/background/src"],
+      "@mail-otter/background/*": ["../apps/background/src/*"],
+      "@mail-otter/backend-data": ["../packages/backend-data/src"],
+      "@mail-otter/backend-data/*": ["../packages/backend-data/src/*"],
+      "@mail-otter/backend-errors": ["../packages/backend-errors/src"],
+      "@mail-otter/backend-errors/*": ["../packages/backend-errors/src/*"],
+      "@mail-otter/backend-runtime": ["../packages/backend-runtime/src"],
+      "@mail-otter/backend-runtime/*": ["../packages/backend-runtime/src/*"],
+      "@mail-otter/backend-services": ["../packages/backend-services/src"],
+      "@mail-otter/backend-services/*": ["../packages/backend-services/src/*"],
+      "@mail-otter/provider-clients": ["../packages/provider-clients/src"],
+      "@mail-otter/provider-clients/*": ["../packages/provider-clients/src/*"],
+      "@mail-otter/shared": ["../packages/shared/src"],
+      "@mail-otter/shared/*": ["../packages/shared/src/*"]
+    }
   },
   "include": ["**/*.ts", "../src/**/*.ts"]
 }

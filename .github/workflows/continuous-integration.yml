@@ -26,40 +26,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-
-      - name: Install Dependencies
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm install
-          max_attempts: '3'
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
 
       - name: Run Type Check and Lint
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm -r typecheck && pnpm run lint
-          max_attempts: '2'
+        run: pnpm -r typecheck && pnpm run lint
 
       - name: Run Tests with Coverage
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm run test:coverage
-          max_attempts: '2'
-
-      - name: Upload Coverage Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 14
+        run: pnpm run test:coverage
 
   integration-tests:
     name: Integration Tests
@@ -69,26 +43,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-
-      - name: Install Dependencies
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm install
-          max_attempts: '3'
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
 
       - name: Run Integration Tests
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm run test:integration
-          max_attempts: '2'
+        run: pnpm run test:integration
 
   build:
     name: Build
@@ -98,26 +57,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-
-      - name: Install Dependencies
-        uses: ./.github/actions/retry-step
-        with:
-          command: pnpm install
-          max_attempts: '3'
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
 
       - name: Build Web App
         run: pnpm --filter @mail-otter/web build
-
-      - name: Type Check API Worker
-        run: pnpm --filter @mail-otter/api typecheck
 
   dependabot-auto-merge:
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.state == 'open' && !github.event.repository.fork }}

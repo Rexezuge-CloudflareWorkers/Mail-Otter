@@ -46,7 +46,6 @@
     "DEV_AUTH_EMAIL": "test@example.com",
 
     "DEBUG_MODE": "false",
-    "SERVE_SPA_FROM_WORKER": "false",
     "POLICY_AUD": "test-aud",
     "TEAM_DOMAIN": "https://test.cloudflareaccess.com",
     "MAX_APPLICATIONS_PER_USER": "99",

@@ -161,6 +161,20 @@ function prepareConfigFile(): void {
   console.log('WRANGLER_JSONC is empty; copied apps/api/wrangler.template.jsonc to wrangler.jsonc.');
 }
 
+function ensureMinimumConfigVersion(): void {
+  const template = parse(readFileSync(TEMPLATE_PATH, 'utf8')) as { $minimumVersion?: unknown };
+  if (typeof template.$minimumVersion !== 'number') {
+    return;
+  }
+  const { config } = readConfig();
+  const currentVersion = (config as { $version?: unknown }).$version;
+  if (typeof currentVersion !== 'number' || currentVersion < template.$minimumVersion) {
+    throw new Error(
+      `wrangler.jsonc version (${typeof currentVersion === 'number' ? currentVersion : 'missing'}) is below minimum template version (${template.$minimumVersion}). Regenerate it from apps/api/wrangler.template.jsonc.`,
+    );
+  }
+}
+
 function applyVarsPatch(): void {
   const patch = parseVarsPatch();
   const patchEntries = Object.entries(patch ?? {});
@@ -390,6 +404,7 @@ function provisionWranglerResources(): void {
 }
 
 prepareConfigFile();
+ensureMinimumConfigVersion();
 applyTopLevelPatch();
 applyVarsPatch();
 provisionWranglerResources();

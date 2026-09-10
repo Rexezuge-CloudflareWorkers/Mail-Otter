@@ -107,7 +107,7 @@ Enforced by ESLint `no-restricted-imports` in `eslint.config.mjs`.
 - Root package `@mail-otter/monorepo`, pnpm workspaces.
 - `apps/web/vite.config.ts` proxies `/api` → `http://localhost:8787` in dev; embeds `dist/index.html` into `apps/api/src/generated/spa-shell.ts` on build.
 - `apps/api/wrangler.template.jsonc` is the config template — copy to `wrangler.jsonc` per deployer; no committed `wrangler.jsonc`.
-- `SERVE_SPA_FROM_WORKER` (default `true`) — serves SPA from Worker catch-all so API routes aren't intercepted by assets handler.
+- The Worker always serves the SPA from its catch-all route so API routes aren't intercepted by assets handler.
 - Worker bindings: D1 `DB`, KV `OAUTH2_TOKEN_CACHE`, Secrets Store `AES_ENCRYPTION_KEY_SECRET` / `ACTION_ENCRYPTION_KEY_SECRET` / `ACTION_SIGNING_SECRET`, AI `AI`, Vectorize `EMAIL_CONTEXT_INDEX`, Queue `EMAIL_EVENTS_QUEUE`, Workflow `EMAIL_PROCESSING_WORKFLOW`, DOs `CRON_TASKS` / `OAUTH2_TOKEN_REFRESHERS`, cron `*/10 * * * *`.
 
 **Optional env vars** (all have defaults in `ConfigurationDefaults.ts`):

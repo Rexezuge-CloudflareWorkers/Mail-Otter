@@ -33,7 +33,6 @@ import {
   DEFAULT_RAG_VECTOR_QUERY_TOP_K,
   DEFAULT_RENEWAL_RETRY_BASE_DELAY_SECONDS,
   DEFAULT_RENEWAL_RETRY_MAX_DELAY_SECONDS,
-  DEFAULT_SERVE_SPA_FROM_WORKER,
   DEFAULT_STALE_CONTEXT_DOCUMENT_DELETED_GRACE_DAYS,
   DEFAULT_STALE_CONTEXT_DOCUMENT_ERROR_GRACE_DAYS,
   DEFAULT_ATTACHMENT_VISION_ENABLED,
@@ -167,7 +166,6 @@ class ConfigurationManager {
   public static getRagVectorQueryTopK(env: unknown): number { return this.context.getRagVectorQueryTopK(env); }
   public static getMaxContextMemoryChars(env: unknown): number { return this.context.getMaxContextMemoryChars(env); }
   public static getMaxRagContextChars(env: unknown): number { return this.context.getMaxRagContextChars(env); }
-  public static getServeSpaFromWorker(env: unknown): boolean { return EnvParser.boolean(env, 'SERVE_SPA_FROM_WORKER', DEFAULT_SERVE_SPA_FROM_WORKER); }
   public static getOAuth2AccessTokenRefreshWindowSeconds(env: unknown): number { return this.oauth2.getAccessTokenRefreshWindowSeconds(env); }
   public static getOAuth2AccessTokenMinValidSeconds(env: unknown): number { return this.oauth2.getAccessTokenMinValidSeconds(env); }
   public static getOAuth2AccessTokenFallbackTtlSeconds(env: unknown): number { return this.oauth2.getAccessTokenFallbackTtlSeconds(env); }

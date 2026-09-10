@@ -158,7 +158,6 @@ Set these in `wrangler.jsonc` under `vars` to override defaults:
 | Variable                                     | Default                   | Description                                                                                                  |
 | -------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `DEBUG_MODE`                                 | `false`                   | Appends metadata-only processing diagnostics to summary emails when set to `true`                            |
-| `SERVE_SPA_FROM_WORKER`                      | `true`                    | Serves the SPA from the Worker catch-all route so API routes are not intercepted by the Cloudflare assets handler |
 | `POLICY_AUD`                                 | *(required)*              | Cloudflare Zero Trust application AUD for Access JWT validation                                              |
 | `TEAM_DOMAIN`                                | *(required)*              | Cloudflare Zero Trust team domain for JWKS endpoint discovery                                                |
 | `MAX_APPLICATIONS_PER_USER`                  | `99`                      | Hard limit on connected applications per user                                                                |
@@ -196,8 +195,7 @@ GitHub Actions deployments can patch Worker `vars` without replacing the whole W
 ```json
 {
   "POLICY_AUD": "your-cloudflare-zero-trust-application-aud",
-  "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com",
-  "SERVE_SPA_FROM_WORKER": "true"
+  "TEAM_DOMAIN": "https://your-cloudflare-zero-trust-team-domain.cloudflareaccess.com"
 }
 ```
 

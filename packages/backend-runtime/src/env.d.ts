@@ -14,7 +14,6 @@ declare global {
     EMAIL_PROCESSING_WORKFLOW: Workflow<EmailQueueMessage>;
     EMAIL_CONTEXT_INDEX: Vectorize;
     DEBUG_MODE?: string;
-    SERVE_SPA_FROM_WORKER?: string;
     DEV_AUTH_EMAIL?: string;
     MAX_APPLICATIONS_PER_USER?: string;
     OAUTH2_STATE_EXPIRY_MINUTES?: string;

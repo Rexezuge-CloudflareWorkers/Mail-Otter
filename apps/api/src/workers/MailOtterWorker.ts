@@ -56,7 +56,6 @@ import {
 import { MiddlewareHandlers } from '@/middleware';
 import { SPA_HTML } from '@/generated/spa-shell';
 import { DURABLE_OBJECT_CRON_TASKS_RUN_URL, DURABLE_OBJECT_NAMESPACE_GLOBAL } from '@mail-otter/backend-runtime/constants';
-import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 
 const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
@@ -109,9 +108,6 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     app.get('*', (c) => {
       const path: string = new URL(c.req.url).pathname;
       if (!path.startsWith('/user/')) {
-        return c.notFound();
-      }
-      if (!ConfigurationManager.getServeSpaFromWorker(c.env)) {
         return c.notFound();
       }
       return c.html(SPA_HTML);

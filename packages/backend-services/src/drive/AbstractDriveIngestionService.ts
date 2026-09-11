@@ -1,10 +1,7 @@
-import { AiDailyUsageDAO, ApplicationContextDAO } from '@mail-otter/backend-data/dao';
+import { AiDailyUsageDAO, ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import {
-  CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
-  CONTEXT_AUDIT_LOG_SEVERITY_INFO,
-} from '@mail-otter/shared/constants';
+import { CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED, CONTEXT_AUDIT_LOG_SEVERITY_INFO } from '@mail-otter/shared/constants';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiClient } from '../ai/AiClient';
 import { EmailContextUtil } from '../email/EmailContextUtil';
@@ -28,18 +25,116 @@ interface DriveIngestionCounters {
   failed: number;
 }
 
+interface DriveIngestionResult {
+  indexed: number;
+  skipped: number;
+  failed: number;
+  newCursor: string | null;
+}
+
+interface DriveChangeSet<TItem> {
+  removedIds: string[];
+  items: TItem[];
+  newCursor: string | null;
+}
+
+interface DriveBootstrap {
+  bootstrapped: true;
+  bootstrapCursor: string;
+}
+
+interface DriveFetchDeps {
+  applicationDAO: ConnectedApplicationDAO;
+  application: ConnectedApplication;
+}
+
+interface DriveExtractedDocument {
+  sourceDocumentId: string;
+  title: string;
+  rawText: string | null;
+}
+
 // Template Method base for Drive ingestion (Strategy: Google vs OneDrive
 // supply only cursor handling + raw-text extraction).
-// Consolidates ~160 LOC previously duplicated across both services:
-// namespace/DAO setup, removed-document loop, ingest error handling,
-// fingerprinting, upsert/dedup, Vectorize upsert, audit logging,
-// embedding + usage recording.
-abstract class AbstractDriveIngestionService {
+// Consolidates cursor/loop/counters/setProviderConfig previously duplicated
+// across both services: namespace/DAO setup, removed-document loop, ingest
+// error handling, fingerprinting, upsert/dedup, Vectorize upsert, audit
+// logging, embedding + usage recording.
+abstract class AbstractDriveIngestionService<TItem extends { id: string } = { id: string }> {
   protected constructor(protected readonly env: DriveIngestionEnv) {}
 
-  protected async requireContext(
-    application: ConnectedApplication,
-  ): Promise<
+  protected abstract readonly driveCursorKey: string;
+  protected abstract readonly driveSourceType: string;
+  protected abstract readonly driveLogPrefix: string;
+
+  protected abstract fetchChanges(
+    accessToken: string,
+    storedCursor: string | null,
+    maxFiles: number,
+    deps: DriveFetchDeps,
+  ): Promise<DriveChangeSet<TItem> | DriveBootstrap>;
+
+  protected abstract extractText(accessToken: string, item: TItem, maxBytes: number): Promise<DriveExtractedDocument | null>;
+
+  protected async ingestForApplicationTemplate(application: ConnectedApplication, accessToken: string): Promise<DriveIngestionResult> {
+    const ctx = await this.requireContext(application);
+    if (ctx.skipped) {
+      return { indexed: 0, skipped: 0, failed: 0, newCursor: null };
+    }
+    const { vectorNamespace, contextDAO, maxBytes, maxFiles } = ctx;
+    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
+    const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
+
+    const storedCursor = await applicationDAO.getProviderConfig(application.applicationId, this.driveCursorKey);
+    const changes = await this.fetchChanges(accessToken, storedCursor, maxFiles, { applicationDAO, application });
+
+    if (isDriveBootstrap(changes)) {
+      await applicationDAO.setProviderConfig(application.applicationId, this.driveCursorKey, changes.bootstrapCursor);
+      return { indexed: 0, skipped: 0, failed: 0, newCursor: null };
+    }
+
+    let indexed = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    await this.deleteRemovedDocuments(contextDAO, application, changes.removedIds, this.driveSourceType, this.driveLogPrefix);
+
+    for (const item of changes.items) {
+      try {
+        const extracted = await this.extractText(accessToken, item, maxBytes);
+        if (!extracted || !extracted.rawText || extracted.rawText.trim().length === 0) {
+          skipped++;
+          continue;
+        }
+        const indexedText = this.buildIndexedText(extracted.title, application.displayName, extracted.rawText);
+        const outcome = await this.ingestTextDocument(
+          application,
+          extracted.sourceDocumentId,
+          extracted.title,
+          indexedText,
+          vectorNamespace,
+          contextDAO,
+          this.driveSourceType,
+          this.driveLogPrefix,
+        );
+        if (outcome === 'indexed') indexed++;
+        else skipped++;
+      } catch (error: unknown) {
+        failed++;
+        console.warn(`${this.driveLogPrefix} Failed to ingest file ${item.id}:`, error);
+        await this.markIngestError(contextDAO, application, item.id, this.driveSourceType, error);
+      }
+    }
+
+    const newCursor = changes.newCursor;
+    if (newCursor) {
+      await applicationDAO.setProviderConfig(application.applicationId, this.driveCursorKey, newCursor);
+    }
+
+    return { indexed, skipped, failed, newCursor };
+  }
+
+  protected async requireContext(application: ConnectedApplication): Promise<
     | { skipped: true }
     | {
         skipped: false;
@@ -181,5 +276,22 @@ abstract class AbstractDriveIngestionService {
   }
 }
 
-export { AbstractDriveIngestionService };
-export type { DriveIngestionCounters, DriveIngestionEnv };
+function isDriveBootstrap(value: unknown): value is DriveBootstrap {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { bootstrapped?: unknown }).bootstrapped === true &&
+    typeof (value as { bootstrapCursor?: unknown }).bootstrapCursor === 'string'
+  );
+}
+
+export { AbstractDriveIngestionService, isDriveBootstrap };
+export type {
+  DriveBootstrap,
+  DriveChangeSet,
+  DriveExtractedDocument,
+  DriveFetchDeps,
+  DriveIngestionCounters,
+  DriveIngestionEnv,
+  DriveIngestionResult,
+};

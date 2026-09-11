@@ -1,5 +1,6 @@
 import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { UnauthorizedError } from '@mail-otter/backend-errors';
 import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 
@@ -30,6 +31,38 @@ class BaseWebhookService {
   ): Promise<void> {
     await queue.send(message);
     await dao.touchNotification(subscriptionId);
+  }
+
+  protected static async getAuthorizedSubscription(
+    applicationId: string,
+    externalSubscriptionId: string,
+    clientState: string | undefined,
+    subscriptionDAO: ProviderSubscriptionDAO,
+    requireClientState: boolean,
+  ): Promise<ProviderSubscription> {
+    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByExternalSubscriptionId(externalSubscriptionId);
+    if (!subscription || subscription.applicationId !== applicationId) {
+      throw new UnauthorizedError('Unknown Outlook subscription.');
+    }
+    if (requireClientState && !(await WebhookSecurityUtil.matchesSecret(clientState, subscription.clientStateHash))) {
+      throw new UnauthorizedError('Invalid Outlook clientState.');
+    }
+    return subscription;
+  }
+
+  protected static async handleNotificationTemplate<TNotification>(
+    notifications: readonly TNotification[],
+    dao: ProviderSubscriptionDAO,
+    queue: Queue<EmailQueueMessage>,
+    authorize: (notification: TNotification) => Promise<ProviderSubscription>,
+    toQueueMessage: (notification: TNotification) => EmailQueueMessage | undefined,
+  ): Promise<void> {
+    for (const notification of notifications) {
+      const subscription = await authorize(notification);
+      const message = toQueueMessage(notification);
+      if (!message) continue;
+      await this.enqueueAndTouch(queue, dao, subscription.subscriptionId, message);
+    }
   }
 }
 

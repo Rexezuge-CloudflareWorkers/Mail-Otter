@@ -214,7 +214,7 @@ describe('CalendarEventSyncUtil', () => {
   });
 
   describe('syncForApplication — unsupported provider', () => {
-    it('returns without fetching or upserting for Fastmail', async () => {
+    it('throws for Fastmail instead of silently dropping', async () => {
       const fastmailApp = {
         applicationId: 'app-2',
         providerId: 'fastmail-jmap',
@@ -223,7 +223,9 @@ describe('CalendarEventSyncUtil', () => {
         timeZone: 'UTC',
       };
 
-      await util.syncForApplication(fastmailApp as any, 'access-token', NOW_ISO, END_ISO);
+      await expect(
+        util.syncForApplication(fastmailApp as any, 'access-token', NOW_ISO, END_ISO),
+      ).rejects.toThrow('Calendar sync is not supported for provider: fastmail-jmap');
 
       expect(mockListCalendarEventsGmail).not.toHaveBeenCalled();
       expect(mockListCalendarEventsOutlook).not.toHaveBeenCalled();

@@ -5,17 +5,18 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
-  IEmailProvider,
+  ILabelProvider,
   ProviderFolder,
   ProviderMessageSummary,
   ProviderWatchResult,
   StartWatchInput,
   WebhookWatchResult,
 } from './IEmailProvider';
+import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
+import { AbstractOAuthEmailProvider } from './AbstractOAuthEmailProvider';
 
-class GmailEmailProvider implements IEmailProvider {
+class GmailEmailProvider extends AbstractOAuthEmailProvider implements ILabelProvider {
   public readonly providerId = PROVIDER_GOOGLE_GMAIL;
-  public readonly supportsWebhooks = true;
 
   public async listFolders(accessToken: string): Promise<ProviderFolder[]> {
     const labels = await GmailProviderUtil.listLabels(accessToken);
@@ -27,7 +28,7 @@ class GmailEmailProvider implements IEmailProvider {
   }
 
   public async startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult> {
-    if (credentials.type !== 'oauth2') throw new BadRequestError('Gmail requires OAuth2 credentials.');
+    this.requireOAuth2Credentials(credentials, 'Gmail');
     if (!input.gmailPubsubTopicName) throw new BadRequestError('Gmail Pub/Sub topic name is required before starting Gmail watch.');
     const webhookSecret: string = WebhookSecurityUtil.generateSecret();
     const watch = await GmailProviderUtil.watchInbox(credentials.accessToken, input.gmailPubsubTopicName, input.watchedFolderIds);
@@ -45,13 +46,12 @@ class GmailEmailProvider implements IEmailProvider {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   public async renewWatch(credentials: AnyProviderCredentials, _subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
-    if (credentials.type !== 'oauth2') throw new BadRequestError('Gmail requires OAuth2 credentials.');
+    this.requireOAuth2Credentials(credentials, 'Gmail');
     throw new BadRequestError('Gmail renewal must be triggered by the subscription renewal util with topic context.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
-    throw new BadRequestError('Gmail uses webhooks and does not support polling.');
+    return this.throwPollNotSupported('Gmail uses webhooks and does not support polling.');
   }
 
   public getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {
@@ -97,6 +97,27 @@ class GmailEmailProvider implements IEmailProvider {
   public async listLabels(accessToken: string): Promise<Array<{ id: string; name: string }>> {
     const labels = await GmailProviderUtil.listLabels(accessToken);
     return labels.map((l) => ({ id: l.id, name: l.name }));
+  }
+
+  public async sendDigestEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {
+    await GmailProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
+  }
+
+  public async listCalendarEvents(accessToken: string, windowStartIso: string, windowEndIso: string): Promise<UpsertCalendarEventInput[]> {
+    const items = await GmailProviderUtil.listCalendarEventsByDateRange(accessToken, windowStartIso, windowEndIso);
+    return items
+      .filter((item) => item.start?.dateTime)
+      .map((item) => ({
+        providerEventId: item.id,
+        eventTitle: item.summary || '(no title)',
+        startTime: Math.floor(new Date(item.start!.dateTime!).getTime() / 1000),
+        endTime: item.end?.dateTime
+          ? Math.floor(new Date(item.end.dateTime).getTime() / 1000)
+          : Math.floor(new Date(item.start!.dateTime!).getTime() / 1000) + 3600,
+        timeZone: item.start?.timeZone || 'UTC',
+        location: item.location || null,
+        notes: item.description || null,
+      }));
   }
 }
 

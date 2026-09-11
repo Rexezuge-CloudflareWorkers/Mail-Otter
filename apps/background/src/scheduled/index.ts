@@ -1,4 +1,5 @@
 export { IScheduledTask } from './IScheduledTask';
+export { AbstractPruningTask } from './AbstractPruningTask';
 export { BaseDriveSyncTask } from './BaseDriveSyncTask';
 export type { BaseDriveSyncTaskEnv, DriveSyncConfig } from './BaseDriveSyncTask';
 export { SubscriptionRenewalTask } from './SubscriptionRenewalTask';

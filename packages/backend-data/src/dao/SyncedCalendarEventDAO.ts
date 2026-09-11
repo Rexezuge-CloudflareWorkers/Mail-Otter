@@ -100,24 +100,7 @@ class SyncedCalendarEventDAO extends BaseDAO {
   }
 
   public async pruneOldEvents(beforeUnixSeconds: number, limit: number): Promise<number> {
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM synced_calendar_events
-              WHERE sync_event_id IN (
-                SELECT sync_event_id FROM synced_calendar_events
-                WHERE end_time < ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(beforeUnixSeconds, limit)
-          .run(),
-      'prune old synced calendar events',
-    );
-    return (result.meta as { changes?: number })?.changes ?? 0;
+    return BaseDAO.deleteOlderThan(this.database, 'synced_calendar_events', 'end_time', beforeUnixSeconds, limit, 'sync_event_id');
   }
 
   private static encodeCursor(syncedAt: number, syncEventId: string): string {

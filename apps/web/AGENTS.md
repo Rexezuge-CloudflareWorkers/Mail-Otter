@@ -2,7 +2,7 @@
 
 Scope: `apps/web/**`. Parent index: `../../AGENTS.md`.
 
-Vite React SPA served at `/user`. Components under `src/components/`: `actions/`, `analytics/`, `context/`, `layout/`, `mailboxes/`, `modals/`, `shared/`, `ui/`, `views/` (`ActionsView`, `ActivityView`, `AnalyticsView`, `ChatView`, `ContextAuditView`, `HelpView`, `MailboxesView`, `ProcessingView`). Locale-aware `lib/format.ts` + `lib/locale.ts`; `LanguageSelector` in `Header`.
+Vite React SPA served at `/user`. Components under `src/components/`: `actions/`, `analytics/`, `context/`, `layout/`, `mailboxes/` (`RulesSection.tsx` is a composition facade over `ruleLabels.ts`, `formatCondition.ts`, `RuleList.tsx`, `RuleEditor.tsx`), `modals/`, `shared/`, `ui/`, `views/` (`ActionsView`, `ActivityView`, `AnalyticsView`, `ChatView`, `ContextAuditView`, `HelpView`, `MailboxesView`, `ProcessingView`). Hooks: `useMailboxes.ts` delegates to `useApplications.ts` + `useIntegrations.ts` slices (return shape stable). `src/adapters/mailboxAdapter.ts` maps `ConnectedApplication ↔ Mailbox` (`toMailbox`/`fromMailbox`). Locale-aware `lib/format.ts` + `lib/locale.ts`; `LanguageSelector` in `Header`.
 
 ## Frontend Internationalization
 

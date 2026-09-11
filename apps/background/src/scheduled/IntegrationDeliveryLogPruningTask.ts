@@ -1,22 +1,16 @@
 import { IntegrationDeliveryLogDAO } from '@mail-otter/backend-data/dao';
-import { computeUnixCutoffSeconds, createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { IScheduledTask } from './IScheduledTask';
+import { AbstractPruningTask } from './AbstractPruningTask';
 import type { IEnv } from './IScheduledTask';
 
-class IntegrationDeliveryLogPruningTask extends IScheduledTask<IntegrationDeliveryLogPruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: IntegrationDeliveryLogPruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const retentionDays: number = ConfigurationManager.getIntegrationDeliveryLogRetentionDays(env);
-    const olderThan: number = computeUnixCutoffSeconds(retentionDays);
-    const sessionEnv = createD1SessionEnv(env);
-    const dao = new IntegrationDeliveryLogDAO(sessionEnv.DB);
+class IntegrationDeliveryLogPruningTask extends AbstractPruningTask<IntegrationDeliveryLogPruningTaskEnv> {
+  protected getRetentionDays(env: IntegrationDeliveryLogPruningTaskEnv): number {
+    return ConfigurationManager.getIntegrationDeliveryLogRetentionDays(env);
+  }
 
-    const total = await pruneInBatches((batchSize) => dao.deleteOlderThan(olderThan, batchSize));
-    console.log(`IntegrationDeliveryLogPruningTask: deleted ${total} old delivery log entries`);
+  protected pruneBatch(_env: IntegrationDeliveryLogPruningTaskEnv, db: D1Queryable, cutoff: number, batchSize: number): Promise<number> {
+    return new IntegrationDeliveryLogDAO(db).deleteOlderThan(cutoff, batchSize);
   }
 }
 

@@ -1,6 +1,8 @@
-import { OAUTH2_FEATURE_SCOPES, PROVIDER_FASTMAIL_JMAP, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, PROVIDER_YAHOO_MAIL } from '@mail-otter/shared/constants';
+import { OAUTH2_FEATURE_SCOPES } from '@mail-otter/shared/constants';
 import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
 import type { OAuth2Credentials } from '@mail-otter/shared/model';
+import { getOAuth2Strategy } from './OAuth2Strategy';
+import type { OAuth2Strategy } from './OAuth2Strategy';
 
 interface OAuth2AuthorizationInput {
   providerId: string;
@@ -30,32 +32,11 @@ interface OAuth2TokenResult {
   expiresIn?: number;
 }
 
-const ProviderConfig = {
-  [PROVIDER_GOOGLE_GMAIL]: {
-    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: 'https://oauth2.googleapis.com/token',
-    requiredScopes:
-      'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.compose',
-  },
-  [PROVIDER_MICROSOFT_OUTLOOK]: {
-    authorizationEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
-    tokenEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
-    requiredScopes:
-      'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send offline_access',
-  },
-  [PROVIDER_FASTMAIL_JMAP]: {
-    authorizationEndpoint: 'https://api.fastmail.com/oauth/authorize',
-    tokenEndpoint: 'https://api.fastmail.com/oauth/token',
-    requiredScopes: 'urn:ietf:params:jmap:core urn:ietf:params:jmap:mail urn:ietf:params:jmap:submission',
-  },
-  [PROVIDER_YAHOO_MAIL]: {
-    authorizationEndpoint: 'https://api.login.yahoo.com/oauth2/request_auth',
-    tokenEndpoint: 'https://api.login.yahoo.com/oauth2/get_token',
-    requiredScopes: 'mail-r mail-w',
-  },
-} as const;
-
 class OAuth2ProviderUtil {
+  public static getOAuth2Strategy(providerId: string): OAuth2Strategy {
+    return getOAuth2Strategy(providerId);
+  }
+
   public static buildAuthorizationUrl(input: OAuth2AuthorizationInput): string {
     const config = this.getProviderConfig(input.providerId);
     const url: URL = new URL(config.authorizationEndpoint);
@@ -70,24 +51,8 @@ class OAuth2ProviderUtil {
     url.searchParams.set('state', input.state);
     url.searchParams.set('code_challenge', input.codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
-    switch (input.providerId) {
-    case PROVIDER_GOOGLE_GMAIL: {
-      url.searchParams.set('access_type', 'offline');
-      url.searchParams.set('prompt', 'consent');
-    
-    break;
-    }
-    case PROVIDER_MICROSOFT_OUTLOOK: {
-      url.searchParams.set('response_mode', 'query');
-    
-    break;
-    }
-    case PROVIDER_YAHOO_MAIL: {
-      url.searchParams.set('response_mode', 'query');
-    
-    break;
-    }
-    // No default
+    for (const [key, value] of Object.entries(config.extraAuthParams)) {
+      url.searchParams.set(key, value);
     }
     return url.href;
   }
@@ -134,12 +99,8 @@ class OAuth2ProviderUtil {
     return tokenResult.expiresIn && tokenResult.expiresIn > 0 ? tokenResult.expiresIn : fallbackTtlSeconds;
   }
 
-  private static getProviderConfig(providerId: string) {
-    const config = ProviderConfig[providerId as keyof typeof ProviderConfig];
-    if (!config) {
-      throw new BadRequestError(`Unsupported OAuth2 provider: ${providerId}`);
-    }
-    return config;
+  private static getProviderConfig(providerId: string): OAuth2Strategy {
+    return getOAuth2Strategy(providerId);
   }
 
   private static async postTokenRequest(tokenEndpoint: string, values: Record<string, string>): Promise<OAuth2TokenResponse> {

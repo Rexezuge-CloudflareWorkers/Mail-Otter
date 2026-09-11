@@ -1,59 +1,50 @@
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { PROVIDER_CONFIG_KEY_ONEDRIVE_DELTA_LINK } from '@mail-otter/backend-data/constants';
 import { OneDriveProviderUtil } from '@mail-otter/provider-clients/onedrive';
 import type { OneDriveItem } from '@mail-otter/provider-clients/onedrive';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import {
-  CONTEXT_SOURCE_TYPE_ONEDRIVE,
-} from '@mail-otter/shared/constants';
+import { CONTEXT_SOURCE_TYPE_ONEDRIVE } from '@mail-otter/shared/constants';
 import { UnauthorizedError } from '@mail-otter/backend-errors';
 import { AbstractDriveIngestionService } from './AbstractDriveIngestionService';
-import type { DriveIngestionEnv } from './AbstractDriveIngestionService';
+import type {
+  DriveBootstrap,
+  DriveChangeSet,
+  DriveExtractedDocument,
+  DriveFetchDeps,
+  DriveIngestionEnv,
+  DriveIngestionResult,
+} from './AbstractDriveIngestionService';
 import { DriveDocumentUtil } from './DriveDocumentUtil';
-import type { DriveIngestionResult } from './GoogleDriveIngestionService';
 
-interface OneDriveIngestionEnv extends DriveIngestionEnv {
-  DB: D1Queryable;
-  AI: Ai;
-  EMAIL_CONTEXT_INDEX?: VectorizeIndex;
-  AES_ENCRYPTION_KEY_SECRET: { get(): Promise<string> };
-  MAX_ATTACHMENT_SIZE_BYTES?: string;
-  MAX_DRIVE_FILES_PER_SYNC?: string;
-  AI_EMBEDDING_MODEL?: string;
-  MAX_CONTEXT_MEMORY_CHARS?: string;
-  AI_DAILY_NEURON_FALLBACK_THRESHOLD?: string;
-}
+type OneDriveIngestionEnv = DriveIngestionEnv;
 
-class OneDriveIngestionService extends AbstractDriveIngestionService {
-  constructor(env: OneDriveIngestionEnv) {
+class OneDriveIngestionService extends AbstractDriveIngestionService<OneDriveItem> {
+  protected readonly driveCursorKey = PROVIDER_CONFIG_KEY_ONEDRIVE_DELTA_LINK;
+  protected readonly driveSourceType = CONTEXT_SOURCE_TYPE_ONEDRIVE;
+  protected readonly driveLogPrefix = '[OneDriveIngestionService]';
+
+  constructor(env: DriveIngestionEnv) {
     super(env);
   }
 
-  public async ingestForApplication(
-    application: ConnectedApplication,
+  public async ingestForApplication(application: ConnectedApplication, accessToken: string): Promise<DriveIngestionResult> {
+    return this.ingestForApplicationTemplate(application, accessToken);
+  }
+
+  protected async fetchChanges(
     accessToken: string,
-  ): Promise<DriveIngestionResult> {
-    const ctx = await this.requireContext(application);
-    if (ctx.skipped) {
-      return { indexed: 0, skipped: 0, failed: 0, newCursor: null };
-    }
-    const { vectorNamespace, contextDAO, maxBytes, maxFiles } = ctx;
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-
-    const storedLink = await applicationDAO.getProviderConfig(
-      application.applicationId,
-      'onedrive_delta_link',
-    );
-
+    storedCursor: string | null,
+    maxFiles: number,
+    deps: DriveFetchDeps,
+  ): Promise<DriveChangeSet<OneDriveItem> | DriveBootstrap> {
+    const { application, applicationDAO } = deps;
     let delta: Awaited<ReturnType<typeof OneDriveProviderUtil.getDelta>>;
     try {
-      delta = await OneDriveProviderUtil.getDelta(accessToken, storedLink ?? undefined, maxFiles);
+      delta = await OneDriveProviderUtil.getDelta(accessToken, storedCursor ?? undefined, maxFiles);
     } catch (error: unknown) {
       const is401 = error instanceof Error && error.message.includes('(401)');
-      if (is401 && storedLink) {
+      if (is401 && storedCursor) {
         // Stale delta link — clear it and retry from the beginning
-        await applicationDAO.deleteProviderConfig(application.applicationId, 'onedrive_delta_link');
+        await applicationDAO.deleteProviderConfig(application.applicationId, this.driveCursorKey);
         try {
           delta = await OneDriveProviderUtil.getDelta(accessToken, undefined, maxFiles);
         } catch (retryError: unknown) {
@@ -73,57 +64,16 @@ class OneDriveIngestionService extends AbstractDriveIngestionService {
       }
     }
 
-    let indexed = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    await this.deleteRemovedDocuments(
-      contextDAO,
-      application,
-      delta.deletedIds,
-      CONTEXT_SOURCE_TYPE_ONEDRIVE,
-      '[OneDriveIngestionService]',
-    );
-
-    for (const item of delta.items) {
-      try {
-        const result = await this.ingestItem(
-          application,
-          accessToken,
-          item,
-          vectorNamespace,
-          maxBytes,
-        );
-        if (result === 'indexed') indexed++;
-        else if (result === 'skipped') skipped++;
-      } catch (error: unknown) {
-        failed++;
-        console.warn(`[OneDriveIngestionService] Failed to ingest item ${item.id}:`, error);
-        await this.markIngestError(contextDAO, application, item.id, CONTEXT_SOURCE_TYPE_ONEDRIVE, error);
-      }
-    }
-
-    const newCursor = delta.deltaLink ?? delta.nextLink;
-    if (newCursor) {
-      await applicationDAO.setProviderConfig(
-        application.applicationId,
-        'onedrive_delta_link',
-        newCursor,
-      );
-    }
-
-    return { indexed, skipped, failed, newCursor };
+    return {
+      removedIds: delta.deletedIds,
+      items: delta.items,
+      newCursor: delta.deltaLink ?? delta.nextLink,
+    };
   }
 
-  private async ingestItem(
-    application: ConnectedApplication,
-    accessToken: string,
-    item: OneDriveItem,
-    vectorNamespace: string,
-    maxBytes: number,
-  ): Promise<'indexed' | 'skipped'> {
+  protected async extractText(accessToken: string, item: OneDriveItem, maxBytes: number): Promise<DriveExtractedDocument | null> {
     if (item.size !== undefined && item.size > maxBytes) {
-      return 'skipped';
+      return null;
     }
 
     let rawText: string | null = null;
@@ -134,33 +84,20 @@ class OneDriveIngestionService extends AbstractDriveIngestionService {
         rawText = DriveDocumentUtil.extractText(pdfBuffer, 'application/pdf');
       } catch {
         // Conversion failed — skip this file
-        return 'skipped';
+        return null;
       }
     } else {
       const downloadUrl = item['@microsoft.graph.downloadUrl'];
-      if (!downloadUrl) return 'skipped';
+      if (!downloadUrl) return null;
       const mimeType = item.file?.mimeType ?? 'text/plain';
       const buffer = await OneDriveProviderUtil.downloadItem(downloadUrl, maxBytes);
       rawText = DriveDocumentUtil.extractText(buffer, mimeType);
     }
 
     if (!rawText || rawText.trim().length === 0) {
-      return 'skipped';
+      return null;
     }
-
-    const indexedText = this.buildIndexedText(item.name, application.displayName, rawText);
-    const ctx = await this.requireContext(application);
-    if (ctx.skipped) return 'skipped';
-    return this.ingestTextDocument(
-      application,
-      item.id,
-      item.name,
-      indexedText,
-      vectorNamespace,
-      ctx.contextDAO,
-      CONTEXT_SOURCE_TYPE_ONEDRIVE,
-      'OneDrive',
-    );
+    return { sourceDocumentId: item.id, title: item.name, rawText };
   }
 }
 

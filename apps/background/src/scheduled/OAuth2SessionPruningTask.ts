@@ -1,19 +1,17 @@
 import { OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
-import { createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
-import { IScheduledTask } from './IScheduledTask';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { AbstractPruningTask } from './AbstractPruningTask';
 import type { IEnv } from './IScheduledTask';
 
-class OAuth2SessionPruningTask extends IScheduledTask<OAuth2SessionPruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: OAuth2SessionPruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const sessionEnv = createD1SessionEnv(env);
-    const dao = new OAuth2AuthorizationSessionDAO(sessionEnv.DB);
+class OAuth2SessionPruningTask extends AbstractPruningTask<OAuth2SessionPruningTaskEnv> {
+  // OAuth2 sessions expire by their own expires_at/consumed_at markers rather than a
+  // retention window, so there is no retention-days env key. The cutoff is unused.
+  protected getRetentionDays(_env: OAuth2SessionPruningTaskEnv): number {
+    return 0;
+  }
 
-    const total = await pruneInBatches((batchSize) => dao.deleteExpiredSessions(batchSize));
-    console.log(`OAuth2SessionPruningTask: deleted ${total} expired sessions`);
+  protected pruneBatch(_env: OAuth2SessionPruningTaskEnv, db: D1Queryable, _cutoff: number, batchSize: number): Promise<number> {
+    return new OAuth2AuthorizationSessionDAO(db).deleteExpiredSessions(batchSize);
   }
 }
 

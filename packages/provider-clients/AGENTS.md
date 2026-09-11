@@ -2,7 +2,7 @@
 
 Scope: `packages/provider-clients/**`. Parent index: `../../AGENTS.md`.
 
-Utilities organized by provider subdir (`gmail/`, `outlook/`, `fastmail/`, `oauth2/`, `google-drive/`, `onedrive/`, `yahoo/`, `imap/`, `email-content/`): `GmailProviderUtil`, `OutlookProviderUtil`, `OAuth2ProviderUtil`, `fastmail/FastmailProviderUtil`, `GoogleDriveProviderUtil`, `OneDriveProviderUtil`, `yahoo/YahooProviderUtil`, `WebhookSecurityUtil`, `EmailContentUtil` (+ `email-content/HtmlContentUtil`, `MimeContentUtil`, `GmailContentUtil`, `TextContentUtil`, `imap/ImapClient`, `BaseProviderHttp`, `AttachmentTypes`).
+Utilities organized by provider subdir (`gmail/`, `outlook/`, `fastmail/`, `oauth2/`, `google-drive/`, `onedrive/`, `yahoo/`, `imap/`, `email-content/`, `http/`): `GmailProviderUtil`, `OutlookProviderUtil`, `OAuth2ProviderUtil` (+ `OAuth2Strategy.ts` map `getOAuth2Strategy()` — no `switch` on provider id), `fastmail/FastmailProviderUtil`, `GoogleDriveProviderUtil`, `OneDriveProviderUtil`, `yahoo/YahooProviderUtil`, `WebhookSecurityUtil`, `EmailContentUtil` (+ `email-content/HtmlContentUtil`, `MimeContentUtil`, `GmailContentUtil`, `TextContentUtil`, `imap/ImapClient`, `BaseProviderHttp` (delegates to injectable `http/HttpClient.ts` `IHttpClient`/`FetchHttpClient`/`StubHttpClient`), `AttachmentTypes`).
 
 ## Provider Naming
 

@@ -1,4 +1,5 @@
 import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
 
 interface ProviderFolder {
   id: string;
@@ -57,6 +58,14 @@ interface ProviderMessageSummary {
   messageId: string;
 }
 
+interface ILabelProvider {
+  applyLabel(accessToken: string, messageId: string, labelName: string): Promise<void>;
+  archiveMessage(accessToken: string, messageId: string): Promise<void>;
+  markRead(accessToken: string, messageId: string): Promise<void>;
+  starMessage(accessToken: string, messageId: string): Promise<void>;
+  listLabels(accessToken: string): Promise<Array<{ id: string; name: string }>>;
+}
+
 interface IEmailProvider {
   readonly providerId: string;
   readonly supportsWebhooks: boolean;
@@ -82,11 +91,14 @@ interface IEmailProvider {
   markRead?(accessToken: string, messageId: string): Promise<void>;
   starMessage?(accessToken: string, messageId: string): Promise<void>;
   listLabels?(accessToken: string): Promise<Array<{ id: string; name: string }>>;
+  sendDigestEmail?(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void>;
+  listCalendarEvents?(accessToken: string, windowStartIso: string, windowEndIso: string): Promise<UpsertCalendarEventInput[]>;
 }
 
 export type {
   AnyProviderCredentials,
   IEmailProvider,
+  ILabelProvider,
   ImapCursorWatchResult,
   ImapProviderCredentials,
   ProviderCredentials,

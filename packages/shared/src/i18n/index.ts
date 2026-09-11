@@ -34,3 +34,4 @@ function getBackendStrings(locale: string | null | undefined): BackendLocaleStri
 
 export { BACKEND_STRINGS, getBackendStrings };
 export * from './BackendStrings';
+export * from './getLocalizedStrings';

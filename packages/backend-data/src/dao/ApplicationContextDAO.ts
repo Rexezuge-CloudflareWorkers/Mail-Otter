@@ -18,11 +18,19 @@ import type {
   ApplicationContextSummary,
   ContextAuditLogList,
 } from '@mail-otter/shared/model';
-import type { ApplicationContextDeletionStatus, ApplicationContextDocumentStatus, ProviderId, ContextAuditEventType, ContextAuditLogSeverity } from '@mail-otter/shared/constants';
+import type {
+  ApplicationContextDeletionStatus,
+  ApplicationContextDocumentStatus,
+  ProviderId,
+  ContextAuditEventType,
+  ContextAuditLogSeverity,
+} from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 import { ContextAuditLogDAO } from './ContextAuditLogDAO';
 import { ContextDeletionRunDAO } from './ContextDeletionRunDAO';
+import { ApplicationContextDocumentQueries } from './ApplicationContextDocumentQueries';
+import type { ApplicationContextUserCounts, OverLimitApplication } from './ApplicationContextDocumentQueries';
 
 class ApplicationContextDAO extends BaseDAO {
   private auditLogsDAO(): ContextAuditLogDAO {
@@ -31,6 +39,10 @@ class ApplicationContextDAO extends BaseDAO {
 
   private deletionRunsDAO(): ContextDeletionRunDAO {
     return new ContextDeletionRunDAO(this.database);
+  }
+
+  private documentQueries(): ApplicationContextDocumentQueries {
+    return new ApplicationContextDocumentQueries(this.database);
   }
 
   public async upsertEmailDocument(input: UpsertEmailDocumentInput): Promise<ApplicationContextDocument> {
@@ -218,18 +230,17 @@ class ApplicationContextDAO extends BaseDAO {
     sourceDocumentId: string,
     sourceType: string,
   ): Promise<{ contextDocumentId: string; vectorId: string; userEmail: string } | undefined> {
-    const row: { context_document_id: string; vector_id: string; user_email: string } | null =
-      await this.database
-        .prepare(
-          `
+    const row: { context_document_id: string; vector_id: string; user_email: string } | null = await this.database
+      .prepare(
+        `
             SELECT context_document_id, vector_id, user_email
             FROM application_context_documents
             WHERE application_id = ? AND source_type = ? AND source_document_id = ?
             LIMIT 1
           `,
-        )
-        .bind(applicationId, sourceType, sourceDocumentId)
-        .first<{ context_document_id: string; vector_id: string; user_email: string }>();
+      )
+      .bind(applicationId, sourceType, sourceDocumentId)
+      .first<{ context_document_id: string; vector_id: string; user_email: string }>();
     if (!row) return undefined;
     return {
       contextDocumentId: row.context_document_id,
@@ -238,7 +249,11 @@ class ApplicationContextDAO extends BaseDAO {
     };
   }
 
-  public async getContextDocumentIdBySource(applicationId: string, sourceDocumentId: string, sourceType: string): Promise<string | undefined> {
+  public async getContextDocumentIdBySource(
+    applicationId: string,
+    sourceDocumentId: string,
+    sourceType: string,
+  ): Promise<string | undefined> {
     const row: { context_document_id: string } | null = await this.database
       .prepare(
         `
@@ -340,9 +355,7 @@ class ApplicationContextDAO extends BaseDAO {
       lastIndexedAt: countRow?.last_indexed_at ?? null,
       lastDeleteAcceptedAt: deletionRow?.last_delete_accepted_at ?? null,
       lastError: documentError?.last_error || deletionError?.error_message || null,
-      lastErrorAt: documentError?.last_error
-        ? documentError.updated_at
-        : (deletionError?.error_message ? deletionError.updated_at : null),
+      lastErrorAt: documentError?.last_error ? documentError.updated_at : deletionError?.error_message ? deletionError.updated_at : null,
     };
   }
 
@@ -379,7 +392,10 @@ class ApplicationContextDAO extends BaseDAO {
     const pageRows: ApplicationContextDocumentInternal[] = rows.slice(0, limit);
     return {
       documents: pageRows.map((row: ApplicationContextDocumentInternal): ApplicationContextDocument => this.toDocument(row)),
-      nextCursor: rows.length > limit ? ApplicationContextDAO.encodeDocumentCursor(pageRows.at(-1)!.updated_at, pageRows.at(-1)!.created_at) : undefined,
+      nextCursor:
+        rows.length > limit
+          ? ApplicationContextDAO.encodeDocumentCursor(pageRows.at(-1)!.updated_at, pageRows.at(-1)!.created_at)
+          : undefined,
     };
   }
 
@@ -429,18 +445,7 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   public async listActiveVectorIdsForApplication(applicationId: string, userEmail: string): Promise<string[]> {
-    const rows: Array<{ vector_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT vector_id
-          FROM application_context_documents
-          WHERE application_id = ? AND user_email = ? AND status = ?
-        `,
-      )
-      .bind(applicationId, userEmail, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE)
-      .all<{ vector_id: string }>()
-      .then((result: D1Result<{ vector_id: string }>): Array<{ vector_id: string }> => result.results || []);
-    return rows.map((row: { vector_id: string }): string => row.vector_id);
+    return this.documentQueries().listActiveVectorIdsForApplication(applicationId, userEmail);
   }
 
   public async recordDeletionRun(input: RecordDeletionRunInput): Promise<ApplicationContextDeletionRun> {
@@ -497,10 +502,7 @@ class ApplicationContextDAO extends BaseDAO {
     await this.auditLogsDAO().insertAuditLogs(inputs);
   }
 
-  public async listAuditLogs(
-    contextDocumentId: string,
-    options: ListAuditLogsOptions = {},
-  ): Promise<ContextAuditLogList> {
+  public async listAuditLogs(contextDocumentId: string, options: ListAuditLogsOptions = {}): Promise<ContextAuditLogList> {
     return this.auditLogsDAO().listAuditLogs(contextDocumentId, options);
   }
 
@@ -513,48 +515,11 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   public async listApplicationsOverDocumentLimit(globalMax: number): Promise<OverLimitApplication[]> {
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT
-            ca.application_id,
-            ca.user_email,
-            COUNT(acd.context_document_id) AS active_count,
-            COALESCE(ca.max_context_documents, ?) AS effective_limit
-          FROM connected_applications ca
-          JOIN application_context_documents acd
-            ON acd.application_id = ca.application_id
-            AND acd.status = ?
-          GROUP BY ca.application_id, ca.user_email, ca.max_context_documents
-          HAVING COUNT(acd.context_document_id) > COALESCE(ca.max_context_documents, ?)
-        `,
-      )
-      .bind(globalMax, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, globalMax)
-      .all<{ application_id: string; user_email: string; active_count: number; effective_limit: number }>()
-      .then((r) => r.results || []);
-    return rows.map((r) => ({
-      applicationId: r.application_id,
-      userEmail: r.user_email,
-      activeCount: r.active_count,
-      effectiveLimit: r.effective_limit,
-    }));
+    return this.documentQueries().listApplicationsOverDocumentLimit(globalMax);
   }
 
   public async listOldestActiveVectorIdsForApplication(applicationId: string, userEmail: string, count: number): Promise<string[]> {
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT vector_id
-          FROM application_context_documents
-          WHERE application_id = ? AND user_email = ? AND status = ?
-          ORDER BY created_at ASC
-          LIMIT ?
-        `,
-      )
-      .bind(applicationId, userEmail, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count)
-      .all<{ vector_id: string }>()
-      .then((r) => r.results || []);
-    return rows.map((r) => r.vector_id);
+    return this.documentQueries().listOldestActiveVectorIdsForApplication(applicationId, userEmail, count);
   }
 
   public async getDocumentSourcesByVectorIds(
@@ -562,80 +527,15 @@ class ApplicationContextDAO extends BaseDAO {
     userEmail: string,
     vectorIds: string[],
   ): Promise<Array<{ contextDocumentId: string; sourceDocumentId: string | null }>> {
-    if (vectorIds.length === 0) return [];
-    const rows: Array<{ context_document_id: string; source_document_id: string | null }> = [];
-    for (const chunk of ApplicationContextDAO.chunk(vectorIds, 100)) {
-      const placeholders: string = chunk.map((): string => '?').join(', ');
-      const result: Array<{ context_document_id: string; source_document_id: string | null }> = await this.database
-        .prepare(
-          `
-            SELECT context_document_id, source_document_id
-            FROM application_context_documents
-            WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
-          `,
-        )
-        .bind(applicationId, userEmail, ...chunk)
-        .all<{ context_document_id: string; source_document_id: string | null }>()
-        .then((r) => r.results || []);
-      rows.push(...result);
-    }
-    return rows.map((row) => ({
-      contextDocumentId: row.context_document_id,
-      sourceDocumentId: row.source_document_id,
-    }));
+    return this.documentQueries().getDocumentSourcesByVectorIds(applicationId, userEmail, vectorIds);
   }
 
   public async markDocumentsDeletedByVectorIds(applicationId: string, userEmail: string, vectorIds: string[]): Promise<void> {
-    if (vectorIds.length === 0) return;
-    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    for (const chunk of ApplicationContextDAO.chunk(vectorIds, 100)) {
-      const placeholders: string = chunk.map((): string => '?').join(', ');
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                UPDATE application_context_documents
-                SET status = ?, deleted_at = ?, updated_at = ?
-                WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
-              `,
-            )
-            .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, userEmail, ...chunk)
-            .run(),
-        'mark context documents deleted',
-      );
-    }
+    await this.documentQueries().markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
   }
 
   public async getCountsByUserEmail(userEmail: string, applicationId?: string): Promise<ApplicationContextUserCounts> {
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
-    if (applicationId) {
-      conditions.push('application_id = ?');
-      bindings.push(applicationId);
-    }
-    const where: string = conditions.join(' AND ');
-
-    const row: { active: number; deleted: number; error: number; total_chars: number } | null = await this.database
-      .prepare(
-        `
-          SELECT SUM(CASE WHEN status = 'active'  THEN 1 ELSE 0 END) AS active,
-                 SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted,
-                 SUM(CASE WHEN status = 'error'   THEN 1 ELSE 0 END) AS error,
-                 SUM(CASE WHEN status = 'active'  THEN indexed_text_chars ELSE 0 END) AS total_chars
-          FROM application_context_documents
-          WHERE ${where}
-        `,
-      )
-      .bind(...bindings)
-      .first<{ active: number; deleted: number; error: number; total_chars: number }>();
-
-    return {
-      active: row?.active ?? 0,
-      deleted: row?.deleted ?? 0,
-      error: row?.error ?? 0,
-      totalCharsIndexed: row?.total_chars ?? 0,
-    };
+    return this.documentQueries().getCountsByUserEmail(userEmail, applicationId);
   }
 
   private async getDocumentById(contextDocumentId: string): Promise<ApplicationContextDocument | undefined> {
@@ -687,14 +587,6 @@ class ApplicationContextDAO extends BaseDAO {
 
   private static encodeDocumentCursor(updatedAt: number, createdAt: number): string {
     return CursorUtil.encode([updatedAt, createdAt]);
-  }
-
-  private static chunk<T>(items: T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let index = 0; index < items.length; index += size) {
-      chunks.push(items.slice(index, index + size));
-    }
-    return chunks;
   }
 
   private static readonly documentColumns: string = [
@@ -774,13 +666,6 @@ interface RecordDeletionRunInput {
   errorMessage?: string | null;
 }
 
-interface OverLimitApplication {
-  applicationId: string;
-  userEmail: string;
-  activeCount: number;
-  effectiveLimit: number;
-}
-
 interface InsertAuditLogInput {
   contextDocumentId: string;
   applicationId: string;
@@ -797,12 +682,14 @@ interface ListAuditLogsOptions {
   limit?: number;
 }
 
-interface ApplicationContextUserCounts {
-  active: number;
-  deleted: number;
-  error: number;
-  totalCharsIndexed: number;
-}
-
 export { ApplicationContextDAO };
-export type { ApplicationContextUserCounts, InsertAuditLogInput, ListAuditLogsOptions, ListContextDocumentsInput, ListDeletionRunsInput, OverLimitApplication, RecordDeletionRunInput, UpsertDriveDocumentInput, UpsertEmailDocumentInput };
+export type {
+  InsertAuditLogInput,
+  ListAuditLogsOptions,
+  ListContextDocumentsInput,
+  ListDeletionRunsInput,
+  RecordDeletionRunInput,
+  UpsertDriveDocumentInput,
+  UpsertEmailDocumentInput,
+};
+export type { ApplicationContextUserCounts, OverLimitApplication } from './ApplicationContextDocumentQueries';

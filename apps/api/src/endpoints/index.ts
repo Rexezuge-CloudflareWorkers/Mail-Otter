@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { GetAnalyticsRoute as OriginalGetAnalyticsRoute } from './user/analytics/GET';
 import { GetCurrentUserRoute as OriginalGetCurrentUserRoute } from './user/me/GET';
 import { UpdateCurrentUserRoute as OriginalUpdateCurrentUserRoute } from './user/me/PUT';
@@ -52,53 +50,60 @@ import { RunTaskNowRoute as OriginalRunTaskNowRoute } from './user/processing/ru
 import { ListActivityRoute as OriginalListActivityRoute } from './user/activity/GET';
 import { ChatRoute as OriginalChatRoute } from './user/chat/POST';
 
-export const GetAnalyticsRoute: any = OriginalGetAnalyticsRoute;
-export const GetCurrentUserRoute: any = OriginalGetCurrentUserRoute;
-export const UpdateCurrentUserRoute: any = OriginalUpdateCurrentUserRoute;
-export const ListApplicationsRoute: any = OriginalListApplicationsRoute;
-export const CreateApplicationRoute: any = OriginalCreateApplicationRoute;
-export const UpdateApplicationRoute: any = OriginalUpdateApplicationRoute;
-export const DeleteApplicationRoute: any = OriginalDeleteApplicationRoute;
-export const UpdateApplicationContextRoute: any = OriginalUpdateApplicationContextRoute;
-export const DismissApplicationErrorRoute: any = OriginalDismissApplicationErrorRoute;
-export const DeleteApplicationContextDocumentsRoute: any = OriginalDeleteApplicationContextDocumentsRoute;
-export const ListApplicationContextDocumentsRoute: any = OriginalListApplicationContextDocumentsRoute;
-export const ListApplicationContextDeletionRunsRoute: any = OriginalListApplicationContextDeletionRunsRoute;
-export const GetApplicationContextDocumentProviderLinkRoute: any = OriginalGetApplicationContextDocumentProviderLinkRoute;
-export const ListContextDocumentAuditLogsRoute: any = OriginalListContextDocumentAuditLogsRoute;
-export const ListEmailActionsRoute: any = OriginalListEmailActionsRoute;
-export const ListEmailActionExecutionsRoute: any = OriginalListEmailActionExecutionsRoute;
-export const ExecuteUserEmailActionRoute: any = OriginalExecuteUserEmailActionRoute;
-export const SnoozeEmailActionRoute: any = OriginalSnoozeEmailActionRoute;
-export const ScheduleEmailActionRoute: any = OriginalScheduleEmailActionRoute;
-export const GetApplicationFoldersRoute: any = OriginalGetApplicationFoldersRoute;
-export const UpdateApplicationWatchSettingsRoute: any = OriginalUpdateApplicationWatchSettingsRoute;
-export const CreateOAuth2AuthorizationRoute: any = OriginalCreateOAuth2AuthorizationRoute;
-export const StartApplicationWatchRoute: any = OriginalStartApplicationWatchRoute;
-export const StopApplicationWatchRoute: any = OriginalStopApplicationWatchRoute;
-export const OAuth2CallbackRoute: any = OriginalOAuth2CallbackRoute;
-export const GetActionConfirmationRoute: any = OriginalGetActionConfirmationRoute;
-export const ExecuteActionCallbackRoute: any = OriginalExecuteActionCallbackRoute;
-export const FastmailWebhookRoute: any = OriginalFastmailWebhookRoute;
-export const GmailWebhookRoute: any = OriginalGmailWebhookRoute;
-export const OutlookWebhookRoute: any = OriginalOutlookWebhookRoute;
-export const OutlookLifecycleWebhookRoute: any = OriginalOutlookLifecycleWebhookRoute;
-export const ListIntegrationsRoute: any = OriginalListIntegrationsRoute;
-export const CreateIntegrationRoute: any = OriginalCreateIntegrationRoute;
-export const UpdateIntegrationRoute: any = OriginalUpdateIntegrationRoute;
-export const DeleteIntegrationRoute: any = OriginalDeleteIntegrationRoute;
-export const TestIntegrationRoute: any = OriginalTestIntegrationRoute;
-export const ListIntegrationDeliveriesRoute: any = OriginalListIntegrationDeliveriesRoute;
-export const GetApplicationRulesRoute: any = OriginalGetApplicationRulesRoute;
-export const UpdateApplicationRulesRoute: any = OriginalUpdateApplicationRulesRoute;
-export const SuggestApplicationRuleRoute: any = OriginalSuggestApplicationRuleRoute;
-export const GetApplicationLabelsRoute: any = OriginalGetApplicationLabelsRoute;
-export const GetDigestConfigRoute: any = OriginalGetDigestConfigRoute;
-export const UpdateDigestConfigRoute: any = OriginalUpdateDigestConfigRoute;
-export const SendDigestNowRoute: any = OriginalSendDigestNowRoute;
-export const ListBackgroundTaskRunsRoute: any = OriginalListBackgroundTaskRunsRoute;
-export const ListProcessingCalendarEventsRoute: any = OriginalListProcessingCalendarEventsRoute;
-export const ListProcessedMessagesRoute: any = OriginalListProcessedMessagesRoute;
-export const RunTaskNowRoute: any = OriginalRunTaskNowRoute;
-export const ListActivityRoute: any = OriginalListActivityRoute;
-export const ChatRoute: any = OriginalChatRoute;
+export const GetAnalyticsRoute: typeof OriginalGetAnalyticsRoute = OriginalGetAnalyticsRoute;
+export const GetCurrentUserRoute: typeof OriginalGetCurrentUserRoute = OriginalGetCurrentUserRoute;
+export const UpdateCurrentUserRoute: typeof OriginalUpdateCurrentUserRoute = OriginalUpdateCurrentUserRoute;
+export const ListApplicationsRoute: typeof OriginalListApplicationsRoute = OriginalListApplicationsRoute;
+export const CreateApplicationRoute: typeof OriginalCreateApplicationRoute = OriginalCreateApplicationRoute;
+export const UpdateApplicationRoute: typeof OriginalUpdateApplicationRoute = OriginalUpdateApplicationRoute;
+export const DeleteApplicationRoute: typeof OriginalDeleteApplicationRoute = OriginalDeleteApplicationRoute;
+export const UpdateApplicationContextRoute: typeof OriginalUpdateApplicationContextRoute = OriginalUpdateApplicationContextRoute;
+export const DismissApplicationErrorRoute: typeof OriginalDismissApplicationErrorRoute = OriginalDismissApplicationErrorRoute;
+export const DeleteApplicationContextDocumentsRoute: typeof OriginalDeleteApplicationContextDocumentsRoute =
+  OriginalDeleteApplicationContextDocumentsRoute;
+export const ListApplicationContextDocumentsRoute: typeof OriginalListApplicationContextDocumentsRoute =
+  OriginalListApplicationContextDocumentsRoute;
+export const ListApplicationContextDeletionRunsRoute: typeof OriginalListApplicationContextDeletionRunsRoute =
+  OriginalListApplicationContextDeletionRunsRoute;
+export const GetApplicationContextDocumentProviderLinkRoute: typeof OriginalGetApplicationContextDocumentProviderLinkRoute =
+  OriginalGetApplicationContextDocumentProviderLinkRoute;
+export const ListContextDocumentAuditLogsRoute: typeof OriginalListContextDocumentAuditLogsRoute =
+  OriginalListContextDocumentAuditLogsRoute;
+export const ListEmailActionsRoute: typeof OriginalListEmailActionsRoute = OriginalListEmailActionsRoute;
+export const ListEmailActionExecutionsRoute: typeof OriginalListEmailActionExecutionsRoute = OriginalListEmailActionExecutionsRoute;
+export const ExecuteUserEmailActionRoute: typeof OriginalExecuteUserEmailActionRoute = OriginalExecuteUserEmailActionRoute;
+export const SnoozeEmailActionRoute: typeof OriginalSnoozeEmailActionRoute = OriginalSnoozeEmailActionRoute;
+export const ScheduleEmailActionRoute: typeof OriginalScheduleEmailActionRoute = OriginalScheduleEmailActionRoute;
+export const GetApplicationFoldersRoute: typeof OriginalGetApplicationFoldersRoute = OriginalGetApplicationFoldersRoute;
+export const UpdateApplicationWatchSettingsRoute: typeof OriginalUpdateApplicationWatchSettingsRoute =
+  OriginalUpdateApplicationWatchSettingsRoute;
+export const CreateOAuth2AuthorizationRoute: typeof OriginalCreateOAuth2AuthorizationRoute = OriginalCreateOAuth2AuthorizationRoute;
+export const StartApplicationWatchRoute: typeof OriginalStartApplicationWatchRoute = OriginalStartApplicationWatchRoute;
+export const StopApplicationWatchRoute: typeof OriginalStopApplicationWatchRoute = OriginalStopApplicationWatchRoute;
+export const OAuth2CallbackRoute: typeof OriginalOAuth2CallbackRoute = OriginalOAuth2CallbackRoute;
+export const GetActionConfirmationRoute: typeof OriginalGetActionConfirmationRoute = OriginalGetActionConfirmationRoute;
+export const ExecuteActionCallbackRoute: typeof OriginalExecuteActionCallbackRoute = OriginalExecuteActionCallbackRoute;
+export const FastmailWebhookRoute: typeof OriginalFastmailWebhookRoute = OriginalFastmailWebhookRoute;
+export const GmailWebhookRoute: typeof OriginalGmailWebhookRoute = OriginalGmailWebhookRoute;
+export const OutlookWebhookRoute: typeof OriginalOutlookWebhookRoute = OriginalOutlookWebhookRoute;
+export const OutlookLifecycleWebhookRoute: typeof OriginalOutlookLifecycleWebhookRoute = OriginalOutlookLifecycleWebhookRoute;
+export const ListIntegrationsRoute: typeof OriginalListIntegrationsRoute = OriginalListIntegrationsRoute;
+export const CreateIntegrationRoute: typeof OriginalCreateIntegrationRoute = OriginalCreateIntegrationRoute;
+export const UpdateIntegrationRoute: typeof OriginalUpdateIntegrationRoute = OriginalUpdateIntegrationRoute;
+export const DeleteIntegrationRoute: typeof OriginalDeleteIntegrationRoute = OriginalDeleteIntegrationRoute;
+export const TestIntegrationRoute: typeof OriginalTestIntegrationRoute = OriginalTestIntegrationRoute;
+export const ListIntegrationDeliveriesRoute: typeof OriginalListIntegrationDeliveriesRoute = OriginalListIntegrationDeliveriesRoute;
+export const GetApplicationRulesRoute: typeof OriginalGetApplicationRulesRoute = OriginalGetApplicationRulesRoute;
+export const UpdateApplicationRulesRoute: typeof OriginalUpdateApplicationRulesRoute = OriginalUpdateApplicationRulesRoute;
+export const SuggestApplicationRuleRoute: typeof OriginalSuggestApplicationRuleRoute = OriginalSuggestApplicationRuleRoute;
+export const GetApplicationLabelsRoute: typeof OriginalGetApplicationLabelsRoute = OriginalGetApplicationLabelsRoute;
+export const GetDigestConfigRoute: typeof OriginalGetDigestConfigRoute = OriginalGetDigestConfigRoute;
+export const UpdateDigestConfigRoute: typeof OriginalUpdateDigestConfigRoute = OriginalUpdateDigestConfigRoute;
+export const SendDigestNowRoute: typeof OriginalSendDigestNowRoute = OriginalSendDigestNowRoute;
+export const ListBackgroundTaskRunsRoute: typeof OriginalListBackgroundTaskRunsRoute = OriginalListBackgroundTaskRunsRoute;
+export const ListProcessingCalendarEventsRoute: typeof OriginalListProcessingCalendarEventsRoute =
+  OriginalListProcessingCalendarEventsRoute;
+export const ListProcessedMessagesRoute: typeof OriginalListProcessedMessagesRoute = OriginalListProcessedMessagesRoute;
+export const RunTaskNowRoute: typeof OriginalRunTaskNowRoute = OriginalRunTaskNowRoute;
+export const ListActivityRoute: typeof OriginalListActivityRoute = OriginalListActivityRoute;
+export const ChatRoute: typeof OriginalChatRoute = OriginalChatRoute;

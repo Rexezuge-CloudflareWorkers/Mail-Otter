@@ -34,10 +34,7 @@ const PROVIDERS: ReadonlyMap<string, IEmailProvider> = new Map<string, IEmailPro
 
 class EmailProviderRegistry {
   public static get(providerId: string, connectionMethod?: string): IEmailProvider {
-    const specific = connectionMethod ? PROVIDERS.get(`${providerId}:${connectionMethod}`) : undefined;
-    const provider = specific ?? PROVIDERS.get(providerId);
-    if (!provider) throw new BadRequestError(`Unsupported provider: ${providerId}`);
-    return provider;
+    return resolveEmailProvider(PROVIDERS, providerId, connectionMethod);
   }
 
   public static getAll(): ReadonlyMap<string, IEmailProvider> {
@@ -45,7 +42,33 @@ class EmailProviderRegistry {
   }
 }
 
-export { EmailProviderRegistry };
+type ProviderMap = ReadonlyMap<string, IEmailProvider>;
 
+function getEmailProviderRegistryKey(providerId: string, connectionMethod?: string): string {
+  return connectionMethod ? `${providerId}:${connectionMethod}` : providerId;
+}
 
-export {type IEmailProvider} from './IEmailProvider';
+function resolveEmailProvider(registry: ProviderMap, providerId: string, connectionMethod?: string): IEmailProvider {
+  const specific = connectionMethod ? registry.get(getEmailProviderRegistryKey(providerId, connectionMethod)) : undefined;
+  const provider = specific ?? registry.get(providerId);
+  if (!provider) throw new BadRequestError(`Unsupported provider: ${providerId}`);
+  return provider;
+}
+
+function createEmailProviderRegistry(
+  overrides?: ReadonlyMap<string, IEmailProvider> | Readonly<Record<string, IEmailProvider>>,
+): Map<string, IEmailProvider> {
+  const registry = new Map<string, IEmailProvider>(PROVIDERS);
+  if (overrides) {
+    const entries: Iterable<readonly [string, IEmailProvider]> = overrides instanceof Map ? overrides.entries() : Object.entries(overrides);
+    for (const [key, provider] of entries) {
+      registry.set(key, provider);
+    }
+  }
+  return registry;
+}
+
+export { EmailProviderRegistry, createEmailProviderRegistry, getEmailProviderRegistryKey, resolveEmailProvider };
+export type { ProviderMap };
+
+export { type IEmailProvider } from './IEmailProvider';

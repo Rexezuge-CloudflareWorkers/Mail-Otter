@@ -146,6 +146,16 @@ class BackgroundTaskRunDAO extends BaseDAO {
     );
   }
 
+  public async getById(runId: string): Promise<BackgroundTaskRun | undefined> {
+    const row: BackgroundTaskRunInternal | null = await BaseDAO.findById<BackgroundTaskRunInternal>(
+      this.database,
+      'background_task_runs',
+      'run_id',
+      runId,
+    );
+    return row ? BackgroundTaskRunDAO.toRun(row) : undefined;
+  }
+
   public async listForUser(userEmail: string, options: ListTaskRunsOptions = {}): Promise<BackgroundTaskRunList> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
     const conditions: string[] = ['ca.user_email = ?'];

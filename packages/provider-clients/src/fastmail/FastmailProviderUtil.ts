@@ -243,3 +243,4 @@ class FastmailProviderUtil {
 }
 
 export { FastmailProviderUtil };
+export type { JmapEmailAttachment, JmapEmailResult };

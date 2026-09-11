@@ -60,16 +60,7 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
   }
 
   public async deleteOlderThan(olderThan: number, batchSize: number): Promise<number> {
-    const result = await this.database
-      .prepare(
-        `DELETE FROM integration_delivery_logs
-         WHERE log_id IN (
-           SELECT log_id FROM integration_delivery_logs WHERE created_at < ? LIMIT ?
-         )`,
-      )
-      .bind(olderThan, batchSize)
-      .run();
-    return result.meta.changes ?? 0;
+    return BaseDAO.deleteOlderThan(this.database, 'integration_delivery_logs', 'created_at', olderThan, batchSize, 'log_id');
   }
 
   private toPublic(row: IntegrationDeliveryLogInternal): IntegrationDeliveryLog {

@@ -1,19 +1,24 @@
-import { createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
+import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { ActionService } from '@mail-otter/backend-services/action';
-import { IScheduledTask } from './IScheduledTask';
+import { AbstractPruningTask } from './AbstractPruningTask';
 import type { IEnv } from './IScheduledTask';
 
-class EmailActionPruningTask extends IScheduledTask<EmailActionPruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: EmailActionPruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const sessionEnv = createD1SessionEnv(env);
-    const expiredTotal = await pruneInBatches((batchSize) => ActionService.expirePendingActions(sessionEnv, batchSize));
+class EmailActionPruningTask extends AbstractPruningTask<EmailActionPruningTaskEnv> {
+  protected getRetentionDays(env: EmailActionPruningTaskEnv): number {
+    return ConfigurationManager.getActionRetentionDays(env);
+  }
 
-    const deletedTotal = await pruneInBatches((batchSize) => ActionService.deleteOldActions(sessionEnv, batchSize));
-    console.log(`EmailActionPruningTask: expired ${expiredTotal} rows, deleted ${deletedTotal} rows`);
+  // Both phases operate on disjoint row sets (expirable pending rows vs. old terminal
+  // rows), so running them together per batch drains both correctly: the batch loop only
+  // stops once each phase returns fewer rows than the batch size.
+  // The cutoff is unused — ActionService derives its own expiry/retention timestamps.
+  protected async pruneBatch(env: EmailActionPruningTaskEnv, _db: D1Queryable, _cutoff: number, batchSize: number): Promise<number> {
+    const sessionEnv = createD1SessionEnv(env);
+    const expired: number = await ActionService.expirePendingActions(sessionEnv, batchSize);
+    const deleted: number = await ActionService.deleteOldActions(sessionEnv, batchSize);
+    return expired + deleted;
   }
 }
 

@@ -19,8 +19,12 @@ import type {
 } from '@mail-otter/shared/model';
 import { LocaleUtil, TimestampUtil, TimeZoneUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { EncryptedDAO } from './BaseDAO';
+import { ConnectedApplicationFlags } from './ConnectedApplicationFlags';
 
 class ConnectedApplicationDAO extends EncryptedDAO {
+  private flags(): ConnectedApplicationFlags {
+    return new ConnectedApplicationFlags(this.database);
+  }
 
   public async create(
     userEmail: string,
@@ -32,7 +36,13 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     gmailPubsubTopicName?: string | null,
     enabledFeatures?: string[] | null,
     timeZone?: string | null,
-    imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
+    imapConfig?: {
+      host?: string | null;
+      port?: number | null;
+      username?: string | null;
+      smtpHost?: string | null;
+      smtpPort?: number | null;
+    } | null,
     contentLanguage?: string | null,
   ): Promise<ConnectedApplicationMetadata> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
@@ -151,7 +161,13 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     enabledFeatures?: string[] | null,
     senderDomainFilters?: SenderDomainFilters | null,
     timeZone?: string | null,
-    imapConfig?: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null } | null,
+    imapConfig?: {
+      host?: string | null;
+      port?: number | null;
+      username?: string | null;
+      smtpHost?: string | null;
+      smtpPort?: number | null;
+    } | null,
     autoExecuteActionTypes?: string[] | null,
     contentLanguage?: string | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
@@ -226,20 +242,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     config: { host?: string | null; port?: number | null; username?: string | null; smtpHost?: string | null; smtpPort?: number | null },
     now: number,
   ): Promise<void> {
-    const entries: Array<[string, string | null]> = [
-      ['imap_host', config.host ?? null],
-      ['imap_port', config.port == null ? null : String(config.port)],
-      ['imap_username', config.username ?? null],
-      ['smtp_host', config.smtpHost ?? null],
-      ['smtp_port', config.smtpPort == null ? null : String(config.smtpPort)],
-    ];
-    for (const [key, value] of entries) {
-      if (value == null) {
-        await this.deleteProviderConfig(applicationId, key);
-      } else {
-        await this.setProviderConfig(applicationId, key, value, now);
-      }
-    }
+    await this.flags().saveImapConfig(applicationId, config, now);
   }
 
   public async markOAuth2Connected(applicationId: string, refreshToken: string, providerEmail: string): Promise<void> {
@@ -353,35 +356,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     folderNames?: Record<string, string>,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    if (folderIds && folderIds.length > 0) {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
-            .bind(applicationId)
-            .run(),
-        'clear watched folders',
-      );
-      const stmt = this.database.prepare(
-        'INSERT INTO application_watched_folders (application_id, folder_path, folder_name, created_at) VALUES (?, ?, ?, ?)',
-      );
-      for (const folderPath of folderIds) {
-        const folderName: string = folderNames?.[folderPath] || folderPath;
-        await executeD1WithRetry(
-          (): Promise<D1Result> => stmt.bind(applicationId, folderPath, folderName, now).run(),
-          'insert watched folder',
-        );
-      }
-    } else {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare('DELETE FROM application_watched_folders WHERE application_id = ?')
-            .bind(applicationId)
-            .run(),
-        'clear watched folders',
-      );
-    }
+    await this.flags().replaceWatchedFolders(applicationId, folderIds, folderNames, now);
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 
@@ -409,37 +384,11 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   }
 
   public async listApplicationIdsWithFeatureEnabled(featureName: string): Promise<string[]> {
-    const rows: Array<{ application_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT pac.application_id
-          FROM provider_application_configs pac, json_each(pac.config_value) je
-          JOIN connected_applications ca ON ca.application_id = pac.application_id
-          WHERE pac.config_key = 'oauth2_enabled_features'
-            AND je.value = ?
-            AND ca.status = 'connected'
-        `,
-      )
-      .bind(featureName)
-      .all<{ application_id: string }>()
-      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
-    return rows.map((row) => row.application_id);
+    return this.flags().listApplicationIdsWithFeatureEnabled(featureName);
   }
 
   public async listApplicationIdsWithProviderConfig(configKey: string, configValue: string): Promise<string[]> {
-    const rows: Array<{ application_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT pac.application_id
-          FROM provider_application_configs pac
-          JOIN connected_applications ca ON ca.application_id = pac.application_id
-          WHERE pac.config_key = ? AND pac.config_value = ? AND ca.status = 'connected'
-        `,
-      )
-      .bind(configKey, configValue)
-      .all<{ application_id: string }>()
-      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
-    return rows.map((row) => row.application_id);
+    return this.flags().listApplicationIdsWithProviderConfig(configKey, configValue);
   }
 
   public async deleteForUser(applicationId: string, userEmail: string): Promise<void> {
@@ -454,52 +403,19 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   }
 
   public async getProviderConfig(applicationId: string, configKey: string): Promise<string | null> {
-    const row: { config_value: string } | null = await this.database
-      .prepare('SELECT config_value FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
-      .bind(applicationId, configKey)
-      .first<{ config_value: string }>();
-    return row?.config_value ?? null;
+    return this.flags().getProviderConfig(applicationId, configKey);
   }
 
   public async setProviderConfig(applicationId: string, configKey: string, configValue: string, now?: number): Promise<void> {
-    const timestamp: number = now ?? TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO provider_application_configs (application_id, config_key, config_value, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(application_id, config_key) DO UPDATE SET config_value = excluded.config_value, updated_at = excluded.updated_at
-            `,
-          )
-          .bind(applicationId, configKey, configValue, timestamp, timestamp)
-          .run(),
-      'set provider config',
-    );
+    await this.flags().setProviderConfig(applicationId, configKey, configValue, now);
   }
 
   public async deleteProviderConfig(applicationId: string, configKey: string): Promise<void> {
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('DELETE FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
-          .bind(applicationId, configKey)
-          .run(),
-      'delete provider config',
-    );
+    await this.flags().deleteProviderConfig(applicationId, configKey);
   }
 
   public async getWatchedFolders(applicationId: string): Promise<Array<{ folderPath: string; folderName: string }>> {
-    const rows: Array<{ folder_path: string; folder_name: string | null }> = await this.database
-      .prepare('SELECT folder_path, folder_name FROM application_watched_folders WHERE application_id = ? ORDER BY folder_path ASC')
-      .bind(applicationId)
-      .all<{ folder_path: string; folder_name: string | null }>()
-      .then((result: D1Result<{ folder_path: string; folder_name: string | null }>): Array<{ folder_path: string; folder_name: string | null }> => result.results || []);
-    return rows.map((row: { folder_path: string; folder_name: string | null }): { folderPath: string; folderName: string } => ({
-      folderPath: row.folder_path,
-      folderName: row.folder_name || row.folder_path,
-    }));
+    return this.flags().getWatchedFolders(applicationId);
   }
 
   private async getRowById(applicationId: string, userEmail?: string): Promise<ConnectedApplicationInternal | undefined> {
@@ -523,12 +439,11 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     const decryptedCredentials: string = await decryptData(row.encrypted_credentials, row.credentials_iv, this.masterKey);
     const credentials: ConnectedApplicationCredentials = JSON.parse(decryptedCredentials) as ConnectedApplicationCredentials;
     const metadata = await this.toMetadata(row);
-    const imapPassword: string | null = row.connection_method === CONNECTION_METHOD_IMAP_PASSWORD
-      ? ((credentials as { imapPassword?: string }).imapPassword ?? null)
-      : null;
+    const imapPassword: string | null =
+      row.connection_method === CONNECTION_METHOD_IMAP_PASSWORD ? ((credentials as { imapPassword?: string }).imapPassword ?? null) : null;
     return {
       ...metadata,
-      ...((imapPassword != null) && { imapPassword }),
+      ...(imapPassword != null && { imapPassword }),
       credentials,
     };
   }
@@ -540,7 +455,22 @@ class ConnectedApplicationDAO extends EncryptedDAO {
         : row.status === CONNECTED_APPLICATION_STATUS_ERROR
           ? CONNECTED_APPLICATION_STATUS_ERROR
           : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [watchedFolders, gmailPubsubTopicName, enabledFeaturesJson, senderDomainFiltersJson, timeZone, contentLanguage, emailProcessingRulesJson, imapHost, imapPortStr, imapUsername, smtpHost, smtpPortStr, autoExecuteActionTypesJson, attachmentVisionEnabledStr]: [
+    const [
+      watchedFolders,
+      gmailPubsubTopicName,
+      enabledFeaturesJson,
+      senderDomainFiltersJson,
+      timeZone,
+      contentLanguage,
+      emailProcessingRulesJson,
+      imapHost,
+      imapPortStr,
+      imapUsername,
+      smtpHost,
+      smtpPortStr,
+      autoExecuteActionTypesJson,
+      attachmentVisionEnabledStr,
+    ]: [
       Array<{ folderPath: string; folderName: string }>,
       string | null,
       string | null,
@@ -586,7 +516,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
           conditions: { operator: 'any' as const, matchers: [{ field: 'from' as const, op: 'matches_sender' as const, value: pattern }] },
           action: { type: 'skip' as const },
         }));
-        const existingRules: EmailProcessingRule[] = emailProcessingRulesJson ? (JSON.parse(emailProcessingRulesJson) as EmailProcessingRule[]) : [];
+        const existingRules: EmailProcessingRule[] = emailProcessingRulesJson
+          ? (JSON.parse(emailProcessingRulesJson) as EmailProcessingRule[])
+          : [];
         const merged = [...existingRules, ...migratedRules];
         resolvedRulesJson = JSON.stringify(merged);
         await this.setProviderConfig(row.application_id, 'email_processing_rules', resolvedRulesJson);
@@ -673,16 +605,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     userEmail: string,
     errorType: 'processing' | 'context',
   ): Promise<ConnectedApplicationMetadata | undefined> {
-    const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const column: string = errorType === 'processing' ? 'last_error_acknowledged_at' : 'context_last_error_acknowledged_at';
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND user_email = ?`)
-          .bind(now, now, applicationId, userEmail)
-          .run(),
-      'acknowledge application error',
-    );
+    await this.flags().acknowledgeError(applicationId, userEmail, errorType);
     return this.getMetadataByIdForUser(applicationId, userEmail);
   }
 }

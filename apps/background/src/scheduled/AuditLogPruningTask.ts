@@ -1,22 +1,16 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
-import { computeUnixCutoffSeconds, createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { IScheduledTask } from './IScheduledTask';
+import { AbstractPruningTask } from './AbstractPruningTask';
 import type { IEnv } from './IScheduledTask';
 
-class AuditLogPruningTask extends IScheduledTask<AuditLogPruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: AuditLogPruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const retentionDays: number = ConfigurationManager.getContextAuditLogRetentionDays(env);
-    const olderThan: number = computeUnixCutoffSeconds(retentionDays);
-    const sessionEnv = createD1SessionEnv(env);
-    const dao = new ApplicationContextDAO(sessionEnv.DB);
+class AuditLogPruningTask extends AbstractPruningTask<AuditLogPruningTaskEnv> {
+  protected getRetentionDays(env: AuditLogPruningTaskEnv): number {
+    return ConfigurationManager.getContextAuditLogRetentionDays(env);
+  }
 
-    const total = await pruneInBatches((batchSize) => dao.deleteOldAuditLogs(olderThan, batchSize));
-    console.log(`AuditLogPruningTask: deleted ${total} old audit log entries`);
+  protected pruneBatch(_env: AuditLogPruningTaskEnv, db: D1Queryable, cutoff: number, batchSize: number): Promise<number> {
+    return new ApplicationContextDAO(db).deleteOldAuditLogs(cutoff, batchSize);
   }
 }
 

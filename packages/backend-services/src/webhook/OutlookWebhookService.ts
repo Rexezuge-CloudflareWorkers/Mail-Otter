@@ -1,10 +1,9 @@
 import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { UnauthorizedError } from '@mail-otter/backend-errors';
 import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
-import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
+import { BaseWebhookService } from './BaseWebhookService';
 
-class OutlookWebhookService {
+class OutlookWebhookService extends BaseWebhookService {
   public static async handleNotifications(
     applicationId: string,
     notifications: OutlookNotification[],
@@ -12,25 +11,30 @@ class OutlookWebhookService {
     callbackBaseUrl?: string,
   ): Promise<void> {
     const subscriptionDAO = new ProviderSubscriptionDAO(env.DB);
-    for (const notification of notifications) {
-      const subscription: ProviderSubscription = await this.getAuthorizedSubscription(
-        applicationId,
-        notification.subscriptionId,
-        notification.clientState,
-        subscriptionDAO,
-        true,
-      );
-      const messageId: string | undefined = notification.resourceData?.id || this.extractMessageId(notification.resource);
-      if (!messageId) continue;
-      await env.EMAIL_EVENTS_QUEUE.send({
-        type: 'outlook-notification',
-        applicationId,
-        subscriptionId: notification.subscriptionId,
-        messageId,
-        callbackBaseUrl,
-      });
-      await subscriptionDAO.touchNotification(subscription.subscriptionId);
-    }
+    await this.handleNotificationTemplate<OutlookNotification>(
+      notifications,
+      subscriptionDAO,
+      env.EMAIL_EVENTS_QUEUE,
+      (notification) =>
+        this.getAuthorizedSubscription(
+          applicationId,
+          notification.subscriptionId,
+          notification.clientState,
+          subscriptionDAO,
+          true,
+        ),
+      (notification) => {
+        const messageId: string | undefined = notification.resourceData?.id || this.extractMessageId(notification.resource);
+        if (!messageId) return undefined;
+        return {
+          type: 'outlook-notification',
+          applicationId,
+          subscriptionId: notification.subscriptionId,
+          messageId,
+          callbackBaseUrl,
+        } satisfies EmailQueueMessage;
+      },
+    );
   }
 
   public static async handleLifecycleNotifications(
@@ -60,23 +64,6 @@ class OutlookWebhookService {
     if (segmentIndex === -1) return undefined;
     const messageId: string = resource.slice(segmentIndex + messagesSegment.length);
     return messageId.includes('/') ? undefined : messageId;
-  }
-
-  private static async getAuthorizedSubscription(
-    applicationId: string,
-    externalSubscriptionId: string,
-    clientState: string | undefined,
-    subscriptionDAO: ProviderSubscriptionDAO,
-    requireClientState: boolean,
-  ): Promise<ProviderSubscription> {
-    const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByExternalSubscriptionId(externalSubscriptionId);
-    if (!subscription || subscription.applicationId !== applicationId) {
-      throw new UnauthorizedError('Unknown Outlook subscription.');
-    }
-    if (requireClientState && !(await WebhookSecurityUtil.matchesSecret(clientState, subscription.clientStateHash))) {
-      throw new UnauthorizedError('Invalid Outlook clientState.');
-    }
-    return subscription;
   }
 }
 

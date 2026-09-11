@@ -1,10 +1,13 @@
 import { SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
+import type { IEmailProvider } from '../provider/IEmailProvider';
 
 class CalendarEventSyncUtil {
   private readonly eventDAO: SyncedCalendarEventDAO;
@@ -31,6 +34,11 @@ class CalendarEventSyncUtil {
     windowStartIso: string,
     windowEndIso: string,
   ): Promise<UpsertCalendarEventInput[]> {
+    const provider: IEmailProvider | undefined = this.resolveProvider(application);
+    if (provider?.listCalendarEvents) {
+      return provider.listCalendarEvents(accessToken, windowStartIso, windowEndIso);
+    }
+
     if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
       const items = await GmailProviderUtil.listCalendarEventsByDateRange(accessToken, windowStartIso, windowEndIso);
       return items
@@ -61,7 +69,15 @@ class CalendarEventSyncUtil {
         }));
     }
 
-    return [];
+    throw new BadRequestError(`Calendar sync is not supported for provider: ${application.providerId}`);
+  }
+
+  private static resolveProvider(application: ConnectedApplicationMetadata): IEmailProvider | undefined {
+    try {
+      return EmailProviderRegistry.get(application.providerId, application.connectionMethod);
+    } catch {
+      return undefined;
+    }
   }
 }
 

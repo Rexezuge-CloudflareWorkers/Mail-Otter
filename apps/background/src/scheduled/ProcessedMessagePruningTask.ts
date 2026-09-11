@@ -3,26 +3,22 @@ import {
   PROCESSED_MESSAGE_STATUS_SUMMARIZED,
 } from '@mail-otter/shared/constants';
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
-import { computeUnixCutoffSeconds, createD1SessionEnv, pruneInBatches } from '@mail-otter/backend-data/utils';
+import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { IScheduledTask } from './IScheduledTask';
+import { AbstractPruningTask } from './AbstractPruningTask';
 import type { IEnv } from './IScheduledTask';
 
-class ProcessedMessagePruningTask extends IScheduledTask<ProcessedMessagePruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: ProcessedMessagePruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const retentionDays: number = ConfigurationManager.getProcessedMessageRetentionDays(env);
-    const olderThan: number = computeUnixCutoffSeconds(retentionDays);
-    const sessionEnv = createD1SessionEnv(env);
-    const dao = new ProcessedMessageDAO(sessionEnv.DB);
+class ProcessedMessagePruningTask extends AbstractPruningTask<ProcessedMessagePruningTaskEnv> {
+  protected getRetentionDays(env: ProcessedMessagePruningTaskEnv): number {
+    return ConfigurationManager.getProcessedMessageRetentionDays(env);
+  }
 
-    const total = await pruneInBatches((batchSize) =>
-      dao.deleteOlderThan(olderThan, [PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROCESSED_MESSAGE_STATUS_SKIPPED], batchSize),
+  protected pruneBatch(_env: ProcessedMessagePruningTaskEnv, db: D1Queryable, cutoff: number, batchSize: number): Promise<number> {
+    return new ProcessedMessageDAO(db).deleteOlderThan(
+      cutoff,
+      [PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROCESSED_MESSAGE_STATUS_SKIPPED],
+      batchSize,
     );
-    console.log(`ProcessedMessagePruningTask: deleted ${total} rows`);
   }
 }
 

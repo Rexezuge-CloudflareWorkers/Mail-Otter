@@ -5,17 +5,18 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
-  IEmailProvider,
+  ILabelProvider,
   ProviderFolder,
   ProviderMessageSummary,
   ProviderWatchResult,
   StartWatchInput,
   WebhookWatchResult,
 } from './IEmailProvider';
+import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
+import { AbstractOAuthEmailProvider } from './AbstractOAuthEmailProvider';
 
-class OutlookEmailProvider implements IEmailProvider {
+class OutlookEmailProvider extends AbstractOAuthEmailProvider implements ILabelProvider {
   public readonly providerId = PROVIDER_MICROSOFT_OUTLOOK;
-  public readonly supportsWebhooks = true;
 
   public async listFolders(accessToken: string): Promise<ProviderFolder[]> {
     const folders = await OutlookProviderUtil.listMailFolders(accessToken);
@@ -29,7 +30,7 @@ class OutlookEmailProvider implements IEmailProvider {
   }
 
   public async startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult> {
-    if (credentials.type !== 'oauth2') throw new BadRequestError('Outlook requires OAuth2 credentials.');
+    this.requireOAuth2Credentials(credentials, 'Outlook');
     if (!input.clientState) throw new BadRequestError('clientState is required to start an Outlook subscription.');
     if (!input.expiresAt) throw new BadRequestError('expiresAt is required to start an Outlook subscription.');
     const appId = input.applicationId ?? '__APPLICATION_ID__';
@@ -56,7 +57,7 @@ class OutlookEmailProvider implements IEmailProvider {
   }
 
   public async renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, expiresAt: number | null): Promise<ProviderWatchResult> {
-    if (credentials.type !== 'oauth2') throw new BadRequestError('Outlook requires OAuth2 credentials.');
+    this.requireOAuth2Credentials(credentials, 'Outlook');
     if (!expiresAt) throw new BadRequestError('expiresAt is required to renew an Outlook subscription.');
     const renewed = await OutlookProviderUtil.renewSubscription(credentials.accessToken, subscriptionId, expiresAt);
     const result: WebhookWatchResult = {
@@ -68,9 +69,8 @@ class OutlookEmailProvider implements IEmailProvider {
     return result;
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
-    throw new BadRequestError('Outlook uses webhooks and does not support polling.');
+    return this.throwPollNotSupported('Outlook uses webhooks and does not support polling.');
   }
 
   public getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string {
@@ -113,6 +113,27 @@ class OutlookEmailProvider implements IEmailProvider {
   public async listLabels(accessToken: string): Promise<Array<{ id: string; name: string }>> {
     const categories = await OutlookProviderUtil.listOutlookCategories(accessToken);
     return categories.map((c) => ({ id: c.id, name: c.displayName }));
+  }
+
+  public async sendDigestEmail(accessToken: string, to: string, subject: string, htmlBody: string): Promise<void> {
+    await OutlookProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
+  }
+
+  public async listCalendarEvents(accessToken: string, windowStartIso: string, windowEndIso: string): Promise<UpsertCalendarEventInput[]> {
+    const items = await OutlookProviderUtil.listCalendarEventsByDateRange(accessToken, windowStartIso, windowEndIso);
+    return items
+      .filter((item) => item.start?.dateTime)
+      .map((item) => ({
+        providerEventId: item.id,
+        eventTitle: item.subject || '(no title)',
+        startTime: Math.floor(new Date(item.start!.dateTime!).getTime() / 1000),
+        endTime: item.end?.dateTime
+          ? Math.floor(new Date(item.end.dateTime).getTime() / 1000)
+          : Math.floor(new Date(item.start!.dateTime!).getTime() / 1000) + 3600,
+        timeZone: item.start?.timeZone || 'UTC',
+        location: item.location?.displayName || null,
+        notes: null,
+      }));
   }
 }
 

@@ -1,19 +1,27 @@
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { CalendarEventSyncUtil } from '@mail-otter/backend-services/digest';
+import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import {
   BACKGROUND_TASK_TYPE_CALENDAR_SYNC,
   CONNECTED_APPLICATION_STATUS_CONNECTED,
   DIGEST_CALENDAR_SYNC_DAYS,
   DIGEST_CONFIG_KEY_ENABLED,
-  PROVIDER_GOOGLE_GMAIL,
-  PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
 
 class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
+  private static supportsCalendarSync(providerId: string, connectionMethod?: string): boolean {
+    try {
+      const provider = EmailProviderRegistry.get(providerId, connectionMethod);
+      return typeof provider.listCalendarEvents === 'function';
+    } catch {
+      return false;
+    }
+  }
+
   protected async handleScheduledTask(
     _event: ScheduledController,
     env: CalendarEventSyncTaskEnv,
@@ -41,8 +49,8 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
           await run.skip('Application not connected');
           continue;
         }
-        if (application.providerId !== PROVIDER_GOOGLE_GMAIL && application.providerId !== PROVIDER_MICROSOFT_OUTLOOK) {
-          await run.skip('Provider does not support calendar sync');
+        if (!CalendarEventSyncTask.supportsCalendarSync(application.providerId, application.connectionMethod)) {
+          await run.skip(`Provider does not support calendar sync: ${application.providerId}`);
           continue;
         }
         const hasCalendarFeature = application.enabledFeatures?.some((f) => f.includes('calendar')) ?? false;

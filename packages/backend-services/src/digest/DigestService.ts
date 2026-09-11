@@ -1,5 +1,6 @@
 import { ConnectedApplicationDAO, EmailActionDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { BadRequestError } from '@mail-otter/backend-errors';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import {
@@ -27,8 +28,10 @@ import type {
 } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { DigestConfigService } from './DigestConfigService';
-import { DigestEmailUtil } from './DigestEmailUtil';
-import type { DigestSections } from './DigestEmailUtil';
+import { DigestEmailBuilder } from './DigestEmailBuilder';
+import type { DigestSections } from './DigestEmailBuilder';
+import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
+import type { IEmailProvider } from '../provider/IEmailProvider';
 
 interface DigestServiceEnv {
   DB: D1Queryable;
@@ -44,7 +47,11 @@ class DigestService {
   private readonly masterKey: string;
   private readonly actionKey: string;
 
-  constructor(private readonly env: DigestServiceEnv, masterKey: string, actionKey: string) {
+  constructor(
+    private readonly env: DigestServiceEnv,
+    masterKey: string,
+    actionKey: string,
+  ) {
     this.db = env.DB;
     this.masterKey = masterKey;
     this.actionKey = actionKey;
@@ -76,14 +83,14 @@ class DigestService {
     const nowUnix = TimestampUtil.getCurrentUnixTimestampInSeconds();
 
     const sections = await this.buildSections(application.applicationId, enabledSections, timeZone, now, nowUnix);
-    if (!DigestEmailUtil.hasContent(sections, enabledSections)) {
+    if (!DigestEmailBuilder.hasContent(sections, enabledSections)) {
       await configSvc.markSent(application.applicationId);
       return;
     }
 
     const locale = application.contentLanguage ?? null;
-    const subject = DigestEmailUtil.buildSubject(now, timeZone, locale);
-    const htmlBody = DigestEmailUtil.buildHtml(sections, enabledSections, locale);
+    const subject = DigestEmailBuilder.buildSubject(now, timeZone, locale);
+    const htmlBody = DigestEmailBuilder.buildHtml(sections, enabledSections, locale);
 
     const to = application.providerEmail ?? '';
     if (!to) return;
@@ -164,10 +171,27 @@ class DigestService {
     subject: string,
     htmlBody: string,
   ): Promise<void> {
+    const provider: IEmailProvider | undefined = this.resolveProvider(application);
+    if (provider?.sendDigestEmail) {
+      await provider.sendDigestEmail(accessToken, to, subject, htmlBody);
+      return;
+    }
     if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
       await GmailProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
-    } else if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
+      return;
+    }
+    if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
       await OutlookProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
+      return;
+    }
+    throw new BadRequestError(`Digest email is not supported for provider: ${application.providerId}`);
+  }
+
+  private static resolveProvider(application: ConnectedApplicationMetadata): IEmailProvider | undefined {
+    try {
+      return EmailProviderRegistry.get(application.providerId, application.connectionMethod);
+    } catch {
+      return undefined;
     }
   }
 }

@@ -163,15 +163,17 @@ describe('DigestService', () => {
       expect(mockSendStandaloneEmailGmail).not.toHaveBeenCalled();
     });
 
-    it('skips email for unsupported provider type', async () => {
+    it('throws for unsupported provider type instead of silently dropping', async () => {
       mockGetConfig.mockResolvedValue(makeEnabledConfig());
       mockListEventsForRange.mockResolvedValue([makeCalendarEvent()]);
 
-      await service.sendDigest(makeApplication('fastmail-jmap', { providerEmail: 'user@fastmail.com' }) as any, 'access-token');
+      await expect(
+        service.sendDigest(makeApplication('fastmail-jmap', { providerEmail: 'user@fastmail.com' }) as any, 'access-token'),
+      ).rejects.toThrow('Digest email is not supported for provider: fastmail-jmap');
 
       expect(mockSendStandaloneEmailGmail).not.toHaveBeenCalled();
       expect(mockSendStandaloneEmailOutlook).not.toHaveBeenCalled();
-      expect(mockMarkSent).toHaveBeenCalled();
+      expect(mockMarkSent).not.toHaveBeenCalled();
     });
 
     it('filters bills by due date within 7 days', async () => {

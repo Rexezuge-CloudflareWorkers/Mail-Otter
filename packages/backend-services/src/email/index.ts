@@ -2,6 +2,7 @@ export * from './AttachmentAnalysisUtil';
 export * from './ContextService';
 export * from './ProviderOrganizationService';
 export * from './EmailProcessingAuditLogger';
+export * from './EmailPipeline';
 export * from './EmailSummaryOrchestrator';
 export * from './AiUsageUtil';
 export * from './EmailContextUtil';

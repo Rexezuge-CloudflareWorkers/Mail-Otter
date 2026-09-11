@@ -6,40 +6,20 @@ import {
   EMAIL_ACTION_TRIGGER_EMAIL_CALLBACK,
   EMAIL_ACTION_TRIGGER_SCHEDULED,
   EMAIL_ACTION_TRIGGER_WEB_UI,
-  EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM,
-  EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT,
-  EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
-  EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
-  EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK,
-  EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
-  EMAIL_ACTION_TYPE_MANUAL_TODO,
-  EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { CryptoUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import type {
-  AppointmentConfirmActionPayload,
-  CalendarAddEventActionPayload,
-  ConnectedApplication,
-  DeliveryTrackPackageActionPayload,
   EmailAction,
   EmailActionResult,
-  EmailDraftReplyActionPayload,
-  ExternalOpenLinkActionPayload,
-  FinancePayBillActionPayload,
-  TravelTrackFlightActionPayload,
 } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
-import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
-import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
+import { ActionHandlerRegistry } from './handlers/ActionHandlerRegistry';
 import { createActionDAO, hashToken } from './ActionServiceUtils';
 import type { ActionCreationEnv } from './ActionCreationService';
 import { renderConfirmationPage, renderMessagePage, renderResultPage } from './ActionRenderService';
-import * as PackageTrackingService from './PackageTrackingService';
-import * as FlightTrackingService from './FlightTrackingService';
-import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 
 interface ActionHtmlResponse {
   statusCode: number;
@@ -79,82 +59,12 @@ async function hashUserAgent(request: Request | null, env: ActionExecutionEnv): 
   return CryptoUtil.hmacSha256Hex(`email-action-user-agent\n${userAgent}`, await env.ACTION_SIGNING_SECRET.get());
 }
 
-async function executeCalendarAction(action: EmailAction, accessToken: string): Promise<EmailActionResult> {
-  const payload = action.payload as CalendarAddEventActionPayload;
-  return EmailProviderRegistry.get(action.providerId).createCalendarEvent(accessToken, payload);
-}
-
-async function executeDraftReplyAction(
-  action: EmailAction,
-  accessToken: string,
-  application: ConnectedApplication,
-): Promise<EmailActionResult> {
-  const payload = action.payload as EmailDraftReplyActionPayload;
-  const fromEmail = application.providerEmail || application.userEmail;
-  return EmailProviderRegistry.get(action.providerId).createDraftReply(accessToken, action.providerMessageId, fromEmail, payload);
-}
-
 async function executeProviderOperation(action: EmailAction, env: ActionExecutionEnv): Promise<EmailActionResult> {
   const locale = await resolveActionLocale(action, env);
   const strings = getBackendStrings(locale);
-  if (action.actionType === EMAIL_ACTION_TYPE_EXTERNAL_OPEN_LINK) {
-    const payload = action.payload as ExternalOpenLinkActionPayload;
-    return { summary: strings.results.externalLinkReviewed, externalUrl: payload.url, providerUrl: payload.url };
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_MANUAL_TODO) {
-    return { summary: strings.results.manualAcknowledged };
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) {
-    const payload = action.payload as DeliveryTrackPackageActionPayload;
-    const trackingApiKey = ConfigurationManager.digest.getPackageTrackingApiKey(env);
-    if (trackingApiKey) {
-      const status = await PackageTrackingService.fetchStatus(payload.trackingNumber, payload.carrier, trackingApiKey, locale);
-      if (status) return { summary: status.summary, externalUrl: payload.trackingUrl ?? undefined };
-    }
-    if (payload.trackingUrl) return { summary: strings.results.packageLinkOpened, externalUrl: payload.trackingUrl };
-    const via = payload.carrier ? `${strings.results.packageNotedVia}${payload.carrier}` : '';
-    return { summary: `${strings.results.packageNotedPrefix}${payload.trackingNumber}${via}.` };
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) {
-    const payload = action.payload as TravelTrackFlightActionPayload;
-    const flightTrackingApiKey = ConfigurationManager.digest.getFlightTrackingApiKey(env);
-    if (flightTrackingApiKey) {
-      const syncStatus = await FlightTrackingService.fetchFlightStatus(payload.flightNumber, flightTrackingApiKey);
-      if (syncStatus) {
-        const actionDAO = await createActionDAO(env);
-        await actionDAO.updateSyncStatus(action.actionId, JSON.stringify(syncStatus));
-        return {
-          summary: FlightTrackingService.formatFlightSummary(payload.flightNumber, syncStatus, locale),
-          externalUrl: payload.trackingUrl ?? undefined,
-        };
-      }
-    }
-    if (payload.trackingUrl) return { summary: strings.results.flightLinkOpened, externalUrl: payload.trackingUrl };
-    return { summary: `${strings.results.flightNotedPrefix}${payload.flightNumber}${strings.results.flightNotedSuffix}` };
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) {
-    const payload = action.payload as FinancePayBillActionPayload;
-    if (payload.paymentUrl) return { summary: strings.results.paymentLinkOpened, externalUrl: payload.paymentUrl };
-    return { summary: strings.results.billReminderNoted };
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) {
-    const payload = action.payload as AppointmentConfirmActionPayload;
-    const when = payload.appointmentTime ? `${strings.results.appointmentNotedOn}${payload.appointmentTime}` : '';
-    return { summary: `${strings.results.appointmentNotedPrefix}${when}${strings.results.appointmentNotedSuffix}` };
-  }
-
-  const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());
-  const application: ConnectedApplication | undefined = await applicationDAO.getById(action.applicationId);
-  if (!application) throw new BadRequestError('Connected application was not found.');
-  const accessToken: string = await new OAuth2AccessTokenService(env).getAccessToken(application.applicationId, { forceRefresh: true });
-
-  if (action.actionType === EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT) {
-    return executeCalendarAction(action, accessToken);
-  }
-  if (action.actionType === EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY) {
-    return executeDraftReplyAction(action, accessToken, application);
-  }
-  throw new BadRequestError('Unsupported email action type.');
+  const handler = ActionHandlerRegistry.get(action.actionType);
+  if (!handler) throw new BadRequestError('Unsupported email action type.');
+  return handler.execute(action, { env, locale, strings });
 }
 
 async function executeAction(

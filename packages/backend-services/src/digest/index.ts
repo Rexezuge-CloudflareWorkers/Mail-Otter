@@ -2,6 +2,7 @@ export { DigestConfigService, createDigestConfigService } from './DigestConfigSe
 export type { DigestConfigServiceDeps } from './DigestConfigService';
 export { DigestEmailUtil } from './DigestEmailUtil';
 export type { DigestSections } from './DigestEmailUtil';
+export { DigestEmailBuilder } from './DigestEmailBuilder';
 export { DigestService } from './DigestService';
 export type { DigestServiceEnv } from './DigestService';
 export { CalendarEventSyncUtil } from './CalendarEventSyncUtil';

@@ -3,6 +3,8 @@ export * from './EmailContentUtil';
 export * from './GmailProviderUtil';
 export * from './GoogleDriveProviderUtil';
 export * from './OAuth2ProviderUtil';
+export * from './OAuth2Strategy';
 export * from './OneDriveProviderUtil';
 export * from './OutlookProviderUtil';
 export * from './WebhookSecurityUtil';
+export * from './http/HttpClient';

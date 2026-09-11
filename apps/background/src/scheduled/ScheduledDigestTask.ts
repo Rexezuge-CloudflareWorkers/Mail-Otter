@@ -1,18 +1,26 @@
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DigestConfigService, DigestService } from '@mail-otter/backend-services/digest';
+import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import {
   BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST,
   CONNECTED_APPLICATION_STATUS_CONNECTED,
   DIGEST_CONFIG_KEY_ENABLED,
-  PROVIDER_GOOGLE_GMAIL,
-  PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
 
 class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
+  private static supportsDigestEmail(providerId: string, connectionMethod?: string): boolean {
+    try {
+      const provider = EmailProviderRegistry.get(providerId, connectionMethod);
+      return typeof provider.sendDigestEmail === 'function';
+    } catch {
+      return false;
+    }
+  }
+
   protected async handleScheduledTask(
     _event: ScheduledController,
     env: ScheduledDigestTaskEnv,
@@ -36,9 +44,9 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         await run.skip('Application not connected');
         continue;
       }
-      if (application.providerId !== PROVIDER_GOOGLE_GMAIL && application.providerId !== PROVIDER_MICROSOFT_OUTLOOK) {
+      if (!ScheduledDigestTask.supportsDigestEmail(application.providerId, application.connectionMethod)) {
         const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
-        await run.skip('Provider does not support digest');
+        await run.skip(`Provider does not support digest: ${application.providerId}`);
         continue;
       }
 

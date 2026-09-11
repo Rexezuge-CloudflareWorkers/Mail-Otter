@@ -10,9 +10,12 @@ Mailboxes carry their own time zone so calendar events stay correct, optional se
 
 ## Providers
 
-- `google-gmail` / `oauth2`
-- `microsoft-outlook` / `oauth2` for personal Outlook.com, Hotmail, and Live accounts
-- `fastmail-jmap` / `oauth2` or `imap_password` for Fastmail
+- `google-gmail` / `oauth2` (+ `imap-password`)
+- `microsoft-outlook` / `oauth2` for personal Outlook.com, Hotmail, and Live accounts (+ `imap-password`)
+- `fastmail-jmap` / `oauth2` or `imap-password` for Fastmail
+- `yahoo-mail` / `oauth2`
+- `custom-imap` / `oauth2` or `imap-password`
+- `apple-icloud` / `imap-password`
 
 ## Cloudflare Bindings
 
@@ -34,8 +37,7 @@ Copy `apps/api/wrangler.template.jsonc` to `wrangler.jsonc` and fill in the D1 d
 Create the Vectorize index before deploy:
 
 ```bash
-source ~/.customrc
-volta run npx wrangler vectorize create mail-otter-email-context --dimensions=768 --metric=cosine
+npx wrangler vectorize create mail-otter-email-context --dimensions=768 --metric=cosine
 ```
 
 The management UI lets users enable or disable context indexing per connected application, set a per-application document limit, inspect indexed documents, view provider links to original emails, view audit logs, view deletion runs, and delete all indexed documents for one application. A global ceiling (`MAX_CONTEXT_DOCUMENTS_PER_APPLICATION`, default 1 000) caps the limit across all applications; the cron task automatically prunes oldest documents when an application exceeds its effective limit.
@@ -66,13 +68,13 @@ Users can also view, manually execute, and track execution history of actions vi
 
 ## Calendar Feature And Time Zones
 
-`calendar.add_event` actions require the optional **Calendar** feature, which is enabled per connected application in the management UI. Enabling it requests additional OAuth scopes (`calendar.events` for Gmail, `Calendars.ReadWrite` for Outlook), so the mailbox must be re-authorized after enabling.
+`calendar.add_event` actions require the optional **Calendar** feature, which is enabled per connected application in the management UI. Enabling it requests additional OAuth scopes (`https://www.googleapis.com/auth/calendar.events` for Gmail, `https://graph.microsoft.com/Calendars.ReadWrite` for Outlook, `urn:ietf:params:jmap:calendars` for Fastmail), so the mailbox must be re-authorized after enabling.
 
 Each connected mailbox has its own time zone (defaulting to `UTC`). Calendar events and event-facing dates in summaries are rendered in the mailbox's configured zone, so they stay correct regardless of where the Worker runs.
 
 ## Sender Domain Filters
 
-Each connected application can optionally define sender domain filters with include and exclude rules (up to 100 each). With no include rules, all senders are processed except those excluded; with include rules, only matching senders are processed. Configure filters in the management UI.
+Each connected application can optionally define a sender allowlist (`includeRules`, up to 100). With no include rules, all senders are processed; with include rules, only matching senders are processed. To block a sender, create a processing rule (field `from`, op `matches_sender`, action `skip`). Configure filters in the management UI.
 
 ## Analytics
 
@@ -204,9 +206,8 @@ Do not put secrets in `WRANGLER_VARS_PATCH_JSON`; use GitHub secrets, Wrangler s
 ## Commands
 
 ```bash
-source ~/.customrc
-volta run pnpm install
-volta run pnpm run typecheck
-volta run pnpm run test
-volta run pnpm run build
+pnpm install
+pnpm run typecheck
+pnpm run test
+pnpm --filter @mail-otter/web build
 ```

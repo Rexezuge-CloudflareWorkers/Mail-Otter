@@ -24,6 +24,11 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     return null;
   }
 
+  // Factory Method: override in tests to substitute the run-record DAO.
+  protected createTaskRunDAO(db: D1Queryable): BackgroundTaskRunDAO {
+    return new BackgroundTaskRunDAO(db);
+  }
+
   public async handle(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const tEnv = env as unknown as TEnv;
     const taskType = this.getTaskType();
@@ -31,7 +36,7 @@ abstract class IScheduledTask<TEnv extends IEnv> {
 
     let runId: string | undefined;
     if (taskType && db) {
-      const dao = new BackgroundTaskRunDAO(db);
+      const dao = this.createTaskRunDAO(db);
       runId = await dao.startRun({ taskType }).catch((error: unknown) => {
         console.warn(`[${this.constructor.name}] Failed to start task run record:`, error);
         return undefined;
@@ -41,7 +46,7 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     try {
       const result = await this.handleScheduledTask(event, tEnv, ctx);
       if (runId && db) {
-        const dao = new BackgroundTaskRunDAO(db);
+        const dao = this.createTaskRunDAO(db);
         await dao.succeedRun(runId, result ?? { itemsProcessed: 0, itemsFailed: 0 }).catch((error: unknown) => {
           console.warn(`[${this.constructor.name}] Failed to mark task run succeeded:`, error);
         });
@@ -49,7 +54,7 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     } catch (error: unknown) {
       console.error(`[${this.constructor.name}] Uncaught error:`, error);
       if (runId && db) {
-        const dao = new BackgroundTaskRunDAO(db);
+        const dao = this.createTaskRunDAO(db);
         await dao.failRun(runId, String(error)).catch((recordError: unknown) => {
           console.warn(`[${this.constructor.name}] Failed to mark task run failed:`, recordError);
         });
@@ -60,7 +65,7 @@ abstract class IScheduledTask<TEnv extends IEnv> {
   // Creates a per-application run record and returns a handle to complete it.
   // Call inside per-application loops in tasks that process multiple mailboxes.
   protected async createApplicationRun(taskType: string, applicationId: string, db: D1Queryable): Promise<ApplicationRunHandle> {
-    const dao = new BackgroundTaskRunDAO(db);
+    const dao = this.createTaskRunDAO(db);
     const runId = await dao.startRun({ taskType, applicationId });
     const warn = (op: string) => (error: unknown): void => {
       console.warn(`[${this.constructor.name}] Failed to mark application run ${op}:`, error);

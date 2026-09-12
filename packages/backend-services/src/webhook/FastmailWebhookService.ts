@@ -1,5 +1,5 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { BaseWebhookService } from './BaseWebhookService';
@@ -20,7 +20,7 @@ class FastmailWebhookService extends BaseWebhookService {
   public static async handleNotification(input: FastmailWebhookInput, env: FastmailWebhookEnv): Promise<void> {
     const { dao: subscriptionDAO, subscription } = await this.getSubscriptionByApplication(env.DB, input.applicationId);
     if (!subscription || !subscription.webhookSecretHash) {
-      throw new BadRequestError('Fastmail webhook: application subscription not found or not configured.');
+      throw new NotFoundError('Fastmail webhook: application subscription not found or not configured.');
     }
     if (!input.token || !(await WebhookSecurityUtil.matchesSecret(input.token, subscription.webhookSecretHash))) {
       throw new BadRequestError('Fastmail webhook: invalid token.');

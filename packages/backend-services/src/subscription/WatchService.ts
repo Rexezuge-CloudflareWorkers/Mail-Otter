@@ -1,7 +1,7 @@
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { TimestampUtil } from '@mail-otter/shared/utils';
@@ -94,7 +94,7 @@ class WatchService {
     const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
     const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
-    if (!application) throw new BadRequestError('Connected application was not found.');
+    if (!application) throw new NotFoundError('Connected application was not found.');
     return application;
   }
 

@@ -1,4 +1,5 @@
 import type { D1Queryable } from '../utils';
+import { CursorUtil } from '../utils/CursorUtil';
 import { executeD1WithRetry } from '../utils/D1Utils';
 
 const SQL_IDENTIFIER_PATTERN = /^[a-z_]\w*$/i;
@@ -14,6 +15,32 @@ abstract class BaseDAO {
 
   protected withRetry(operation: () => Promise<D1Result>, context: string): Promise<D1Result> {
     return executeD1WithRetry(operation, context);
+  }
+
+  // Instance variants of the static helpers below, bound to this DAO's
+  // database so subclasses stop threading `db` through every call.
+  protected findRowById<T>(table: string, idColumn: string, idValue: string, columns = '*'): Promise<T | null> {
+    return BaseDAO.findById<T>(this.database, table, idColumn, idValue, columns);
+  }
+
+  protected deleteRowsOlderThan(
+    table: string,
+    timeColumn: string,
+    cutoff: number | string,
+    limit: number,
+    idColumn: string,
+  ): Promise<number> {
+    return BaseDAO.deleteOlderThan(this.database, table, timeColumn, cutoff, limit, idColumn);
+  }
+
+  // Shared opaque-cursor codec. Per-DAO `encodeCursor/parseCursor` wrappers
+  // should delegate here and only add payload validation.
+  protected encodeCursor(value: unknown): string {
+    return CursorUtil.encode(value);
+  }
+
+  protected decodeCursor<T>(cursor: string | undefined): T | undefined {
+    return CursorUtil.decode<T>(cursor);
   }
 
   // Generic row lookup by primary key. Table/column identifiers are allow-listed
@@ -67,7 +94,10 @@ abstract class BaseDAO {
 }
 
 abstract class EncryptedDAO extends BaseDAO {
-  constructor(database: D1Queryable, protected readonly masterKey: string) {
+  constructor(
+    database: D1Queryable,
+    protected readonly masterKey: string,
+  ) {
     super(database);
   }
 }

@@ -8,7 +8,7 @@ import {
   EMAIL_ACTION_TRIGGER_WEB_UI,
 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { CryptoUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import type {
   EmailAction,
@@ -148,7 +148,7 @@ async function executeActionWithToken(actionId: string, token: string, request: 
 async function executeActionForUser(actionId: string, userEmail: string, request: Request, env: UserActionEnv): Promise<EmailAction> {
   const actionDAO = await createActionDAO(env);
   const action: EmailAction | undefined = await actionDAO.getForUser(actionId, userEmail);
-  if (!action) throw new BadRequestError('Email action was not found.');
+  if (!action) throw new NotFoundError('Email action was not found.');
   return executeAction(action, EMAIL_ACTION_TRIGGER_WEB_UI, request, env);
 }
 

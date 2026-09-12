@@ -5,6 +5,7 @@ export {
   resolveEmailProvider,
 } from './EmailProviderRegistry';
 export type { ProviderMap } from './EmailProviderRegistry';
+export { InjectableEmailProviderRegistry } from './InjectableEmailProviderRegistry';
 export { AbstractOAuthEmailProvider } from './AbstractOAuthEmailProvider';
 export type {
   AnyProviderCredentials,

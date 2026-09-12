@@ -155,7 +155,7 @@ describe('User applications API', () => {
       expect(body.application.applicationId).toBe(applicationId);
     });
 
-    it('returns 400 when application is not found', async () => {
+    it('returns 404 when application is not found', async () => {
       const response: Response = await SELF.fetch('http://localhost/user/application', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -168,7 +168,7 @@ describe('User applications API', () => {
         }),
       });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(404);
     });
   });
 

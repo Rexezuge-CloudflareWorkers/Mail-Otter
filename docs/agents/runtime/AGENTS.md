@@ -35,3 +35,8 @@ Scope: Wrangler bindings, build output, env vars. Parent index: `../../../AGENTS
 | Misc | `DEBUG_MODE` (`false`), `MAX_APPLICATIONS_PER_USER` (`99`) |
 
 Add new env vars in `ConfigurationDefaults.ts` (+ `ConfigurationManager` getter), not inline.
+
+## Dependency injection (`packages/backend-runtime/src/di/`)
+
+- `Container` — minimal Factory + Singleton DI container (`bind`/`bindValue`/`get`/`resolve`/`createChild`). Composition roots (API/background workers, tests) wire dependencies once; services declare constructor deps on interfaces.
+- `createServiceContext(env, overrides?)` — single request-scoped `{ env, logger, clock }` replacing the 13+ bespoke `*Env` subsets. Prefer extending/deriving from `ServiceContext` over new `*Env` interfaces; never reintroduce `as` env casts in new code.

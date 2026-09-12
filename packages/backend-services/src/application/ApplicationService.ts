@@ -7,7 +7,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDeliveryLogDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
@@ -87,7 +87,7 @@ class ApplicationService {
     const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
     const existing: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(input.applicationId, userEmail);
     if (!existing) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     if (existing.providerId !== input.providerId || existing.connectionMethod !== input.connectionMethod) {
       throw new BadRequestError('Provider and connection method cannot be changed after creation.');
@@ -139,7 +139,7 @@ class ApplicationService {
       input.contentLanguage,
     );
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
@@ -150,7 +150,7 @@ class ApplicationService {
       input.applicationId, userEmail, input.folderIds, input.folderNames,
     );
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
@@ -183,7 +183,7 @@ class ApplicationService {
     const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.acknowledgeErrorForUser(applicationId, userEmail, errorType);
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
@@ -206,7 +206,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
     const existing = await dao.getByIdForUser(input.integrationId, userEmail);
-    if (!existing) throw new BadRequestError('Integration not found.');
+    if (!existing) throw new NotFoundError('Integration not found.');
     return dao.update(input.integrationId, { name: input.name, enabled: input.enabled, webhookUrl: input.webhookUrl });
   }
 
@@ -214,7 +214,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
     const existing = await dao.getByIdForUser(integrationId, userEmail);
-    if (!existing) throw new BadRequestError('Integration not found.');
+    if (!existing) throw new NotFoundError('Integration not found.');
     await dao.deleteById(integrationId);
   }
 
@@ -222,7 +222,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
     const integration = await dao.getByIdForUser(integrationId, userEmail);
-    if (!integration) throw new BadRequestError('Integration not found.');
+    if (!integration) throw new NotFoundError('Integration not found.');
     await new IntegrationService(this.env).sendTestNotification(integration);
   }
 
@@ -230,7 +230,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const integrationDao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
     const integration = await integrationDao.getByIdForUser(integrationId, userEmail);
-    if (!integration) throw new BadRequestError('Integration not found.');
+    if (!integration) throw new NotFoundError('Integration not found.');
     const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
     return logDao.listByIntegrationId(integrationId, limit);
   }
@@ -265,7 +265,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
     const updated = await dao.updateEmailProcessingRulesForUser(applicationId, userEmail, rules);
-    if (!updated) throw new BadRequestError('Connected application not found.');
+    if (!updated) throw new NotFoundError('Connected application not found.');
     return updated;
   }
 
@@ -301,7 +301,7 @@ class ApplicationService {
     const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
     const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
-    if (!app) throw new BadRequestError('Connected application not found.');
+    if (!app) throw new NotFoundError('Connected application not found.');
   }
 
   private async createApplicationDAO(): Promise<ConnectedApplicationDAO> {

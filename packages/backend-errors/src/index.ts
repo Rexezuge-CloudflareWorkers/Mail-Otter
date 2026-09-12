@@ -12,6 +12,7 @@ export { ForbiddenError } from './ForbiddenError';
 export { InternalServerError, DefaultInternalServerError } from './InternalServerError';
 export { MethodNotAllowedError } from './MethodNotAllowedError';
 export { NonRetryableError } from './NonRetryableError';
+export { NotFoundError } from './NotFoundError';
 export { RetryableError } from './RetryableError';
 export { UnauthorizedError } from './UnauthorizedError';
 export type { ErrorResponse } from './model/ErrorResponse';

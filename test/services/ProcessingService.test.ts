@@ -63,7 +63,7 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
 }));
 
 import { ProcessingService } from '@mail-otter/backend-services/processing';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 
 function makeEnv() {
   return {
@@ -171,12 +171,12 @@ describe('ProcessingService', () => {
       ).rejects.toThrow(BadRequestError);
     });
 
-    it('throws BadRequestError when application not found', async () => {
+    it('throws NotFoundError when application not found', async () => {
       mockGetByIdForUser.mockResolvedValue(null);
 
       await expect(
         ProcessingService.triggerTask('user@example.com', 'calendar_sync', 'app-1', makeEnv() as any),
-      ).rejects.toThrow(BadRequestError);
+      ).rejects.toThrow(NotFoundError);
     });
 
     it('triggers calendar_sync task successfully', async () => {

@@ -1,7 +1,7 @@
 import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type { ConnectedApplication, OAuth2AuthorizationSession, OAuth2Credentials } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { BaseUrlUtil, TimestampUtil } from '@mail-otter/shared/utils';
@@ -18,7 +18,7 @@ class OAuth2AuthorizationService {
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
     const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     if (application.connectionMethod !== CONNECTION_METHOD_OAUTH2) {
       throw new BadRequestError('Connected application does not use OAuth2.');
@@ -60,7 +60,7 @@ class OAuth2AuthorizationService {
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
     const application: ConnectedApplication | undefined = await applicationDAO.getById(input.applicationId);
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     await new OAuth2AccessTokenService(this.env as OAuth2AccessTokenServiceEnv).completeAuthorization({
       applicationId: input.applicationId,

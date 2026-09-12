@@ -8,7 +8,7 @@ import type {
 import type { ProcessedMessageList, SyncedCalendarEventList } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { ActionStatusSyncUtil, CalendarEventSyncUtil } from '../digest';
 import { OAuth2AccessTokenService } from '../oauth2';
 import { BACKGROUND_TASK_TYPE_ACTION_STATUS_SYNC, BACKGROUND_TASK_TYPE_CALENDAR_SYNC } from '@mail-otter/shared/constants';
@@ -78,7 +78,7 @@ const ProcessingService = {
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
     const application = await applicationDAO.getByIdForUser(applicationId, userEmail);
-    if (!application) throw new BadRequestError('Connected application not found.');
+    if (!application) throw new NotFoundError('Connected application not found.');
 
     if (taskType === BACKGROUND_TASK_TYPE_CALENDAR_SYNC) {
       const now = new Date();

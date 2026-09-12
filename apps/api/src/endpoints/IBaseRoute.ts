@@ -1,7 +1,7 @@
 import { OpenAPIRoute } from 'chanfana';
 import { Context } from 'hono';
 import type { StatusCode } from 'hono/utils/http-status';
-import { BadRequestError, DatabaseError, DefaultInternalServerError, ServiceError } from '@mail-otter/backend-errors';
+import { BadRequestError, DefaultInternalServerError, ServiceError } from '@mail-otter/backend-errors';
 import { validateRequestInput } from '@mail-otter/shared/schema';
 
 abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse, TEnv extends IEnv> extends OpenAPIRoute {
@@ -57,12 +57,15 @@ abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse
   }
 
   protected toErrorResponse(error: unknown, c: RouteContext<TEnv>) {
-    if (error instanceof ServiceError && error.getErrorCode() < 500) {
-      console.warn(`Responding with ${error.getErrorType()}:`, error.stack);
-      return c.json({ Exception: { Type: error.getErrorType(), Message: error.getErrorMessage() } }, error.getErrorCode());
-    }
-    if (error instanceof DatabaseError) {
-      console.error('Caught database error during execution:', error);
+    // Typed service errors (including NotFoundError/DatabaseError and 5xx
+    // domain errors) map to their own status/type/message with the original
+    // cause preserved. Only untyped errors are masked as internal errors.
+    if (error instanceof ServiceError) {
+      if (error.getErrorCode() < 500) {
+        console.warn(`Responding with ${error.getErrorType()}:`, error.stack);
+      } else {
+        console.error(`Responding with ${error.getErrorType()}:`, error);
+      }
       return c.json({ Exception: { Type: error.getErrorType(), Message: error.getErrorMessage() } }, error.getErrorCode());
     }
     console.error('Caught service error during execution:', error);

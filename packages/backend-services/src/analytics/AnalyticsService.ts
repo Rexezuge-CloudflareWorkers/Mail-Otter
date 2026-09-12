@@ -1,6 +1,6 @@
 import { AiDailyUsageDAO, ApplicationContextDAO, ConnectedApplicationDAO, EmailActionDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import type { ApplicationContextUserCounts, EmailActionCounts, ProcessedMessageStatusCounts } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@mail-otter/backend-errors';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 // NOTE: Migrate to Cloudflare Analytics Engine for time-series queries once historical D1 data
@@ -16,7 +16,7 @@ class AnalyticsService {
 
     if (applicationId) {
       const app = await new ConnectedApplicationDAO(this.env.DB, masterKey).getMetadataByIdForUser(applicationId, userEmail);
-      if (!app) throw new BadRequestError('Connected application was not found.');
+      if (!app) throw new NotFoundError('Connected application was not found.');
     }
 
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();

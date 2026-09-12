@@ -10,7 +10,7 @@ import {
 } from '@mail-otter/shared/constants';
 import type { EmailActionType } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type {
   AppointmentConfirmActionPayload,
@@ -34,7 +34,7 @@ import type { ActionExecutionEnv } from '../ActionExecutionService';
 async function resolveApplication(action: EmailAction, env: ActionExecutionEnv): Promise<ConnectedApplication> {
   const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());
   const application: ConnectedApplication | undefined = await applicationDAO.getById(action.applicationId);
-  if (!application) throw new BadRequestError('Connected application was not found.');
+  if (!application) throw new NotFoundError('Connected application was not found.');
   return application;
 }
 

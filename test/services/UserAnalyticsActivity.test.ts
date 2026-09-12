@@ -55,7 +55,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
 import { UserService } from '@mail-otter/backend-services/user';
 import { AnalyticsService } from '@mail-otter/backend-services/analytics';
 import { ActivityService } from '@mail-otter/backend-services/activity';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@mail-otter/backend-errors';
 
 function userEnv(extra: Record<string, unknown> = {}) {
   return { DB: {} as D1Database, ...extra };
@@ -125,11 +125,11 @@ describe('AnalyticsService', () => {
     mockGetByDateRange.mockResolvedValue([]);
   });
 
-  it('throws BadRequestError when the scoped application is missing', async () => {
+  it('throws NotFoundError when the scoped application is missing', async () => {
     mockGetMetadataByIdForUser.mockResolvedValue(null);
     await expect(
       new AnalyticsService(analyticsEnv()).getAnalytics('user@example.com', { days: 7, applicationId: 'nope' }),
-    ).rejects.toThrow(BadRequestError);
+    ).rejects.toThrow(NotFoundError);
   });
 
   it('aggregates AI usage totals and daily rows', async () => {

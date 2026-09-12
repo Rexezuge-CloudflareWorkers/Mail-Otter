@@ -20,7 +20,8 @@ import { NonRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { CreatedEmailAction } from '../action';
 import { EmailProcessingAuditLogger } from './EmailProcessingAuditLogger';
-import { EmailFetchError, EmailMessageNotFoundError, EmailPipelineOrchestrator, classifyPipelineError } from './EmailPipeline';
+import { EmailFetchError, EmailMessageNotFoundError, classifyPipelineError } from './EmailPipeline';
+import { EmailPipelineFactory } from './EmailPipelineFactory';
 import type { FetchedEmail } from './EmailPipeline';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 
@@ -120,12 +121,7 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<GmailSummaryData | null> {
-    const pipeline = new EmailPipelineOrchestrator(
-      new ProcessedMessageDAO(env.DB),
-      new EmailProcessingAuditLogger(new ApplicationContextDAO(env.DB)),
-      env,
-      enabledApplicationIds,
-    );
+    const pipeline = new EmailPipelineFactory(env.DB).create(env, enabledApplicationIds);
     return pipeline.runGenerate<GmailMessage, GmailSummaryData>(
       application,
       options,
@@ -198,12 +194,7 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<OutlookSummaryData | null> {
-    const pipeline = new EmailPipelineOrchestrator(
-      new ProcessedMessageDAO(env.DB),
-      new EmailProcessingAuditLogger(new ApplicationContextDAO(env.DB)),
-      env,
-      enabledApplicationIds,
-    );
+    const pipeline = new EmailPipelineFactory(env.DB).create(env, enabledApplicationIds);
     return pipeline.runGenerate<OutlookMessage, OutlookSummaryData>(
       application,
       options,
@@ -275,12 +266,7 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<JmapSummaryData | null> {
-    const pipeline = new EmailPipelineOrchestrator(
-      new ProcessedMessageDAO(env.DB),
-      new EmailProcessingAuditLogger(new ApplicationContextDAO(env.DB)),
-      env,
-      enabledApplicationIds,
-    );
+    const pipeline = new EmailPipelineFactory(env.DB).create(env, enabledApplicationIds);
     return pipeline.runGenerate<JmapEmailResult, JmapSummaryData>(
       application,
       options,
@@ -343,12 +329,7 @@ class EmailProcessingUtil {
     enabledApplicationIds: string[],
     options: EmailProcessingOptions = {},
   ): Promise<ImapSummaryData | null> {
-    const pipeline = new EmailPipelineOrchestrator(
-      new ProcessedMessageDAO(env.DB),
-      new EmailProcessingAuditLogger(new ApplicationContextDAO(env.DB)),
-      env,
-      enabledApplicationIds,
-    );
+    const pipeline = new EmailPipelineFactory(env.DB).create(env, enabledApplicationIds);
     return pipeline.runGenerate<ImapFetchResult, ImapSummaryData>(
       application,
       options,

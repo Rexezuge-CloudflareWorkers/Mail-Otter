@@ -6,7 +6,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunList,
@@ -30,27 +30,27 @@ class ContextService {
 
     if (input.contextIndexingEnabled !== undefined) {
       application = await applicationDAO.updateContextIndexingForUser(input.applicationId, userEmail, input.contextIndexingEnabled);
-      if (!application) throw new BadRequestError('Connected application was not found.');
+      if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (input.ragRetrievalEnabled !== undefined) {
       application = await applicationDAO.updateRagRetrievalForUser(input.applicationId, userEmail, input.ragRetrievalEnabled);
-      if (!application) throw new BadRequestError('Connected application was not found.');
+      if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if ('maxContextDocuments' in input) {
       application = await applicationDAO.updateMaxContextDocumentsForUser(input.applicationId, userEmail, input.maxContextDocuments ?? null);
-      if (!application) throw new BadRequestError('Connected application was not found.');
+      if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (input.attachmentVisionEnabled !== undefined) {
       application = await applicationDAO.updateAttachmentVisionEnabledForUser(input.applicationId, userEmail, input.attachmentVisionEnabled);
-      if (!application) throw new BadRequestError('Connected application was not found.');
+      if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (!application) {
       application = await applicationDAO.getMetadataByIdForUser(input.applicationId, userEmail);
-      if (!application) throw new BadRequestError('Connected application was not found.');
+      if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
@@ -115,7 +115,7 @@ class ContextService {
     const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
 
     const contextDAO = new ApplicationContextDAO(this.env.DB);
@@ -159,7 +159,7 @@ class ContextService {
     const contextDAO = new ApplicationContextDAO(this.env.DB);
     const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
     if (!document) {
-      throw new BadRequestError('Context document was not found.');
+      throw new NotFoundError('Context document was not found.');
     }
     return contextDAO.listAuditLogs(contextDocumentId, { cursor });
   }
@@ -168,13 +168,13 @@ class ContextService {
     const contextDAO = new ApplicationContextDAO(this.env.DB);
     const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
     if (!document) {
-      throw new BadRequestError('Context document was not found.');
+      throw new NotFoundError('Context document was not found.');
     }
 
     const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(document.applicationId, userEmail);
     if (!application) {
-      throw new BadRequestError('Connected application was not found.');
+      throw new NotFoundError('Connected application was not found.');
     }
     return EmailProviderRegistry.get(document.sourceProviderId).getProviderUrl(document, application);
   }

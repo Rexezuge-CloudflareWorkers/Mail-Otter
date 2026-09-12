@@ -4,7 +4,7 @@ import {
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
   EMAIL_ACTION_TRIGGER_SCHEDULED,
 } from '@mail-otter/shared/constants';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import type { EmailAction } from '@mail-otter/shared/model';
 import { createActionDAO } from './ActionServiceUtils';
@@ -23,7 +23,7 @@ const AUTO_EXECUTABLE_ACTION_TYPES: ReadonlySet<string> = new Set([
 async function snoozeAction(env: ActionExecutionEnv, actionId: string, userEmail: string, snoozedUntil: Date | null): Promise<EmailAction> {
   const dao = await createActionDAO(env);
   const action = await dao.getForUser(actionId, userEmail);
-  if (!action) throw new BadRequestError('Email action was not found.');
+  if (!action) throw new NotFoundError('Email action was not found.');
   if (action.status !== 'pending') throw new BadRequestError('Only pending actions can be snoozed.');
 
   if (snoozedUntil === null) {
@@ -43,7 +43,7 @@ async function snoozeAction(env: ActionExecutionEnv, actionId: string, userEmail
 async function scheduleAction(env: ActionExecutionEnv, actionId: string, userEmail: string, scheduledFor: Date | null): Promise<EmailAction> {
   const dao = await createActionDAO(env);
   const action = await dao.getForUser(actionId, userEmail);
-  if (!action) throw new BadRequestError('Email action was not found.');
+  if (!action) throw new NotFoundError('Email action was not found.');
   if (action.status !== 'pending') throw new BadRequestError('Only pending actions can be scheduled.');
 
   if (scheduledFor === null) {

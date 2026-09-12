@@ -1,5 +1,6 @@
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { CONNECTED_APPLICATION_STATUS_CONNECTED } from '@mail-otter/shared/constants';
@@ -46,6 +47,7 @@ abstract class BaseDriveSyncTask<TEnv extends BaseDriveSyncTaskEnv> extends ISch
     env: TEnv,
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
+    const scope = createRequestScope(env as never);
     const { taskType, featureFlag, expectedProviderId, unsupportedProviderMessage, noun } = this.config();
     const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
@@ -70,7 +72,7 @@ abstract class BaseDriveSyncTask<TEnv extends BaseDriveSyncTaskEnv> extends ISch
           continue;
         }
 
-        const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
+        const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(applicationId);
         const result = await this.ingestForApplication(env, application, accessToken);
 
         synced++;

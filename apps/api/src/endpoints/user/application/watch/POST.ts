@@ -2,6 +2,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { BaseUrlUtil } from '@mail-otter/shared/utils';
 import { WatchService } from '@mail-otter/backend-services/subscription';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class StartApplicationWatchRoute extends IUserRoute<StartApplicationWatchRequest, StartApplicationWatchResponse, StartApplicationWatchEnv> {
   schema = {
@@ -19,7 +20,8 @@ class StartApplicationWatchRoute extends IUserRoute<StartApplicationWatchRequest
     env: StartApplicationWatchEnv,
     cxt: RouteContext<StartApplicationWatchEnv>,
   ): Promise<StartApplicationWatchResponse> {
-    return new WatchService(env).startApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.WatchService).startApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
   }
 }
 

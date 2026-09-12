@@ -10,8 +10,30 @@ import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import type { AnyProviderCredentials } from '../provider/IEmailProvider';
 
+interface WatchServiceDeps {
+  subscriptionDAO?: () => Promise<ProviderSubscriptionDAO>;
+  applicationDAO?: () => Promise<ConnectedApplicationDAO>;
+  tokenService?: () => Promise<OAuth2AccessTokenService>;
+  providerRegistry?: { get(providerId: string, connectionMethod?: string): ReturnType<typeof EmailProviderRegistry.get> };
+}
+
 class WatchService {
-  constructor(private readonly env: WatchServiceEnv) {}
+  private readonly deps: Required<WatchServiceDeps>;
+
+  constructor(
+    private readonly env: WatchServiceEnv,
+    deps: WatchServiceDeps = {},
+  ) {
+    const db = env.DB;
+    const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
+    this.deps = {
+      subscriptionDAO: () => Promise.resolve(new ProviderSubscriptionDAO(db),),
+      applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
+      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env),),
+      providerRegistry: EmailProviderRegistry,
+      ...deps,
+    };
+  }
 
   async startApplicationWatch(userEmail: string, applicationId: string, baseUrl: string): Promise<StartApplicationWatchResult> {
     const application: ConnectedApplication = await this.getConnectedApplicationForUser(userEmail, applicationId);
@@ -22,13 +44,12 @@ class WatchService {
       throw new BadRequestError('Connected application is missing provider mailbox metadata.');
     }
 
-    const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
+    const provider = this.deps.providerRegistry.get(application.providerId, application.connectionMethod);
     const credentials = await this.resolveCredentials(application);
-    const subscriptionDAO = new ProviderSubscriptionDAO(this.env.DB);
+    const subscriptionDAO = await this.deps.subscriptionDAO();
 
-    const clientState = application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
-      ? undefined
-      : WebhookSecurityUtil.generateSecret().slice(0, 128);
+    const clientState =
+      application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD ? undefined : WebhookSecurityUtil.generateSecret().slice(0, 128);
     const ttlDays: number = ConfigurationManager.getOutlookSubscriptionTtlDays(this.env);
     const expiresAt: number = TimestampUtil.addDays(TimestampUtil.getCurrentUnixTimestampInSeconds(), ttlDays);
 
@@ -76,13 +97,17 @@ class WatchService {
 
   async stopApplicationWatch(userEmail: string, applicationId: string): Promise<void> {
     const application: ConnectedApplication = await this.getConnectedApplicationForUser(userEmail, applicationId);
-    const subscriptionDAO = new ProviderSubscriptionDAO(this.env.DB);
+    const subscriptionDAO = await this.deps.subscriptionDAO();
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
-    const accessToken: string = application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
-      ? ''
-      : await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId);
+    const tokenService = await this.deps.tokenService();
+    const accessToken: string =
+      application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
+        ? ''
+        : await tokenService.getAccessToken(application.applicationId);
     try {
-      await EmailProviderRegistry.get(application.providerId, application.connectionMethod).stopWatch(accessToken, subscription?.externalSubscriptionId ?? undefined);
+      await this.deps.providerRegistry
+        .get(application.providerId, application.connectionMethod)
+        .stopWatch(accessToken, subscription?.externalSubscriptionId ?? undefined);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[WatchService] Provider unsubscribe failed, proceeding with local stop: ${message}`);
@@ -91,8 +116,7 @@ class WatchService {
   }
 
   private async getConnectedApplicationForUser(userEmail: string, applicationId: string): Promise<ConnectedApplication> {
-    const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
+    const applicationDAO = await this.deps.applicationDAO();
     const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
     if (!application) throw new NotFoundError('Connected application was not found.');
     return application;
@@ -111,7 +135,8 @@ class WatchService {
         port: application.imapPort ?? 993,
       };
     }
-    const accessToken = await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId);
+    const tokenService = await this.deps.tokenService();
+    const accessToken = await tokenService.getAccessToken(application.applicationId);
     return { type: 'oauth2', accessToken };
   }
 }
@@ -139,4 +164,4 @@ interface StartApplicationWatchResult {
 }
 
 export { WatchService, WatchServiceFactory };
-export type { StartApplicationWatchResult, WatchServiceEnv };
+export type { StartApplicationWatchResult, WatchServiceDeps, WatchServiceEnv };

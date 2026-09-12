@@ -2,6 +2,7 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ContextService } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<
   GetApplicationContextDocumentProviderLinkRequest,
@@ -23,6 +24,7 @@ class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<
     env: GetApplicationContextDocumentProviderLinkEnv,
     cxt: RouteContext<GetApplicationContextDocumentProviderLinkEnv>,
   ): Promise<GetApplicationContextDocumentProviderLinkResponse> {
+    const scope = createRequestScope(env);
     const contextDocumentId: string | undefined = cxt.req.param('contextDocumentId');
     if (!contextDocumentId) {
       throw new BadRequestError('Context document id is required.');
@@ -30,7 +32,7 @@ class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<
 
     const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
     return {
-      url: await new ContextService(env).getDocumentProviderLink(userEmail, contextDocumentId),
+      url: await scope.get(Tokens.ContextService).getDocumentProviderLink(userEmail, contextDocumentId),
     };
   }
 }

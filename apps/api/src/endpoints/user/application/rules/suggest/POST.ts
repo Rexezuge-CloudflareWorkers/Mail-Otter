@@ -2,6 +2,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class SuggestApplicationRuleRoute extends IUserRoute<SuggestApplicationRuleRequest, SuggestApplicationRuleResponse, SuggestApplicationRuleEnv> {
   schema = {
@@ -19,7 +20,8 @@ class SuggestApplicationRuleRoute extends IUserRoute<SuggestApplicationRuleReque
     env: SuggestApplicationRuleEnv,
     cxt: RouteContext<SuggestApplicationRuleEnv>,
   ): Promise<SuggestApplicationRuleResponse> {
-    const rule = await new ApplicationService(env).suggestRule(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.description);
+    const scope = createRequestScope(env);
+    const rule = await scope.get(Tokens.ApplicationService).suggestRule(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.description);
     return { rule };
   }
 }

@@ -1,8 +1,4 @@
-import {
-  PROCESSED_MESSAGE_STATUS_SUMMARIZED,
-  PROVIDER_SUBSCRIPTION_STATUS_ACTIVE,
-  CONNECTION_METHOD_IMAP_PASSWORD,
-} from '@mail-otter/shared/constants';
+import { PROCESSED_MESSAGE_STATUS_SUMMARIZED, PROVIDER_SUBSCRIPTION_STATUS_ACTIVE } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO, ProcessedMessageDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
@@ -15,6 +11,7 @@ import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import type { JmapEmailResult } from '@mail-otter/provider-clients/fastmail';
 import type { ImapFetchResult } from '@mail-otter/provider-clients/imap';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
+import { isImapPasswordApplication, requiresProviderMailbox } from '@mail-otter/shared/model';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { NonRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
@@ -33,13 +30,12 @@ class EmailProcessingUtil {
     if (!application) {
       throw new NonRetryableError('Connected application was not found for queued email event.');
     }
-    if (!application.providerEmail && application.connectionMethod !== CONNECTION_METHOD_IMAP_PASSWORD) {
+    if (requiresProviderMailbox(application)) {
       throw new NonRetryableError('Connected application does not have a provider mailbox address.');
     }
-    const accessToken: string =
-      application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
-        ? ''
-        : await new OAuth2AccessTokenService(env).getAccessToken(application.applicationId);
+    const accessToken: string = isImapPasswordApplication(application)
+      ? ''
+      : await new OAuth2AccessTokenService(env).getAccessToken(application.applicationId);
     const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
     return { application, accessToken, enabledApplicationIds };
   }

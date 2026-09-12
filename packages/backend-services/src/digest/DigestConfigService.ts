@@ -13,14 +13,24 @@ const SEND_TIME_PATTERN = /^\d{2}:\d{2}$/;
 const DIGEST_WINDOW_MINUTES = 10;
 
 class DigestConfigService {
-  constructor(private readonly dao: ConnectedApplicationDAO) {}
+  constructor(private readonly daoOrFactory: ConnectedApplicationDAO | (() => Promise<ConnectedApplicationDAO>)) {}
+
+  private async dao(): Promise<ConnectedApplicationDAO> {
+    return typeof this.daoOrFactory === 'function' ? this.daoOrFactory() : this.daoOrFactory;
+  }
+
+  // Composition helper so route handlers never import DAOs directly.
+  public static forDatabase(db: D1Queryable, masterKey: string): DigestConfigService {
+    return new DigestConfigService(new ConnectedApplicationDAO(db, masterKey));
+  }
 
   public async getConfig(applicationId: string): Promise<DigestConfig> {
+    const dao = await this.dao();
     const [enabledRaw, sendTime, sectionsRaw, lastSentAt] = await Promise.all([
-      this.dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_ENABLED),
-      this.dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_SEND_TIME),
-      this.dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_SECTIONS),
-      this.dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_LAST_SENT_AT),
+      dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_ENABLED),
+      dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_SEND_TIME),
+      dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_SECTIONS),
+      dao.getProviderConfig(applicationId, DIGEST_CONFIG_KEY_LAST_SENT_AT),
     ]);
     return {
       enabled: enabledRaw === 'true',
@@ -33,16 +43,18 @@ class DigestConfigService {
   public async saveConfig(applicationId: string, config: Pick<DigestConfig, 'enabled' | 'sendTime' | 'sections'>): Promise<DigestConfig> {
     const normalizedTime = DigestConfigService.normalizeSendTime(config.sendTime);
     const validSections = config.sections.filter((s) => DIGEST_ALL_SECTIONS.includes(s));
+    const dao = await this.dao();
     await Promise.all([
-      this.dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_ENABLED, config.enabled ? 'true' : 'false'),
-      this.dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_SEND_TIME, normalizedTime),
-      this.dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_SECTIONS, JSON.stringify(validSections)),
+      dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_ENABLED, config.enabled ? 'true' : 'false'),
+      dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_SEND_TIME, normalizedTime),
+      dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_SECTIONS, JSON.stringify(validSections)),
     ]);
     return this.getConfig(applicationId);
   }
 
   public async markSent(applicationId: string): Promise<void> {
-    await this.dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_LAST_SENT_AT, new Date().toISOString());
+    const dao = await this.dao();
+    await dao.setProviderConfig(applicationId, DIGEST_CONFIG_KEY_LAST_SENT_AT, new Date().toISOString());
   }
 
   public async isDueToSend(applicationId: string, timeZone: string): Promise<boolean> {

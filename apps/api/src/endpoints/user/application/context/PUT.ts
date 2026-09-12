@@ -4,6 +4,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ContextService } from '@mail-otter/backend-services/email';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateApplicationContextRoute extends IUserRoute<
   UpdateApplicationContextRequest,
@@ -25,6 +26,7 @@ class UpdateApplicationContextRoute extends IUserRoute<
     env: UpdateApplicationContextEnv,
     cxt: RouteContext<UpdateApplicationContextEnv>,
   ): Promise<UpdateApplicationContextResponse> {
+    const scope = createRequestScope(env);
     if (request.maxContextDocuments != null) {
       if (request.maxContextDocuments < 1) {
         throw new BadRequestError('maxContextDocuments must be a positive integer.');
@@ -35,7 +37,7 @@ class UpdateApplicationContextRoute extends IUserRoute<
       }
     }
     return {
-      application: await new ContextService(env).updateContextSettings(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ContextService).updateContextSettings(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
     };
   }
 }

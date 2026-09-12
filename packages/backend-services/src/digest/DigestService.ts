@@ -1,8 +1,6 @@
 import { ConnectedApplicationDAO, EmailActionDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
-import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import {
   DIGEST_BILLS_DUE_DAYS,
   DIGEST_APPOINTMENTS_HOURS,
@@ -17,8 +15,6 @@ import {
   EMAIL_ACTION_TYPE_FINANCE_PAY_BILL,
   EMAIL_ACTION_TYPE_MANUAL_TODO,
   EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
-  PROVIDER_GOOGLE_GMAIL,
-  PROVIDER_MICROSOFT_OUTLOOK,
 } from '@mail-otter/shared/constants';
 import type {
   AppointmentConfirmActionPayload,
@@ -30,8 +26,7 @@ import { TimestampUtil } from '@mail-otter/shared/utils';
 import { DigestConfigService } from './DigestConfigService';
 import { DigestEmailBuilder } from './DigestEmailBuilder';
 import type { DigestSections } from './DigestEmailBuilder';
-import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
-import type { IEmailProvider } from '../provider/IEmailProvider';
+import { InjectableEmailProviderRegistry } from '../provider/InjectableEmailProviderRegistry';
 
 interface DigestServiceEnv {
   DB: D1Queryable;
@@ -42,23 +37,35 @@ interface DigestServiceEnv {
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
+interface DigestServiceDeps {
+  configService?: () => Promise<DigestConfigService>;
+  providerRegistry?: InjectableEmailProviderRegistry;
+}
+
 class DigestService {
   private readonly db: D1Queryable;
   private readonly masterKey: string;
   private readonly actionKey: string;
+  private readonly deps: Required<DigestServiceDeps>;
 
   constructor(
     private readonly env: DigestServiceEnv,
     masterKey: string,
     actionKey: string,
+    deps: DigestServiceDeps = {},
   ) {
     this.db = env.DB;
     this.masterKey = masterKey;
     this.actionKey = actionKey;
+    this.deps = {
+      configService: () => Promise.resolve(new DigestConfigService(new ConnectedApplicationDAO(env.DB, masterKey)),),
+      providerRegistry: InjectableEmailProviderRegistry.withDefaults(),
+      ...deps,
+    };
   }
 
   public async sendDigest(application: ConnectedApplicationMetadata, accessToken: string): Promise<void> {
-    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.db, this.masterKey));
+    const configSvc = await this.deps.configService();
     const config = await configSvc.getConfig(application.applicationId);
     if (!config.enabled) return;
 
@@ -66,7 +73,7 @@ class DigestService {
   }
 
   public async sendDigestForced(application: ConnectedApplicationMetadata, accessToken: string): Promise<void> {
-    const configSvc = new DigestConfigService(new ConnectedApplicationDAO(this.db, this.masterKey));
+    const configSvc = await this.deps.configService();
     const config = await configSvc.getConfig(application.applicationId);
 
     await this.buildAndSend(application, accessToken, config.sections, configSvc);
@@ -95,7 +102,7 @@ class DigestService {
     const to = application.providerEmail ?? '';
     if (!to) return;
 
-    await DigestService.sendEmail(application, accessToken, to, subject, htmlBody);
+    await this.sendEmail(application, accessToken, to, subject, htmlBody);
     await configSvc.markSent(application.applicationId);
   }
 
@@ -164,37 +171,23 @@ class DigestService {
     return Math.floor(new Date(dateStr).getTime() / 1000);
   }
 
-  private static async sendEmail(
+  private async sendEmail(
     application: ConnectedApplicationMetadata,
     accessToken: string,
     to: string,
     subject: string,
     htmlBody: string,
   ): Promise<void> {
-    const provider: IEmailProvider | undefined = this.resolveProvider(application);
-    if (provider?.sendDigestEmail) {
+    // Strict registry resolution: unknown providers throw `Unsupported provider`
+    // instead of being masked and falling through to legacy branches.
+    const provider = this.deps.providerRegistry.resolve(application.providerId, application.connectionMethod);
+    if (provider.sendDigestEmail) {
       await provider.sendDigestEmail(accessToken, to, subject, htmlBody);
-      return;
-    }
-    if (application.providerId === PROVIDER_GOOGLE_GMAIL) {
-      await GmailProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
-      return;
-    }
-    if (application.providerId === PROVIDER_MICROSOFT_OUTLOOK) {
-      await OutlookProviderUtil.sendStandaloneEmail(accessToken, to, subject, htmlBody);
       return;
     }
     throw new BadRequestError(`Digest email is not supported for provider: ${application.providerId}`);
   }
-
-  private static resolveProvider(application: ConnectedApplicationMetadata): IEmailProvider | undefined {
-    try {
-      return EmailProviderRegistry.get(application.providerId, application.connectionMethod);
-    } catch {
-      return undefined;
-    }
-  }
 }
 
 export { DigestService };
-export type { DigestServiceEnv };
+export type { DigestServiceDeps, DigestServiceEnv };

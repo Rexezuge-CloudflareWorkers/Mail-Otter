@@ -2,6 +2,7 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
 import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2CallbackResponse, OAuth2CallbackEnv> {
   schema = {
@@ -19,6 +20,7 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
     env: OAuth2CallbackEnv,
     cxt: RouteContext<OAuth2CallbackEnv>,
   ): Promise<ExtendedResponse<OAuth2CallbackResponse>> {
+    const scope = createRequestScope(env);
     const applicationId: string | undefined = cxt.req.param('applicationId');
     if (!applicationId) {
       throw new BadRequestError('OAuth2 callback is missing applicationId.');
@@ -34,7 +36,7 @@ class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2Callba
     }
 
     try {
-      await new OAuth2AuthorizationService(env).completeCallback({ applicationId, code, state });
+      await scope.get(Tokens.OAuth2AuthorizationService).completeCallback({ applicationId, code, state });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'OAuth2 authorization failed.';
       return this.redirect(`/user/?oauth2=error&message=${encodeURIComponent(message)}`);

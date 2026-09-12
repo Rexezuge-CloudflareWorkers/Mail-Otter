@@ -1,6 +1,5 @@
 import {
   CONNECTED_APPLICATION_STATUS_CONNECTED,
-  CONNECTED_APPLICATION_STATUS_DRAFT,
   CONNECTED_APPLICATION_STATUS_ERROR,
   CONNECTION_METHOD_IMAP_PASSWORD,
   CONNECTION_METHOD_OAUTH2,
@@ -20,6 +19,8 @@ import type {
 import { LocaleUtil, TimestampUtil, TimeZoneUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { EncryptedDAO } from './BaseDAO';
 import { ConnectedApplicationFlags } from './ConnectedApplicationFlags';
+import { METADATA_CONFIG_KEYS, assembleMetadata, migrateLegacyExcludeRules } from './ConnectedApplicationMetadataMapper';
+import type { MetadataConfigMap, MetadataConfigWriter } from './ConnectedApplicationMetadataMapper';
 
 class ConnectedApplicationDAO extends EncryptedDAO {
   private flags(): ConnectedApplicationFlags {
@@ -449,120 +450,21 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   }
 
   private async toMetadata(row: ConnectedApplicationInternal): Promise<ConnectedApplicationMetadata> {
-    const status: ConnectedApplicationMetadata['status'] =
-      row.status === CONNECTED_APPLICATION_STATUS_CONNECTED
-        ? CONNECTED_APPLICATION_STATUS_CONNECTED
-        : row.status === CONNECTED_APPLICATION_STATUS_ERROR
-          ? CONNECTED_APPLICATION_STATUS_ERROR
-          : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const [
-      watchedFolders,
-      gmailPubsubTopicName,
-      enabledFeaturesJson,
-      senderDomainFiltersJson,
-      timeZone,
-      contentLanguage,
-      emailProcessingRulesJson,
-      imapHost,
-      imapPortStr,
-      imapUsername,
-      smtpHost,
-      smtpPortStr,
-      autoExecuteActionTypesJson,
-      attachmentVisionEnabledStr,
-    ]: [
-      Array<{ folderPath: string; folderName: string }>,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-    ] = await Promise.all([
-      this.getWatchedFolders(row.application_id),
-      this.getProviderConfig(row.application_id, 'gmail_pubsub_topic_name'),
-      this.getProviderConfig(row.application_id, 'oauth2_enabled_features'),
-      this.getProviderConfig(row.application_id, 'sender_domain_filters'),
-      this.getProviderConfig(row.application_id, 'calendar_time_zone'),
-      this.getProviderConfig(row.application_id, 'content_language'),
-      this.getProviderConfig(row.application_id, 'email_processing_rules'),
-      this.getProviderConfig(row.application_id, 'imap_host'),
-      this.getProviderConfig(row.application_id, 'imap_port'),
-      this.getProviderConfig(row.application_id, 'imap_username'),
-      this.getProviderConfig(row.application_id, 'smtp_host'),
-      this.getProviderConfig(row.application_id, 'smtp_port'),
-      this.getProviderConfig(row.application_id, 'auto_execute_action_types'),
-      this.getProviderConfig(row.application_id, 'attachment_vision_enabled'),
-    ]);
-    // Lazily migrate legacy excludeRules (stored in sender_domain_filters) into email processing rules
-    let senderDomainFilters: SenderDomainFilters | null = null;
-    let resolvedRulesJson: string | null = emailProcessingRulesJson;
-    if (senderDomainFiltersJson) {
-      const parsed = JSON.parse(senderDomainFiltersJson) as { includeRules?: string[]; excludeRules?: string[] };
-      const legacyExcludes = parsed.excludeRules ?? [];
-      const includeRules = parsed.includeRules ?? [];
-      if (legacyExcludes.length > 0) {
-        const migratedRules: EmailProcessingRule[] = legacyExcludes.map((pattern) => ({
-          ruleId: UUIDUtil.getRandomUUID(),
-          name: `Block ${pattern}`,
-          enabled: true,
-          conditions: { operator: 'any' as const, matchers: [{ field: 'from' as const, op: 'matches_sender' as const, value: pattern }] },
-          action: { type: 'skip' as const },
-        }));
-        const existingRules: EmailProcessingRule[] = emailProcessingRulesJson
-          ? (JSON.parse(emailProcessingRulesJson) as EmailProcessingRule[])
-          : [];
-        const merged = [...existingRules, ...migratedRules];
-        resolvedRulesJson = JSON.stringify(merged);
-        await this.setProviderConfig(row.application_id, 'email_processing_rules', resolvedRulesJson);
-        if (includeRules.length > 0) {
-          await this.setProviderConfig(row.application_id, 'sender_domain_filters', JSON.stringify({ includeRules }));
-          senderDomainFilters = { includeRules };
-        } else {
-          await this.deleteProviderConfig(row.application_id, 'sender_domain_filters');
-        }
-      } else {
-        senderDomainFilters = includeRules.length > 0 ? { includeRules } : null;
-      }
-    }
-
-    return {
-      applicationId: row.application_id,
-      userEmail: row.user_email,
-      providerEmail: row.provider_email,
-      displayName: row.display_name,
-      providerId: row.provider_id,
-      connectionMethod: row.connection_method,
-      status,
-      contextIndexingEnabled: row.context_indexing_enabled !== 0,
-      ragRetrievalEnabled: row.rag_retrieval_enabled !== 0,
-      attachmentVisionEnabled: attachmentVisionEnabledStr !== 'false',
-      maxContextDocuments: row.max_context_documents ?? null,
-      enabledFeatures: enabledFeaturesJson ? (JSON.parse(enabledFeaturesJson) as string[]) : null,
-      timeZone: timeZone ?? null,
-      contentLanguage: contentLanguage ?? null,
-      senderDomainFilters,
-      emailProcessingRules: resolvedRulesJson ? (JSON.parse(resolvedRulesJson) as EmailProcessingRule[]) : null,
-      watchedFolders: watchedFolders.length > 0 ? watchedFolders.map((f) => ({ id: f.folderPath, name: f.folderName })) : null,
-      lastErrorAcknowledgedAt: row.last_error_acknowledged_at ?? null,
-      contextLastErrorAcknowledgedAt: row.context_last_error_acknowledged_at ?? null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      gmailPubsubTopicName: gmailPubsubTopicName ?? undefined,
-      imapHost: imapHost ?? null,
-      imapPort: imapPortStr == null ? null : Number(imapPortStr),
-      imapUsername: imapUsername ?? null,
-      smtpHost: smtpHost ?? null,
-      smtpPort: smtpPortStr == null ? null : Number(smtpPortStr),
-      autoExecuteActionTypes: autoExecuteActionTypesJson ? (JSON.parse(autoExecuteActionTypesJson) as string[]) : null,
+    const watchedFoldersPromise = this.getWatchedFolders(row.application_id);
+    const configValues = await Promise.all(METADATA_CONFIG_KEYS.map((key) => this.getProviderConfig(row.application_id, key)));
+    const config = Object.fromEntries(METADATA_CONFIG_KEYS.map((key, index) => [key, configValues[index]])) as MetadataConfigMap;
+    const watchedFolders = await watchedFoldersPromise;
+    const writer: MetadataConfigWriter = {
+      setConfig: (applicationId, key, value) => this.setProviderConfig(applicationId, key, value).then(() => undefined),
+      deleteConfig: (applicationId, key) => this.deleteProviderConfig(applicationId, key).then(() => undefined),
     };
+    const filters = await migrateLegacyExcludeRules(
+      row.application_id,
+      config.sender_domain_filters,
+      config.email_processing_rules,
+      writer,
+    );
+    return assembleMetadata(row, config, watchedFolders, filters);
   }
 
   public async updateAttachmentVisionEnabledForUser(

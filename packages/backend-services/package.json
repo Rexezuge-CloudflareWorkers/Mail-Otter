@@ -39,7 +39,9 @@
     "./activity": "./src/activity/index.ts",
     "./activity/*": "./src/activity/*.ts",
     "./chat": "./src/chat/index.ts",
-    "./chat/*": "./src/chat/*.ts"
+    "./chat/*": "./src/chat/*.ts",
+    "./composition": "./src/composition/index.ts",
+    "./composition/*": "./src/composition/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

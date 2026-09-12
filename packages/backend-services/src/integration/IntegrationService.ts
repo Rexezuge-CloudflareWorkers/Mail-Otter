@@ -11,12 +11,31 @@ interface IntegrationServiceEnv {
   AES_ENCRYPTION_KEY_SECRET: SecretsStoreSecret;
 }
 
+interface IntegrationServiceDeps {
+  integrationDAO?: () => Promise<ApplicationIntegrationDAO>;
+  deliveryLogDAO?: () => Promise<IntegrationDeliveryLogDAO>;
+  applicationDAO?: () => Promise<ConnectedApplicationDAO>;
+}
+
 class IntegrationService {
-  constructor(private readonly env: IntegrationServiceEnv) {}
+  private readonly deps: Required<IntegrationServiceDeps>;
+
+  constructor(
+    private readonly env: IntegrationServiceEnv,
+    deps: IntegrationServiceDeps = {},
+  ) {
+    const db = env.DB;
+    const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
+    this.deps = {
+      integrationDAO: async () => new ApplicationIntegrationDAO(db, await masterKey()),
+      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db),),
+      applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
+      ...deps,
+    };
+  }
 
   async sendToIntegrations(summaryData: GmailSummaryData | OutlookSummaryData | JmapSummaryData | ImapSummaryData): Promise<void> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.integrationDAO();
     const integrations = await dao.listEnabled(summaryData.application.applicationId);
     if (integrations.length === 0) return;
 
@@ -36,7 +55,7 @@ class IntegrationService {
       processedAt: Math.floor(Date.now() / 1000),
     };
 
-    const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
+    const logDao = await this.deps.deliveryLogDAO();
     const emailSubject = summaryData.emailSubject?.slice(0, 255) ?? null;
 
     const locale = summaryData.application.contentLanguage ?? null;
@@ -73,8 +92,7 @@ class IntegrationService {
   }
 
   async sendTestNotification(integration: OutboundIntegration): Promise<void> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.integrationDAO();
     const webhookUrl = await dao.getDecryptedWebhookUrl(integration.integrationId);
     const locale = await this.resolveApplicationLocale(integration.applicationId);
     const strings = getBackendStrings(locale);
@@ -97,15 +115,20 @@ class IntegrationService {
 
   private async resolveApplicationLocale(applicationId: string): Promise<string> {
     try {
-      const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-      const application = await new ConnectedApplicationDAO(this.env.DB, masterKey).getById(applicationId);
+      const applicationDAO = await this.deps.applicationDAO();
+      const application = await applicationDAO.getById(applicationId);
       return application?.contentLanguage ?? 'en';
     } catch {
       return 'en';
     }
   }
 
-  private async dispatchToIntegration(integration: OutboundIntegration, webhookUrl: string, notification: EmailSummaryNotification, locale?: string | null): Promise<DispatchResult> {
+  private async dispatchToIntegration(
+    integration: OutboundIntegration,
+    webhookUrl: string,
+    notification: EmailSummaryNotification,
+    locale?: string | null,
+  ): Promise<DispatchResult> {
     const observer = IntegrationObserverRegistry.get(integration.integrationType);
     if (!observer) {
       return { status: 'failure', httpStatus: null, errorMessage: `Unsupported integration type: ${integration.integrationType}` };
@@ -121,4 +144,4 @@ const IntegrationServiceFactory = {
 };
 
 export { IntegrationService, IntegrationServiceFactory };
-export type { IntegrationServiceEnv };
+export type { IntegrationServiceDeps, IntegrationServiceEnv };

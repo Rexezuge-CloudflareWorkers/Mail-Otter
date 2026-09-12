@@ -3,6 +3,7 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 import type { SenderDomainFilters } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, UpdateApplicationResponse, UpdateApplicationEnv> {
   schema = {
@@ -20,8 +21,9 @@ class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, Update
     env: UpdateApplicationEnv,
     cxt: RouteContext<UpdateApplicationEnv>,
   ): Promise<UpdateApplicationResponse> {
+    const scope = createRequestScope(env);
     return {
-      application: await new ApplicationService(env).updateUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ApplicationService).updateUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
     };
   }
 }

@@ -97,6 +97,30 @@ describe('ApplicationResponseUtil', () => {
       expect(result.webhookUrl).toBe('https://example.com/api/webhooks/outlook/app-1');
     });
 
+    it('returns Fastmail webhook URL for fastmail-jmap provider', async () => {
+      const result = await ApplicationResponseUtil.decorateApplication(
+        makeApplication({ providerId: 'fastmail-jmap' }),
+        makeEnv(),
+        new Request('https://example.com'),
+      );
+
+      expect(result.webhookUrl).toBe('https://example.com/api/webhooks/fastmail/app-1');
+    });
+
+    it('omits webhook URL for IMAP-polling providers without endpoints', async () => {
+      for (const providerId of ['yahoo-mail', 'custom-imap', 'apple-icloud']) {
+        const result = await ApplicationResponseUtil.decorateApplication(
+          makeApplication({ providerId }),
+          makeEnv(),
+          new Request('https://example.com'),
+        );
+
+        expect(result.webhookUrl).toBeUndefined();
+      }
+      expect(ApplicationResponseUtil.getWebhookPathSegment('google-gmail')).toBe('gmail');
+      expect(ApplicationResponseUtil.getWebhookPathSegment('nope')).toBeUndefined();
+    });
+
     it('appends token query param when subscription has webhookSecretHash', async () => {
       mockGetByApplication.mockResolvedValue({ webhookSecretHash: 'hashed-secret', status: 'active', expiresAt: 9999 });
 

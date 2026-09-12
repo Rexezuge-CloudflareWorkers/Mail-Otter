@@ -19,6 +19,8 @@ const {
   mockTriggerTask,
   mockGetByIdForUser,
   mockGetUserByEmail,
+  mockGetOwnedApplication,
+  mockGetPreferredLanguage,
 } = vi.hoisted(() => ({
   mockGetCurrentUserSummary: vi.fn(),
   mockUpdatePreferredLanguage: vi.fn(),
@@ -38,6 +40,8 @@ const {
   mockTriggerTask: vi.fn().mockResolvedValue(undefined),
   mockGetByIdForUser: vi.fn(),
   mockGetUserByEmail: vi.fn().mockResolvedValue({ preferredLanguage: 'en' }),
+  mockGetOwnedApplication: vi.fn(),
+  mockGetPreferredLanguage: vi.fn().mockResolvedValue('en'),
 }));
 
 vi.mock('@mail-otter/backend-services/user', () => ({
@@ -45,6 +49,7 @@ vi.mock('@mail-otter/backend-services/user', () => ({
     return {
       getCurrentUserSummary: mockGetCurrentUserSummary,
       updatePreferredLanguage: mockUpdatePreferredLanguage,
+      getPreferredLanguage: mockGetPreferredLanguage,
     };
   }),
 }));
@@ -65,6 +70,7 @@ vi.mock('@mail-otter/backend-services/application', () => ({
       updateUserApplication: mockUpdateUserApplication,
       listIntegrations: mockListIntegrations,
       createIntegration: mockCreateIntegration,
+      getOwnedApplication: mockGetOwnedApplication,
     };
   }),
 }));
@@ -80,9 +86,12 @@ vi.mock('@mail-otter/backend-services/activity', () => ({
 }));
 
 vi.mock('@mail-otter/backend-services/digest', () => ({
-  DigestConfigService: vi.fn(function () {
-    return { getConfig: mockGetConfig, saveConfig: mockSaveConfig };
-  }),
+  DigestConfigService: Object.assign(
+    vi.fn(function () {
+      return { getConfig: mockGetConfig, saveConfig: mockSaveConfig };
+    }),
+    { forDatabase: vi.fn(() => ({ getConfig: mockGetConfig, saveConfig: mockSaveConfig })) },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-services/processing', () => ({
@@ -156,6 +165,8 @@ describe('user routes', () => {
     mockUpdatePreferredLanguage.mockResolvedValue('de');
     mockGetUserByEmail.mockResolvedValue({ preferredLanguage: 'en' });
     mockGetByIdForUser.mockResolvedValue({ applicationId: 'app-1' });
+    mockGetOwnedApplication.mockResolvedValue({ applicationId: 'app-1' });
+    mockGetPreferredLanguage.mockResolvedValue('en');
     mockGetConfig.mockResolvedValue({ enabled: true, sendTime: '08:00', sections: ['summary'] });
     mockTriggerTask.mockResolvedValue(undefined);
   });
@@ -297,18 +308,20 @@ describe('user routes', () => {
   });
 
   it('GET /user/application/digest returns config', async () => {
+    mockGetOwnedApplication.mockResolvedValue({ applicationId: 'app-1' });
     const result = (await call(
       new GetDigestConfigRoute(),
       { raw: new Request('https://x/user/application/digest'), applicationId: 'app-1' },
       makeEnv(),
       makeCxt(),
     )) as { digestConfig: unknown };
-    expect(mockGetByIdForUser).toHaveBeenCalledWith('app-1', 'user@example.com');
+    expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', 'app-1');
     expect(result.digestConfig).toEqual({ enabled: true, sendTime: '08:00', sections: ['summary'] });
   });
 
   it('PUT /user/application/digest rejects unknown applications', async () => {
-    mockGetByIdForUser.mockResolvedValue(null);
+    const { NotFoundError } = await import('@mail-otter/backend-errors');
+    mockGetOwnedApplication.mockRejectedValue(new NotFoundError('Connected application not found.'));
     await expect(
       call(
         new UpdateDigestConfigRoute(),
@@ -316,7 +329,7 @@ describe('user routes', () => {
         makeEnv(),
         makeCxt(),
       ),
-    ).rejects.toThrow(BadRequestError);
+    ).rejects.toThrow(NotFoundError);
   });
 
   it('PUT /user/application/digest saves and returns config', async () => {

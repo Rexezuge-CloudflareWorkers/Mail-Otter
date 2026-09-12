@@ -3,6 +3,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ContextAuditLog } from '@mail-otter/shared/model';
 import { ContextService } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListContextDocumentAuditLogsRoute extends IUserRoute<
   ListContextDocumentAuditLogsRequest,
@@ -24,13 +25,14 @@ class ListContextDocumentAuditLogsRoute extends IUserRoute<
     env: ListContextDocumentAuditLogsEnv,
     cxt: RouteContext<ListContextDocumentAuditLogsEnv>,
   ): Promise<ListContextDocumentAuditLogsResponse> {
+    const scope = createRequestScope(env);
     const contextDocumentId: string | undefined = cxt.req.param('contextDocumentId');
     if (!contextDocumentId) {
       throw new BadRequestError('Context document id is required.');
     }
 
     const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
-    return new ContextService(env).listAuditLogs(userEmail, contextDocumentId, this.getQueryParam(_request, 'cursor'));
+    return scope.get(Tokens.ContextService).listAuditLogs(userEmail, contextDocumentId, this.getQueryParam(_request, 'cursor'));
   }
 }
 

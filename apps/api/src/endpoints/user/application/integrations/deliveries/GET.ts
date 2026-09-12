@@ -3,6 +3,7 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import { ApplicationService } from '@mail-otter/backend-services/application';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import type { IntegrationDeliveryLog } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListIntegrationDeliveriesRoute extends IUserRoute<ListIntegrationDeliveriesRequest, ListIntegrationDeliveriesResponse, ListIntegrationDeliveriesEnv> {
   schema = {
@@ -20,11 +21,12 @@ class ListIntegrationDeliveriesRoute extends IUserRoute<ListIntegrationDeliverie
     env: ListIntegrationDeliveriesEnv,
     cxt: RouteContext<ListIntegrationDeliveriesEnv>,
   ): Promise<ListIntegrationDeliveriesResponse> {
+    const scope = createRequestScope(env);
     const integrationId = this.getQueryParam(request, 'integrationId') ?? '';
     if (!integrationId) throw new BadRequestError('integrationId is required.');
     const rawLimit = Number(this.getQueryParam(request, 'limit') ?? '20');
     const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
-    const logs = await new ApplicationService(env).listIntegrationDeliveries(
+    const logs = await scope.get(Tokens.ApplicationService).listIntegrationDeliveries(
       this.getAuthenticatedUserEmailAddress(cxt),
       integrationId,
       limit,

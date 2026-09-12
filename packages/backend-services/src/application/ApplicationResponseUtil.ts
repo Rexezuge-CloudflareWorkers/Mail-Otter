@@ -10,7 +10,19 @@ import type {
 import { BaseUrlUtil } from '@mail-otter/shared/utils';
 import { DigestConfigService } from '../digest/DigestConfigService';
 
+const WEBHOOK_PATH_SEGMENTS: Readonly<Record<string, string>> = {
+  'google-gmail': 'gmail',
+  'microsoft-outlook': 'outlook',
+  'fastmail-jmap': 'fastmail',
+};
+
 class ApplicationResponseUtil {
+  // IMAP-polling providers (yahoo-mail, custom-imap, apple-icloud) expose no
+  // webhook endpoint; callers should hide the URL when this returns undefined.
+  public static getWebhookPathSegment(providerId: string): string | undefined {
+    return WEBHOOK_PATH_SEGMENTS[providerId];
+  }
+
   public static async decorateApplication(
     application: ConnectedApplicationMetadata,
     env: ApplicationDecorationEnv,
@@ -25,11 +37,13 @@ class ApplicationResponseUtil {
     const contextSummary: ApplicationContextSummary = await contextDAO.getSummaryByApplication(application.applicationId);
     const baseUrl: string = BaseUrlUtil.getBaseUrl(raw);
     const processingErrorText: string | null | undefined = subscription?.lastError || latestError?.errorMessage;
-    const processingErrorAt: number | null = subscription?.lastError ? subscription.updatedAt : (latestError?.errorMessage ? latestError.updatedAt : null);
+    const processingErrorAt: number | null = subscription?.lastError
+      ? subscription.updatedAt
+      : latestError?.errorMessage
+        ? latestError.updatedAt
+        : null;
     const processingAcknowledged: boolean =
-      application.lastErrorAcknowledgedAt != null &&
-      processingErrorAt != null &&
-      processingErrorAt <= application.lastErrorAcknowledgedAt;
+      application.lastErrorAcknowledgedAt != null && processingErrorAt != null && processingErrorAt <= application.lastErrorAcknowledgedAt;
 
     const contextAcknowledged: boolean =
       application.contextLastErrorAcknowledgedAt != null &&
@@ -47,13 +61,19 @@ class ApplicationResponseUtil {
       }
     }
 
+    const webhookSegment = this.getWebhookPathSegment(application.providerId);
+    const webhookUrl =
+      webhookSegment === undefined
+        ? undefined
+        : `${baseUrl}/api/webhooks/${webhookSegment}/${application.applicationId}${
+            subscription?.webhookSecretHash ? '?token=shown-on-watch-start' : ''
+          }`;
+
     return {
       ...application,
       digestConfig,
       oauth2RedirectUri: `${baseUrl}/api/oauth2/callback/${application.applicationId}`,
-      webhookUrl: `${baseUrl}/api/webhooks/${application.providerId === 'google-gmail' ? 'gmail' : 'outlook'}/${application.applicationId}${
-        subscription?.webhookSecretHash ? '?token=shown-on-watch-start' : ''
-      }`,
+      webhookUrl,
       watchStatus: subscription?.status,
       watchExpiresAt: subscription?.expiresAt,
       lastSummaryAt: latestMessage?.summarySentAt,
@@ -76,7 +96,7 @@ interface ApplicationDecorationEnv {
 interface ApplicationResponse extends ConnectedApplicationMetadata {
   digestConfig?: DigestConfig | null;
   oauth2RedirectUri: string;
-  webhookUrl: string;
+  webhookUrl?: string;
   watchStatus?: string;
   watchExpiresAt?: number | null;
   lastSummaryAt?: number | null;

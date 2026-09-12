@@ -1,6 +1,6 @@
 import { encryptData, decryptData } from '../crypto';
 import { executeD1WithRetry } from '../utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type { OutboundIntegration, OutboundIntegrationInternal, OutboundIntegrationType } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { EncryptedDAO } from './BaseDAO';
@@ -9,7 +9,6 @@ const MAX_INTEGRATIONS_PER_APPLICATION = 5;
 const WEBHOOK_URL_PREFIX_LENGTH = 30;
 
 class ApplicationIntegrationDAO extends EncryptedDAO {
-
   public async create(
     applicationId: string,
     integrationType: OutboundIntegrationType,
@@ -102,7 +101,7 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
       .prepare('SELECT encrypted_webhook_url, webhook_url_iv FROM application_integrations WHERE integration_id = ? LIMIT 1')
       .bind(integrationId)
       .first<{ encrypted_webhook_url: string; webhook_url_iv: string }>();
-    if (!row) throw new BadRequestError('Integration not found.');
+    if (!row) throw new NotFoundError('Integration not found.');
     return decryptData(row.encrypted_webhook_url, row.webhook_url_iv, this.masterKey);
   }
 
@@ -141,17 +140,14 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
       .prepare('SELECT * FROM application_integrations WHERE integration_id = ? LIMIT 1')
       .bind(integrationId)
       .first<OutboundIntegrationInternal>();
-    if (!row) throw new BadRequestError('Integration not found after update.');
+    if (!row) throw new NotFoundError('Integration not found after update.');
     return this.toPublic(row);
   }
 
   public async deleteById(integrationId: string): Promise<void> {
     await executeD1WithRetry(
       (): Promise<D1Result> =>
-        this.database
-          .prepare('DELETE FROM application_integrations WHERE integration_id = ?')
-          .bind(integrationId)
-          .run(),
+        this.database.prepare('DELETE FROM application_integrations WHERE integration_id = ?').bind(integrationId).run(),
       'delete application integration',
     );
   }

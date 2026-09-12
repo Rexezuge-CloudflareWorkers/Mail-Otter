@@ -9,7 +9,7 @@ import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRe
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
-import { BadRequestError, ProviderApiNonRetryableError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError, ProviderApiNonRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
@@ -58,7 +58,12 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
           : await this.runExclusive((): Promise<OAuth2TokenWorkerResponse> => this.exchangeCode(payload as OAuth2TokenExchangeRequest));
       return Response.json(result);
     } catch (error: unknown) {
-      const status: number = error instanceof BadRequestError || error instanceof ProviderApiNonRetryableError ? 400 : 500;
+      const status: number =
+        error instanceof NotFoundError
+          ? 404
+          : error instanceof BadRequestError || error instanceof ProviderApiNonRetryableError
+            ? 400
+            : 500;
       const message: string = error instanceof Error ? error.message : String(error);
       if (status >= 500) console.error('OAuth2 token operation failed:', error);
       return Response.json({ error: message }, { status });
@@ -135,7 +140,7 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
     try {
       const application: ConnectedApplication | undefined = await applicationDAO.getById(applicationId);
       if (!application || application.connectionMethod !== CONNECTION_METHOD_OAUTH2) {
-        throw new BadRequestError('OAuth2 application was not found.');
+        throw new NotFoundError('OAuth2 application was not found.');
       }
       const tokenResult: OAuth2TokenResult = await OAuth2ProviderUtil.exchangeCode({
         providerId: application.providerId,
@@ -157,7 +162,7 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
   private async getRefreshableApplication(applicationDAO: ConnectedApplicationDAO, applicationId: string): Promise<ConnectedApplication> {
     const application: ConnectedApplication | undefined = await applicationDAO.getById(applicationId);
     if (!application || application.connectionMethod !== CONNECTION_METHOD_OAUTH2) {
-      throw new BadRequestError('OAuth2 application was not found.');
+      throw new NotFoundError('OAuth2 application was not found.');
     }
     if (application.status !== CONNECTED_APPLICATION_STATUS_CONNECTED) {
       throw new BadRequestError('Connected application is not authorized.');
@@ -182,7 +187,7 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
     tokenResult: OAuth2TokenResult,
     cacheDAO: OAuth2AccessTokenCacheDAO,
     statusDAO: OAuth2AccessTokenRefreshStatusDAO,
-    providerEmail?: string  ,
+    providerEmail?: string,
   ): Promise<OAuth2TokenWorkerResponse> {
     const expiresInSeconds: number = OAuth2ProviderUtil.getExpiresInSeconds(
       tokenResult,

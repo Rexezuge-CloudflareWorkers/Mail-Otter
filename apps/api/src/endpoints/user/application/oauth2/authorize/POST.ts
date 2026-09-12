@@ -1,6 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class CreateOAuth2AuthorizationRoute extends IUserRoute<
   CreateOAuth2AuthorizationRequest,
@@ -22,7 +23,8 @@ class CreateOAuth2AuthorizationRoute extends IUserRoute<
     env: CreateOAuth2AuthorizationEnv,
     cxt: RouteContext<CreateOAuth2AuthorizationEnv>,
   ): Promise<CreateOAuth2AuthorizationResponse> {
-    return new OAuth2AuthorizationService(env).createAuthorization(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.raw);
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.OAuth2AuthorizationService).createAuthorization(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.raw);
   }
 }
 

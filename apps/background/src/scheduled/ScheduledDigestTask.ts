@@ -1,7 +1,9 @@
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DigestConfigService, DigestService } from '@mail-otter/backend-services/digest';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
+import type { InjectableEmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import {
   BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST,
@@ -27,8 +29,8 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
     const sessionEnv = createD1SessionEnv(env);
+    const scope = createRequestScope(sessionEnv);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const actionKey: string = await env.ACTION_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
 
     const applicationIds = await applicationDAO.listApplicationIdsWithProviderConfig(DIGEST_CONFIG_KEY_ENABLED, 'true');
@@ -50,7 +52,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         continue;
       }
 
-      const configSvc = new DigestConfigService(applicationDAO);
+      const configSvc = scope.get<DigestConfigService>(Tokens.DigestConfigService);
       const timeZone = application.timeZone || 'UTC';
       const isDue = await configSvc.isDueToSend(applicationId, timeZone);
       if (!isDue) {
@@ -59,8 +61,9 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
 
       const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
       try {
-        const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
-        const digestSvc = new DigestService(sessionEnv, masterKey, actionKey);
+        const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(applicationId);
+        const keys = await (scope.get(Tokens.Keys) as () => Promise<{ masterKey: string; actionKey: string }>)();
+        const digestSvc = new DigestService(sessionEnv, keys.masterKey, keys.actionKey, { providerRegistry: scope.get<InjectableEmailProviderRegistry>(Tokens.ProviderRegistry) });
         await digestSvc.sendDigest(application, accessToken);
         sent++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Digest sent' });

@@ -2,6 +2,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDeletionRun } from '@mail-otter/shared/model';
 import { ContextService } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class DeleteApplicationContextDocumentsRoute extends IUserRoute<
   DeleteApplicationContextDocumentsRequest,
@@ -23,7 +24,8 @@ class DeleteApplicationContextDocumentsRoute extends IUserRoute<
     env: DeleteApplicationContextDocumentsEnv,
     cxt: RouteContext<DeleteApplicationContextDocumentsEnv>,
   ): Promise<DeleteApplicationContextDocumentsResponse> {
-    return { deletionRun: await new ContextService(env).deleteDocuments(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId) };
+    const scope = createRequestScope(env);
+    return { deletionRun: await scope.get(Tokens.ContextService).deleteDocuments(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId) };
   }
 }
 

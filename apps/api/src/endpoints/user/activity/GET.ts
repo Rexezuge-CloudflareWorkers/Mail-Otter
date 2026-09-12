@@ -1,9 +1,10 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { ExtendedResponse, IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { UserDAO } from '@mail-otter/backend-data/dao';
 import { ActivityService } from '@mail-otter/backend-services/activity';
+import { UserService } from '@mail-otter/backend-services/user';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import type { ActivityEntry } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResponse, ListActivityEnv> {
   schema = {
@@ -62,12 +63,8 @@ function csvCell(value: string): string {
 }
 
 async function resolveUserLocale(env: ListActivityEnv, userEmail: string): Promise<string> {
-  try {
-    const user = await new UserDAO(env.DB).getByEmail(userEmail);
-    return user?.preferredLanguage ?? 'en';
-  } catch {
-    return 'en';
-  }
+  const scope = createRequestScope(env);
+  return (await scope.get(Tokens.UserService).getPreferredLanguage(userEmail)) ?? 'en';
 }
 
 function toCsv(entries: ActivityEntry[], locale?: string | null): string {

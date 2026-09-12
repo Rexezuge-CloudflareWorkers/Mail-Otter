@@ -2,6 +2,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateIntegrationRoute extends IUserRoute<UpdateIntegrationRequest, UpdateIntegrationResponse, UpdateIntegrationEnv> {
   schema = {
@@ -19,7 +20,8 @@ class UpdateIntegrationRoute extends IUserRoute<UpdateIntegrationRequest, Update
     env: UpdateIntegrationEnv,
     cxt: RouteContext<UpdateIntegrationEnv>,
   ): Promise<UpdateIntegrationResponse> {
-    const integration = await new ApplicationService(env).updateIntegration(this.getAuthenticatedUserEmailAddress(cxt), { integrationId: request.integrationId, name: request.name, enabled: request.enabled, webhookUrl: request.webhookUrl });
+    const scope = createRequestScope(env);
+    const integration = await scope.get(Tokens.ApplicationService).updateIntegration(this.getAuthenticatedUserEmailAddress(cxt), { integrationId: request.integrationId, name: request.name, enabled: request.enabled, webhookUrl: request.webhookUrl });
     return { integration };
   }
 }

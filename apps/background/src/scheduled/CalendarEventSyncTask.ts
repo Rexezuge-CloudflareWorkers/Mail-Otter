@@ -1,6 +1,7 @@
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { CalendarEventSyncUtil } from '@mail-otter/backend-services/digest';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import {
@@ -27,6 +28,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
     env: CalendarEventSyncTaskEnv,
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
+    const scope = createRequestScope(env as never);
     const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);
@@ -59,7 +61,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
           continue;
         }
 
-        const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
+        const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(applicationId);
         await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);
         synced++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Calendar events synced' });

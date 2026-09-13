@@ -10,7 +10,7 @@ Scope: `apps/background/**`. Parent index: `../../AGENTS.md`.
 - `EmailEventsDispatcherWorker.ts` — Queue consumer → `EmailProcessingWorkflow`.
 - `EmailProcessingWorkflow.ts` — Workflow: resolve apps, list messages, summarize, post replies.
 - `OAuth2TokenRefreshWorker.ts` — DO for token refresh and auth-code exchange.
-- Error logging in token-adjacent `try` blocks: never `console.*(..., error)` with the raw error object; use `ErrorSanitizationUtil.sanitizeErrorForLogging(error)` from `@mail-otter/shared/utils` for both `console.*` and `run.fail()` (raw messages can echo token material into Workers logs and the `BackgroundTaskRun` table).
+- Error logging in token-adjacent `try` blocks: log and `run.fail()` static messages with application/subscription IDs only — never interpolate the caught error (CodeQL `js/clear-text-logging` traces OAuth2 token taint through the thrown error and does not model `String#replaceAll` as a masking barrier).
 
 ## Background Task Visibility
 

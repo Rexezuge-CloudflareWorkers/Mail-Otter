@@ -7,7 +7,6 @@ import { CONNECTED_APPLICATION_STATUS_CONNECTED } from '@mail-otter/shared/const
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
 import type { DriveIngestionResult } from '@mail-otter/backend-services/drive';
-import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 interface DriveSyncConfig {
   taskType: string;
@@ -82,11 +81,10 @@ abstract class BaseDriveSyncTask<TEnv extends BaseDriveSyncTaskEnv> extends ISch
           itemsFailed: result.failed,
           summary: `Indexed ${result.indexed}, skipped ${result.skipped}, failed ${result.failed}`,
         });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
-        console.error(`[${this.constructor.name}] Failed for application ${applicationId}: ${message}`);
-        await run.fail(message);
+        console.error(`[${this.constructor.name}] Failed for application ${applicationId}`);
+        await run.fail('Drive sync failed');
       }
     }
 

@@ -12,7 +12,6 @@ import {
 } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
-import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
   private static supportsDigestEmail(providerId: string, connectionMethod?: string): boolean {
@@ -68,11 +67,10 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         await digestSvc.sendDigest(application, accessToken);
         sent++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Digest sent' });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
-        console.error(`[ScheduledDigestTask] Failed to send digest for application ${applicationId}: ${message}`);
-        await run.fail(message);
+        console.error(`[ScheduledDigestTask] Failed to send digest for application ${applicationId}`);
+        await run.fail('Digest send failed');
       }
     }
     console.log(`[ScheduledDigestTask] Sent ${sent} digests`);

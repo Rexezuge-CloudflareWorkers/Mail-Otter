@@ -7,7 +7,6 @@ import { BACKGROUND_TASK_TYPE_OAUTH2_REFRESH } from '@mail-otter/shared/constant
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
-import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefreshTaskEnv> {
   protected getTaskType(): string {
@@ -33,10 +32,9 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
       try {
         await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).refreshAccessToken(applicationId, { forceRefresh: true });
         refreshed++;
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
-        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}: ${message}`);
+        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}`);
       }
     }
     return {

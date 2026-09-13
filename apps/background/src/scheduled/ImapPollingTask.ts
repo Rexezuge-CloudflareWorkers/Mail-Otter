@@ -8,7 +8,6 @@ import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/sha
 import type { AnyProviderCredentials, ProviderMessageSummary } from '@mail-otter/backend-services/provider';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
-import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
   protected async handleScheduledTask(
@@ -32,11 +31,10 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
         await ImapPollingTask.pollSubscription(subscription, applicationDAO, subscriptionDAO, env, baseUrl);
         polled++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'IMAP mailbox polled' });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
-        console.error(`[ImapPollingTask] Failed to poll subscription ${subscription.subscriptionId}: ${message}`);
-        await run.fail(message);
+        console.error(`[ImapPollingTask] Failed to poll subscription ${subscription.subscriptionId}`);
+        await run.fail('IMAP poll failed');
       }
     }
     return {

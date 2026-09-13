@@ -28,7 +28,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
     env: CalendarEventSyncTaskEnv,
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
-    const scope = createRequestScope(env as never);
+    const scope = createRequestScope(env);
     const sessionEnv = createD1SessionEnv(env);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(sessionEnv.DB, masterKey);

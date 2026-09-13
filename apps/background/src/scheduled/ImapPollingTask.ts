@@ -66,7 +66,6 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
   }
 
   private static async resolveCredentials(application: ConnectedApplication, env: ImapPollingTaskEnv): Promise<AnyProviderCredentials> {
-    const scope = createRequestScope(env as never);
     if (application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) {
       if (!application.imapUsername || !application.imapPassword) {
         throw new Error('IMAP credentials are incomplete for application ' + application.applicationId);
@@ -79,6 +78,7 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
         port: application.imapPort ?? 993,
       };
     }
+    const scope = createRequestScope(env);
     const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(application.applicationId);
     return {
       type: 'oauth2',

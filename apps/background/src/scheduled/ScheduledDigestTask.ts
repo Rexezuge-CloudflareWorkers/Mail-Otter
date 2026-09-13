@@ -62,7 +62,7 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
       const run = await this.createApplicationRun(BACKGROUND_TASK_TYPE_SCHEDULED_DIGEST, applicationId, sessionEnv.DB);
       try {
         const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(applicationId);
-        const keys = await (scope.get(Tokens.Keys) as () => Promise<{ masterKey: string; actionKey: string }>)();
+        const keys = await scope.get(Tokens.Keys)();
         const digestSvc = new DigestService(sessionEnv, keys.masterKey, keys.actionKey, { providerRegistry: scope.get<InjectableEmailProviderRegistry>(Tokens.ProviderRegistry) });
         await digestSvc.sendDigest(application, accessToken);
         sent++;

@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { FolderService } from '@mail-otter/backend-services/application';
 import type { ProviderFolder } from '@mail-otter/backend-services/application';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 

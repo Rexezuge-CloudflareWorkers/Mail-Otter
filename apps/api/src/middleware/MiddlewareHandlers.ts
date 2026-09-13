@@ -1,6 +1,5 @@
 import { ServiceError } from '@mail-otter/backend-errors';
 import { EmailValidationUtil } from '@mail-otter/backend-services/auth';
-import { UserService } from '@mail-otter/backend-services/user';
 import { Context, Next } from 'hono';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 

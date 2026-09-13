@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class CreateOAuth2AuthorizationRoute extends IUserRoute<

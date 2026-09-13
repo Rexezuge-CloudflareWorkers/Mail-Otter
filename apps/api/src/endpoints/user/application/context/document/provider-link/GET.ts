@@ -1,7 +1,6 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ContextService } from '@mail-otter/backend-services/email';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<

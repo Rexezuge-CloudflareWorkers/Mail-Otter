@@ -1,7 +1,6 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { ExtendedResponse, IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
-import { OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class OAuth2CallbackRoute extends IBaseRoute<OAuth2CallbackRequest, OAuth2CallbackResponse, OAuth2CallbackEnv> {

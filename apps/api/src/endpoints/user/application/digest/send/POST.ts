@@ -1,8 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import { DigestService } from '@mail-otter/backend-services/digest';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class SendDigestNowRoute extends IUserRoute<SendDigestNowRequest, SendDigestNowResponse, SendDigestNowEnv> {

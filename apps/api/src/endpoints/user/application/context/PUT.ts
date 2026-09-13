@@ -2,7 +2,6 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ContextService } from '@mail-otter/backend-services/email';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 

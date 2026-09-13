@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { OutboundIntegration, OutboundIntegrationType } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 

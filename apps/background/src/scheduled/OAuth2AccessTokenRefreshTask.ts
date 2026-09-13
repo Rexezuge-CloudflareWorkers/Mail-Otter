@@ -18,7 +18,7 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
     env: OAuth2AccessTokenRefreshTaskEnv,
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
-    const scope = createRequestScope(env as never);
+    const scope = createRequestScope(env);
     const refreshWindowSeconds: number = ConfigurationManager.getOAuth2AccessTokenRefreshWindowSeconds(env);
     const batchSize: number = ConfigurationManager.getOAuth2TokenRefreshBatchSize(env);
     const refreshBefore: number = TimestampUtil.getCurrentUnixTimestampInSeconds() + refreshWindowSeconds;

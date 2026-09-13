@@ -2,7 +2,6 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDocument } from '@mail-otter/shared/model';
 import type { ApplicationContextDocumentStatus } from '@mail-otter/shared/constants';
-import { ContextService } from '@mail-otter/backend-services/email';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListApplicationContextDocumentsRoute extends IUserRoute<

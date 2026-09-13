@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { UserService } from '@mail-otter/backend-services/user';
 import type { UserServiceEnv } from '@mail-otter/backend-services/user';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 

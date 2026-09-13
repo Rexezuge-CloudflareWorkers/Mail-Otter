@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class DeleteIntegrationRoute extends IUserRoute<DeleteIntegrationRequest, DeleteIntegrationResponse, DeleteIntegrationEnv> {

@@ -1,7 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDeletionRun } from '@mail-otter/shared/model';
-import { ContextService } from '@mail-otter/backend-services/email';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListApplicationContextDeletionRunsRoute extends IUserRoute<

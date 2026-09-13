@@ -1,9 +1,8 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateDigestConfigRoute extends IUserRoute<UpdateDigestConfigRequest, UpdateDigestConfigResponse, UpdateDigestConfigEnv> {
   schema = {
@@ -21,14 +20,13 @@ class UpdateDigestConfigRoute extends IUserRoute<UpdateDigestConfigRequest, Upda
     env: UpdateDigestConfigEnv,
     cxt: RouteContext<UpdateDigestConfigEnv>,
   ): Promise<UpdateDigestConfigResponse> {
+    const scope = createRequestScope(env);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
 
-    const application = await applicationDAO.getByIdForUser(request.applicationId, userEmail);
-    if (!application) throw new BadRequestError('Connected application not found.');
+    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
 
-    const configSvc = new DigestConfigService(applicationDAO);
+    const configSvc = DigestConfigService.forDatabase(env.DB, masterKey);
     await configSvc.saveConfig(request.applicationId, {
       enabled: request.enabled,
       sendTime: request.sendTime,

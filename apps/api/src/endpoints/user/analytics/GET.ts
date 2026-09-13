@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, RouteContext } from '@/endpoints/IUserRoute';
-import { AnalyticsService } from '@mail-otter/backend-services/analytics';
 import type { AnalyticsResponse } from '@mail-otter/backend-services/analytics';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetAnalyticsRoute extends IUserRoute<GetAnalyticsRequest, GetAnalyticsResponse, GetAnalyticsEnv> {
   schema = {
@@ -17,12 +17,13 @@ class GetAnalyticsRoute extends IUserRoute<GetAnalyticsRequest, GetAnalyticsResp
     env: GetAnalyticsEnv,
     cxt: RouteContext<GetAnalyticsEnv>,
   ): Promise<GetAnalyticsResponse> {
+    const scope = createRequestScope(env);
     const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
     const daysParam: string | undefined = this.getQueryParam(request, 'days');
     const days: number = Math.min(Math.max(daysParam ? (Number(daysParam) || 30) : 30, 1), 365);
     const applicationId: string | undefined = this.getQueryParam(request, 'applicationId');
 
-    return new AnalyticsService(env).getAnalytics(userEmail, { days, applicationId });
+    return scope.get(Tokens.AnalyticsService).getAnalytics(userEmail, { days, applicationId });
   }
 }
 

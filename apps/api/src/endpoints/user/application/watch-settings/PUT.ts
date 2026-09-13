@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateApplicationWatchSettingsRoute extends IUserRoute<
   UpdateApplicationWatchSettingsRequest,
@@ -23,8 +23,9 @@ class UpdateApplicationWatchSettingsRoute extends IUserRoute<
     env: UpdateApplicationWatchSettingsEnv,
     cxt: RouteContext<UpdateApplicationWatchSettingsEnv>,
   ): Promise<UpdateApplicationWatchSettingsResponse> {
+    const scope = createRequestScope(env);
     return {
-      application: await new ApplicationService(env).updateWatchedFolderIds(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ApplicationService).updateWatchedFolderIds(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
     };
   }
 }

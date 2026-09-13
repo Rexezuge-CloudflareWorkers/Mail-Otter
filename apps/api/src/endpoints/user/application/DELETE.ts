@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class DeleteApplicationRoute extends IUserRoute<DeleteApplicationRequest, DeleteApplicationResponse, DeleteApplicationEnv> {
   schema = {
@@ -18,7 +18,8 @@ class DeleteApplicationRoute extends IUserRoute<DeleteApplicationRequest, Delete
     env: DeleteApplicationEnv,
     cxt: RouteContext<DeleteApplicationEnv>,
   ): Promise<DeleteApplicationResponse> {
-    await new ApplicationService(env).deleteUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId);
+    const scope = createRequestScope(env);
+    await scope.get(Tokens.ApplicationService).deleteUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId);
     return { success: true };
   }
 }

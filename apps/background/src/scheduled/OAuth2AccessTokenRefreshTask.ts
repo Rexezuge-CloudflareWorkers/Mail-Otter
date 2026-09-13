@@ -1,6 +1,7 @@
 import { OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { BACKGROUND_TASK_TYPE_OAUTH2_REFRESH } from '@mail-otter/shared/constants';
 import { TimestampUtil } from '@mail-otter/shared/utils';
@@ -17,6 +18,7 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
     env: OAuth2AccessTokenRefreshTaskEnv,
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
+    const scope = createRequestScope(env);
     const refreshWindowSeconds: number = ConfigurationManager.getOAuth2AccessTokenRefreshWindowSeconds(env);
     const batchSize: number = ConfigurationManager.getOAuth2TokenRefreshBatchSize(env);
     const refreshBefore: number = TimestampUtil.getCurrentUnixTimestampInSeconds() + refreshWindowSeconds;
@@ -28,7 +30,7 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
     let failed = 0;
     for (const applicationId of applicationIds) {
       try {
-        await new OAuth2AccessTokenService(env).refreshAccessToken(applicationId, { forceRefresh: true });
+        await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).refreshAccessToken(applicationId, { forceRefresh: true });
         refreshed++;
       } catch (error: unknown) {
         failed++;

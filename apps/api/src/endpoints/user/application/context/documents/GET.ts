@@ -2,7 +2,7 @@ import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDocument } from '@mail-otter/shared/model';
 import type { ApplicationContextDocumentStatus } from '@mail-otter/shared/constants';
-import { ContextService } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListApplicationContextDocumentsRoute extends IUserRoute<
   ListApplicationContextDocumentsRequest,
@@ -24,7 +24,8 @@ class ListApplicationContextDocumentsRoute extends IUserRoute<
     env: ListApplicationContextDocumentsEnv,
     cxt: RouteContext<ListApplicationContextDocumentsEnv>,
   ): Promise<ListApplicationContextDocumentsResponse> {
-    return new ContextService(env).listDocuments(this.getAuthenticatedUserEmailAddress(cxt), { applicationId: this.getQueryParam(request, 'applicationId'), status: this.getQueryParam(request, 'status') as ApplicationContextDocumentStatus | undefined, cursor: this.getQueryParam(request, 'cursor') });
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ContextService).listDocuments(this.getAuthenticatedUserEmailAddress(cxt), { applicationId: this.getQueryParam(request, 'applicationId'), status: this.getQueryParam(request, 'status') as ApplicationContextDocumentStatus | undefined, cursor: this.getQueryParam(request, 'cursor') });
   }
 }
 

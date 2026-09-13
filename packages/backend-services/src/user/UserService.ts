@@ -23,20 +23,52 @@ interface CurrentUserSummary {
   };
 }
 
+interface UserServiceDeps {
+  userDAO?: () => Promise<UserDAO>;
+  usageDAO?: () => Promise<AiDailyUsageDAO>;
+}
+
 class UserService {
-  constructor(private readonly env: UserServiceEnv) {}
+  private readonly deps: Required<UserServiceDeps>;
+
+  constructor(
+    private readonly env: UserServiceEnv,
+    deps: UserServiceDeps = {},
+  ) {
+    const db = env.DB;
+    this.deps = {
+      userDAO: () => Promise.resolve(new UserDAO(db),),
+      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db),),
+      ...deps,
+    };
+  }
 
   async upsertUser(email: string): Promise<void> {
-    await new UserDAO(this.env.DB).upsertByEmail(email);
+    const userDAO = await this.deps.userDAO();
+    await userDAO.upsertByEmail(email);
+  }
+
+  // Single-responsibility read for callers (e.g. CSV export locale) that must
+  // not import DAOs directly. Returns null instead of throwing when absent.
+  async getPreferredLanguage(userEmail: string): Promise<string | null> {
+    try {
+      const userDAO = await this.deps.userDAO();
+      const user = await userDAO.getByEmail(userEmail);
+      return user?.preferredLanguage ? LocaleUtil.normalize(user.preferredLanguage) : null;
+    } catch {
+      return null;
+    }
   }
 
   async getCurrentUserSummary(userEmail?: string): Promise<CurrentUserSummary> {
     const today = new Date().toISOString().slice(0, 10);
-    const usage = await new AiDailyUsageDAO(this.env.DB).getByDate(today);
+    const usageDAO = await this.deps.usageDAO();
+    const usage = await usageDAO.getByDate(today);
     let preferredLanguage: string | null = null;
     if (userEmail) {
       try {
-        const user = await new UserDAO(this.env.DB).getByEmail(userEmail);
+        const userDAO = await this.deps.userDAO();
+        const user = await userDAO.getByEmail(userEmail);
         preferredLanguage = user?.preferredLanguage ? LocaleUtil.normalize(user.preferredLanguage) : null;
       } catch {
         preferredLanguage = null;
@@ -58,8 +90,9 @@ class UserService {
 
   async updatePreferredLanguage(userEmail: string, preferredLanguage: string): Promise<string> {
     const normalized = LocaleUtil.normalize(preferredLanguage);
-    await new UserDAO(this.env.DB).upsertByEmail(userEmail);
-    await new UserDAO(this.env.DB).updatePreferredLanguage(userEmail, normalized);
+    const userDAO = await this.deps.userDAO();
+    await userDAO.upsertByEmail(userEmail);
+    await userDAO.updatePreferredLanguage(userEmail, normalized);
     return normalized;
   }
 }
@@ -71,4 +104,4 @@ const UserServiceFactory = {
 };
 
 export { UserService, UserServiceFactory };
-export type { CurrentUserSummary, UserServiceEnv };
+export type { CurrentUserSummary, UserServiceDeps, UserServiceEnv };

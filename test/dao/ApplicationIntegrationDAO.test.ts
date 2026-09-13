@@ -15,7 +15,7 @@ vi.mock('@mail-otter/shared/utils', () => ({
 }));
 
 import { ApplicationIntegrationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 
 const WEBHOOK_URL = 'https://hooks.example.com/webhook/abcdefg-long-suffix';
 const MASKED_URL = WEBHOOK_URL.slice(0, 30);
@@ -167,8 +167,8 @@ describe('ApplicationIntegrationDAO', () => {
       expect(url).toBe('https://hooks.example.com/webhook/abcdefg');
     });
 
-    it('throws BadRequestError when integration not found', async () => {
-      await expect(dao.getDecryptedWebhookUrl('no-such-id')).rejects.toThrow(BadRequestError);
+    it('throws NotFoundError when integration not found', async () => {
+      await expect(dao.getDecryptedWebhookUrl('no-such-id')).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -218,7 +218,7 @@ describe('ApplicationIntegrationDAO', () => {
       expect(runFn).toHaveBeenCalled();
     });
 
-    it('throws BadRequestError when integration not found after update', async () => {
+    it('throws NotFoundError when integration not found after update', async () => {
       const firstFn = vi.fn().mockResolvedValue(null);
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 0 } });
       db = {
@@ -228,7 +228,7 @@ describe('ApplicationIntegrationDAO', () => {
       };
       dao = new ApplicationIntegrationDAO(db, 'master-key');
 
-      await expect(dao.update(mockUUID, { name: 'X' })).rejects.toThrow(BadRequestError);
+      await expect(dao.update(mockUUID, { name: 'X' })).rejects.toThrow(NotFoundError);
     });
   });
 

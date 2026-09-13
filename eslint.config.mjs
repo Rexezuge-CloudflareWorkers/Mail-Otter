@@ -240,6 +240,7 @@ export default tseslint.config(
       'no-restricted-imports': ['error', {
         patterns: [
           { group: ['@mail-otter/provider-clients', '@mail-otter/provider-clients/*'], message: 'apps/api must not import provider-clients directly; use @mail-otter/backend-services instead' },
+          { group: ['@mail-otter/backend-data/dao', '@mail-otter/backend-data/dao/*'], message: 'apps/api must not import DAOs directly; use @mail-otter/backend-services instead (type-only imports are allowed)', allowTypeImports: true },
         ],
       }],
     },

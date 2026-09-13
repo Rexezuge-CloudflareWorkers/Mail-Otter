@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetApplicationRulesRoute extends IUserRoute<GetApplicationRulesRequest, GetApplicationRulesResponse, GetApplicationRulesEnv> {
   schema = {
@@ -19,8 +19,9 @@ class GetApplicationRulesRoute extends IUserRoute<GetApplicationRulesRequest, Ge
     env: GetApplicationRulesEnv,
     cxt: RouteContext<GetApplicationRulesEnv>,
   ): Promise<GetApplicationRulesResponse> {
+    const scope = createRequestScope(env);
     const applicationId = this.getQueryParam(request, 'applicationId') ?? '';
-    const rules = await new ApplicationService(env).getRules(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
+    const rules = await scope.get(Tokens.ApplicationService).getRules(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
     return { rules };
   }
 }

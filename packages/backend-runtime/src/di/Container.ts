@@ -1,6 +1,9 @@
 type Factory<T> = (container: Container) => T;
 
-type Token<_T = unknown> = string | symbol;
+// Branded token so `scope.get(Tokens.X)` infers `X` without an explicit
+// generic at call sites. The brand is optional (and `unknown`-compatible) so
+// `Token<Service>` remains assignable to `Token<unknown>` for Map storage.
+type Token<T = unknown> = (string | symbol) & { readonly __type?: T };
 
 /**
  * Minimal dependency-injection container (Factory + Singleton scopes).

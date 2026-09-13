@@ -1,6 +1,7 @@
 import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { BACKGROUND_TASK_TYPE_IMAP_POLLING, CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
@@ -77,7 +78,8 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
         port: application.imapPort ?? 993,
       };
     }
-    const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(application.applicationId);
+    const scope = createRequestScope(env);
+    const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(application.applicationId);
     return {
       type: 'oauth2',
       accessToken,

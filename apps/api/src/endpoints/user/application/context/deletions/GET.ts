@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { ApplicationContextDeletionRun } from '@mail-otter/shared/model';
-import { ContextService } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListApplicationContextDeletionRunsRoute extends IUserRoute<
   ListApplicationContextDeletionRunsRequest,
@@ -23,7 +23,8 @@ class ListApplicationContextDeletionRunsRoute extends IUserRoute<
     env: ListApplicationContextDeletionRunsEnv,
     cxt: RouteContext<ListApplicationContextDeletionRunsEnv>,
   ): Promise<ListApplicationContextDeletionRunsResponse> {
-    return new ContextService(env).listDeletionRuns(this.getAuthenticatedUserEmailAddress(cxt), { applicationId: this.getQueryParam(request, 'applicationId'), cursor: this.getQueryParam(request, 'cursor') });
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ContextService).listDeletionRuns(this.getAuthenticatedUserEmailAddress(cxt), { applicationId: this.getQueryParam(request, 'applicationId'), cursor: this.getQueryParam(request, 'cursor') });
   }
 }
 

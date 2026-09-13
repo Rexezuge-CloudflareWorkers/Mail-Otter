@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ConnectedApplicationMetadata, EmailProcessingRule } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class UpdateApplicationRulesRoute extends IUserRoute<UpdateApplicationRulesRequest, UpdateApplicationRulesResponse, UpdateApplicationRulesEnv> {
   schema = {
@@ -19,7 +19,8 @@ class UpdateApplicationRulesRoute extends IUserRoute<UpdateApplicationRulesReque
     env: UpdateApplicationRulesEnv,
     cxt: RouteContext<UpdateApplicationRulesEnv>,
   ): Promise<UpdateApplicationRulesResponse> {
-    const application = await new ApplicationService(env).updateRules(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.rules);
+    const scope = createRequestScope(env);
+    const application = await scope.get(Tokens.ApplicationService).updateRules(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.rules);
     return { application };
   }
 }

@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { UserService } from '@mail-otter/backend-services/user';
 import type { UserServiceEnv } from '@mail-otter/backend-services/user';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetCurrentUserRoute extends IUserRoute<GetCurrentUserRequest, GetCurrentUserResponse, GetCurrentUserEnv> {
   schema = {
@@ -19,8 +19,9 @@ class GetCurrentUserRoute extends IUserRoute<GetCurrentUserRequest, GetCurrentUs
     env: GetCurrentUserEnv,
     cxt: RouteContext<GetCurrentUserEnv>,
   ): Promise<GetCurrentUserResponse> {
+    const scope = createRequestScope(env);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const summary = await new UserService(env).getCurrentUserSummary(userEmail);
+    const summary = await scope.get(Tokens.UserService).getCurrentUserSummary(userEmail);
     return {
       email: userEmail,
       ...summary,

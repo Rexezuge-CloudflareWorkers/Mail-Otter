@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListApplicationsResponse, ListApplicationsEnv> {
   schema = {
@@ -19,8 +19,9 @@ class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListAppl
     env: ListApplicationsEnv,
     cxt: RouteContext<ListApplicationsEnv>,
   ): Promise<ListApplicationsResponse> {
+    const scope = createRequestScope(env);
     return {
-      applications: await new ApplicationService(env).listUserApplications(this.getAuthenticatedUserEmailAddress(cxt), request.raw),
+      applications: await scope.get(Tokens.ApplicationService).listUserApplications(this.getAuthenticatedUserEmailAddress(cxt), request.raw),
     };
   }
 }

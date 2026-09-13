@@ -3,6 +3,7 @@ import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
 import { CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, EmailQueueMessage } from '@mail-otter/shared/model';
@@ -16,6 +17,8 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     event: Readonly<WorkflowEvent<EmailQueueMessage>>,
     step: WorkflowStep,
   ): Promise<EmailProcessingWorkflowResult> {
+    const sessionEnv = createD1SessionEnv(this.env);
+    const scope = createRequestScope(sessionEnv);
     const resolved = await step.do(
       'Resolve Application',
       { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
@@ -87,7 +90,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
               async (): Promise<void> => {
                 try {
-                  await new IntegrationService(createD1SessionEnv(this.env)).sendToIntegrations(summaryData);
+                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
                 } catch (error: unknown) {
                   throw EmailProcessingWorkflow.toWorkflowError(error);
                 }
@@ -154,7 +157,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
           async (): Promise<void> => {
             try {
-              await new IntegrationService(createD1SessionEnv(this.env)).sendToIntegrations(summaryData);
+              await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
             } catch (error: unknown) {
               throw EmailProcessingWorkflow.toWorkflowError(error);
             }
@@ -203,7 +206,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
           async (): Promise<void> => {
             try {
-              await new IntegrationService(createD1SessionEnv(this.env)).sendToIntegrations(summaryData);
+              await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
             } catch (error: unknown) {
               throw EmailProcessingWorkflow.toWorkflowError(error);
             }
@@ -259,7 +262,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
               async (): Promise<void> => {
                 try {
-                  await new IntegrationService(createD1SessionEnv(this.env)).sendToIntegrations(summaryData);
+                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
                 } catch (error: unknown) {
                   throw EmailProcessingWorkflow.toWorkflowError(error);
                 }

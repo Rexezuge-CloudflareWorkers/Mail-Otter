@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class DismissApplicationErrorRoute extends IUserRoute<
   DismissApplicationErrorRequest,
@@ -23,8 +23,9 @@ class DismissApplicationErrorRoute extends IUserRoute<
     env: IUserEnv,
     cxt: RouteContext<IUserEnv>,
   ): Promise<DismissApplicationErrorResponse> {
+    const scope = createRequestScope(env);
     return {
-      application: await new ApplicationService(env).acknowledgeApplicationError(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.errorType, request.raw),
+      application: await scope.get(Tokens.ApplicationService).acknowledgeApplicationError(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.errorType, request.raw),
     };
   }
 }

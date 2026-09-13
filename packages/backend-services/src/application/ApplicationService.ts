@@ -5,9 +5,17 @@ import {
   CONNECTION_METHOD_OAUTH2,
   OAUTH2_FEATURE_SCOPES,
 } from '@mail-otter/shared/constants';
-import { AiDailyUsageDAO, ApplicationContextDAO, ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDeliveryLogDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
+import {
+  AiDailyUsageDAO,
+  ApplicationContextDAO,
+  ApplicationIntegrationDAO,
+  ConnectedApplicationDAO,
+  IntegrationDeliveryLogDAO,
+  OAuth2AccessTokenCacheDAO,
+} from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { isImapPasswordApplication } from '@mail-otter/shared/model';
 import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
@@ -33,11 +41,43 @@ import type { OAuth2AccessTokenServiceEnv } from '../oauth2/OAuth2AccessTokenSer
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
 import type { ApplicationResponse } from './ApplicationResponseUtil';
 
+interface ApplicationServiceDeps {
+  applicationDAO?: () => Promise<ConnectedApplicationDAO>;
+  contextDAO?: () => Promise<ApplicationContextDAO>;
+  integrationDAO?: () => Promise<ApplicationIntegrationDAO>;
+  deliveryLogDAO?: () => Promise<IntegrationDeliveryLogDAO>;
+  usageDAO?: () => Promise<AiDailyUsageDAO>;
+  tokenCacheDAO?: () => Promise<OAuth2AccessTokenCacheDAO>;
+  watchService?: () => Promise<WatchService>;
+  integrationService?: () => Promise<IntegrationService>;
+  tokenService?: () => Promise<OAuth2AccessTokenService>;
+}
+
 class ApplicationService {
-  constructor(private readonly env: ApplicationServiceEnv) {}
+  private readonly deps: Required<ApplicationServiceDeps>;
+
+  constructor(
+    private readonly env: ApplicationServiceEnv,
+    deps: ApplicationServiceDeps = {},
+  ) {
+    const db = env.DB;
+    const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
+    this.deps = {
+      applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
+      contextDAO: () => Promise.resolve(new ApplicationContextDAO(db),),
+      integrationDAO: async () => new ApplicationIntegrationDAO(db, await masterKey()),
+      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db),),
+      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db),),
+      tokenCacheDAO: async () => new OAuth2AccessTokenCacheDAO(env.OAUTH2_TOKEN_CACHE as KVNamespace, await masterKey()),
+      watchService: () => Promise.resolve(new WatchService(env as WatchServiceEnv),),
+      integrationService: () => Promise.resolve(new IntegrationService(env),),
+      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env as OAuth2AccessTokenServiceEnv),),
+      ...deps,
+    };
+  }
 
   async listUserApplications(userEmail: string, raw: Request): Promise<ApplicationResponse[]> {
-    const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const applications: ConnectedApplicationMetadata[] = await applicationDAO.listMetadataByUserEmail(userEmail);
     return Promise.all(
       applications.map(async (application: ConnectedApplicationMetadata): Promise<ApplicationResponse> => {
@@ -47,7 +87,7 @@ class ApplicationService {
   }
 
   async createUserApplication(userEmail: string, input: CreateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
-    const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const maxApplications: number = ConfigurationManager.getMaxApplicationsPerUser(this.env);
     if ((await applicationDAO.countByUserEmail(userEmail)) >= maxApplications) {
       throw new BadRequestError(`Maximum ${maxApplications} connected applications allowed per user.`);
@@ -58,15 +98,16 @@ class ApplicationService {
       ? { imapPassword: input.imapPassword ?? '' }
       : { clientId: input.clientId ?? '', clientSecret: input.clientSecret ?? '' };
     const status = isImapPassword ? CONNECTED_APPLICATION_STATUS_CONNECTED : CONNECTED_APPLICATION_STATUS_DRAFT;
-    const imapConfig = (input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort)
-      ? {
-          host: input.imapHost ?? null,
-          port: input.imapPort ?? null,
-          username: input.imapUsername ?? null,
-          smtpHost: input.smtpHost ?? null,
-          smtpPort: input.smtpPort ?? null,
-        }
-      : null;
+    const imapConfig =
+      input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort
+        ? {
+            host: input.imapHost ?? null,
+            port: input.imapPort ?? null,
+            username: input.imapUsername ?? null,
+            smtpHost: input.smtpHost ?? null,
+            smtpPort: input.smtpPort ?? null,
+          }
+        : null;
     const application: ConnectedApplicationMetadata = await applicationDAO.create(
       userEmail,
       input.displayName,
@@ -84,7 +125,7 @@ class ApplicationService {
   }
 
   async updateUserApplication(userEmail: string, input: UpdateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
-    const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const existing: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(input.applicationId, userEmail);
     if (!existing) {
       throw new NotFoundError('Connected application was not found.');
@@ -93,7 +134,7 @@ class ApplicationService {
       throw new BadRequestError('Provider and connection method cannot be changed after creation.');
     }
 
-    const isImapPassword = existing.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
+    const isImapPassword = isImapPasswordApplication(existing);
     let credentials: ConnectedApplicationCredentials;
     let newStatus = existing.status;
     if (isImapPassword) {
@@ -110,20 +151,21 @@ class ApplicationService {
         refreshToken: existingOAuth2.refreshToken,
       };
       const credentialsChanged = newClientId !== existingOAuth2.clientId || newClientSecret !== existingOAuth2.clientSecret;
-      const newFeatures = (input.enabledFeatures ?? []).filter(f => !(existing.enabledFeatures ?? []).includes(f));
-      const scopeRequiringFeatureAdded = newFeatures.some(f => (OAUTH2_FEATURE_SCOPES[f]?.[existing.providerId]?.length ?? 0) > 0);
+      const newFeatures = (input.enabledFeatures ?? []).filter((f) => !(existing.enabledFeatures ?? []).includes(f));
+      const scopeRequiringFeatureAdded = newFeatures.some((f) => (OAUTH2_FEATURE_SCOPES[f]?.[existing.providerId]?.length ?? 0) > 0);
       if (credentialsChanged || scopeRequiringFeatureAdded) newStatus = CONNECTED_APPLICATION_STATUS_DRAFT;
     }
 
-    const imapConfig = (input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort)
-      ? {
-          host: input.imapHost ?? null,
-          port: input.imapPort ?? null,
-          username: input.imapUsername ?? null,
-          smtpHost: input.smtpHost ?? null,
-          smtpPort: input.smtpPort ?? null,
-        }
-      : null;
+    const imapConfig =
+      input.imapHost || input.imapPort || input.imapUsername || input.smtpHost || input.smtpPort
+        ? {
+            host: input.imapHost ?? null,
+            port: input.imapPort ?? null,
+            username: input.imapUsername ?? null,
+            smtpHost: input.smtpHost ?? null,
+            smtpPort: input.smtpPort ?? null,
+          }
+        : null;
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateForUser(
       input.applicationId,
       userEmail,
@@ -145,9 +187,12 @@ class ApplicationService {
   }
 
   async updateWatchedFolderIds(userEmail: string, input: UpdateWatchedFolderIdsInput, raw: Request): Promise<ApplicationResponse> {
-    const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateWatchedFolderIdsForUser(
-      input.applicationId, userEmail, input.folderIds, input.folderNames,
+      input.applicationId,
+      userEmail,
+      input.folderIds,
+      input.folderNames,
     );
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
@@ -157,15 +202,15 @@ class ApplicationService {
 
   async deleteUserApplication(userEmail: string, applicationId: string): Promise<void> {
     try {
-      await new WatchService(this.env as WatchServiceEnv).stopApplicationWatch(userEmail, applicationId);
+      const watchService = await this.deps.watchService();
+      await watchService.stopApplicationWatch(userEmail, applicationId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[ApplicationService] Stop watch failed during application deletion, proceeding: ${message}`);
     }
 
-    const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-    const contextDAO = new ApplicationContextDAO(this.env.DB);
+    const applicationDAO = await this.deps.applicationDAO();
+    const contextDAO = await this.deps.contextDAO();
     const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(applicationId, userEmail);
     if (this.env.EMAIL_CONTEXT_INDEX) {
       for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
@@ -174,14 +219,36 @@ class ApplicationService {
       await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
     }
     if (this.env.OAUTH2_TOKEN_CACHE) {
-      await new OAuth2AccessTokenCacheDAO(this.env.OAUTH2_TOKEN_CACHE, masterKey).deleteAccessToken(applicationId);
+      const tokenCacheDAO = await this.deps.tokenCacheDAO();
+      await tokenCacheDAO.deleteAccessToken(applicationId);
     }
     await applicationDAO.deleteForUser(applicationId, userEmail);
   }
 
-  async acknowledgeApplicationError(userEmail: string, applicationId: string, errorType: 'processing' | 'context', raw: Request): Promise<ApplicationResponse> {
-    const applicationDAO: ConnectedApplicationDAO = await this.createApplicationDAO();
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.acknowledgeErrorForUser(applicationId, userEmail, errorType);
+  // Ownership-checked metadata fetch for routes that operate on a single
+  // application through other domain services (digest, context, rules).
+  // Keeps DAO access inside the service layer instead of route handlers.
+  async getOwnedApplication(userEmail: string, applicationId: string): Promise<ConnectedApplicationMetadata> {
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+    if (!application) {
+      throw new NotFoundError('Connected application not found.');
+    }
+    return application;
+  }
+
+  async acknowledgeApplicationError(
+    userEmail: string,
+    applicationId: string,
+    errorType: 'processing' | 'context',
+    raw: Request,
+  ): Promise<ApplicationResponse> {
+    const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.acknowledgeErrorForUser(
+      applicationId,
+      userEmail,
+      errorType,
+    );
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
     }
@@ -190,48 +257,43 @@ class ApplicationService {
 
   async listIntegrations(userEmail: string, applicationId: string): Promise<OutboundIntegration[]> {
     await this.assertApplicationOwnership(userEmail, applicationId);
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    return new ApplicationIntegrationDAO(this.env.DB, masterKey).listByApplicationId(applicationId);
+    const integrationDAO = await this.deps.integrationDAO();
+    return integrationDAO.listByApplicationId(applicationId);
   }
 
   async createIntegration(userEmail: string, input: CreateIntegrationInput): Promise<OutboundIntegration> {
     await this.assertApplicationOwnership(userEmail, input.applicationId);
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    return new ApplicationIntegrationDAO(this.env.DB, masterKey).create(
-      input.applicationId, input.integrationType, input.name, input.webhookUrl,
-    );
+    const integrationDAO = await this.deps.integrationDAO();
+    return integrationDAO.create(input.applicationId, input.integrationType, input.name, input.webhookUrl);
   }
 
   async updateIntegration(userEmail: string, input: UpdateIntegrationInput): Promise<OutboundIntegration> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.integrationDAO();
     const existing = await dao.getByIdForUser(input.integrationId, userEmail);
     if (!existing) throw new NotFoundError('Integration not found.');
     return dao.update(input.integrationId, { name: input.name, enabled: input.enabled, webhookUrl: input.webhookUrl });
   }
 
   async deleteIntegration(userEmail: string, integrationId: string): Promise<void> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.integrationDAO();
     const existing = await dao.getByIdForUser(integrationId, userEmail);
     if (!existing) throw new NotFoundError('Integration not found.');
     await dao.deleteById(integrationId);
   }
 
   async testIntegration(userEmail: string, integrationId: string): Promise<void> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.integrationDAO();
     const integration = await dao.getByIdForUser(integrationId, userEmail);
     if (!integration) throw new NotFoundError('Integration not found.');
-    await new IntegrationService(this.env).sendTestNotification(integration);
+    const integrationService = await this.deps.integrationService();
+    await integrationService.sendTestNotification(integration);
   }
 
   async listIntegrationDeliveries(userEmail: string, integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const integrationDao = new ApplicationIntegrationDAO(this.env.DB, masterKey);
+    const integrationDao = await this.deps.integrationDAO();
     const integration = await integrationDao.getByIdForUser(integrationId, userEmail);
     if (!integration) throw new NotFoundError('Integration not found.');
-    const logDao = new IntegrationDeliveryLogDAO(this.env.DB);
+    const logDao = await this.deps.deliveryLogDAO();
     return logDao.listByIntegrationId(integrationId, limit);
   }
 
@@ -239,9 +301,9 @@ class ApplicationService {
     await this.assertApplicationOwnership(userEmail, applicationId);
     if (!this.env.OAUTH2_TOKEN_CACHE || !this.env.OAUTH2_TOKEN_REFRESHERS) return [];
     try {
-      const accessToken = await new OAuth2AccessTokenService(this.env as OAuth2AccessTokenServiceEnv).getAccessToken(applicationId);
-      const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-      const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
+      const tokenService = await this.deps.tokenService();
+      const accessToken = await tokenService.getAccessToken(applicationId);
+      const dao = await this.deps.applicationDAO();
       const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
       if (!app) return [];
       const provider = EmailProviderRegistry.get(app.providerId, app.connectionMethod);
@@ -254,16 +316,14 @@ class ApplicationService {
 
   async getRules(userEmail: string, applicationId: string): Promise<EmailProcessingRule[]> {
     await this.assertApplicationOwnership(userEmail, applicationId);
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.applicationDAO();
     const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
     return app?.emailProcessingRules ?? [];
   }
 
   async updateRules(userEmail: string, applicationId: string, rules: EmailProcessingRule[]): Promise<ConnectedApplicationMetadata> {
     await this.assertApplicationOwnership(userEmail, applicationId);
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.applicationDAO();
     const updated = await dao.updateEmailProcessingRulesForUser(applicationId, userEmail, rules);
     if (!updated) throw new NotFoundError('Connected application not found.');
     return updated;
@@ -286,7 +346,8 @@ class ApplicationService {
   ): Promise<void> {
     try {
       const estimate = AiUsageUtil.estimateTextGenerationUsage(model, usage, description, JSON.stringify(rule));
-      await new AiDailyUsageDAO(this.env.DB).incrementUsage({
+      const usageDAO = await this.deps.usageDAO();
+      await usageDAO.incrementUsage({
         usageDate: AiUsageUtil.getCurrentUtcUsageDate(),
         estimatedNeurons: estimate.estimatedNeurons,
         promptTokens: estimate.promptTokens,
@@ -298,15 +359,9 @@ class ApplicationService {
   }
 
   private async assertApplicationOwnership(userEmail: string, applicationId: string): Promise<void> {
-    const masterKey = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    const dao = new ConnectedApplicationDAO(this.env.DB, masterKey);
+    const dao = await this.deps.applicationDAO();
     const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
     if (!app) throw new NotFoundError('Connected application not found.');
-  }
-
-  private async createApplicationDAO(): Promise<ConnectedApplicationDAO> {
-    const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
-    return new ConnectedApplicationDAO(this.env.DB, masterKey);
   }
 }
 
@@ -376,8 +431,8 @@ interface ApplicationServiceEnv {
 
 export { ApplicationService, ApplicationServiceFactory };
 export type {
+  ApplicationServiceDeps,
   ApplicationServiceEnv,
-  
   CreateIntegrationInput,
   CreateUserApplicationInput,
   UpdateIntegrationInput,
@@ -385,4 +440,4 @@ export type {
   UpdateWatchedFolderIdsInput,
 };
 
-export {type ApplicationResponse} from './ApplicationResponseUtil';
+export { type ApplicationResponse } from './ApplicationResponseUtil';

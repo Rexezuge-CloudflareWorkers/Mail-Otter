@@ -1,9 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
 import { DigestService } from '@mail-otter/backend-services/digest';
-import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class SendDigestNowRoute extends IUserRoute<SendDigestNowRequest, SendDigestNowResponse, SendDigestNowEnv> {
   schema = {
@@ -21,16 +19,14 @@ class SendDigestNowRoute extends IUserRoute<SendDigestNowRequest, SendDigestNowR
     env: SendDigestNowEnv,
     cxt: RouteContext<SendDigestNowEnv>,
   ): Promise<SendDigestNowResponse> {
+    const scope = createRequestScope(env);
+    const keys = await scope.get(Tokens.Keys)();
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const actionKey: string = await env.ACTION_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
 
-    const application = await applicationDAO.getByIdForUser(request.applicationId, userEmail);
-    if (!application) throw new BadRequestError('Connected application not found.');
+    const application = await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
 
-    const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(request.applicationId);
-    const digestSvc = new DigestService(env, masterKey, actionKey);
+    const accessToken = await scope.get(Tokens.OAuth2AccessTokenService).getAccessToken(request.applicationId);
+    const digestSvc = new DigestService(env, keys.masterKey, keys.actionKey, { providerRegistry: scope.get(Tokens.ProviderRegistry) });
 
     await digestSvc.sendDigestForced(application, accessToken);
     return { sent: true };

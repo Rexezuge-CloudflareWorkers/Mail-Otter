@@ -2,6 +2,7 @@ import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import type { OverLimitApplication } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { ContextService } from '@mail-otter/backend-services/email';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
@@ -14,12 +15,13 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
   ): Promise<void> {
     const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
     const sessionEnv = createD1SessionEnv(env);
+    const scope = createRequestScope(sessionEnv as never);
     const contextDAO = new ApplicationContextDAO(sessionEnv.DB);
     const overLimitApps: OverLimitApplication[] = await contextDAO.listApplicationsOverDocumentLimit(globalMax);
 
     for (const app of overLimitApps) {
       try {
-        await new ContextService(sessionEnv).pruneApplicationDocuments(
+        await scope.get<ContextService>(Tokens.ContextService).pruneApplicationDocuments(
           app.applicationId,
           app.userEmail,
           app.activeCount,

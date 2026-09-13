@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class TestIntegrationRoute extends IUserRoute<TestIntegrationRequest, TestIntegrationResponse, TestIntegrationEnv> {
   schema = {
@@ -18,7 +18,8 @@ class TestIntegrationRoute extends IUserRoute<TestIntegrationRequest, TestIntegr
     env: TestIntegrationEnv,
     cxt: RouteContext<TestIntegrationEnv>,
   ): Promise<TestIntegrationResponse> {
-    await new ApplicationService(env).testIntegration(this.getAuthenticatedUserEmailAddress(cxt), request.integrationId);
+    const scope = createRequestScope(env);
+    await scope.get(Tokens.ApplicationService).testIntegration(this.getAuthenticatedUserEmailAddress(cxt), request.integrationId);
     return { success: true };
   }
 }

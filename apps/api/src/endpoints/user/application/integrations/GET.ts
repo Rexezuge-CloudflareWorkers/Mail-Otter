@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class ListIntegrationsRoute extends IUserRoute<ListIntegrationsRequest, ListIntegrationsResponse, ListIntegrationsEnv> {
   schema = {
@@ -19,7 +19,8 @@ class ListIntegrationsRoute extends IUserRoute<ListIntegrationsRequest, ListInte
     env: ListIntegrationsEnv,
     cxt: RouteContext<ListIntegrationsEnv>,
   ): Promise<ListIntegrationsResponse> {
-    const integrations = await new ApplicationService(env).listIntegrations(this.getAuthenticatedUserEmailAddress(cxt), this.getQueryParam(request, 'applicationId') ?? '');
+    const scope = createRequestScope(env);
+    const integrations = await scope.get(Tokens.ApplicationService).listIntegrations(this.getAuthenticatedUserEmailAddress(cxt), this.getQueryParam(request, 'applicationId') ?? '');
     return { integrations };
   }
 }

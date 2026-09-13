@@ -1,8 +1,8 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetDigestConfigRoute extends IUserRoute<GetDigestConfigRequest, GetDigestConfigResponse, GetDigestConfigEnv> {
   schema = {
@@ -20,13 +20,14 @@ class GetDigestConfigRoute extends IUserRoute<GetDigestConfigRequest, GetDigestC
     env: GetDigestConfigEnv,
     cxt: RouteContext<GetDigestConfigEnv>,
   ): Promise<GetDigestConfigResponse> {
+    const scope = createRequestScope(env);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
 
-    await applicationDAO.getByIdForUser(request.applicationId, userEmail);
+    // Throws NotFoundError for foreign/missing applications (was silently ignored).
+    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
 
-    const configSvc = new DigestConfigService(applicationDAO);
+    const configSvc = DigestConfigService.forDatabase(env.DB, masterKey);
     const config = await configSvc.getConfig(request.applicationId);
     return { digestConfig: config };
   }

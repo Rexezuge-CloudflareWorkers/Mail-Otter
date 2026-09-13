@@ -116,6 +116,15 @@ describe('UserService', () => {
     expect(mockUpsertByEmail).toHaveBeenCalledWith('user@example.com');
     expect(mockUpdatePreferredLanguage).toHaveBeenCalledWith('user@example.com', 'fr');
   });
+
+  it('reads the preferred language without throwing for missing users', async () => {
+    mockGetByEmail.mockResolvedValue({ preferredLanguage: 'DE' });
+    await expect(new UserService(userEnv()).getPreferredLanguage('user@example.com')).resolves.toBe('de');
+    mockGetByEmail.mockResolvedValue(null);
+    await expect(new UserService(userEnv()).getPreferredLanguage('user@example.com')).resolves.toBeNull();
+    mockGetByEmail.mockRejectedValue(new Error('db down'));
+    await expect(new UserService(userEnv()).getPreferredLanguage('user@example.com')).resolves.toBeNull();
+  });
 });
 
 describe('AnalyticsService', () => {

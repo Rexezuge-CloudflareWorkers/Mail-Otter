@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ApplicationService } from '@mail-otter/backend-services/application';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class GetApplicationLabelsRoute extends IUserRoute<GetApplicationLabelsRequest, GetApplicationLabelsResponse, GetApplicationLabelsEnv> {
   schema = {
@@ -18,8 +18,9 @@ class GetApplicationLabelsRoute extends IUserRoute<GetApplicationLabelsRequest, 
     env: GetApplicationLabelsEnv,
     cxt: RouteContext<GetApplicationLabelsEnv>,
   ): Promise<GetApplicationLabelsResponse> {
+    const scope = createRequestScope(env);
     const applicationId = this.getQueryParam(request, 'applicationId') ?? '';
-    const labels = await new ApplicationService(env).listLabels(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
+    const labels = await scope.get(Tokens.ApplicationService).listLabels(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
     return { labels };
   }
 }

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, Suspense, lazy } from 'react';
 import { Send, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,12 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { FilterBar } from '../shared/FilterBar';
 import { MailboxSelect } from '../shared/MailboxSelect';
-import { Markdown } from '../shared/Markdown';
 import { appName } from '../../lib/applications';
 import { cn } from '../../lib/utils';
+
+// Split react-markdown + remark-gfm out of the initial bundle; the chunk
+// loads on first assistant message and stays cached afterwards.
+const Markdown = lazy(() => import('../shared/Markdown').then((m) => ({ default: m.Markdown })));
 
 function SourcesToggle({ sources, applications }: { sources: ChatSource[]; applications: ConnectedApplication[] }) {
   const { t } = useTranslation();
@@ -69,7 +72,13 @@ function MessageBubble({
               : 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] rounded-bl-sm',
           )}
         >
-          {isUser ? message.content : <Markdown content={message.content} />}
+          {isUser ? (
+            message.content
+          ) : (
+            <Suspense fallback={<span className="whitespace-pre-wrap">{message.content}</span>}>
+              <Markdown content={message.content} />
+            </Suspense>
+          )}
         </div>
         {!isUser && sources && sources.length > 0 && (
           <SourcesToggle sources={sources} applications={applications} />

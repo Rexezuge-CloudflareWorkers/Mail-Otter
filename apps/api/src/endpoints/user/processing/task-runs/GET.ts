@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ProcessingService } from '@mail-otter/backend-services/processing';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { BackgroundTaskRun, BackgroundTaskRunStatus } from '@mail-otter/backend-data/dao';
 
 class ListBackgroundTaskRunsRoute extends IUserRoute<ListBackgroundTaskRunsRequest, ListBackgroundTaskRunsResponse, ListBackgroundTaskRunsEnv> {
@@ -17,7 +17,8 @@ class ListBackgroundTaskRunsRoute extends IUserRoute<ListBackgroundTaskRunsReque
     env: ListBackgroundTaskRunsEnv,
     cxt: RouteContext<ListBackgroundTaskRunsEnv>,
   ): Promise<ListBackgroundTaskRunsResponse> {
-    return ProcessingService.listTaskRuns(
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ProcessingService).listTaskRuns(
       this.getAuthenticatedUserEmailAddress(cxt),
       {
         taskType: this.getQueryParam(request, 'taskType'),
@@ -25,7 +26,6 @@ class ListBackgroundTaskRunsRoute extends IUserRoute<ListBackgroundTaskRunsReque
         status: this.getQueryParam(request, 'status') as BackgroundTaskRunStatus | undefined,
         cursor: this.getQueryParam(request, 'cursor'),
       },
-      env,
     );
   }
 }

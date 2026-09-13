@@ -4,6 +4,7 @@ import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, Retryab
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
 import type { GmailMessageList, GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
+import { buildImapConnectOptions } from '@mail-otter/backend-services/provider';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
 import { CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, EmailQueueMessage } from '@mail-otter/shared/model';
@@ -286,21 +287,9 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
   }
 
   private static buildImapConnectOptions(application: ConnectedApplication, accessToken: string, isImapPassword: boolean): ImapConnectOptions {
-    const PROVIDER_IMAP_DEFAULTS: Record<string, { host: string; port: number }> = {
-      'google-gmail': { host: 'imap.gmail.com', port: 993 },
-      'microsoft-outlook': { host: 'outlook.office365.com', port: 993 },
-      'fastmail-jmap': { host: 'imap.fastmail.com', port: 993 },
-      'yahoo-mail': { host: 'imap.mail.yahoo.com', port: 993 },
-      'apple-icloud': { host: 'imap.mail.me.com', port: 993 },
-    };
-    const defaults = PROVIDER_IMAP_DEFAULTS[application.providerId];
-    const host = application.imapHost ?? defaults?.host ?? 'localhost';
-    const port = application.imapPort ?? defaults?.port ?? 993;
-    const username = application.imapUsername ?? application.providerEmail ?? '';
-    if (isImapPassword) {
-      return { host, port, username, auth: { method: 'PLAIN', password: application.imapPassword ?? '' } };
-    }
-    return { host, port, username, auth: { method: 'XOAUTH2', accessToken } };
+    // Single source of defaults lives in `ImapConnectionFactory`; this wrapper
+    // remains so existing unit tests mocking the workflow keep working.
+    return buildImapConnectOptions(application, accessToken, isImapPassword);
   }
 
   private static toWorkflowError(error: unknown): Error {

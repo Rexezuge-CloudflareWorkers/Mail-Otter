@@ -55,12 +55,17 @@ vi.mock('@mail-otter/backend-services/user', () => ({
 }));
 
 vi.mock('@mail-otter/backend-services/action', () => ({
-  ActionService: {
-    listActionsForUser: mockListActionsForUser,
-    executeActionForUser: mockExecuteActionForUser,
-    snoozeAction: mockSnoozeAction,
-    scheduleAction: mockScheduleAction,
-  },
+  ActionService: Object.assign(
+    vi.fn(function () {
+      return { listActionsForUser: mockListActionsForUser };
+    }),
+    {
+      listActionsForUser: mockListActionsForUser,
+      executeActionForUser: mockExecuteActionForUser,
+      snoozeAction: mockSnoozeAction,
+      scheduleAction: mockScheduleAction,
+    },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-services/application', () => ({
@@ -95,7 +100,12 @@ vi.mock('@mail-otter/backend-services/digest', () => ({
 }));
 
 vi.mock('@mail-otter/backend-services/processing', () => ({
-  ProcessingService: { listTaskRuns: mockListTaskRuns, triggerTask: mockTriggerTask },
+  ProcessingService: Object.assign(
+    vi.fn(function () {
+      return { listTaskRuns: mockListTaskRuns, triggerTask: mockTriggerTask };
+    }),
+    { listTaskRuns: mockListTaskRuns, triggerTask: mockTriggerTask },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
@@ -437,7 +447,6 @@ describe('user routes', () => {
     expect(mockListTaskRuns).toHaveBeenCalledWith(
       'user@example.com',
       expect.objectContaining({ taskType: 'calendar_sync', status: 'ok' }),
-      expect.anything(),
     );
   });
 

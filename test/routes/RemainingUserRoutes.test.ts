@@ -67,7 +67,12 @@ const {
 }));
 
 vi.mock('@mail-otter/backend-services/action', () => ({
-  ActionService: { listExecutionsForUser: mockListExecutions },
+  ActionService: Object.assign(
+    vi.fn(function () {
+      return { listExecutionsForUser: mockListExecutions };
+    }),
+    { listExecutionsForUser: mockListExecutions },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-services/application', () => ({
@@ -132,14 +137,27 @@ vi.mock('@mail-otter/backend-services/subscription', () => ({
 }));
 
 vi.mock('@mail-otter/backend-services/chat', () => ({
-  ChatService: { chat: mockChat },
+  ChatService: Object.assign(
+    vi.fn(function () {
+      return { chatForUser: mockChat };
+    }),
+    { chat: mockChat },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-services/processing', () => ({
-  ProcessingService: {
-    listCalendarEvents: mockListCalendarEvents,
-    listProcessedMessages: mockListProcessedMessages,
-  },
+  ProcessingService: Object.assign(
+    vi.fn(function () {
+      return {
+        listCalendarEvents: mockListCalendarEvents,
+        listProcessedMessages: mockListProcessedMessages,
+      };
+    }),
+    {
+      listCalendarEvents: mockListCalendarEvents,
+      listProcessedMessages: mockListProcessedMessages,
+    },
+  ),
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
@@ -467,7 +485,6 @@ describe('remaining user routes', () => {
     expect(mockListCalendarEvents).toHaveBeenCalledWith(
       'user@example.com',
       { applicationId: 'app-1', cursor: 'c' },
-      expect.anything(),
     );
     await call(
       new ListProcessedMessagesRoute(),
@@ -478,7 +495,6 @@ describe('remaining user routes', () => {
     expect(mockListProcessedMessages).toHaveBeenCalledWith(
       'user@example.com',
       { applicationId: 'app-1', status: 'processed', cursor: 'c' },
-      expect.anything(),
     );
   });
 });

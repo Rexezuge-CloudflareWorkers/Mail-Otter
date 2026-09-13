@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ProcessingService } from '@mail-otter/backend-services/processing';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { ProcessedMessage } from '@mail-otter/shared/model';
 import type { ProcessedMessageStatus } from '@mail-otter/shared/constants';
 
@@ -18,14 +18,14 @@ class ListProcessedMessagesRoute extends IUserRoute<ListProcessedMessagesRequest
     env: ListProcessedMessagesEnv,
     cxt: RouteContext<ListProcessedMessagesEnv>,
   ): Promise<ListProcessedMessagesResponse> {
-    return ProcessingService.listProcessedMessages(
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ProcessingService).listProcessedMessages(
       this.getAuthenticatedUserEmailAddress(cxt),
       {
         applicationId: this.getQueryParam(request, 'applicationId'),
         status: this.getQueryParam(request, 'status') as ProcessedMessageStatus | undefined,
         cursor: this.getQueryParam(request, 'cursor'),
       },
-      env,
     );
   }
 }

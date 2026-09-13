@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ProcessingService } from '@mail-otter/backend-services/processing';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class RunTaskNowRoute extends IUserRoute<RunTaskNowRequest, RunTaskNowResponse, RunTaskNowEnv> {
   schema = {
@@ -19,7 +19,8 @@ class RunTaskNowRoute extends IUserRoute<RunTaskNowRequest, RunTaskNowResponse, 
     cxt: RouteContext<RunTaskNowEnv>,
   ): Promise<RunTaskNowResponse> {
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    await ProcessingService.triggerTask(userEmail, request.taskType, request.applicationId, env);
+    const scope = createRequestScope(env);
+    await scope.get(Tokens.ProcessingService).triggerTask(userEmail, request.taskType, request.applicationId, env);
     return { triggered: true };
   }
 }

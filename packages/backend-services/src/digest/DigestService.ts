@@ -2,8 +2,6 @@ import { ConnectedApplicationDAO, EmailActionDAO, SyncedCalendarEventDAO } from 
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import {
-  DIGEST_BILLS_DUE_DAYS,
-  DIGEST_APPOINTMENTS_HOURS,
   DIGEST_SECTION_APPOINTMENTS,
   DIGEST_SECTION_BILLS,
   DIGEST_SECTION_CALENDAR,
@@ -17,15 +15,14 @@ import {
   EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
 import type {
-  AppointmentConfirmActionPayload,
   ConnectedApplicationMetadata,
-  FinancePayBillActionPayload,
   SyncedCalendarEvent,
 } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { DigestConfigService } from './DigestConfigService';
 import { DigestEmailBuilder } from './DigestEmailBuilder';
 import type { DigestSections } from './DigestEmailBuilder';
+import { DigestSectionBuilder } from './DigestSectionBuilder';
 import { InjectableEmailProviderRegistry } from '../provider/InjectableEmailProviderRegistry';
 
 interface DigestServiceEnv {
@@ -40,13 +37,17 @@ interface DigestServiceEnv {
 interface DigestServiceDeps {
   configService?: () => Promise<DigestConfigService>;
   providerRegistry?: InjectableEmailProviderRegistry;
+  actionDAO?: () => Promise<EmailActionDAO>;
+  calendarDAO?: () => Promise<SyncedCalendarEventDAO>;
 }
 
 class DigestService {
   private readonly db: D1Queryable;
   private readonly masterKey: string;
   private readonly actionKey: string;
-  private readonly deps: Required<DigestServiceDeps>;
+  private readonly actionDAOFactory?: () => Promise<EmailActionDAO>;
+  private readonly calendarDAOFactory?: () => Promise<SyncedCalendarEventDAO>;
+  private readonly deps: Required<Pick<DigestServiceDeps, 'configService' | 'providerRegistry'>>;
 
   constructor(
     private readonly env: DigestServiceEnv,
@@ -57,10 +58,13 @@ class DigestService {
     this.db = env.DB;
     this.masterKey = masterKey;
     this.actionKey = actionKey;
+    const { actionDAO, calendarDAO, ...rest } = deps;
+    this.actionDAOFactory = actionDAO;
+    this.calendarDAOFactory = calendarDAO;
     this.deps = {
       configService: () => Promise.resolve(new DigestConfigService(new ConnectedApplicationDAO(env.DB, masterKey)),),
       providerRegistry: InjectableEmailProviderRegistry.withDefaults(),
-      ...deps,
+      ...rest,
     };
   }
 
@@ -113,13 +117,15 @@ class DigestService {
     now: Date,
     nowUnix: number,
   ): Promise<DigestSections> {
-    const actionDAO = new EmailActionDAO(this.db, this.actionKey);
-    const calendarDAO = new SyncedCalendarEventDAO(this.db);
+    const actionDAO = this.actionDAOFactory
+      ? await this.actionDAOFactory()
+      : new EmailActionDAO(this.db, this.actionKey);
+    const calendarDAO = this.calendarDAOFactory
+      ? await this.calendarDAOFactory()
+      : new SyncedCalendarEventDAO(this.db);
 
-    const dayStartUnix = DigestService.getDayStartUnix(now, timeZone);
+    const dayStartUnix = DigestSectionBuilder.getDayStartUnix(now, timeZone);
     const dayEndUnix = dayStartUnix + 86_400;
-    const billsDueByUnix = nowUnix + DIGEST_BILLS_DUE_DAYS * 86_400;
-    const appointmentsByUnix = nowUnix + DIGEST_APPOINTMENTS_HOURS * 3600;
 
     const [calendarEvents, tasks, packages, flights, allBills, allAppointments] = await Promise.all([
       enabledSections.includes(DIGEST_SECTION_CALENDAR)
@@ -142,33 +148,11 @@ class DigestService {
         : Promise.resolve([]),
     ]);
 
-    const bills = allBills.filter((a) => {
-      const dueDate = (a.payload as FinancePayBillActionPayload).dueDate;
-      if (!dueDate) return true;
-      const dueDateUnix = Math.floor(new Date(dueDate).getTime() / 1000);
-      return !Number.isNaN(dueDateUnix) && dueDateUnix <= billsDueByUnix;
-    });
+    const bills = DigestSectionBuilder.filterBillsDue(allBills, nowUnix);
 
-    const appointments = allAppointments.filter((a) => {
-      const apptTime = (a.payload as AppointmentConfirmActionPayload).appointmentTime;
-      if (!apptTime) return true;
-      const apptUnix = Math.floor(new Date(apptTime).getTime() / 1000);
-      return !Number.isNaN(apptUnix) && apptUnix <= appointmentsByUnix;
-    });
+    const appointments = DigestSectionBuilder.filterUpcomingAppointments(allAppointments, nowUnix);
 
     return { calendarEvents, tasks, packages, flights, bills, appointments };
-  }
-
-  private static getDayStartUnix(now: Date, timeZone: string): number {
-    const localParts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timeZone || 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(now);
-    const get = (type: string): string => localParts.find((p) => p.type === type)?.value ?? '00';
-    const dateStr = `${get('year')}-${get('month')}-${get('day')}T00:00:00`;
-    return Math.floor(new Date(dateStr).getTime() / 1000);
   }
 
   private async sendEmail(

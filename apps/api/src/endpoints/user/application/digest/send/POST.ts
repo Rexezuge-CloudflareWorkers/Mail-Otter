@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { DigestService } from '@mail-otter/backend-services/digest';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
 class SendDigestNowRoute extends IUserRoute<SendDigestNowRequest, SendDigestNowResponse, SendDigestNowEnv> {
@@ -20,13 +19,12 @@ class SendDigestNowRoute extends IUserRoute<SendDigestNowRequest, SendDigestNowR
     cxt: RouteContext<SendDigestNowEnv>,
   ): Promise<SendDigestNowResponse> {
     const scope = createRequestScope(env);
-    const keys = await scope.get(Tokens.Keys)();
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
 
     const application = await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
 
     const accessToken = await scope.get(Tokens.OAuth2AccessTokenService).getAccessToken(request.applicationId);
-    const digestSvc = new DigestService(env, keys.masterKey, keys.actionKey, { providerRegistry: scope.get(Tokens.ProviderRegistry) });
+    const digestSvc = scope.get(Tokens.DigestService);
 
     await digestSvc.sendDigestForced(application, accessToken);
     return { sent: true };

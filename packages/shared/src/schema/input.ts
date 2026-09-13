@@ -209,6 +209,17 @@ const SuggestApplicationRuleBodySchema = z.object({
   description: nonEmptyStringSchema('description', 500),
 });
 
+const DigestConfigQuerySchema = z.object({
+  applicationId: UuidSchema,
+});
+
+const UpdateDigestConfigBodySchema = z.object({
+  applicationId: UuidSchema,
+  enabled: z.boolean(),
+  sendTime: z.string().max(8),
+  sections: z.array(z.string()).max(20),
+});
+
 const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'POST /user/application': { body: CreateAppBodySchema },
   'PUT /user/application': { body: UpdateAppBodySchema },
@@ -232,6 +243,8 @@ const RequestInputSchemas: Record<string, RequestInputSchema> = {
   'GET /user/application/rules': { query: ApplicationRulesQuerySchema },
   'PUT /user/application/rules': { body: UpdateApplicationRulesBodySchema },
   'POST /user/application/rules/suggest': { body: SuggestApplicationRuleBodySchema },
+  'GET /user/application/digest': { query: DigestConfigQuerySchema },
+  'PUT /user/application/digest': { body: UpdateDigestConfigBodySchema },
   'GET /api/oauth2/callback/:applicationId': { query: OAuth2CallbackQuerySchema },
   'GET /api/actions/:actionId': { query: EmailActionCallbackQuerySchema },
   'POST /api/actions/:actionId/execute': { query: EmailActionCallbackQuerySchema },
@@ -246,8 +259,10 @@ export {
   ActionScheduleBodySchema,
   ActionSnoozeBodySchema,
   ApplicationRulesQuerySchema,
+  DigestConfigQuerySchema,
   RequestInputSchemas,
   SuggestApplicationRuleBodySchema,
   UpdateApplicationRulesBodySchema,
+  UpdateDigestConfigBodySchema,
 };
 export type { RequestInputSchema };

@@ -8,7 +8,7 @@ Scope: `apps/background/**`. Parent index: `../../AGENTS.md`.
 - Tasks resolve services via `createRequestScope(env)` from `@mail-otter/backend-services/composition` (`scope.get(Tokens.X)`); never `new XService(env)` in new code.
 - Shared scheduled bases: `IScheduledTask` (Template Method + `createApplicationRun` Builder + `createTaskRunDAO` Factory Method for tests), `AbstractPruningTask` (Template Method for all retention pruning: `getRetentionDays` + `pruneBatch` abstract, cutoff + `pruneInBatches` in base; 6+ pruning tasks extend it), `BaseDriveSyncTask` (both Drive sync tasks), `RepositoryHelper.pruneInBatches` (`pruneInBatches`, `computeUnixCutoffSeconds`, `computeDateCutoffIso`, `DEFAULT_PRUNE_BATCH_SIZE` in `backend-data/utils`).
 - `EmailEventsDispatcherWorker.ts` — Queue consumer → `EmailProcessingWorkflow`.
-- `EmailProcessingWorkflow.ts` — Workflow: resolve apps, list messages, summarize, post replies.
+- `EmailProcessingWorkflow.ts` — Workflow: resolve apps, list messages, summarize, post replies. IMAP connect options delegate to `buildImapConnectOptions` in `@mail-otter/backend-services/provider` (`ImapConnectionFactory`, single source of host/port defaults); no local defaults table.
 - `OAuth2TokenRefreshWorker.ts` — DO for token refresh and auth-code exchange.
 - Error logging in token-adjacent `try` blocks: log and `run.fail()` static messages with application/subscription IDs only — never interpolate the caught error (CodeQL `js/clear-text-logging` traces OAuth2 token taint through the thrown error and does not model `String#replaceAll` as a masking barrier).
 

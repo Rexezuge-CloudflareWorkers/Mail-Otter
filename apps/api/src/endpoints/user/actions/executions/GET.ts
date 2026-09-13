@@ -1,7 +1,7 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ActionService } from '@mail-otter/backend-services/action';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { EmailActionExecution } from '@mail-otter/shared/model';
 
 class ListEmailActionExecutionsRoute extends IUserRoute<
@@ -24,7 +24,8 @@ class ListEmailActionExecutionsRoute extends IUserRoute<
   ): Promise<ListEmailActionExecutionsResponse> {
     const actionId: string | undefined = cxt.req.param('actionId');
     if (!actionId) throw new BadRequestError('Action audit request is missing actionId.');
-    return ActionService.listExecutionsForUser(actionId, this.getAuthenticatedUserEmailAddress(cxt), env);
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ActionService).listExecutionsForUser(actionId, this.getAuthenticatedUserEmailAddress(cxt), env);
   }
 }
 

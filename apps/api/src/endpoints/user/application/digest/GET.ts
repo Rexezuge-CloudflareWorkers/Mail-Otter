@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
@@ -22,13 +21,15 @@ class GetDigestConfigRoute extends IUserRoute<GetDigestConfigRequest, GetDigestC
   ): Promise<GetDigestConfigResponse> {
     const scope = createRequestScope(env);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
+    // Query-param read with body fallback: GETs carry `?applicationId=`
+    // (see `DigestConfigQuerySchema`); unit callers historically passed it in
+    // the request object. Matches `GetApplicationRulesRoute` pattern.
+    const applicationId = this.getQueryParam(request, 'applicationId') ?? request.applicationId ?? '';
 
     // Throws NotFoundError for foreign/missing applications (was silently ignored).
-    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
+    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, applicationId);
 
-    const configSvc = DigestConfigService.forDatabase(env.DB, masterKey);
-    const config = await configSvc.getConfig(request.applicationId);
+    const config = await scope.get(Tokens.DigestConfigService).getConfig(applicationId);
     return { digestConfig: config };
   }
 }

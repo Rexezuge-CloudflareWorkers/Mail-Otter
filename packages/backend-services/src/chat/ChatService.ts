@@ -1,13 +1,20 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConnectedApplicationDAO, UserDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import { AppConfiguration } from '@mail-otter/backend-runtime/config';
 import { AI_LANGUAGE_NAMES, formatBackendString, getBackendStrings } from '@mail-otter/shared/i18n';
 import { LocaleUtil } from '@mail-otter/shared/utils';
 import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { WorkersAiResponseUtil } from '../email/WorkersAiResponseUtil';
 import { EmailContextUtil } from '../email/EmailContextUtil';
-import { AiClient } from '../ai/AiClient';
+import { AiService } from '../ai/AiService';
+
+interface ChatServiceDeps {
+  applicationDAO?: () => Promise<ConnectedApplicationDAO>;
+  userDAO?: () => Promise<UserDAO>;
+  aiService?: AiService;
+  config?: AppConfiguration;
+}
 
 const REASONING_MODELS_REQUIRING_THINKING_DISABLED: ReadonlySet<string> = new Set<string>([
   '@cf/moonshotai/kimi-k2.6',
@@ -16,50 +23,83 @@ const REASONING_MODELS_REQUIRING_THINKING_DISABLED: ReadonlySet<string> = new Se
 ]);
 
 class ChatService {
-  public static async chat(input: ChatInput): Promise<ChatResult> {
-    const { env, userEmail, query, applicationId, history } = input;
+  private readonly deps: Required<ChatServiceDeps>;
 
+  constructor(
+    private readonly env: ChatEnv,
+    deps: ChatServiceDeps = {},
+  ) {
+    this.deps = {
+      applicationDAO: async () => {
+        const masterKey = this.env.AES_ENCRYPTION_KEY_SECRET ? await this.env.AES_ENCRYPTION_KEY_SECRET.get() : '';
+        return new ConnectedApplicationDAO(this.env.DB, masterKey);
+      },
+      userDAO: () => Promise.resolve(new UserDAO(this.env.DB)),
+      aiService: new AiService({ db: this.env.DB }),
+      config: AppConfiguration.fromEnv(this.env),
+      ...deps,
+    };
+  }
+
+  public static async chat(input: ChatInput): Promise<ChatResult> {
+    return new ChatService(input.env).chatForUser(input);
+  }
+
+  public async chatForUser(input: Omit<ChatInput, 'env'> & { env?: ChatEnv }): Promise<ChatResult> {
+    const env = input.env ?? this.env;
+    const { userEmail, query, applicationId, history } = input as ChatInput;
+    return ChatService.runChat(env, this.deps, userEmail, query, applicationId, history);
+  }
+
+  private static async runChat(
+    env: ChatEnv,
+    deps: Required<ChatServiceDeps>,
+    userEmail: string,
+    query: string,
+    applicationId?: string,
+    history?: ChatMessage[],
+  ): Promise<ChatResult> {
     if (!env.EMAIL_CONTEXT_INDEX) {
       throw new BadRequestError('Chat requires email context indexing to be enabled for at least one mailbox.');
     }
 
-    if (await this.shouldSkipForDailyUsage(env)) {
+    if (await deps.aiService.shouldSkipForDailyUsage(env)) {
       throw new BadRequestError('Daily AI usage quota has been reached. Please try again tomorrow.');
     }
 
-    const locale = await this.resolveLocale(env, userEmail, applicationId);
+    const locale = await this.resolveLocaleWithDeps(env, deps, userEmail, applicationId);
     const strings = getBackendStrings(locale);
 
     const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(userEmail);
-    const embeddingModel = ConfigurationManager.getAiEmbeddingModel(env);
-    const embedding = await AiClient.embed(env.AI, embeddingModel, query);
-    await AiClient.recordEmbeddingUsage(env.DB, embeddingModel, query, '[ChatService]');
+    const embeddingModel = deps.config.getEmbeddingModel();
+    const embedding = await deps.aiService.embed(env.AI, embeddingModel, query);
+    await deps.aiService.recordEmbeddingUsage(embeddingModel, query, '[ChatService]');
 
-    const vectorQueryTopK = ConfigurationManager.chat.getVectorQueryTopK(env);
+    const vectorQueryTopK = deps.config.getChatVectorQueryTopK();
     const matches: VectorizeMatches = await env.EMAIL_CONTEXT_INDEX.query(embedding, {
       namespace: vectorNamespace,
       topK: vectorQueryTopK,
       returnMetadata: 'all',
     });
 
-    const contextTopK = ConfigurationManager.chat.getContextTopK(env);
+    const contextTopK = deps.config.getChatContextTopK();
     const filteredMatches: VectorizeMatch[] = applicationId
-      ? matches.matches.filter((m) => AiClient.getStringMetadata(m.metadata, 'applicationId') === applicationId)
+      ? matches.matches.filter((m) => deps.aiService.getStringMetadata(m.metadata, 'applicationId') === applicationId)
       : matches.matches;
     const topMatches: VectorizeMatch[] = filteredMatches.slice(0, contextTopK);
 
     const sources: ChatSource[] = topMatches.map((m) => ({
       vectorId: m.id,
-      title: AiClient.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject,
-      sender: AiClient.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender,
-      applicationId: AiClient.getStringMetadata(m.metadata, 'applicationId') ?? '',
+      title: deps.aiService.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject,
+      sender: deps.aiService.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender,
+      applicationId: deps.aiService.getStringMetadata(m.metadata, 'applicationId') ?? '',
       score: m.score,
     }));
 
-    const contextBlock = this.buildContextBlock(topMatches, locale);
+    const contextBlock = this.buildContextBlockWithDeps(deps, topMatches, locale);
     const systemPrompt = this.buildSystemPrompt(contextBlock, locale);
 
-    const maxHistory = ConfigurationManager.chat.getMaxHistoryMessages(env);
+    const maxHistory = deps.config.getChatMaxHistoryMessages();
     const rawHistory = history ?? [];
     const trimmedHistory = rawHistory.length > maxHistory ? rawHistory.slice(-maxHistory) : rawHistory;
     const truncated = rawHistory.length > maxHistory;
@@ -70,8 +110,8 @@ class ChatService {
       { role: 'user', content: query },
     ];
 
-    const chatModel = ConfigurationManager.getEmailSummaryModel(env);
-    const maxTokens = ConfigurationManager.chat.getMaxResponseTokens(env);
+    const chatModel = deps.config.getSummaryModel();
+    const maxTokens = deps.config.getChatMaxResponseTokens();
 
     const aiRequest: AiChatRequest = { messages, max_tokens: maxTokens, temperature: 0.3 };
     if (REASONING_MODELS_REQUIRING_THINKING_DISABLED.has(chatModel)) {
@@ -82,24 +122,58 @@ class ChatService {
     const aiUsage: AiTextGenerationUsage | undefined = WorkersAiResponseUtil.extractUsage(result);
     const answerText = WorkersAiResponseUtil.extractResponseText(result) ?? strings.chat.noResponse;
 
-    await this.recordTextGenerationUsage(env, chatModel, aiUsage, messages, answerText);
+    await this.recordTextGenerationUsageWithDeps(deps, env, chatModel, aiUsage, messages, answerText);
 
     return { answer: answerText, sources, truncated };
   }
 
-  private static async resolveLocale(env: ChatEnv, userEmail: string, applicationId?: string): Promise<string> {
+  private static async resolveLocaleWithDeps(
+    env: ChatEnv,
+    deps: Required<ChatServiceDeps>,
+    userEmail: string,
+    applicationId?: string,
+  ): Promise<string> {
     try {
       if (applicationId && env.AES_ENCRYPTION_KEY_SECRET) {
-        const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-        const application = await new ConnectedApplicationDAO(env.DB, masterKey).getMetadataByIdForUser(applicationId, userEmail);
+        const applicationDAO = await deps.applicationDAO();
+        const application = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
         if (application?.contentLanguage) return LocaleUtil.normalize(application.contentLanguage);
       }
-      const user = await new UserDAO(env.DB).getByEmail(userEmail);
+      const userDAO = await deps.userDAO();
+      const user = await userDAO.getByEmail(userEmail);
       if (user?.preferredLanguage) return LocaleUtil.normalize(user.preferredLanguage);
     } catch {
       // Fall through to default locale.
     }
     return 'en';
+  }
+
+  private static buildContextBlockWithDeps(
+    deps: Required<ChatServiceDeps>,
+    matches: VectorizeMatch[],
+    locale?: string | null,
+  ): string {
+    const strings = getBackendStrings(locale);
+    return matches
+      .map((m, i) => {
+        const title = deps.aiService.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject;
+        const sender = deps.aiService.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender;
+        const indexedText = deps.aiService.getStringMetadata(m.metadata, 'indexedText') ?? '';
+        return [`${i + 1}. "${title}" from ${sender}`, indexedText].filter(Boolean).join('\n');
+      })
+      .join('\n\n');
+  }
+
+  private static async recordTextGenerationUsageWithDeps(
+    deps: Required<ChatServiceDeps>,
+    env: ChatEnv,
+    model: string,
+    usage: AiTextGenerationUsage | undefined,
+    messages: Array<{ role: string; content: string }>,
+    answerText: string,
+  ): Promise<void> {
+    const fallbackInput = messages.map((m) => m.content).join('\n');
+    await deps.aiService.recordTextGenerationUsage(model, usage, fallbackInput, answerText, '[ChatService]');
   }
 
   private static buildSystemPrompt(contextBlock: string, locale?: string | null): string {
@@ -120,48 +194,6 @@ class ChatService {
       lines.push('', strings.chat.noContext);
     }
     return lines.join('\n');
-  }
-
-  private static buildContextBlock(matches: VectorizeMatch[], locale?: string | null): string {
-    const strings = getBackendStrings(locale);
-    return matches
-      .map((m, i) => {
-        const title = AiClient.getStringMetadata(m.metadata, 'title') ?? strings.summary.noSubject;
-        const sender = AiClient.getStringMetadata(m.metadata, 'sender') ?? strings.summary.unknownSender;
-        const indexedText = AiClient.getStringMetadata(m.metadata, 'indexedText') ?? '';
-        return [`${i + 1}. "${title}" from ${sender}`, indexedText].filter(Boolean).join('\n');
-      })
-      .join('\n\n');
-  }
-
-  private static async embed(ai: Ai, model: string, text: string): Promise<number[]> {
-    return AiClient.embed(ai, model, text);
-  }
-
-  private static async recordEmbeddingUsage(env: ChatEnv, model: string, text: string): Promise<void> {
-    await AiClient.recordEmbeddingUsage(env.DB, model, text, '[ChatService]');
-  }
-
-  private static async recordTextGenerationUsage(
-    env: ChatEnv,
-    model: string,
-    usage: AiTextGenerationUsage | undefined,
-    messages: Array<{ role: string; content: string }>,
-    answerText: string,
-  ): Promise<void> {
-    const fallbackInput = messages.map((m) => m.content).join('\n');
-    await AiClient.recordTextGenerationUsage(env.DB, model, usage, fallbackInput, answerText, '[ChatService]');
-  }
-
-  private static async shouldSkipForDailyUsage(env: ChatEnv): Promise<boolean> {
-    return AiClient.shouldSkipForDailyUsage(env, '[ChatService]');
-  }
-
-  private static getStringMetadata(
-    metadata: Record<string, VectorizeVectorMetadata> | undefined,
-    key: string,
-  ): string | undefined {
-    return AiClient.getStringMetadata(metadata, key);
   }
 }
 
@@ -214,4 +246,4 @@ interface AiChatRequest {
 }
 
 export { ChatService };
-export type { ChatEnv, ChatMessage, ChatSource, ChatInput, ChatResult };
+export type { ChatEnv, ChatMessage, ChatSource, ChatInput, ChatResult, ChatServiceDeps };

@@ -1,7 +1,7 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import { ChatService } from '@mail-otter/backend-services/chat';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { ChatMessage, ChatSource } from '@mail-otter/backend-services/chat';
 
 class ChatRoute extends IUserRoute<ChatRequest, ChatResponse, ChatEnv> {
@@ -22,7 +22,8 @@ class ChatRoute extends IUserRoute<ChatRequest, ChatResponse, ChatEnv> {
     const query = (request.query ?? '').trim();
     if (!query) throw new BadRequestError('query is required');
 
-    return ChatService.chat({
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ChatService).chatForUser({
       env,
       userEmail,
       query,

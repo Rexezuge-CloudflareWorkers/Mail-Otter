@@ -2,6 +2,7 @@ export * from './BaseUrlUtil';
 export * from './Clock';
 export * from './CryptoUtil';
 export * from './Cursor';
+export * from './ErrorSanitizationUtil';
 export * from './Result';
 export * from './IdGenerator';
 export * from './LocaleUtil';

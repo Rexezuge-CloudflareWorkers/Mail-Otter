@@ -7,6 +7,7 @@ import { BACKGROUND_TASK_TYPE_OAUTH2_REFRESH } from '@mail-otter/shared/constant
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
+import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefreshTaskEnv> {
   protected getTaskType(): string {
@@ -34,7 +35,8 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
         refreshed++;
       } catch (error: unknown) {
         failed++;
-        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}:`, error);
+        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
+        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}: ${message}`);
       }
     }
     return {

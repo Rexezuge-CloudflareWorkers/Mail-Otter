@@ -12,6 +12,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
+import { ErrorSanitizationUtil } from '@mail-otter/shared/utils';
 
 class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
   private static supportsCalendarSync(providerId: string, connectionMethod?: string): boolean {
@@ -67,8 +68,8 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Calendar events synced' });
       } catch (error: unknown) {
         failed++;
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`[CalendarEventSyncTask] Failed to sync calendar for application ${applicationId}:`, error);
+        const message = ErrorSanitizationUtil.sanitizeErrorForLogging(error);
+        console.error(`[CalendarEventSyncTask] Failed to sync calendar for application ${applicationId}: ${message}`);
         await run.fail(message);
       }
     }

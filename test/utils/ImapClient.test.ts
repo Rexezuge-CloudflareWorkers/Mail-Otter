@@ -34,7 +34,6 @@ function makeSocket(lines: Array<string | { raw: string }>) {
 }
 
 const GREETING = '* OK IMAP ready';
-const okFor = (tag: string) => `${tag} OK done`;
 
 describe('ImapClient', () => {
   beforeEach(() => {

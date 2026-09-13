@@ -38,5 +38,7 @@ Add new env vars in `ConfigurationDefaults.ts` (+ `ConfigurationManager` getter)
 
 ## Dependency injection (`packages/backend-runtime/src/di/`)
 
+- `AppConfiguration` (`backend-runtime/src/config/AppConfiguration.ts`) — injectable instance view over env parsing (captured env, one method per setting); `ConfigurationManager` statics remain as a thin backward-compatible facade. Prefer injecting `AppConfiguration` (or structural subsets) in new services; mock via constructor deps, not module mocks.
+
 - `Container` — minimal Factory + Singleton DI container (`bind`/`bindValue`/`get`/`resolve`/`createChild`). Composition roots (API/background workers, tests) wire dependencies once; services declare constructor deps on interfaces.
 - `createServiceContext(env, overrides?)` — single request-scoped `{ env, logger, clock }` replacing the 13+ bespoke `*Env` subsets. Prefer extending/deriving from `ServiceContext` over new `*Env` interfaces; never reintroduce `as` env casts in new code.

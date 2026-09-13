@@ -3,6 +3,7 @@ import {
   ApplicationContextDAO,
   ApplicationIntegrationDAO,
   ConnectedApplicationDAO,
+  EmailActionDAO,
   IntegrationDeliveryLogDAO,
   ProviderSubscriptionDAO,
   UserDAO,
@@ -15,11 +16,19 @@ import { Container } from '@mail-otter/backend-runtime/di';
 // after migration to `scope.get(...)`. Runtime behavior is identical.
 import { AnalyticsService } from '@mail-otter/backend-services/analytics';
 import { ApplicationService, FolderService } from '@mail-otter/backend-services/application';
-import { DigestConfigService } from '@mail-otter/backend-services/digest';
+import { DigestConfigService, DigestService } from '@mail-otter/backend-services/digest';
 import { ContextService } from '@mail-otter/backend-services/email';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
 import { OAuth2AccessTokenService, OAuth2AuthorizationService } from '@mail-otter/backend-services/oauth2';
 import { InjectableEmailProviderRegistry } from '../provider/InjectableEmailProviderRegistry';
+import { InjectableActionHandlerRegistry } from '../action/handlers/InjectableActionHandlerRegistry';
+import { InjectableIntegrationObserverRegistry } from '../integration/observers/InjectableIntegrationObserverRegistry';
+import { ActionHandlerRegistry } from '../action/handlers/ActionHandlerRegistry';
+import { ActionService } from '@mail-otter/backend-services/action';
+import { AiService } from '@mail-otter/backend-services/ai';
+import { ChatService } from '@mail-otter/backend-services/chat';
+import { ProcessingService } from '@mail-otter/backend-services/processing';
+import { AppConfiguration } from '@mail-otter/backend-runtime/config';
 import { WatchService } from '@mail-otter/backend-services/subscription';
 import { UserService } from '@mail-otter/backend-services/user';
 import { Tokens } from './tokens';
@@ -34,7 +43,7 @@ import { Tokens } from './tokens';
 // bindings are still assignable structurally; services receive `env as never`.
 interface RequestScopeEnv {
   DB: D1Queryable;
-  AES_ENCRYPTION_KEY_SECRET: { get(): Promise<string> };
+  AES_ENCRYPTION_KEY_SECRET?: { get(): Promise<string> };
   ACTION_ENCRYPTION_KEY_SECRET?: { get(): Promise<string> };
 }
 
@@ -57,7 +66,10 @@ function createRequestScope(env: RequestScopeEnv): Container {
   scope.bindValue(Tokens.Db, env.DB);
   scope.bindValue(Tokens.ProviderRegistry, InjectableEmailProviderRegistry.withDefaults());
 
-  const masterKey = memoize(() => env.AES_ENCRYPTION_KEY_SECRET.get());
+  const masterKey = memoize(() => {
+    if (!env.AES_ENCRYPTION_KEY_SECRET) throw new Error('AES_ENCRYPTION_KEY_SECRET is not configured for this scope.');
+    return env.AES_ENCRYPTION_KEY_SECRET.get();
+  });
   const actionKey = memoize(async () => (env.ACTION_ENCRYPTION_KEY_SECRET ? env.ACTION_ENCRYPTION_KEY_SECRET.get() : ''));
   const keys = memoize(async (): Promise<RequestKeys> => ({ masterKey: await masterKey(), actionKey: await actionKey() }));
   scope.bindValue(Tokens.Keys, keys);
@@ -116,6 +128,38 @@ function createRequestScope(env: RequestScopeEnv): Container {
   scope.bind(Tokens.AnalyticsService, () => new AnalyticsService(env as never));
   scope.bind(Tokens.OAuth2AccessTokenService, () => new OAuth2AccessTokenService(env as never));
   scope.bind(Tokens.OAuth2AuthorizationService, () => new OAuth2AuthorizationService(env as never));
+  // Lazy binds so unit tests mocking `@mail-otter/backend-runtime/config` with
+  // only `ConfigurationManager` keep working; the factories only touch the
+  // mocked module when the token is actually resolved.
+  scope.bind(Tokens.AppConfig, () => AppConfiguration.fromEnv(env));
+  scope.bind(Tokens.AiService, () => new AiService({ db: env.DB }));
+  scope.bind(
+    Tokens.ActionHandlerRegistry,
+    () => InjectableActionHandlerRegistry.withDefaults(ActionHandlerRegistry.getHandlers()),
+  );
+  scope.bind(Tokens.IntegrationObserverRegistry, () => InjectableIntegrationObserverRegistry.withDefaults());
+  scope.bind(Tokens.ActionService, () => new ActionService({}));
+  scope.bind(
+    Tokens.ChatService,
+    () =>
+      new ChatService(env as never, {
+        applicationDAO,
+        userDAO,
+        aiService: scope.get(Tokens.AiService),
+      }),
+  );
+  scope.bind(Tokens.ProcessingService, () => new ProcessingService(env as never));
+  scope.bind(
+    Tokens.DigestService,
+    () =>
+      new DigestService(env as never, '', '', {
+        configService: () => Promise.resolve(scope.get(Tokens.DigestConfigService)),
+        providerRegistry: scope.get(Tokens.ProviderRegistry),
+        actionDAO: async () => {
+          return new EmailActionDAO(env.DB, await actionKey());
+        },
+      }),
+  );
 
   return scope;
 }

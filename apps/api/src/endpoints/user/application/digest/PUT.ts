@@ -1,6 +1,5 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { DigestConfigService } from '@mail-otter/backend-services/digest';
 import type { DigestConfig } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
@@ -22,11 +21,10 @@ class UpdateDigestConfigRoute extends IUserRoute<UpdateDigestConfigRequest, Upda
   ): Promise<UpdateDigestConfigResponse> {
     const scope = createRequestScope(env);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
 
     await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
 
-    const configSvc = DigestConfigService.forDatabase(env.DB, masterKey);
+    const configSvc = scope.get(Tokens.DigestConfigService);
     await configSvc.saveConfig(request.applicationId, {
       enabled: request.enabled,
       sendTime: request.sendTime,

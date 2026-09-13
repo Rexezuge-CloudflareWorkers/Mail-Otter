@@ -5,6 +5,7 @@ export type { DigestSections } from './DigestEmailUtil';
 export { DigestEmailBuilder } from './DigestEmailBuilder';
 export { DigestService } from './DigestService';
 export type { DigestServiceEnv } from './DigestService';
+export { DigestSectionBuilder } from './DigestSectionBuilder';
 export { CalendarEventSyncUtil } from './CalendarEventSyncUtil';
 export { ActionStatusSyncUtil } from './ActionStatusSyncUtil';
 export type { PackageSyncStatus, FlightSyncStatus } from './ActionStatusSyncUtil';

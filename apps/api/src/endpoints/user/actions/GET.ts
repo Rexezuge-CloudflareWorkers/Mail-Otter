@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { ActionService } from '@mail-otter/backend-services/action';
+import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { EmailAction } from '@mail-otter/shared/model';
 import type { EmailActionStatus } from '@mail-otter/shared/constants';
 
@@ -19,7 +19,8 @@ class ListEmailActionsRoute extends IUserRoute<ListEmailActionsRequest, ListEmai
     cxt: RouteContext<ListEmailActionsEnv>,
   ): Promise<ListEmailActionsResponse> {
     const showSnoozedRaw = this.getQueryParam(request, 'showSnoozed');
-    return ActionService.listActionsForUser(
+    const scope = createRequestScope(env);
+    return scope.get(Tokens.ActionService).listActionsForUser(
       this.getAuthenticatedUserEmailAddress(cxt),
       {
         applicationId: this.getQueryParam(request, 'applicationId'),

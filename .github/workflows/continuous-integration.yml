@@ -32,6 +32,10 @@ jobs:
       - name: Run Type Check and Lint
         run: pnpm -r typecheck && pnpm run lint
 
+      - name: Check God-Files (warn-only until remaining splits land)
+        run: node scripts/check-god-files.mjs
+        continue-on-error: true
+
       - name: Run Tests with Coverage
         run: pnpm run test:coverage
 

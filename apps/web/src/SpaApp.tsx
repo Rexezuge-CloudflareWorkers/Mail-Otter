@@ -1,21 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Unauthorized from './components/layout/Unauthorized';
 import type { ActiveView } from './types';
 import { Header } from './components/layout/Header';
 import { NoticeBar } from './components/layout/NoticeBar';
-import { MailboxesView } from './components/views/MailboxesView';
-import { ContextAuditView } from './components/views/ContextAuditView';
-import { ActionsView } from './components/views/ActionsView';
-import { AnalyticsView } from './components/views/AnalyticsView';
-import { HelpView } from './components/views/HelpView';
-import { ProcessingView } from './components/views/ProcessingView';
-import { ActivityView } from './components/views/ActivityView';
-import { ChatView } from './components/views/ChatView';
+import { SpaViewRouter } from './components/layout/SpaViewRouter';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
 import { IntegrationDeliveryLogsModal } from './components/modals/IntegrationDeliveryLogsModal';
-import { useTranslation } from 'react-i18next';
-import { LANGUAGE_STORAGE_KEY, detectInitialLanguage, loadLanguage, normalizeLanguage } from './i18n';
 import { NoticeContext } from './contexts/NoticeContext';
 import { UserContext } from './contexts/UserContext';
 import { MailboxCallbacksContext } from './contexts/MailboxCallbacksContext';
@@ -31,7 +22,7 @@ import { useActivity } from './hooks/useActivity';
 import { useChat } from './hooks/useChat';
 import { getUrlParam, useSyncedUrl } from './hooks/useSyncedUrl';
 import { useMailboxCallbacksValue } from './hooks/useMailboxCallbacksValue';
-import { updatePreferredLanguage } from './services/userService';
+import { useSpaLanguage } from './hooks/useSpaLanguage';
 import type { ApplicationContextDocumentStatus, EmailActionStatus } from './types';
 
 // Read URL params synchronously before first render so useState initializers can use them
@@ -47,9 +38,7 @@ export default function SpaApp() {
 
   const { notice, showNotice } = useNotice();
   const { user, setUser, authorized } = useCurrentUser();
-  const [language, setLanguage] = useState<string>(() => detectInitialLanguage());
-  const [languageStatus, setLanguageStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [languagePending, setLanguagePending] = useState(false);
+  const { language, languageStatus, languagePending, handleLanguageChange } = useSpaLanguage({ user, showNotice, setUser });
   const auditLogs = useAuditLogs({ showNotice });
 
   const contextAudit = useContextAudit({ showNotice });
@@ -75,102 +64,6 @@ export default function SpaApp() {
     if (initialView === 'mailboxes' && initialAppId) mailboxes.setSelectedApplicationId(initialAppId);
     if (initialView === 'context' && initialLogDocId) void auditLogs.openAuditLogs(initialLogDocId);
   }, []);
-
-  const { i18n } = useTranslation();
-  const languagePendingRef = useRef(false);
-
-  // Keep explicit language state in sync with i18next so the controlled
-  // LanguageSelector re-renders even when only the i18n instance changes.
-  useEffect(() => {
-    const handler = (lng: string) => {
-      setLanguage(normalizeLanguage(lng));
-      setLanguageStatus('ready');
-    };
-    i18n.on('languageChanged', handler);
-    return () => {
-      i18n.off('languageChanged', handler);
-    };
-  }, [i18n]);
-
-  // Apply the backend language preference once the user is known.
-  // Precedence: backend preferredLanguage > localStorage > navigator > en.
-  // Skipped while a blocking manual change is in flight to avoid reverting it.
-  useEffect(() => {
-    if (!user) return;
-    if (languagePendingRef.current) return;
-    const preferred = normalizeLanguage(
-      user.preferredLanguage ??
-        (() => {
-          try {
-            return localStorage.getItem(LANGUAGE_STORAGE_KEY);
-          } catch {
-            return null;
-          }
-        })(),
-    );
-    let cancelled = false;
-    setLanguageStatus('loading');
-    loadLanguage(preferred)
-      .then(() => {
-        if (cancelled) return;
-        setLanguage(preferred);
-        setLanguageStatus('ready');
-        try {
-          document.documentElement.lang = preferred;
-        } catch {
-          // Ignore DOM errors in non-browser environments.
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setLanguage('unknown');
-        setLanguageStatus('error');
-        showNotice('error', 'Unable To Load Language.');
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: user-only trigger + ref guard
-  }, [user]);
-
-  // Keep <html lang> in sync for screen readers and action-page parity.
-  useEffect(() => {
-    if (languageStatus === 'error') return;
-    try {
-      document.documentElement.lang = normalizeLanguage(language);
-    } catch {
-      // Ignore DOM errors in non-browser environments.
-    }
-  }, [language, languageStatus]);
-
-  const handleLanguageChange = (lng: string) => {
-    if (languagePending || languagePendingRef.current) return;
-    const normalized = normalizeLanguage(lng);
-    languagePendingRef.current = true;
-    setLanguagePending(true);
-    setLanguageStatus('loading');
-    void (async () => {
-      try {
-        await loadLanguage(normalized);
-        const updated = await updatePreferredLanguage(normalized);
-        try {
-          localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
-        } catch {
-          // Ignore storage errors.
-        }
-        setUser(updated);
-        setLanguage(normalized);
-        setLanguageStatus('ready');
-      } catch {
-        setLanguage('unknown');
-        setLanguageStatus('error');
-        showNotice('error', 'Unable To Save Language.');
-      } finally {
-        languagePendingRef.current = false;
-        setLanguagePending(false);
-      }
-    })();
-  };
 
   // Load applications once the user is authorized
   useEffect(() => {
@@ -242,6 +135,21 @@ export default function SpaApp() {
 
   if (!authorized || !user) return <Unauthorized />;
 
+  const router = (
+    <SpaViewRouter
+      activeView={activeView}
+      mailboxes={mailboxes}
+      contextAudit={contextAudit}
+      actions={actions}
+      analytics={analytics}
+      processing={processing}
+      activity={activity}
+      chat={chat}
+      auditLogs={auditLogs}
+      isBusy={isBusy}
+    />
+  );
+
   return (
     <NoticeContext.Provider value={{ showNotice }}>
       <UserContext.Provider value={user}>
@@ -258,143 +166,11 @@ export default function SpaApp() {
 
           {notice && <NoticeBar notice={notice} />}
 
-          <MailboxCallbacksContext.Provider value={mailboxCallbacksValue}>
-            {activeView === 'mailboxes' && (
-              <MailboxesView
-                applications={mailboxes.applications}
-                selectedApplicationId={mailboxes.selectedApplicationId}
-                onSelectApplication={mailboxes.setSelectedApplicationId}
-                watchWebhookUrl={mailboxes.watchWebhookUrl}
-                availableFolders={mailboxes.availableFolders}
-                loadingFolders={mailboxes.loadingFolders}
-                applicationForm={mailboxes.applicationForm}
-                setApplicationForm={mailboxes.setApplicationForm}
-                onSaveForm={mailboxes.saveApplication}
-                onCancelForm={mailboxes.resetForm}
-                isFormExpanded={mailboxes.isFormExpanded}
-                setIsFormExpanded={mailboxes.setIsFormExpanded}
-              />
-            )}
-          </MailboxCallbacksContext.Provider>
-
-          {activeView === 'context' && (
-            <ContextAuditView
-              applications={mailboxes.applications}
-              applicationId={contextAudit.auditApplicationId}
-              setApplicationId={contextAudit.setAuditApplicationId}
-              status={contextAudit.auditStatus}
-              setStatus={contextAudit.setAuditStatus}
-              documents={contextAudit.contextDocuments}
-              deletionRuns={contextAudit.contextDeletionRuns}
-              documentsCursor={contextAudit.contextDocumentsCursor}
-              deletionRunsCursor={contextAudit.contextDeletionRunsCursor}
-              onRefresh={contextAudit.loadContextAudit}
-              onLoadMoreDocuments={contextAudit.loadMoreContextDocuments}
-              onLoadMoreDeletions={contextAudit.loadMoreContextDeletions}
-              onOpenProviderDocument={contextAudit.openContextDocumentInProvider}
-              onViewLogs={auditLogs.openAuditLogs}
-              onToggleIndexing={mailboxes.updateContextIndexing}
-              onDeleteDocuments={mailboxes.deleteContextDocuments}
-              busy={isBusy}
-            />
+          {activeView === 'mailboxes' ? (
+            <MailboxCallbacksContext.Provider value={mailboxCallbacksValue}>{router}</MailboxCallbacksContext.Provider>
+          ) : (
+            router
           )}
-
-          {activeView === 'actions' && (
-            <ActionsView
-              applications={mailboxes.applications}
-              applicationId={actions.actionApplicationId}
-              setApplicationId={actions.setActionApplicationId}
-              status={actions.actionStatus}
-              setStatus={actions.setActionStatus}
-              showSnoozed={actions.showSnoozed}
-              setShowSnoozed={actions.setShowSnoozed}
-              actions={actions.actions}
-              actionsCursor={actions.actionsCursor}
-              selectedActionId={actions.selectedActionId}
-              executions={actions.actionExecutions}
-              onRefresh={() => actions.loadActions()}
-              onLoadMore={() => actions.loadActions(true, actions.actionsCursor)}
-              onSelectAction={actions.loadActionExecutions}
-              onExecuteAction={actions.executeAction}
-              onSnoozeAction={actions.snoozeAction}
-              onScheduleAction={actions.scheduleAction}
-              busy={isBusy}
-            />
-          )}
-
-          {activeView === 'activity' && (
-            <ActivityView
-              applications={mailboxes.applications}
-              applicationId={activity.activityApplicationId}
-              setApplicationId={activity.setActivityApplicationId}
-              eventTypes={activity.activityEventTypes}
-              setEventTypes={activity.setActivityEventTypes}
-              entries={activity.entries}
-              cursor={activity.activityCursor}
-              loading={activity.activityLoading}
-              exporting={activity.activityExporting}
-              onRefresh={() => void activity.loadActivity()}
-              onLoadMore={() => void activity.loadActivity(true, activity.activityCursor)}
-              onExportCsv={() => void activity.exportCsv()}
-            />
-          )}
-
-          {activeView === 'chat' && (
-            <ChatView
-              applications={mailboxes.applications}
-              applicationId={chat.chatApplicationId}
-              setApplicationId={chat.setChatApplicationId}
-              messages={chat.messages}
-              sources={chat.sources}
-              loading={chat.chatLoading}
-              onSend={(q) => void chat.sendMessage(q)}
-              onClear={chat.clearChat}
-            />
-          )}
-
-          {activeView === 'analytics' && (
-            <AnalyticsView
-              applications={mailboxes.applications}
-              days={analytics.analyticsDays}
-              setDays={(d) => { analytics.setAnalyticsDays(d); void analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined); }}
-              applicationId={analytics.analyticsApplicationId}
-              setApplicationId={(id) => { analytics.setAnalyticsApplicationId(id); void analytics.loadAnalytics(analytics.analyticsDays, id || undefined); }}
-              data={analytics.analyticsData}
-              loading={analytics.analyticsLoading}
-              onRefresh={() => void analytics.loadAnalytics()}
-            />
-          )}
-
-          {activeView === 'processing' && (
-            <ProcessingView
-              applications={mailboxes.applications}
-              applicationId={processing.processingApplicationId}
-              setApplicationId={processing.setProcessingApplicationId}
-              taskType={processing.processingTaskType}
-              setTaskType={processing.setProcessingTaskType}
-              runStatus={processing.processingRunStatus}
-              setRunStatus={processing.setProcessingRunStatus}
-              messageStatus={processing.processingMessageStatus}
-              setMessageStatus={processing.setProcessingMessageStatus}
-              taskRuns={processing.taskRuns}
-              taskRunsCursor={processing.taskRunsCursor}
-              taskRunsLoading={processing.taskRunsLoading}
-              calendarEvents={processing.calendarEvents}
-              calendarEventsCursor={processing.calendarEventsCursor}
-              calendarEventsLoading={processing.calendarEventsLoading}
-              processedMessages={processing.processedMessages}
-              processedMessagesCursor={processing.processedMessagesCursor}
-              processedMessagesLoading={processing.processedMessagesLoading}
-              onRefresh={() => void processing.loadProcessing()}
-              onTriggerTaskRun={() => void processing.triggerTaskRun()}
-              triggeringTask={processing.triggeringTask}
-              onLoadMoreTaskRuns={() => void processing.loadTaskRuns(true, processing.taskRunsCursor)}
-              onLoadMoreCalendarEvents={() => void processing.loadCalendarEvents(true, processing.calendarEventsCursor)}
-              onLoadMoreProcessedMessages={() => void processing.loadProcessedMessages(true, processing.processedMessagesCursor)}
-            />
-          )}
-
-          {activeView === 'help' && <HelpView />}
 
           {mailboxes.confirmDelete && typeof document !== 'undefined' && (
             <ConfirmDeleteModal

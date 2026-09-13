@@ -27,13 +27,94 @@ interface TriggerTaskEnv extends ProcessingServiceEnv {
   OAUTH2_ACCESS_TOKEN_MIN_VALID_SECONDS?: string;
 }
 
-const ProcessingService = {
-  async listTaskRuns(
+interface TrackingConfig {
+  getPackageTrackingApiKey(): string;
+  getFlightTrackingApiKey(): string;
+}
+
+interface ProcessingServiceDeps {
+  taskRunDAO?: () => Promise<BackgroundTaskRunDAO>;
+  calendarEventDAO?: () => Promise<SyncedCalendarEventDAO>;
+  processedMessageDAO?: () => Promise<ProcessedMessageDAO>;
+  applicationDAO?: (masterKey: string) => Promise<ConnectedApplicationDAO>;
+  tokenService?: (env: TriggerTaskEnv) => OAuth2AccessTokenService;
+  config?: (env: unknown) => TrackingConfig;
+}
+
+/**
+ * Injectable instance service for background task visibility + manual triggers.
+ *
+ * Static methods remain as a thin facade delegating to a default instance for
+ * backward compatibility. New code should resolve via `Tokens.ProcessingService`
+ * (`scope.get(...)`) and call the instance methods.
+ */
+class ProcessingService {
+  private readonly deps: Required<ProcessingServiceDeps>;
+
+  constructor(
+    private readonly env: ProcessingServiceEnv,
+    deps: ProcessingServiceDeps = {},
+  ) {
+    const db = env.DB;
+    this.deps = {
+      taskRunDAO: () => Promise.resolve(new BackgroundTaskRunDAO(db)),
+      calendarEventDAO: () => Promise.resolve(new SyncedCalendarEventDAO(db)),
+      processedMessageDAO: () => Promise.resolve(new ProcessedMessageDAO(db)),
+      applicationDAO: (masterKey: string) => Promise.resolve(new ConnectedApplicationDAO(db, masterKey)),
+      tokenService: (e: TriggerTaskEnv) => new OAuth2AccessTokenService(e),
+      // Default reads via ConfigurationManager so existing module mocks keep
+      // working; new code may inject `AppConfiguration.fromEnv(env)` instead
+      // (it satisfies the same structural `TrackingConfig` interface).
+      config: (e: unknown) => ({
+        getPackageTrackingApiKey: () => ConfigurationManager.digest.getPackageTrackingApiKey(e),
+        getFlightTrackingApiKey: () => ConfigurationManager.digest.getFlightTrackingApiKey(e),
+      }),
+      ...deps,
+    };
+  }
+
+  // ─── Static facade (backward compatible) ───
+
+  public static async listTaskRuns(
     userEmail: string,
     options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor' | 'latestPerType'>,
     env: ProcessingServiceEnv,
   ): Promise<BackgroundTaskRunList> {
-    const dao = new BackgroundTaskRunDAO(env.DB);
+    return new ProcessingService(env).listTaskRuns(userEmail, options);
+  }
+
+  public static async listCalendarEvents(
+    userEmail: string,
+    options: Pick<ListCalendarEventsOptions, 'applicationId' | 'cursor'>,
+    env: ProcessingServiceEnv,
+  ): Promise<SyncedCalendarEventList> {
+    return new ProcessingService(env).listCalendarEvents(userEmail, options);
+  }
+
+  public static async listProcessedMessages(
+    userEmail: string,
+    options: Pick<ListProcessedMessagesOptions, 'applicationId' | 'status' | 'cursor'>,
+    env: ProcessingServiceEnv,
+  ): Promise<ProcessedMessageList> {
+    return new ProcessingService(env).listProcessedMessages(userEmail, options);
+  }
+
+  public static async triggerTask(
+    userEmail: string,
+    taskType: string,
+    applicationId: string,
+    env: TriggerTaskEnv,
+  ): Promise<void> {
+    return new ProcessingService(env).triggerTask(userEmail, taskType, applicationId, env);
+  }
+
+  // ─── Instance API (prefer in new code) ───
+
+  public async listTaskRuns(
+    userEmail: string,
+    options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor' | 'latestPerType'>,
+  ): Promise<BackgroundTaskRunList> {
+    const dao = await this.deps.taskRunDAO();
     return dao.listForUser(userEmail, {
       taskType: options.taskType,
       applicationId: options.applicationId,
@@ -41,42 +122,35 @@ const ProcessingService = {
       cursor: options.cursor,
       latestPerType: !options.taskType,
     });
-  },
+  }
 
-  async listCalendarEvents(
+  public async listCalendarEvents(
     userEmail: string,
     options: Pick<ListCalendarEventsOptions, 'applicationId' | 'cursor'>,
-    env: ProcessingServiceEnv,
   ): Promise<SyncedCalendarEventList> {
-    const dao = new SyncedCalendarEventDAO(env.DB);
+    const dao = await this.deps.calendarEventDAO();
     return dao.listForUser(userEmail, { applicationId: options.applicationId, cursor: options.cursor });
-  },
+  }
 
-  async listProcessedMessages(
+  public async listProcessedMessages(
     userEmail: string,
     options: Pick<ListProcessedMessagesOptions, 'applicationId' | 'status' | 'cursor'>,
-    env: ProcessingServiceEnv,
   ): Promise<ProcessedMessageList> {
-    const dao = new ProcessedMessageDAO(env.DB);
+    const dao = await this.deps.processedMessageDAO();
     return dao.listForUser(userEmail, {
       applicationId: options.applicationId,
       status: options.status,
       cursor: options.cursor,
     });
-  },
+  }
 
-  async triggerTask(
-    userEmail: string,
-    taskType: string,
-    applicationId: string,
-    env: TriggerTaskEnv,
-  ): Promise<void> {
+  public async triggerTask(userEmail: string, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
     if (taskType !== BACKGROUND_TASK_TYPE_CALENDAR_SYNC && taskType !== BACKGROUND_TASK_TYPE_ACTION_STATUS_SYNC) {
       throw new BadRequestError(`Task type '${taskType}' cannot be triggered manually.`);
     }
 
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
-    const applicationDAO = new ConnectedApplicationDAO(env.DB, masterKey);
+    const applicationDAO = await this.deps.applicationDAO(masterKey);
     const application = await applicationDAO.getByIdForUser(applicationId, userEmail);
     if (!application) throw new NotFoundError('Connected application not found.');
 
@@ -84,19 +158,20 @@ const ProcessingService = {
       const now = new Date();
       const windowStartIso = now.toISOString();
       const windowEndIso = new Date(now.getTime() + 48 * 3600 * 1000).toISOString();
-      const accessToken = await new OAuth2AccessTokenService(env).getAccessToken(applicationId);
+      const accessToken = await this.deps.tokenService(env).getAccessToken(applicationId);
       const syncUtil = new CalendarEventSyncUtil(env.DB);
       await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);
     } else {
-      const packageApiKey = ConfigurationManager.digest.getPackageTrackingApiKey(env);
-      const flightApiKey = ConfigurationManager.digest.getFlightTrackingApiKey(env);
+      const config = this.deps.config(env);
+      const packageApiKey = config.getPackageTrackingApiKey();
+      const flightApiKey = config.getFlightTrackingApiKey();
       const actionKey: string = await env.ACTION_ENCRYPTION_KEY_SECRET.get();
       const syncUtil = new ActionStatusSyncUtil(env.DB, actionKey);
       if (packageApiKey) await syncUtil.syncPackageActions(applicationId, packageApiKey);
       if (flightApiKey) await syncUtil.syncFlightActions(applicationId, flightApiKey);
     }
-  },
-};
+  }
+}
 
 export { ProcessingService };
-export type { ProcessingServiceEnv, TriggerTaskEnv };
+export type { ProcessingServiceDeps, ProcessingServiceEnv, TriggerTaskEnv };

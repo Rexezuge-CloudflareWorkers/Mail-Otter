@@ -32,9 +32,9 @@ class OAuth2AccessTokenRefreshTask extends IScheduledTask<OAuth2AccessTokenRefre
       try {
         await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).refreshAccessToken(applicationId, { forceRefresh: true });
         refreshed++;
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}:`, error);
+        console.error(`Failed to refresh OAuth2 access token for application ${applicationId}`);
       }
     }
     return {

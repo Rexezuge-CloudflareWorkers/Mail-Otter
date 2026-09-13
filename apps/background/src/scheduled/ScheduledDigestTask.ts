@@ -67,11 +67,10 @@ class ScheduledDigestTask extends IScheduledTask<ScheduledDigestTaskEnv> {
         await digestSvc.sendDigest(application, accessToken);
         sent++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Digest sent' });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`[ScheduledDigestTask] Failed to send digest for application ${applicationId}:`, error);
-        await run.fail(message);
+        console.error(`[ScheduledDigestTask] Failed to send digest for application ${applicationId}`);
+        await run.fail('Digest send failed');
       }
     }
     console.log(`[ScheduledDigestTask] Sent ${sent} digests`);

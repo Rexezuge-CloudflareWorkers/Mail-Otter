@@ -65,11 +65,10 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
         await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);
         synced++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Calendar events synced' });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`[CalendarEventSyncTask] Failed to sync calendar for application ${applicationId}:`, error);
-        await run.fail(message);
+        console.error(`[CalendarEventSyncTask] Failed to sync calendar for application ${applicationId}`);
+        await run.fail('Calendar sync failed');
       }
     }
     console.log(`[CalendarEventSyncTask] Synced calendar events for ${synced}/${applicationIds.length} applications`);

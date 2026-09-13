@@ -81,11 +81,10 @@ abstract class BaseDriveSyncTask<TEnv extends BaseDriveSyncTaskEnv> extends ISch
           itemsFailed: result.failed,
           summary: `Indexed ${result.indexed}, skipped ${result.skipped}, failed ${result.failed}`,
         });
-      } catch (error: unknown) {
+      } catch {
         failed++;
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`[${this.constructor.name}] Failed for application ${applicationId}:`, error);
-        await run.fail(message);
+        console.error(`[${this.constructor.name}] Failed for application ${applicationId}`);
+        await run.fail('Drive sync failed');
       }
     }
 

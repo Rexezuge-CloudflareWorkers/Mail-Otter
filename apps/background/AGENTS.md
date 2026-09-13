@@ -10,6 +10,7 @@ Scope: `apps/background/**`. Parent index: `../../AGENTS.md`.
 - `EmailEventsDispatcherWorker.ts` — Queue consumer → `EmailProcessingWorkflow`.
 - `EmailProcessingWorkflow.ts` — Workflow: resolve apps, list messages, summarize, post replies.
 - `OAuth2TokenRefreshWorker.ts` — DO for token refresh and auth-code exchange.
+- Error logging in token-adjacent `try` blocks: log and `run.fail()` static messages with application/subscription IDs only — never interpolate the caught error (CodeQL `js/clear-text-logging` traces OAuth2 token taint through the thrown error and does not model `String#replaceAll` as a masking barrier).
 
 ## Background Task Visibility
 

@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { FilterBar } from '../shared/FilterBar';
 import { MailboxSelect } from '../shared/MailboxSelect';
+import { Markdown } from '../shared/Markdown';
 import { appName } from '../../lib/applications';
 import { cn } from '../../lib/utils';
 
@@ -61,13 +62,14 @@ function MessageBubble({
       <div className={cn('max-w-[85%]', isUser ? 'items-end' : 'items-start', 'flex flex-col')}>
         <div
           className={cn(
-            'rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words',
+            'rounded-2xl px-4 py-2.5 text-sm break-words',
+            isUser ? 'whitespace-pre-wrap' : 'min-w-0',
             isUser
               ? 'bg-[var(--color-accent)] text-[#0d1008] rounded-br-sm'
               : 'bg-[var(--color-surface-3)] text-[var(--color-text-primary)] rounded-bl-sm',
           )}
         >
-          {message.content}
+          {isUser ? message.content : <Markdown content={message.content} />}
         </div>
         {!isUser && sources && sources.length > 0 && (
           <SourcesToggle sources={sources} applications={applications} />

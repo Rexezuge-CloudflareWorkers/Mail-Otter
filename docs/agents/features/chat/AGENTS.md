@@ -17,4 +17,4 @@ Scope: `packages/backend-services/src/chat/ChatService.ts`. Parent index: `../..
 
 No D1 migration needed. Usage tracked via `ai_daily_usage`.
 
-**Frontend**: `ChatView`, `useChat` hook, `chatService.ts` — mailbox filter, message bubbles (user right, assistant left), collapsible citations, textarea/Ask; Enter sends, Shift+Enter newline.
+**Frontend**: `ChatView`, `useChat` hook, `chatService.ts` — mailbox filter, message bubbles (user right plain text, assistant left GFM Markdown via shared `Markdown` component — raw HTML stripped, links open in new tab), collapsible citations, textarea/Ask; Enter sends, Shift+Enter newline.

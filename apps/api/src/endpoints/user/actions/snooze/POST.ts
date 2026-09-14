@@ -20,14 +20,25 @@ class SnoozeEmailActionRoute extends IUserRoute<SnoozeEmailActionRequest, Snooze
   ): Promise<SnoozeEmailActionResponse> {
     const actionId: string | undefined = cxt.req.param('actionId');
     if (!actionId) throw new BadRequestError('Action snooze request is missing actionId.');
-    const body = await request.raw.json<{ snoozedUntil: string | null }>();
-    const snoozedUntil: Date | null = body.snoozedUntil ? new Date(body.snoozedUntil) : null;
+    // IBaseRoute pre-parses the body into `request` (consuming the raw stream),
+    // so prefer the parsed value and only re-read the raw body for direct
+    // handleRequest callers.
+    let rawValue: string | null;
+    if (request.snoozedUntil === undefined) {
+      const fallback = await request.raw.json<{ snoozedUntil: string | null }>().catch(() => ({ snoozedUntil: null }));
+      rawValue = fallback.snoozedUntil;
+    } else {
+      rawValue = request.snoozedUntil;
+    }
+    const snoozedUntil: Date | null = rawValue ? new Date(rawValue) : null;
     const action = await ActionService.snoozeAction(env, actionId, this.getAuthenticatedUserEmailAddress(cxt), snoozedUntil);
     return { action };
   }
 }
 
-type SnoozeEmailActionRequest = IRequest;
+interface SnoozeEmailActionRequest extends IRequest {
+  snoozedUntil?: string | null;
+}
 
 interface SnoozeEmailActionResponse extends IResponse {
   action: EmailAction;

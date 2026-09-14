@@ -20,14 +20,25 @@ class ScheduleEmailActionRoute extends IUserRoute<ScheduleEmailActionRequest, Sc
   ): Promise<ScheduleEmailActionResponse> {
     const actionId: string | undefined = cxt.req.param('actionId');
     if (!actionId) throw new BadRequestError('Action schedule request is missing actionId.');
-    const body = await request.raw.json<{ scheduledFor: string | null }>();
-    const scheduledFor: Date | null = body.scheduledFor ? new Date(body.scheduledFor) : null;
+    // IBaseRoute pre-parses the body into `request` (consuming the raw stream),
+    // so prefer the parsed value and only re-read the raw body for direct
+    // handleRequest callers.
+    let rawValue: string | null;
+    if (request.scheduledFor === undefined) {
+      const fallback = await request.raw.json<{ scheduledFor: string | null }>().catch(() => ({ scheduledFor: null }));
+      rawValue = fallback.scheduledFor;
+    } else {
+      rawValue = request.scheduledFor;
+    }
+    const scheduledFor: Date | null = rawValue ? new Date(rawValue) : null;
     const action = await ActionService.scheduleAction(env, actionId, this.getAuthenticatedUserEmailAddress(cxt), scheduledFor);
     return { action };
   }
 }
 
-type ScheduleEmailActionRequest = IRequest;
+interface ScheduleEmailActionRequest extends IRequest {
+  scheduledFor?: string | null;
+}
 
 interface ScheduleEmailActionResponse extends IResponse {
   action: EmailAction;

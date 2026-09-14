@@ -32,6 +32,12 @@ const normalizePathname = (pathname: string): string => {
   if (/^\/user\/actions\/[^/]+\/execute$/.test(path)) {
     return '/user/actions/:actionId/execute';
   }
+  if (/^\/user\/actions\/[^/]+\/snooze$/.test(path)) {
+    return '/user/actions/:actionId/snooze';
+  }
+  if (/^\/user\/actions\/[^/]+\/schedule$/.test(path)) {
+    return '/user/actions/:actionId/schedule';
+  }
   return path;
 };
 

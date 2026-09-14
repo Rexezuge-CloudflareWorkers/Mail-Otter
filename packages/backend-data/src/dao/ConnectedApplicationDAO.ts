@@ -356,6 +356,11 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     folderIds: string[] | null,
     folderNames?: Record<string, string>,
   ): Promise<ConnectedApplicationMetadata | undefined> {
+    // Verify ownership before touching the child watched-folders table so
+    // unknown/foreign applications return undefined (→ 404) instead of
+    // failing on the foreign-key constraint (→ 500).
+    const existing = await this.getMetadataByIdForUser(applicationId, userEmail);
+    if (!existing) return undefined;
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     await this.flags().replaceWatchedFolders(applicationId, folderIds, folderNames, now);
     return this.getMetadataByIdForUser(applicationId, userEmail);

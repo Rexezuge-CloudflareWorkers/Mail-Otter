@@ -37,10 +37,7 @@ async function postIntegrationJson(url: string, payload: unknown): Promise<Dispa
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) {
-      return { status: 'failure', httpStatus: response.status, errorMessage: `HTTP ${response.status}` };
-    }
-    return { status: 'success', httpStatus: response.status, errorMessage: null };
+    return response.ok ? { status: 'success', httpStatus: response.status, errorMessage: null } : { status: 'failure', httpStatus: response.status, errorMessage: `HTTP ${response.status}` };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return { status: 'failure', httpStatus: null, errorMessage: msg };

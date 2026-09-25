@@ -109,8 +109,7 @@ class SyncedCalendarEventDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { syncedAt: number; syncEventId: string } | undefined {
     const parsed = CursorUtil.decode<{ syncedAt?: unknown; syncEventId?: unknown }>(cursor);
-    if (!parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string') return undefined;
-    return { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };
+    return !parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string' ? undefined : { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };
   }
 
   private static toEvent(row: SyncedCalendarEventInternal): SyncedCalendarEvent {

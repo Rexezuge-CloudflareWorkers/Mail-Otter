@@ -206,8 +206,7 @@ class EmailContextUtil {
       .slice(0, ragTopK)
       .map((match: VectorizeMatch, index: number): string => this.renderMatch(index + 1, match))
       .filter(Boolean);
-    if (snippets.length === 0) return undefined;
-    return EmailContentUtil.truncate(['Prior relevant documents:', ...snippets].join('\n\n'), maxContextChars);
+    return snippets.length === 0 ? undefined : EmailContentUtil.truncate(['Prior relevant documents:', ...snippets].join('\n\n'), maxContextChars);
   }
 
   private static renderMatch(index: number, match: VectorizeMatch): string {

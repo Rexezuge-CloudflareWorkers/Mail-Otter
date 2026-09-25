@@ -264,8 +264,7 @@ class BackgroundTaskRunDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { startedAt: number; runId: string } | undefined {
     const parsed = CursorUtil.decode<{ startedAt?: unknown; runId?: unknown }>(cursor);
-    if (!parsed || typeof parsed.startedAt !== 'number' || typeof parsed.runId !== 'string') return undefined;
-    return { startedAt: parsed.startedAt, runId: parsed.runId };
+    return !parsed || typeof parsed.startedAt !== 'number' || typeof parsed.runId !== 'string' ? undefined : { startedAt: parsed.startedAt, runId: parsed.runId };
   }
 
   private static toRun(row: BackgroundTaskRunInternal): BackgroundTaskRun {

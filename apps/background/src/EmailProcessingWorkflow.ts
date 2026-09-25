@@ -73,31 +73,33 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             },
           );
 
-          if (summaryData) {
-            await step.do(
-              `Send Gmail Summary for ${messageId}`,
-              { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-              async (): Promise<void> => {
-                try {
-                  await EmailProcessingUtil.sendGmailSummary(summaryData, createD1SessionEnv(this.env));
-                } catch (error: unknown) {
-                  throw EmailProcessingWorkflow.toWorkflowError(error);
-                }
-              },
-            );
-
-            await step.do(
-              `Send To Integrations for ${messageId}`,
-              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
-              async (): Promise<void> => {
-                try {
-                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
-                } catch (error: unknown) {
-                  throw EmailProcessingWorkflow.toWorkflowError(error);
-                }
-              },
-            );
+          if (!summaryData) {
+            continue;
           }
+
+          await step.do(
+            `Send Gmail Summary for ${messageId}`,
+            { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+            async (): Promise<void> => {
+              try {
+                await EmailProcessingUtil.sendGmailSummary(summaryData, createD1SessionEnv(this.env));
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
+
+          await step.do(
+            `Send To Integrations for ${messageId}`,
+            { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+            async (): Promise<void> => {
+              try {
+                await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
         }
 
         await step.do(
@@ -245,31 +247,33 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             },
           );
 
-          if (summaryData) {
-            await step.do(
-              `Send IMAP Summary for UID ${uid}`,
-              { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-              async (): Promise<void> => {
-                try {
-                  await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
-                } catch (error: unknown) {
-                  throw EmailProcessingWorkflow.toWorkflowError(error);
-                }
-              },
-            );
-
-            await step.do(
-              `Send To Integrations for UID ${uid}`,
-              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
-              async (): Promise<void> => {
-                try {
-                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
-                } catch (error: unknown) {
-                  throw EmailProcessingWorkflow.toWorkflowError(error);
-                }
-              },
-            );
+          if (!summaryData) {
+            continue;
           }
+
+          await step.do(
+            `Send IMAP Summary for UID ${uid}`,
+            { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+            async (): Promise<void> => {
+              try {
+                await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
+
+          await step.do(
+            `Send To Integrations for UID ${uid}`,
+            { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+            async (): Promise<void> => {
+              try {
+                await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
         }
       } finally {
         await imapClient.close();
@@ -313,10 +317,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       }
       return new RetryableError(error.message);
     }
-    if (error instanceof Error) {
-      return new RetryableError(error.message);
-    }
-    return new RetryableError(String(error));
+    return new RetryableError(error instanceof Error ? error.message : String(error));
   }
 }
 

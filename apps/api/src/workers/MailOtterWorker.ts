@@ -107,10 +107,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
 
     app.get('*', (c) => {
       const path: string = new URL(c.req.url).pathname;
-      if (!path.startsWith('/user/')) {
-        return c.notFound();
-      }
-      return c.html(SPA_HTML);
+      return path.startsWith('/user/') ? c.html(SPA_HTML) : c.notFound();
     });
 
     this.app = openapi;

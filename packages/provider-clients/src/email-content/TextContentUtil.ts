@@ -23,16 +23,16 @@ function normalizeText(value: string): string {
 }
 
 function truncate(value: string, maxChars: number): string {
-  if (value.length <= maxChars) return value;
-  return `${value.slice(0, maxChars)}\n\n[Message truncated before summarization.]`;
+  return value.length <= maxChars ? value : `${value.slice(0, maxChars)}\n\n[Message truncated before summarization.]`;
 }
 
 function isFromMailbox(
   fromHeaderOrAddress: string | undefined | null,
   mailboxAddress: string | undefined | null,
 ): boolean {
-  if (!fromHeaderOrAddress || !mailboxAddress) return false;
-  return fromHeaderOrAddress.toLowerCase().includes(mailboxAddress.toLowerCase());
+  const from = fromHeaderOrAddress?.toLowerCase();
+  const mailbox = mailboxAddress?.toLowerCase();
+  return from !== undefined && mailbox !== undefined && from.includes(mailbox);
 }
 
 export { stripHtml, normalizeText, truncate, isFromMailbox };

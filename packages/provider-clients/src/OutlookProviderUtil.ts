@@ -174,10 +174,7 @@ class OutlookProviderUtil {
 
   public static getMessageText(message: OutlookMessage): string {
     const content: string = message.body?.content || '';
-    if (message.body?.contentType?.toLowerCase() === 'html') {
-      return EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(content));
-    }
-    return EmailContentUtil.normalizeText(content);
+    return message.body?.contentType?.toLowerCase() === 'html' ? EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(content)) : EmailContentUtil.normalizeText(content);
   }
 
   public static async createCalendarEvent(accessToken: string, input: OutlookCalendarEventInput): Promise<OutlookCalendarEventResult> {
@@ -446,9 +443,7 @@ class OutlookProviderUtil {
     const items = data.value ?? [];
     const results: ProviderImageAttachment[] = [];
     for (const item of items) {
-      if (!SUPPORTED_IMAGE_MIME_TYPES.has(item.contentType)) continue;
-      if ((item.size ?? 0) > maxSizeBytes) continue;
-      if (!item.contentBytes) continue;
+      if (!SUPPORTED_IMAGE_MIME_TYPES.has(item.contentType) || ((item.size ?? 0) > maxSizeBytes) || !item.contentBytes) continue;
       results.push({
         filename: item.name ?? 'attachment',
         mimeType: item.contentType,

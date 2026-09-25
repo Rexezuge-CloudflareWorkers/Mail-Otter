@@ -62,10 +62,7 @@ class StubHttpClient implements IHttpClient {
     if (!next) {
       return Promise.reject(new Error(`StubHttpClient has no queued response for ${url}`));
     }
-    if (next.kind === 'error') {
-      return Promise.reject(next.error);
-    }
-    return Promise.resolve(next.value);
+    return next.kind === 'error' ? Promise.reject(next.error) : Promise.resolve(next.value);
   }
 }
 

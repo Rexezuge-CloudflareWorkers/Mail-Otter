@@ -51,8 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatDepartureTime(iso: string, locale?: string | null): string | null {
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleTimeString(LocaleUtil.normalize(locale), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC';
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString(LocaleUtil.normalize(locale), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC';
 }
 
 async function fetchFlightStatus(flightNumber: string, apiKey: string): Promise<FlightSyncStatus | null> {

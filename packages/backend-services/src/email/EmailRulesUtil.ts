@@ -21,8 +21,7 @@ class EmailRulesUtil {
 
   public static evaluatePreProcessing(rules: EmailProcessingRule[], ctx: EmailRuleContext): EmailProcessingRule | null {
     for (const rule of rules) {
-      if (!rule.enabled) continue;
-      if (!this.isPreProcessingRule(rule)) continue;
+      if (!rule.enabled || !this.isPreProcessingRule(rule)) continue;
       if (this.matchesConditions(rule, ctx)) return rule;
     }
     return null;
@@ -31,8 +30,7 @@ class EmailRulesUtil {
   public static evaluatePostProcessing(rules: EmailProcessingRule[], ctx: EmailRuleContext): EmailProcessingRule[] {
     const matched: EmailProcessingRule[] = [];
     for (const rule of rules) {
-      if (!rule.enabled) continue;
-      if (!this.isPostProcessingRule(rule)) continue;
+      if (!rule.enabled || !this.isPostProcessingRule(rule)) continue;
       if (this.matchesConditions(rule, ctx)) matched.push(rule);
     }
     return matched;
@@ -44,10 +42,7 @@ class EmailRulesUtil {
 
   private static matchesConditions(rule: EmailProcessingRule, ctx: EmailRuleContext): boolean {
     const { operator, matchers } = rule.conditions;
-    if (operator === 'any') {
-      return matchers.some((m) => this.matchesMatcher(m, ctx));
-    }
-    return matchers.every((m) => this.matchesMatcher(m, ctx));
+    return operator === 'any' ? matchers.some((m) => this.matchesMatcher(m, ctx)) : matchers.every((m) => this.matchesMatcher(m, ctx));
   }
 
   public static matchesMatcher(matcher: EmailRuleConditionMatcher, ctx: EmailRuleContext): boolean {

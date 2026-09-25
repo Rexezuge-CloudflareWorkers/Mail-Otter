@@ -113,8 +113,7 @@ class EmailActionQueries extends BaseDAO {
       .prepare('SELECT sync_status, sync_updated_at FROM email_summary_actions WHERE action_id = ?')
       .bind(actionId)
       .first<{ sync_status: string | null; sync_updated_at: number | null }>();
-    if (!row) return undefined;
-    return { syncStatus: row.sync_status, syncUpdatedAt: row.sync_updated_at };
+    return row ? { syncStatus: row.sync_status, syncUpdatedAt: row.sync_updated_at } : undefined;
   }
 
   public async deleteOlderThan(olderThan: number, limit: number, terminalStatuses: string[]): Promise<number> {

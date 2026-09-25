@@ -136,10 +136,7 @@ class ContextDeletionRunDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { createdAt: number } | undefined {
     const parsed = CursorUtil.decode<unknown[]>(cursor);
-    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'number') {
-      return { createdAt: parsed[0] };
-    }
-    return undefined;
+    return Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'number' ? { createdAt: parsed[0] } : undefined;
   }
 
   private static encodeCursor(createdAt: number): string {

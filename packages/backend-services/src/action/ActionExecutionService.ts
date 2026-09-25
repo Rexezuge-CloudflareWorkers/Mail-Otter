@@ -55,8 +55,7 @@ async function resolveActionLocale(action: EmailAction, env: ActionCallbackEnv):
 async function hashUserAgent(request: Request | null, env: ActionExecutionEnv): Promise<string | null> {
   if (!request) return null;
   const userAgent: string = request.headers.get('User-Agent')?.trim() || '';
-  if (!userAgent) return null;
-  return CryptoUtil.hmacSha256Hex(`email-action-user-agent\n${userAgent}`, await env.ACTION_SIGNING_SECRET.get());
+  return userAgent ? CryptoUtil.hmacSha256Hex(`email-action-user-agent\n${userAgent}`, await env.ACTION_SIGNING_SECRET.get()) : null;
 }
 
 async function executeProviderOperation(action: EmailAction, env: ActionExecutionEnv): Promise<EmailActionResult> {
@@ -128,10 +127,7 @@ async function getConfirmationResponse(actionId: string, token: string, env: Act
   const action: EmailAction | undefined = await getActionForToken(actionId, token, env);
   const locale = action ? await resolveActionLocale(action, env) : 'en';
   const strings = getBackendStrings(locale);
-  if (!action) {
-    return { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
-  }
-  return { statusCode: 200, html: renderConfirmationPage(action, token, locale) };
+  return action ? { statusCode: 200, html: renderConfirmationPage(action, token, locale) } : { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
 }
 
 async function executeActionWithToken(actionId: string, token: string, request: Request, env: ActionCallbackEnv): Promise<ActionHtmlResponse> {

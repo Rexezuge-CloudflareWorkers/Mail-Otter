@@ -359,8 +359,7 @@ class ProcessedMessageDAO extends BaseDAO {
 
   private static parseListCursor(cursor: string | undefined): { createdAt: number; processedMessageId: string } | undefined {
     const parsed = CursorUtil.decode<{ createdAt?: unknown; processedMessageId?: unknown }>(cursor);
-    if (!parsed || typeof parsed.createdAt !== 'number' || typeof parsed.processedMessageId !== 'string') return undefined;
-    return { createdAt: parsed.createdAt, processedMessageId: parsed.processedMessageId };
+    return !parsed || typeof parsed.createdAt !== 'number' || typeof parsed.processedMessageId !== 'string' ? undefined : { createdAt: parsed.createdAt, processedMessageId: parsed.processedMessageId };
   }
 
   private static readonly processedMessageColumns: string = [

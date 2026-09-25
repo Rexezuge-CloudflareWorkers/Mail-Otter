@@ -86,8 +86,7 @@ const travelTrackFlightHandler: IActionHandler = {
         };
       }
     }
-    if (payload.trackingUrl) return { summary: ctx.strings.results.flightLinkOpened, externalUrl: payload.trackingUrl };
-    return { summary: `${ctx.strings.results.flightNotedPrefix}${payload.flightNumber}${ctx.strings.results.flightNotedSuffix}` };
+    return payload.trackingUrl ? { summary: ctx.strings.results.flightLinkOpened, externalUrl: payload.trackingUrl } : { summary: `${ctx.strings.results.flightNotedPrefix}${payload.flightNumber}${ctx.strings.results.flightNotedSuffix}` };
   },
 };
 
@@ -95,8 +94,7 @@ const financePayBillHandler: IActionHandler = {
   // eslint-disable-next-line @typescript-eslint/require-await
   async execute(action: EmailAction, ctx: ActionHandlerContext) {
     const payload = action.payload as FinancePayBillActionPayload;
-    if (payload.paymentUrl) return { summary: ctx.strings.results.paymentLinkOpened, externalUrl: payload.paymentUrl };
-    return { summary: ctx.strings.results.billReminderNoted };
+    return payload.paymentUrl ? { summary: ctx.strings.results.paymentLinkOpened, externalUrl: payload.paymentUrl } : { summary: ctx.strings.results.billReminderNoted };
   },
 };
 

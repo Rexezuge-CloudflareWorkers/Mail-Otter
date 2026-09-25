@@ -58,10 +58,12 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
     const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
     const { messages, newCursor } = await provider.pollNewMessages(credentials, subscription.imapCursor ?? null);
 
-    if (messages.length > 0) {
-      await this.enqueueMessages(messages, subscription, baseUrl, env);
-      await subscriptionDAO.updateImapCursor(subscription.subscriptionId, newCursor, Math.floor(Date.now() / 1000));
+    if (messages.length === 0) {
+      return;
     }
+
+    await this.enqueueMessages(messages, subscription, baseUrl, env);
+    await subscriptionDAO.updateImapCursor(subscription.subscriptionId, newCursor, Math.floor(Date.now() / 1000));
   }
 
   private static async resolveCredentials(application: ConnectedApplication, env: ImapPollingTaskEnv): Promise<AnyProviderCredentials> {

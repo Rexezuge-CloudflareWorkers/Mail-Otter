@@ -55,10 +55,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
 }
 
 function csvCell(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replaceAll('"', '""')}"`;
-  }
-  return value;
+  return value.includes(',') || value.includes('"') || value.includes('\n') ? `"${value.replaceAll('"', '""')}"` : value;
 }
 
 async function resolveUserLocale(env: ListActivityEnv, userEmail: string): Promise<string> {

@@ -128,13 +128,6 @@ class EmailProcessingUtil {
 }
 
 export { EmailProcessingUtil };
-export type {
-  EmailProcessingEnv,
-  EmailProcessingOptions,
-  ImapSummaryData,
-  JmapSummaryData,
-  ResolvedApplication,
-  GmailMessageList,
-  GmailSummaryData,
-  OutlookSummaryData,
-};
+
+
+export {type EmailProcessingEnv, type EmailProcessingOptions, type ImapSummaryData, type JmapSummaryData, type ResolvedApplication, type GmailMessageList, type GmailSummaryData, type OutlookSummaryData} from './processing/EmailProcessingTypes';

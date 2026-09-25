@@ -36,11 +36,7 @@ class WorkersAiResponseUtil {
     if (chatCompletionText) return chatCompletionText;
 
     const toolCalls: unknown = result.tool_calls;
-    if (Array.isArray(toolCalls) && this.isRecord(toolCalls[0]) && toolCalls[0].arguments) {
-      return this.stringifyTextResponse(toolCalls[0].arguments);
-    }
-
-    return undefined;
+    return Array.isArray(toolCalls) && this.isRecord(toolCalls[0]) && toolCalls[0].arguments ? this.stringifyTextResponse(toolCalls[0].arguments) : undefined;
   }
 
   public static extractUsage(result: unknown): AiTextGenerationUsage | undefined {
@@ -110,16 +106,14 @@ class WorkersAiResponseUtil {
     const outputTokensFromTotal: number | undefined =
       promptTokens !== undefined && totalTokens !== undefined ? Math.max(0, totalTokens - promptTokens) : undefined;
     if (outputTokens === undefined) return outputTokensFromTotal;
-    if (outputTokensFromTotal === undefined) return outputTokens;
-    return Math.max(outputTokens, outputTokensFromTotal);
+    return outputTokensFromTotal === undefined ? outputTokens : Math.max(outputTokens, outputTokensFromTotal);
   }
 
   private static extractReasoningTokens(usage: Record<string, unknown>): number | undefined {
     const directReasoningTokens: number | undefined = this.getOptionalNumber(usage.reasoning_tokens);
     if (directReasoningTokens !== undefined) return directReasoningTokens;
     const completionTokenDetails: unknown = usage.completion_tokens_details ?? usage.output_tokens_details;
-    if (!this.isRecord(completionTokenDetails)) return undefined;
-    return this.getOptionalNumber(completionTokenDetails.reasoning_tokens);
+    return this.isRecord(completionTokenDetails) ? this.getOptionalNumber(completionTokenDetails.reasoning_tokens) : undefined;
   }
 
   private static extractResponsesApiOutputText(output: unknown): string | undefined {
@@ -150,8 +144,7 @@ class WorkersAiResponseUtil {
 
   private static stringifyTextResponse(value: unknown): string | undefined {
     if (typeof value === 'string') return value;
-    if (value && typeof value === 'object') return JSON.stringify(value);
-    return undefined;
+    return value && typeof value === 'object' ? JSON.stringify(value) : undefined;
   }
 
   private static extractFencedJsonText(value: string): string | undefined {

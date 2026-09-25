@@ -82,10 +82,7 @@ class DriveDocumentUtil {
       const text = new TextDecoder('utf-8', { fatal: false }).decode(data);
       return text.trim() || null;
     }
-    if (mimeTypeLower === 'application/pdf') {
-      return this.extractTextFromPdf(data);
-    }
-    return null;
+    return mimeTypeLower === 'application/pdf' ? this.extractTextFromPdf(data) : null;
   }
 
   // Best-effort PDF text extraction via Tj/TJ content stream operators.

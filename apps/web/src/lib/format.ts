@@ -11,8 +11,7 @@ export function formatTimestamp(timestampSeconds: number | null | undefined, lng
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString(resolveLocale(lng));
+  return diffDays < 7 ? `${diffDays}d ago` : date.toLocaleDateString(resolveLocale(lng));
 }
 
 export function formatExpiryTimestamp(timestampSeconds: number | null | undefined, lng?: string | null): string {
@@ -27,8 +26,7 @@ export function formatExpiryTimestamp(timestampSeconds: number | null | undefine
   if (diffHours < 24) return `Expires in ${diffHours}h`;
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `Expires in ${diffDays}d`;
-  if (diffDays < 30) return `Expires in ${diffDays}d`;
-  return `Expires ${date.toLocaleDateString(resolveLocale(lng))}`;
+  return diffDays < 30 ? `Expires in ${diffDays}d` : `Expires ${date.toLocaleDateString(resolveLocale(lng))}`;
 }
 
 export function formatFutureDuration(timestampSeconds: number, lng?: string | null): string {
@@ -40,14 +38,12 @@ export function formatFutureDuration(timestampSeconds: number, lng?: string | nu
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString(resolveLocale(lng));
+  return diffDays < 7 ? `${diffDays}d` : date.toLocaleDateString(resolveLocale(lng));
 }
 
 export function formatDuration(startedAt: number, completedAt: number | null): string {
   if (!completedAt) return '—';
   const ms = (completedAt - startedAt) * 1000;
   if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.floor(ms / 60_000)}m ${Math.floor((ms % 60_000) / 1000)}s`;
+  return ms < 60_000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60_000)}m ${Math.floor((ms % 60_000) / 1000)}s`;
 }

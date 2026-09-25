@@ -103,8 +103,7 @@ class DigestConfigService {
   private static normalizeSendTime(sendTime: string): string {
     if (!SEND_TIME_PATTERN.test(sendTime)) return '08:00';
     const [h, m] = sendTime.split(':').map(Number);
-    if (h < 0 || h > 23 || m < 0 || m > 59) return '08:00';
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    return h < 0 || h > 23 || m < 0 || m > 59 ? '08:00' : `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 }
 

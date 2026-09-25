@@ -115,17 +115,15 @@ class SubscriptionRenewalUtil {
       });
     }
 
-    if (result.type === 'webhook') {
-      const webhookResult = result;
-      await subscriptionDAO.upsertActive({
-        applicationId: application.applicationId,
-        providerId: application.providerId,
-        externalSubscriptionId: webhookResult.externalSubscriptionId ?? subscription.externalSubscriptionId,
-        clientStateHash: webhookResult.clientStateHash ?? subscription.clientStateHash ?? (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
-        resource: webhookResult.resource ?? subscription.resource,
-        expiresAt: webhookResult.expiresAt,
-      });
-    }
+    if (result.type !== 'webhook') return;
+    await subscriptionDAO.upsertActive({
+      applicationId: application.applicationId,
+      providerId: application.providerId,
+      externalSubscriptionId: result.externalSubscriptionId ?? subscription.externalSubscriptionId,
+      clientStateHash: result.clientStateHash ?? subscription.clientStateHash ?? (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
+      resource: result.resource ?? subscription.resource,
+      expiresAt: result.expiresAt,
+    });
   }
 
   private async resolveCredentials(application: ConnectedApplication): Promise<AnyProviderCredentials> {

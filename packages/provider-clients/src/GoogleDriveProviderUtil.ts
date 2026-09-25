@@ -121,11 +121,13 @@ class GoogleDriveProviderUtil {
       let hitMax = false;
       for (let i = 0; !hitMax && i < changes.length; i++) {
         processChange(changes[i], files, removed);
-        if (files.length >= maxFiles) {
-          nextPageToken = data.nextPageToken ?? null;
-          if (!nextPageToken) newStartPageToken = data.newStartPageToken ?? null;
-          hitMax = true;
+        if (files.length < maxFiles) {
+          continue;
         }
+
+        nextPageToken = data.nextPageToken ?? null;
+        if (!nextPageToken) newStartPageToken = data.newStartPageToken ?? null;
+        hitMax = true;
       }
       if (hitMax) return { files, removed, nextPageToken, newStartPageToken };
 

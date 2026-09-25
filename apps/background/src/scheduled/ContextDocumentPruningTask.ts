@@ -15,7 +15,7 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
   ): Promise<void> {
     const globalMax: number = ConfigurationManager.getMaxContextDocumentsPerApplication(env);
     const sessionEnv = createD1SessionEnv(env);
-    const scope = createRequestScope(sessionEnv as never);
+    const scope = createRequestScope(sessionEnv);
     const contextDAO = new ApplicationContextDAO(sessionEnv.DB);
     const overLimitApps: OverLimitApplication[] = await contextDAO.listApplicationsOverDocumentLimit(globalMax);
 

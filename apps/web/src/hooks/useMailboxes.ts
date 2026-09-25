@@ -12,4 +12,6 @@ export function useMailboxes(options: UseMailboxesOptions) {
   };
 }
 
-export type { UseMailboxesOptions };
+
+
+export {type UseMailboxesOptions} from './useApplications';

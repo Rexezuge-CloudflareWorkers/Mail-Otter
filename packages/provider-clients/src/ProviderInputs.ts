@@ -51,8 +51,7 @@ function filterImageAttachments(candidates: readonly ProviderImageAttachment[], 
   const selected: ProviderImageAttachment[] = [];
   for (const candidate of candidates) {
     if (selected.length >= filter.maxCount) break;
-    if (!isSupportedImageMimeType(candidate.mimeType)) continue;
-    if (candidate.sizeBytes > filter.maxSizeBytes) continue;
+    if (!isSupportedImageMimeType(candidate.mimeType) || (candidate.sizeBytes > filter.maxSizeBytes)) continue;
     selected.push(candidate);
   }
   return selected;
@@ -63,12 +62,12 @@ function filterImageAttachments(candidates: readonly ProviderImageAttachment[], 
  * Outlook matches three — call sites previously duplicated both.
  */
 function isProviderNotFoundError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
   return (
-    /request failed \(404\)/i.test(error.message) ||
-    /ErrorItemNotFound/i.test(error.message) ||
-    /ResourceNotFound/i.test(error.message) ||
-    /could not find/i.test(error.message)
+    error instanceof Error &&
+    (/request failed \(404\)/i.test(error.message) ||
+      /ErrorItemNotFound/i.test(error.message) ||
+      /ResourceNotFound/i.test(error.message) ||
+      /could not find/i.test(error.message))
   );
 }
 

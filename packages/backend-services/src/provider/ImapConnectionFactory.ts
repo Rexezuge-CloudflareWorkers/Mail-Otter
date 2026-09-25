@@ -32,10 +32,7 @@ function buildImapConnectOptions(
   const host = application.imapHost ?? defaults.host;
   const port = application.imapPort ?? defaults.port;
   const username = application.imapUsername ?? application.providerEmail ?? '';
-  if (isImapPassword) {
-    return { host, port, username, auth: { method: 'PLAIN', password: application.imapPassword ?? '' } };
-  }
-  return { host, port, username, auth: { method: 'XOAUTH2', accessToken } };
+  return ({ host, port, username, auth: isImapPassword ? { method: 'PLAIN', password: application.imapPassword ?? '' } : { method: 'XOAUTH2', accessToken } });
 }
 
 export { IMAP_PROVIDER_DEFAULTS, buildImapConnectOptions, getImapDefaults };

@@ -111,8 +111,7 @@ function getFallbackActionTitle(type: string): string {
   if (type === EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE) return 'Track package';
   if (type === EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT) return 'Track flight';
   if (type === EMAIL_ACTION_TYPE_FINANCE_PAY_BILL) return 'Pay bill';
-  if (type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM) return 'Appointment confirmation';
-  return 'Review action item';
+  return type === EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM ? 'Appointment confirmation' : 'Review action item';
 }
 
 function cleanText(value: string): string {

@@ -379,8 +379,7 @@ class EmailActionDAO extends EncryptedDAO {
 
   public async listExecutionsForUser(actionId: string, userEmail: string): Promise<EmailActionExecutionList> {
     const action: EmailAction | undefined = await this.getForUser(actionId, userEmail);
-    if (!action) return { executions: [] };
-    return this.listExecutions(actionId);
+    return action ? this.listExecutions(actionId) : { executions: [] };
   }
 
   private async getById(actionId: string): Promise<EmailAction | undefined> {
@@ -456,10 +455,7 @@ class EmailActionDAO extends EncryptedDAO {
 
   private static parseCursor(cursor: string | undefined): { updatedAt: number; createdAt: number } | undefined {
     const parsed = CursorUtil.decode<{ updatedAt?: unknown; createdAt?: unknown }>(cursor);
-    if (parsed && typeof parsed.updatedAt === 'number' && typeof parsed.createdAt === 'number') {
-      return { updatedAt: parsed.updatedAt, createdAt: parsed.createdAt };
-    }
-    return undefined;
+    return parsed && typeof parsed.updatedAt === 'number' && typeof parsed.createdAt === 'number' ? { updatedAt: parsed.updatedAt, createdAt: parsed.createdAt } : undefined;
   }
 
   private static readonly actionColumns: string = [

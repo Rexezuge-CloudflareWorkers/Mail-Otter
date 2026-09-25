@@ -212,10 +212,7 @@ class ActivityDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { beforeTs: number } | undefined {
     const parsed = CursorUtil.decode<{ beforeTs?: unknown }>(cursor);
-    if (parsed && typeof parsed.beforeTs === 'number') {
-      return { beforeTs: parsed.beforeTs };
-    }
-    return undefined;
+    return parsed && typeof parsed.beforeTs === 'number' ? { beforeTs: parsed.beforeTs } : undefined;
   }
 }
 

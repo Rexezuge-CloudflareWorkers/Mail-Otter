@@ -92,8 +92,7 @@ class ContextService {
 
   async pruneApplicationDocuments(applicationId: string, userEmail: string, activeCount: number, effectiveLimit: number): Promise<void> {
     const excessCount: number = activeCount - effectiveLimit;
-    if (excessCount <= 0) return;
-    if (!this.env.EMAIL_CONTEXT_INDEX) return;
+    if ((excessCount <= 0) || !this.env.EMAIL_CONTEXT_INDEX) return;
 
     const contextDAO = await this.deps.contextDAO();
     const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);

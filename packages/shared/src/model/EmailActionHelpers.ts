@@ -7,8 +7,7 @@ function isActionTerminal(action: Pick<EmailAction, 'status'>): boolean {
 }
 
 function isActionExecutable(action: Pick<EmailAction, 'status' | 'expiresAt'>, nowSeconds: number): boolean {
-  if (action.status !== 'pending') return false;
-  return action.expiresAt > nowSeconds;
+  return action.status === 'pending' && action.expiresAt > nowSeconds;
 }
 
 function isActionSnoozed(action: Pick<EmailAction, 'snoozedUntil'>, nowSeconds: number): boolean {

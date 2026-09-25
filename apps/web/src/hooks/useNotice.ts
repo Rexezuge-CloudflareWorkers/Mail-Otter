@@ -7,8 +7,7 @@ type TranslateFn = (key: string, defaultValue: string) => string;
 function getInitialNotice(t: TranslateFn): { type: 'success' | 'error'; text: string } | null {
   const params = new URLSearchParams(globalThis.location.search);
   if (params.get('oauth2') === 'connected') return { type: 'success', text: t('toasts.oauthComplete', 'OAuth2 Connection Completed.') };
-  if (params.get('oauth2') === 'error') return { type: 'error', text: params.get('message') || t('toasts.oauthFailed', 'OAuth2 Connection Failed.') };
-  return null;
+  return params.get('oauth2') === 'error' ? { type: 'error', text: params.get('message') || t('toasts.oauthFailed', 'OAuth2 Connection Failed.') } : null;
 }
 
 export function useNotice() {

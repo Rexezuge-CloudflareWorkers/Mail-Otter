@@ -94,10 +94,7 @@ class OneDriveIngestionService extends AbstractDriveIngestionService<OneDriveIte
       rawText = DriveDocumentUtil.extractText(buffer, mimeType);
     }
 
-    if (!rawText || rawText.trim().length === 0) {
-      return null;
-    }
-    return { sourceDocumentId: item.id, title: item.name, rawText };
+    return !rawText || rawText.trim().length === 0 ? null : { sourceDocumentId: item.id, title: item.name, rawText };
   }
 }
 

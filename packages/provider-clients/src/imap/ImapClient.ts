@@ -36,7 +36,7 @@ export class ImapClient {
     const useImaps = options.port === 993 || options.port === 465;
     this.socket = connect(
       { hostname: options.host, port: options.port },
-      useImaps ? { secureTransport: 'on', allowHalfOpen: false } : { secureTransport: 'starttls', allowHalfOpen: false },
+      ({ secureTransport: useImaps ? 'on' : 'starttls', allowHalfOpen: false }),
     );
     const readable = this.socket.readable as ReadableStream<Uint8Array>;
     const writable = this.socket.writable as WritableStream<Uint8Array>;

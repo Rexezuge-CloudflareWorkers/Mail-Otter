@@ -4,8 +4,7 @@ class WorkersAiErrorUtil {
   public static isDailyFreeAllocationError(error: unknown): boolean {
     const values: string[] = this.collectErrorValues(error);
     const text: string = values.join(' ');
-    if (/daily free allocation|10,?000 neurons|account limited/i.test(text)) return true;
-    return values.some((value: string): boolean => WORKERS_AI_DAILY_LIMIT_CODES.has(value.trim()));
+    return /daily free allocation|10,?000 neurons|account limited/i.test(text) || values.some((value: string): boolean => WORKERS_AI_DAILY_LIMIT_CODES.has(value.trim()));
   }
 
   public static getDailyFreeAllocationMessage(): string {

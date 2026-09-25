@@ -114,8 +114,7 @@ function taskRunVariant(status: TaskRunStatus): BadgeVariant {
 
 function useTaskRunLabel(status: TaskRunStatus): string {
   const { t } = useTranslation();
-  if (status === 'partial_success') return t('badges.partial', 'Partial');
-  return t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
+  return status === 'partial_success' ? t('badges.partial', 'Partial') : t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
 }
 
 function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
@@ -159,6 +158,5 @@ export function IntegrationHealthBadge({
 }) {
   const { t } = useTranslation();
   if (status === 'success') return <Badge variant="success">{t('badges.ok', 'Ok')}</Badge>;
-  if (status === 'failure') return <Badge variant="error">{t('badges.failedWithCount', 'Failed ({{count}})', { count: consecutiveFailures })}</Badge>;
-  return <Badge variant="neutral">{t('badges.neverSent', 'Never Sent')}</Badge>;
+  return status === 'failure' ? <Badge variant="error">{t('badges.failedWithCount', 'Failed ({{count}})', { count: consecutiveFailures })}</Badge> : <Badge variant="neutral">{t('badges.neverSent', 'Never Sent')}</Badge>;
 }

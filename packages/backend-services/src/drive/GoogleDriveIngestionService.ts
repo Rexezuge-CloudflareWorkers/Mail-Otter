@@ -60,10 +60,7 @@ class GoogleDriveIngestionService extends AbstractDriveIngestionService<DriveFil
       rawText = DriveDocumentUtil.extractText(buffer, file.mimeType);
     }
 
-    if (!rawText || rawText.trim().length === 0) {
-      return null;
-    }
-    return { sourceDocumentId: file.id, title: file.name, rawText };
+    return !rawText || rawText.trim().length === 0 ? null : { sourceDocumentId: file.id, title: file.name, rawText };
   }
 }
 

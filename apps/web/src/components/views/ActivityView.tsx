@@ -16,13 +16,11 @@ import { formatTimestamp } from '../../lib/format';
 function eventBadgeVariant(entry: ActivityEntry): BadgeVariant {
   if (entry.eventType === 'email_processed') {
     if (entry.status === 'summarized') return 'success';
-    if (entry.status === 'error') return 'error';
-    return 'neutral';
+    return entry.status === 'error' ? 'error' : 'neutral';
   }
   if (entry.eventType === 'action_created') return 'info';
   if (entry.executionStatus === 'succeeded') return 'success';
-  if (entry.executionStatus === 'failed' || entry.executionStatus === 'expired') return 'error';
-  return 'neutral';
+  return entry.executionStatus === 'failed' || entry.executionStatus === 'expired' ? 'error' : 'neutral';
 }
 
 function ActivityRow({ entry, applications }: { entry: ActivityEntry; applications: ConnectedApplication[] }) {

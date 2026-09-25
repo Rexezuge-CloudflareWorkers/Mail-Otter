@@ -130,10 +130,7 @@ class IntegrationService {
     locale?: string | null,
   ): Promise<DispatchResult> {
     const observer = IntegrationObserverRegistry.get(integration.integrationType);
-    if (!observer) {
-      return { status: 'failure', httpStatus: null, errorMessage: `Unsupported integration type: ${integration.integrationType}` };
-    }
-    return observer.dispatch(webhookUrl, notification, locale);
+    return observer ? observer.dispatch(webhookUrl, notification, locale) : { status: 'failure', httpStatus: null, errorMessage: `Unsupported integration type: ${integration.integrationType}` };
   }
 }
 

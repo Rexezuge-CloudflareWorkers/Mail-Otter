@@ -89,14 +89,12 @@ class AiUsageUtil {
   }
 
   private static toTokenCount(value: number | undefined): number | undefined {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return undefined;
-    return Math.ceil(value);
+    return typeof value !== 'number' || !Number.isFinite(value) || value < 0 ? undefined : Math.ceil(value);
   }
 
   private static maxTokenCount(first: number | undefined, second: number | undefined): number | undefined {
     if (first === undefined) return second;
-    if (second === undefined) return first;
-    return Math.max(first, second);
+    return second === undefined ? first : Math.max(first, second);
   }
 }
 

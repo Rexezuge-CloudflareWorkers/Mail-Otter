@@ -76,8 +76,7 @@ class OneDriveProviderUtil {
   public static isSupportedItem(item: OneDriveItem): boolean {
     if (!item.file) return false;
     const mimeType = item.file.mimeType ?? '';
-    if (SUPPORTED_ONEDRIVE_MIME_TYPES.has(mimeType)) return true;
-    return isSupportedByExtension(item.name);
+    return SUPPORTED_ONEDRIVE_MIME_TYPES.has(mimeType) || isSupportedByExtension(item.name);
   }
 
   public static isOfficeDocument(item: OneDriveItem): boolean {
@@ -123,11 +122,13 @@ class OneDriveProviderUtil {
       let hitMax = false;
       for (let i = 0; !hitMax && i < pageItems.length; i++) {
         classifyDeltaItem(pageItems[i], items, deletedIds);
-        if (items.length >= maxItems) {
-          nextLink = data['@odata.nextLink'] ?? null;
-          if (!nextLink) deltaLink = data['@odata.deltaLink'] ?? null;
-          hitMax = true;
+        if (items.length < maxItems) {
+          continue;
         }
+
+        nextLink = data['@odata.nextLink'] ?? null;
+        if (!nextLink) deltaLink = data['@odata.deltaLink'] ?? null;
+        hitMax = true;
       }
       if (hitMax) return { items, deletedIds, nextLink, deltaLink };
 

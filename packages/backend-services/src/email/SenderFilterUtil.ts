@@ -4,18 +4,12 @@ class SenderFilterUtil {
   public static extractEmailAddress(from: string): string {
     const lt = from.indexOf('<');
     const gt = lt === -1 ? -1 : from.indexOf('>', lt + 1);
-    if (lt !== -1 && gt !== -1) {
-      return from.slice(lt + 1, gt).toLowerCase().trim();
-    }
-    return from.toLowerCase().trim();
+    return lt !== -1 && gt !== -1 ? from.slice(lt + 1, gt).toLowerCase().trim() : from.toLowerCase().trim();
   }
 
   public static matchesPattern(emailAddress: string, pattern: string): boolean {
     const p = pattern.toLowerCase().trim();
-    if (p.startsWith('@')) {
-      return emailAddress.endsWith(p);
-    }
-    return emailAddress === p;
+    return p.startsWith('@') ? emailAddress.endsWith(p) : emailAddress === p;
   }
 
   public static shouldSkip(

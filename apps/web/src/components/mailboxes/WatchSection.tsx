@@ -6,9 +6,7 @@ import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { useMailboxCallbacks } from '../../contexts/MailboxCallbacksContext';
 
 const setsEqual = (a: string[] | null, b: string[] | null) => {
-  if (a === null && b === null) return true;
-  if (a === null || b === null) return false;
-  return a.length === b.length && a.every((id) => b.includes(id));
+  return a === null || b === null ? a === b : a.length === b.length && a.every((id) => b.includes(id));
 };
 
 export function WatchSection({

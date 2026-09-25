@@ -172,8 +172,7 @@ class EmailPipelineOrchestrator implements PipelineDedupStage {
         resolved.hasAttachment,
         attachmentImages,
       );
-      if (!result) return null;
-      return summarizeStage.buildResult(resolved, result);
+      return result ? summarizeStage.buildResult(resolved, result) : null;
     } catch (error: unknown) {
       const processingError: Error = classifyPipelineError(error);
       await this.processedDAO.markError(application.applicationId, resolved.messageId, processingError.message);
@@ -225,10 +224,7 @@ function classifyPipelineError(error: unknown): Error {
   if (error instanceof BadRequestError) {
     return new NonRetryableError(error.message);
   }
-  if (error instanceof Error) {
-    return new RetryableError(error.message);
-  }
-  return new RetryableError(String(error));
+  return new RetryableError(error instanceof Error ? error.message : String(error));
 }
 
 // Shared attachment-vision guard: skip when disabled/absent, degrade to no images on fetch failure.

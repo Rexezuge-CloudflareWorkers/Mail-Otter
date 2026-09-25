@@ -144,8 +144,7 @@ const EmailProcessingRuleSchema = z
   })
   .refine(
     (rule): boolean => {
-      if (!PRE_PROCESSING_ACTION_TYPES.has(rule.action.type)) return true;
-      return rule.conditions.matchers.every((m) => m.field !== 'detected_action_type');
+      return !PRE_PROCESSING_ACTION_TYPES.has(rule.action.type) || rule.conditions.matchers.every((m) => m.field !== 'detected_action_type');
     },
     'detected_action_type matcher is only valid with post-processing action types (apply_label, archive_message, mark_read, star_message).',
   );

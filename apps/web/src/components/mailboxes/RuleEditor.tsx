@@ -171,18 +171,14 @@ function RuleForm({
         return updated;
       });
       const alwaysIdx = matchers.findIndex((m) => m.field === 'always');
-      if (alwaysIdx !== -1) return { ...d, matchers: [matchers[alwaysIdx]] };
-      return { ...d, matchers };
+      return alwaysIdx === -1 ? { ...d, matchers } : { ...d, matchers: [matchers[alwaysIdx]] };
     });
   };
 
   const setActionType = (actionType: EmailRuleActionType) => {
     setDraft((d) => {
       const newMatchers = d.matchers.map((m): MatcherDraft => {
-        if (m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
-          return { ...m, field: 'subject', op: 'contains' };
-        }
-        return m;
+        return m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType) ? { ...m, field: 'subject', op: 'contains' } : m;
       });
       return { ...d, actionType, matchers: newMatchers };
     });
@@ -202,14 +198,13 @@ function RuleForm({
   };
 
   const isValid = (): boolean => {
-    if (!draft.name.trim()) return false;
-    if (draft.matchers.some((m) => {
-      if (m.field === 'has_attachment' || m.field === 'always') return false;
-      return !m.value.trim();
-    })) return false;
-    if (draft.actionType === 'prepend_instruction' && !draft.instruction.trim()) return false;
-    if (draft.actionType === 'apply_label' && !draft.labelName.trim()) return false;
-    return POST_PROCESSING_ACTION_TYPES.has(draft.actionType) || draft.matchers.every((m) => m.field !== 'detected_action_type');
+    return (
+      draft.name.trim() !== '' &&
+      draft.matchers.every((m) => m.field === 'has_attachment' || m.field === 'always' || m.value.trim() !== '') &&
+      (draft.actionType !== 'prepend_instruction' || draft.instruction.trim() !== '') &&
+      (draft.actionType !== 'apply_label' || draft.labelName.trim() !== '') &&
+      (POST_PROCESSING_ACTION_TYPES.has(draft.actionType) || draft.matchers.every((m) => m.field !== 'detected_action_type'))
+    );
   };
 
   const handleAdd = () => {

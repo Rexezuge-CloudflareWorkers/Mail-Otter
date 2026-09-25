@@ -42,8 +42,7 @@ interface MetadataConfigWriter {
 
 function normalizeStatus(row: ConnectedApplicationInternal): ConnectedApplicationMetadata['status'] {
   if (row.status === CONNECTED_APPLICATION_STATUS_CONNECTED) return CONNECTED_APPLICATION_STATUS_CONNECTED;
-  if (row.status === CONNECTED_APPLICATION_STATUS_ERROR) return CONNECTED_APPLICATION_STATUS_ERROR;
-  return CONNECTED_APPLICATION_STATUS_DRAFT;
+  return row.status === CONNECTED_APPLICATION_STATUS_ERROR ? CONNECTED_APPLICATION_STATUS_ERROR : CONNECTED_APPLICATION_STATUS_DRAFT;
 }
 
 interface ResolvedFilters {

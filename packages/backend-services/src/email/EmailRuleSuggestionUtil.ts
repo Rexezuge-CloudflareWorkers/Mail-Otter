@@ -177,9 +177,7 @@ class EmailRuleSuggestionUtil {
     // before schema validation (the shared schema enforces these as Zod refinements).
     const conditions = this.sanitizeConditions(p['conditions'], actionResult.data.type);
     const condResult = EmailRuleConditionSchema.safeParse(conditions);
-    if (!condResult.success) return undefined;
-
-    return { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction };
+    return condResult.success ? { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction } : undefined;
   }
 
   private static sanitizeConditions(conditions: unknown, actionType?: string): unknown {
@@ -194,10 +192,7 @@ class EmailRuleSuggestionUtil {
         if (matcher['op'] === 'matches_sender' && matcher['field'] !== 'from') {
           return { ...matcher, op: 'contains' };
         }
-        if (actionType && matcher['field'] === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)) {
-          return { field: 'subject', op: 'contains', value: matcher['value'] ?? '' };
-        }
-        return matcher;
+        return actionType && matcher['field'] === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType) ? { field: 'subject', op: 'contains', value: matcher['value'] ?? '' } : matcher;
       }),
     };
   }

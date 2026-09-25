@@ -232,8 +232,7 @@ class EmailSummaryUtil {
   }
 
   private static renderHtmlList(items: string[], emptyValue: string): string[] {
-    if (items.length === 0) return [emptyValue];
-    return items.map((item: string): string => `<li>${EmailContentUtil.sanitizeHtml(item)}</li>`);
+    return items.length === 0 ? [emptyValue] : items.map((item: string): string => `<li>${EmailContentUtil.sanitizeHtml(item)}</li>`);
   }
 
   private static normalizeItems(items: string[]): string[] {
@@ -274,8 +273,7 @@ class EmailSummaryUtil {
     for (const item of value) {
       if (!WorkersAiResponseUtil.isRecord(item)) continue;
       const type = typeof item.type === 'string' ? item.type : '';
-      if (
-        ![
+      if (![
           'calendar.add_event',
           'email.draft_reply',
           'external.open_link',
@@ -284,10 +282,7 @@ class EmailSummaryUtil {
           'travel.track_flight',
           'finance.pay_bill',
           'appointment.confirm',
-        ].includes(type)
-      )
-        continue;
-      if (typeof item.title !== 'string' || typeof item.description !== 'string') continue;
+        ].includes(type) || typeof item.title !== 'string' || typeof item.description !== 'string') continue;
       actions.push({
         type: type as EmailActionProposal['type'],
         title: this.normalizeSentence(item.title),

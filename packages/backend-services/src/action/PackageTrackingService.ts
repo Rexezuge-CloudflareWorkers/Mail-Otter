@@ -76,8 +76,7 @@ function resolveSlug(carrier: string | undefined): string | undefined {
 
 function formatExpectedDelivery(raw: string, locale?: string | null): string {
   const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleDateString(LocaleUtil.normalize(locale), { month: 'short', day: 'numeric', year: 'numeric' });
+  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString(LocaleUtil.normalize(locale), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function buildSummary(tracking: AftershippTracking, locale?: string | null): string {
@@ -122,9 +121,7 @@ async function fetchStatus(trackingNumber: string, carrier: string | undefined, 
 
     const json = JSON.parse(await response.text()) as { data?: { tracking?: Record<string, any> } };
     const tracking = json?.data?.tracking;
-    if (!tracking) return null;
-
-    return { summary: buildSummary(tracking, locale) };
+    return tracking ? { summary: buildSummary(tracking, locale) } : null;
   } catch {
     return null;
   }

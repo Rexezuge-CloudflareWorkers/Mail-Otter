@@ -3,6 +3,7 @@ import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import type { IEmailProvider } from '../provider/IEmailProvider';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import type { OAuth2AccessTokenServiceEnv } from '../oauth2/OAuth2AccessTokenService';
+import { logError } from '@mail-otter/shared/utils';
 
 type ProviderOrganizationEnv = OAuth2AccessTokenServiceEnv;
 
@@ -21,7 +22,9 @@ class ProviderOrganizationService {
 
     for (const result of results) {
       if (result.status === 'rejected') {
-        console.error('[ProviderOrganizationService] Post-processing rule execution failed:', result.reason);
+        // Provider errors raised while holding an access token can echo the
+        // Authorization header, so redact rather than logging the raw reason.
+        logError('error', '[ProviderOrganizationService] Post-processing rule execution failed', result.reason);
       }
     }
   }
@@ -66,7 +69,7 @@ class ProviderOrganizationService {
         }
       }
     } catch (error: unknown) {
-      console.error(`[ProviderOrganizationService] Rule "${rule.name}" (${rule.action.type}) failed for message ${messageId}:`, error);
+      logError('error', `[ProviderOrganizationService] Rule "${rule.name}" (${rule.action.type}) failed for message ${messageId}`, error);
       throw error;
     }
   }

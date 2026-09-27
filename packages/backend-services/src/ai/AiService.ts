@@ -1,7 +1,7 @@
 import { AiDailyUsageDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { CryptoUtil } from '@mail-otter/shared/utils';
+import { CryptoUtil, logError } from '@mail-otter/shared/utils';
 import { AiUsageUtil } from '../email/AiUsageUtil';
 import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 
@@ -46,7 +46,7 @@ class AiService {
         embeddingTokens: estimate.embeddingTokens,
       });
     } catch (error: unknown) {
-      console.warn(`${logPrefix} Failed to record embedding usage:`, error);
+      logError('warn', `${logPrefix} Failed to record embedding usage`, error);
     }
   }
 
@@ -67,7 +67,7 @@ class AiService {
       });
       return estimate;
     } catch (error: unknown) {
-      console.warn(`${logPrefix} Failed to record text generation usage:`, error);
+      logError('warn', `${logPrefix} Failed to record text generation usage`, error);
       return undefined;
     }
   }
@@ -79,7 +79,7 @@ class AiService {
       const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(AiUsageUtil.getCurrentUtcUsageDate());
       return estimatedNeurons >= fallbackThreshold;
     } catch (error: unknown) {
-      console.warn(`${logPrefix} Failed to read daily usage:`, error);
+      logError('warn', `${logPrefix} Failed to read daily usage`, error);
       return false;
     }
   }

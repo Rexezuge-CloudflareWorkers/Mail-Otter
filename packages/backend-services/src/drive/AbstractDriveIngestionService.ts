@@ -6,6 +6,7 @@ import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiClient } from '../ai/AiClient';
 import { EmailContextUtil } from '../email/EmailContextUtil';
 import { DriveDocumentUtil } from './DriveDocumentUtil';
+import { logError } from '@mail-otter/shared/utils';
 
 interface DriveIngestionEnv {
   DB: D1Queryable;
@@ -121,7 +122,7 @@ abstract class AbstractDriveIngestionService<TItem extends { id: string } = { id
         else skipped++;
       } catch (error: unknown) {
         failed++;
-        console.warn(`${this.driveLogPrefix} Failed to ingest file ${item.id}:`, error);
+        logError('warn', `${this.driveLogPrefix} Failed to ingest file ${item.id}`, error);
         await this.markIngestError(contextDAO, application, item.id, this.driveSourceType, error);
       }
     }
@@ -167,7 +168,7 @@ abstract class AbstractDriveIngestionService<TItem extends { id: string } = { id
           await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, info.userEmail, [info.vectorId]);
         }
       } catch (error: unknown) {
-        console.warn(`${logPrefix} Failed to delete removed file ${fileId}:`, error);
+        logError('warn', `${logPrefix} Failed to delete removed file ${fileId}`, error);
       }
     }
   }

@@ -1,5 +1,6 @@
 import { AbstractDurableObjectWorker } from '@mail-otter/backend-runtime/base';
 import { tasksForPhase } from '@mail-otter/background/scheduled';
+import { logTokenAdjacentError } from '@mail-otter/shared/utils';
 
 const CRON_TASKS_RUN_PATH: string = '/run';
 
@@ -29,8 +30,8 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
     try {
       await run;
       return Response.json({ status: 'completed' });
-    } catch (error: unknown) {
-      console.error('Cron task run failed:', error);
+    } catch {
+      logTokenAdjacentError('error', 'Cron task run failed');
       return Response.json({ status: 'failed' }, { status: 500 });
     } finally {
       if (this.currentRun === run) {

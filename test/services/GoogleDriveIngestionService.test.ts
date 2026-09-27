@@ -85,13 +85,20 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
   },
 }));
 
-vi.mock('@mail-otter/shared/utils', () => ({
-  CryptoUtil: {
-    hmacSha256Hex: vi.fn(async (_msg: string, _key: string) => 'mock-fingerprint'),
-  },
-  UUIDUtil: { getRandomUUID: vi.fn(() => 'mock-uuid') },
-  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1_000_000) },
-}));
+// Partial mock: only the three deterministic helpers are stubbed. Spreading the
+// real module keeps unrelated exports (e.g. `logError`) available, so adding a
+// new export to `shared/utils` cannot break this suite.
+vi.mock('@mail-otter/shared/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@mail-otter/shared/utils')>();
+  return {
+    ...actual,
+    CryptoUtil: {
+      hmacSha256Hex: vi.fn(async (_msg: string, _key: string) => 'mock-fingerprint'),
+    },
+    UUIDUtil: { getRandomUUID: vi.fn(() => 'mock-uuid') },
+    TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1_000_000) },
+  };
+});
 
 vi.mock('../../packages/backend-services/src/email/AiUsageUtil', () => ({
   AiUsageUtil: {

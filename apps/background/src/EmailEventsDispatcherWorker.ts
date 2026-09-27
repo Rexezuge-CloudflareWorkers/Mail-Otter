@@ -1,6 +1,7 @@
 import { AbstractQueueWorker } from '@mail-otter/backend-runtime/base';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
+import { logTokenAdjacentError } from '@mail-otter/shared/utils';
 
 class EmailEventsDispatcherWorker extends AbstractQueueWorker {
   protected async onQueue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
@@ -17,8 +18,8 @@ class EmailEventsDispatcherWorker extends AbstractQueueWorker {
       await env.EMAIL_PROCESSING_WORKFLOW.createBatch(workflowInputs);
       for (const message of batch.messages) message.ack();
       return;
-    } catch (error: unknown) {
-      console.warn('Batch workflow dispatch failed; falling back to per-message dispatch:', error);
+    } catch {
+      logTokenAdjacentError('warn', 'Batch workflow dispatch failed; falling back to per-message dispatch');
     }
 
     await Promise.all(
@@ -31,7 +32,7 @@ class EmailEventsDispatcherWorker extends AbstractQueueWorker {
             message.ack();
             return;
           }
-          console.error('Failed to dispatch email event workflow:', error);
+          logTokenAdjacentError('error', 'Failed to dispatch email event workflow');
           message.retry();
         }
       }),

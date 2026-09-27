@@ -10,7 +10,7 @@ Scope: `apps/background/**`. Parent index: `../../AGENTS.md`.
 - `EmailEventsDispatcherWorker.ts` — Queue consumer → `EmailProcessingWorkflow`.
 - `EmailProcessingWorkflow.ts` — Workflow: resolve apps, list messages, summarize, post replies. IMAP connect options delegate to `buildImapConnectOptions` in `@mail-otter/backend-services/provider` (`ImapConnectionFactory`, single source of host/port defaults); no local defaults table.
 - `OAuth2TokenRefreshWorker.ts` — DO for token refresh and auth-code exchange.
-- Error logging in token-adjacent `try` blocks: log and `run.fail()` static messages with application/subscription IDs only — never interpolate the caught error (CodeQL `js/clear-text-logging` traces OAuth2 token taint through the thrown error and does not model `String#replaceAll` as a masking barrier).
+- Error logging in token-adjacent `try` blocks: use `logTokenAdjacentError(level, message, ids)` from `@mail-otter/shared/utils` — static messages with application/subscription IDs only, never the caught error (CodeQL `js/clear-text-logging` traces OAuth2 token taint through the thrown error and does not model `String#replaceAll` as a masking barrier). Use `logError(level, message, error)` for non-token paths; it redacts Bearer/Basic headers, token KV pairs, query params, JWTs, and `ya29.` tokens via `ErrorSanitizationUtil`. Never call `console.*` with a caught error directly. Values persisted for later display (e.g. `BackgroundTaskRunDAO.failRun`, surfaced by `GET /user/processing/task-runs`) must be run through `ErrorSanitizationUtil` first.
 
 ## Background Task Visibility
 

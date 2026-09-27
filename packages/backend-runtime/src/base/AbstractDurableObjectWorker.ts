@@ -1,4 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
+import { logError } from '@mail-otter/shared/utils';
 
 type DurableObjectFetchRequest = Parameters<NonNullable<DurableObject<Env>['fetch']>>[0];
 type DurableObjectFetchResult = ReturnType<NonNullable<DurableObject<Env>['fetch']>>;
@@ -9,7 +10,7 @@ abstract class AbstractDurableObjectWorker extends DurableObject<Env> {
     try {
       return await this.onRequest(request);
     } catch (err: unknown) {
-      console.error('Unhandled error in durable object fetch():', err);
+      logError('error', 'Unhandled error in durable object fetch():', err);
       return Response.json({ error: 'Internal Error' }, { status: 500 });
     }
   }

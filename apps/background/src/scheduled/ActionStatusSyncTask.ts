@@ -5,6 +5,7 @@ import { ActionStatusSyncUtil } from '@mail-otter/backend-services/digest';
 import { BACKGROUND_TASK_TYPE_ACTION_STATUS_SYNC, DIGEST_CONFIG_KEY_ENABLED } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv, TaskRunSummary } from './IScheduledTask';
+import { logError } from '@mail-otter/shared/utils';
 
 class ActionStatusSyncTask extends IScheduledTask<ActionStatusSyncTaskEnv> {
   protected async handleScheduledTask(
@@ -37,7 +38,7 @@ class ActionStatusSyncTask extends IScheduledTask<ActionStatusSyncTaskEnv> {
       } catch (error: unknown) {
         failed++;
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`[ActionStatusSyncTask] Failed to sync action statuses for application ${applicationId}:`, error);
+        logError('error', '[ActionStatusSyncTask] Failed to sync action statuses', error);
         await run.fail(message);
       }
     }

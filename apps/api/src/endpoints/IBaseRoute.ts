@@ -3,6 +3,7 @@ import { Context } from 'hono';
 import type { StatusCode } from 'hono/utils/http-status';
 import { BadRequestError, DefaultInternalServerError, ServiceError } from '@mail-otter/backend-errors';
 import { validateRequestInput } from '@mail-otter/shared/schema';
+import { logError } from '@mail-otter/shared/utils';
 
 abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse, TEnv extends IEnv> extends OpenAPIRoute {
   async handle(c: RouteContext<TEnv>) {
@@ -59,13 +60,13 @@ abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse
     // cause preserved. Only untyped errors are masked as internal errors.
     if (error instanceof ServiceError) {
       if (error.getErrorCode() < 500) {
-        console.warn(`Responding with ${error.getErrorType()}:`, error.stack);
+        logError('warn', `Responding with ${error.getErrorType()}`, error);
       } else {
-        console.error(`Responding with ${error.getErrorType()}:`, error);
+        logError('error', `Responding with ${error.getErrorType()}`, error);
       }
       return c.json({ Exception: { Type: error.getErrorType(), Message: error.getErrorMessage() } }, error.getErrorCode());
     }
-    console.error('Caught service error during execution:', error);
+    logError('error', 'Caught service error during execution', error);
     return c.json(
       {
         Exception: {

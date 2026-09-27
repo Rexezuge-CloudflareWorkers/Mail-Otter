@@ -6,6 +6,17 @@ Scope: `apps/api/**`. Parent index: `../../AGENTS.md`.
 - `src/types.d.ts` — `type Env = CloudflareEnv` global.
 - `src/workers/MailOtterWorker.ts` — Hono + Chanfana routes, D1 sessions (`x-d1-bookmark` header round-trip in `onRequest`), cron → `CronTasksWorker` DO.
 - `src/endpoints/` — file-routed endpoint classes (`api/`, `user/`, `IBaseRoute.ts`, `IUserRoute.ts`).
+- `src/endpoints/routeTable.ts` — **declarative list of every served route** (`userRoutes` / `publicApiRoutes` / `webhookRoutes`). `MailOtterWorker.registerRoutes` iterates it. Add new routes here, not via `openapi.get(...)`.
+
+## Request Validation
+
+`packages/shared/src/schema` holds a `METHOD /path/:param` → zod registry (`RequestInputSchemas`) applied by `IBaseRoute.handle` via `validateRequestInput`.
+
+- **Validation fails closed.** A route with no registry entry is rejected with 400 naming the key, because a missing entry previously meant "no validation" and twenty of fifty-two routes were silently unvalidated.
+- `normalizePathname` in `schema/index.ts` maps concrete paths with parameters onto registry keys. A parameterized route missing from that list resolves to no schema and 400s.
+- `test/schema/RequestValidation.test.ts` asserts the route table, the registry, and `normalizePathname` all agree in both directions. Add a schema entry with any new route or that test fails.
+- Query params are validated but not returned; routes still read them with `IBaseRoute.getQueryParam`, which re-parses `request.raw.url`. A repeated param (`?types=a&types=b`) reaches schemas as an array; use `z.preprocess` to normalize a scalar-or-array field.
+- `packages/shared/src/constants/ChatLimits.ts` bounds the chat payload. `history` is spliced into the Workers AI `messages` array, so its `role` is an enum and per-message length is capped.
 - Route handlers resolve services via `createRequestScope(env)` from `@mail-otter/backend-services/composition` (`scope.get(Tokens.X)`); never `new XService(env)` or import `@mail-otter/backend-data/dao` (enforced by `no-restricted-imports`; type-only DAO imports allowed). Processing (`/user/processing/*`), actions list (`GET /user/actions`, executions), chat (`POST /user/chat`), and digest config/send all resolve via scope (`Tokens.ProcessingService/ActionService/ChatService/DigestConfigService/DigestService`).
 - `GET /user/application/digest` reads `applicationId` from query params (validated by `DigestConfigQuerySchema`); `PUT` body by `UpdateDigestConfigBodySchema`.
 - `src/middleware/` — `index.ts`, `MiddlewareHandlers.ts` incl. Cloudflare Access auth.

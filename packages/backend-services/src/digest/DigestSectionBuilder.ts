@@ -1,4 +1,5 @@
 import { DIGEST_APPOINTMENTS_HOURS, DIGEST_BILLS_DUE_DAYS } from '@mail-otter/shared/constants';
+import { TimeZoneUtil } from '@mail-otter/shared/utils';
 import type { AppointmentConfirmActionPayload, FinancePayBillActionPayload } from '@mail-otter/shared/model';
 import type { EmailAction } from '@mail-otter/shared/model';
 
@@ -22,51 +23,12 @@ class DigestSectionBuilder {
    * `[2026-03-10T04:00Z, 2026-03-11T04:00Z)`, pulling in the previous
    * evening's events and dropping the current evening's.
    *
-   * Two passes are needed because the offset depends on the instant: read the
-   * wall clock in the target zone, treat it as UTC to derive the offset, then
-   * re-anchor local midnight with that offset. The offset is taken from `now`
-   * rather than from the target midnight, which is exact except within a few
-   * hours of a DST transition — irrelevant for a 24-hour digest window.
+   * Delegates to `TimeZoneUtil` so the digest day boundary and the calendar
+   * sync window (`CalendarSyncWindow`) cannot drift apart — they must describe
+   * the same local day for the digest's calendar section to be covered.
    */
   public static getDayStartUnix(now: Date, timeZone: string): number {
-    let wallClock: Intl.DateTimeFormatPart[];
-    try {
-      wallClock = this.formatInZone(now, timeZone || 'UTC');
-    } catch {
-      // Unknown IANA zone (a stale user preference): fall back to UTC rather
-      // than throwing and losing the whole digest.
-      wallClock = this.formatInZone(now, 'UTC');
-    }
-
-    const year: number = Number(this.part(wallClock, 'year'));
-    const month: number = Number(this.part(wallClock, 'month'));
-    const day: number = Number(this.part(wallClock, 'day'));
-    // Some ICU builds report midnight as hour 24 under `hour12: false`.
-    const hour: number = Number(this.part(wallClock, 'hour')) % 24;
-    const minute: number = Number(this.part(wallClock, 'minute'));
-    const second: number = Number(this.part(wallClock, 'second'));
-
-    const wallClockAsUtcMs: number = Date.UTC(year, month - 1, day, hour, minute, second);
-    const zoneOffsetMs: number = wallClockAsUtcMs - now.getTime();
-    const localMidnightAsUtcMs: number = Date.UTC(year, month - 1, day, 0, 0, 0);
-    return Math.floor((localMidnightAsUtcMs - zoneOffsetMs) / 1000);
-  }
-
-  private static formatInZone(now: Date, timeZone: string): Intl.DateTimeFormatPart[] {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).formatToParts(now);
-  }
-
-  private static part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
-    return parts.find((part: Intl.DateTimeFormatPart): boolean => part.type === type)?.value ?? '0';
+    return TimeZoneUtil.getLocalDayStartUnixSeconds(now, timeZone);
   }
 
   public static getBillsDueByUnix(nowUnix: number): number {

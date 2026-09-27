@@ -1,4 +1,5 @@
 export * from './AttachmentTypes';
+export * from './AftershipCheckpoint';
 export * from './ProviderInputs';
 export * from './EmailContentUtil';
 export * from './GmailProviderUtil';

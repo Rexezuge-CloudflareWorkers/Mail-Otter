@@ -20,6 +20,12 @@ interface ActionExecutedEntry {
   eventType: 'action_executed';
   applicationId: string;
   actionId: string;
+  /**
+   * Unique per execution. An action can be executed more than once, so
+   * `actionId` is not a key on its own — and this is the tiebreaker the
+   * activity feed's cursor paginates on.
+   */
+  executionId: string;
   actionType: string;
   executionStatus: string;
   triggeredBy: string;

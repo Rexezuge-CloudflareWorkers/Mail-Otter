@@ -20,10 +20,17 @@ class ContextDeletionRunDAO extends BaseDAO {
       conditions.push('application_id = ?');
       bindings.push(input.applicationId);
     }
-    const cursor: { createdAt: number } | undefined = ContextDeletionRunDAO.parseCursor(input.cursor);
+    const cursor: { createdAt: number; id?: string } | undefined = ContextDeletionRunDAO.parseCursor(input.cursor);
     if (cursor) {
-      conditions.push('created_at < ?');
-      bindings.push(cursor.createdAt);
+      // `deletion_run_id` breaks timestamp ties so a group of runs recorded in
+      // the same second is not truncated to the first page.
+      if (cursor.id === undefined) {
+        conditions.push('created_at < ?');
+        bindings.push(cursor.createdAt);
+      } else {
+        conditions.push('(created_at < ? OR (created_at = ? AND deletion_run_id < ?))');
+        bindings.push(cursor.createdAt, cursor.createdAt, cursor.id);
+      }
     }
     const rows: ApplicationContextDeletionRunInternal[] = await this.database
       .prepare(
@@ -32,7 +39,7 @@ class ContextDeletionRunDAO extends BaseDAO {
                  mutation_ids, status, error_message, created_at, updated_at
           FROM application_context_deletion_runs
           WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at DESC
+          ORDER BY created_at DESC, deletion_run_id DESC
           LIMIT ?
         `,
       )
@@ -42,7 +49,8 @@ class ContextDeletionRunDAO extends BaseDAO {
     const pageRows: ApplicationContextDeletionRunInternal[] = rows.slice(0, limit);
     return {
       deletionRuns: pageRows.map((row: ApplicationContextDeletionRunInternal): ApplicationContextDeletionRun => this.toDeletionRun(row)),
-      nextCursor: rows.length > limit ? ContextDeletionRunDAO.encodeCursor(pageRows.at(-1)!.created_at) : undefined,
+      nextCursor:
+        rows.length > limit ? ContextDeletionRunDAO.encodeCursor(pageRows.at(-1)!.created_at, pageRows.at(-1)!.deletion_run_id) : undefined,
     };
   }
 
@@ -134,13 +142,18 @@ class ContextDeletionRunDAO extends BaseDAO {
     };
   }
 
-  private static parseCursor(cursor: string | undefined): { createdAt: number } | undefined {
+  /**
+   * Decode `[createdAt]` (legacy) or `[createdAt, deletionRunId]` (current), so
+   * a cursor issued before the tiebreaker still resumes.
+   */
+  private static parseCursor(cursor: string | undefined): { createdAt: number; id?: string } | undefined {
     const parsed = CursorUtil.decode<unknown[]>(cursor);
-    return Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0] === 'number' ? { createdAt: parsed[0] } : undefined;
+    if (!Array.isArray(parsed) || typeof parsed[0] !== 'number') return undefined;
+    return typeof parsed[1] === 'string' ? { createdAt: parsed[0], id: parsed[1] } : { createdAt: parsed[0] };
   }
 
-  private static encodeCursor(createdAt: number): string {
-    return CursorUtil.encode([createdAt]);
+  private static encodeCursor(createdAt: number, id: string): string {
+    return CursorUtil.encode([createdAt, id]);
   }
 
   private static parseMutationIds(value: string | null): string[] {

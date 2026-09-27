@@ -5,6 +5,7 @@ import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { formatExpectedDelivery, TAG_LABELS } from '../action/PackageTrackingService';
 import { fetchFlightStatus } from '../action/FlightTrackingService';
 import { logError } from '@mail-otter/shared/utils';
+import { checkpointPlace, latestCheckpoint } from '@mail-otter/provider-clients';
 
 interface PackageSyncStatus {
   carrier?: string;
@@ -60,8 +61,8 @@ class ActionStatusSyncUtil {
     const tracking = data.data?.trackings?.[0];
     if (!tracking) return;
 
-    const latestCheckpoint = tracking.checkpoints?.[0];
-    const location = [latestCheckpoint?.city, latestCheckpoint?.state].filter(Boolean).join(', ') || undefined;
+    const latest = latestCheckpoint(tracking.checkpoints);
+    const location = checkpointPlace(latest);
     const syncStatus: PackageSyncStatus = {
       carrier: payload.carrier,
       trackingNumber: payload.trackingNumber,
@@ -69,7 +70,7 @@ class ActionStatusSyncUtil {
       statusLabel: tracking.tag ? (TAG_LABELS[tracking.tag] ?? tracking.tag) : undefined,
       location,
       expectedDelivery: tracking.expected_delivery ? formatExpectedDelivery(tracking.expected_delivery) : undefined,
-      lastUpdate: latestCheckpoint?.message,
+      lastUpdate: latest?.message,
     };
     await this.actionDAO.updateSyncStatus(action.actionId, JSON.stringify(syncStatus));
   }

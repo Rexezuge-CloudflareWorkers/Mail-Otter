@@ -1,5 +1,6 @@
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { LocaleUtil } from '@mail-otter/shared/utils';
+import { latestCheckpoint } from '@mail-otter/provider-clients';
 
 const AFTERSHIP_API_BASE = 'https://api.aftership.com/tracking/2024-10';
 
@@ -103,8 +104,8 @@ function buildSummary(tracking: AftershippTracking, locale?: string | null): str
   const statusLabel = tagLabelFor(tag, locale);
   const strings = getBackendStrings(locale);
 
-  const checkpoints = tracking.checkpoints ?? [];
-  const latest = checkpoints.at(-1);
+  // Newest-first, shared with the digest sync so the two cannot disagree.
+  const latest = latestCheckpoint(tracking.checkpoints);
   const locationParts: string[] = [];
   if (latest) {
     if (latest.message) locationParts.push(latest.message);

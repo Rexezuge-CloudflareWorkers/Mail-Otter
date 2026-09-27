@@ -5,6 +5,7 @@ const {
   mockListCalendarEventsForUser,
   mockListProcessedMessagesForUser,
   mockGetByIdForUser,
+  mockGetMetadataByIdForUser,
   mockGetAccessToken,
   mockSyncForApplication,
   mockSyncPackageActions,
@@ -14,6 +15,7 @@ const {
   mockListCalendarEventsForUser: vi.fn().mockResolvedValue({ events: [], nextCursor: undefined }),
   mockListProcessedMessagesForUser: vi.fn().mockResolvedValue({ messages: [], nextCursor: undefined }),
   mockGetByIdForUser: vi.fn(),
+  mockGetMetadataByIdForUser: vi.fn().mockResolvedValue({ timeZone: 'UTC' }),
   mockGetAccessToken: vi.fn().mockResolvedValue('access-token'),
   mockSyncForApplication: vi.fn().mockResolvedValue(undefined),
   mockSyncPackageActions: vi.fn().mockResolvedValue(undefined),
@@ -31,7 +33,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
     return { listForUser: mockListProcessedMessagesForUser };
   }),
   ConnectedApplicationDAO: vi.fn(function () {
-    return { getByIdForUser: mockGetByIdForUser };
+    return { getByIdForUser: mockGetByIdForUser, getMetadataByIdForUser: mockGetMetadataByIdForUser };
   }),
 }));
 

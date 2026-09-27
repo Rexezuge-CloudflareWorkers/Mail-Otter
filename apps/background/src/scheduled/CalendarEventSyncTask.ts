@@ -4,10 +4,10 @@ import { CalendarEventSyncUtil } from '@mail-otter/backend-services/digest';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
+import { CalendarSyncWindow } from '@mail-otter/shared/utils';
 import {
   BACKGROUND_TASK_TYPE_CALENDAR_SYNC,
   CONNECTED_APPLICATION_STATUS_CONNECTED,
-  DIGEST_CALENDAR_SYNC_DAYS,
   DIGEST_CONFIG_KEY_ENABLED,
 } from '@mail-otter/shared/constants';
 import { IScheduledTask } from './IScheduledTask';
@@ -38,8 +38,6 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
 
     const syncUtil = new CalendarEventSyncUtil(sessionEnv.DB);
     const now = new Date();
-    const windowStartIso = now.toISOString();
-    const windowEndIso = new Date(now.getTime() + DIGEST_CALENDAR_SYNC_DAYS * 86_400 * 1000).toISOString();
 
     let synced = 0;
     let failed = 0;
@@ -62,6 +60,11 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
         }
 
         const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(applicationId);
+        // Window is per mailbox: anchored to that mailbox's local midnight so it
+        // matches the digest section it feeds. Shared with the manual trigger
+        // path via `CalendarSyncWindow` so the two cannot drift.
+        const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, application.userEmail);
+        const { startIso: windowStartIso, endIso: windowEndIso } = CalendarSyncWindow.build(now, metadata?.timeZone ?? null);
         await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);
         synced++;
         await run.succeed({ itemsProcessed: 1, itemsFailed: 0, summary: 'Calendar events synced' });

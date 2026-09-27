@@ -9,6 +9,7 @@ import type { ProcessedMessageList, SyncedCalendarEventList } from '@mail-otter/
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { CalendarSyncWindow } from '@mail-otter/shared/utils';
 import { ActionStatusSyncUtil, CalendarEventSyncUtil } from '../digest';
 import { OAuth2AccessTokenService } from '../oauth2';
 import { BACKGROUND_TASK_TYPE_ACTION_STATUS_SYNC, BACKGROUND_TASK_TYPE_CALENDAR_SYNC } from '@mail-otter/shared/constants';
@@ -150,9 +151,12 @@ class ProcessingService {
     if (!application) throw new NotFoundError('Connected application not found.');
 
     if (taskType === BACKGROUND_TASK_TYPE_CALENDAR_SYNC) {
-      const now = new Date();
-      const windowStartIso = now.toISOString();
-      const windowEndIso = new Date(now.getTime() + 48 * 3600 * 1000).toISOString();
+      // Previously hardcoded to a 48-hour window from `now`, which disagreed
+      // with the cron's `DIGEST_CALENDAR_SYNC_DAYS` and so truncated the synced
+      // range on every manual trigger. The window is anchored to the mailbox's
+      // local midnight so it lines up with the digest's calendar section.
+      const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+      const { startIso: windowStartIso, endIso: windowEndIso } = CalendarSyncWindow.build(new Date(), metadata?.timeZone ?? null);
       const accessToken = await this.deps.tokenService(env).getAccessToken(applicationId);
       const syncUtil = new CalendarEventSyncUtil(env.DB);
       await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);

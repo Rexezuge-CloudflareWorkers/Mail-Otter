@@ -25,18 +25,21 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
     const applicationId = this.getQueryParam(request, 'applicationId');
 
     if (format === 'csv') {
-      const result = await ActivityService.listActivity(
+      // Paged to exhaustion rather than asking for one oversized page, which was
+      // silently clamped to 100 rows and truncated the download.
+      const { entries, truncated } = await ActivityService.exportActivity(
         userEmail,
-        { applicationId, types: types.length > 0 ? types : undefined, limit: 1000 },
+        { applicationId, types: types.length > 0 ? types : undefined },
         env,
       );
-      const csv = toCsv(result.entries, await resolveUserLocale(env, userEmail));
+      const csv = toCsv(entries, await resolveUserLocale(env, userEmail));
       return {
-        rawBody: csv,
+        rawBody: truncated ? `${csv}\n# export truncated: more entries remain\n` : csv,
         statusCode: 200,
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': 'attachment; filename="activity-export.csv"',
+          'X-Activity-Export-Truncated': truncated ? 'true' : 'false',
         },
       };
     }

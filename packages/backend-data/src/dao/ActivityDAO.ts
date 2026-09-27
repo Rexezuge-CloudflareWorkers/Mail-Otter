@@ -16,12 +16,31 @@ interface ListActivityOptions {
   types?: ActivityEventType[];
 }
 
+/**
+ * Position of the last row returned on the previous page, per source.
+ *
+ * `created_at` is unix *seconds*, so every message processed in the same second
+ * ties. Filtering on `created_at < ?` alone therefore drops the remainder of a
+ * tie group: with 30 messages in one second and a page of 25, the 5 left over
+ * are filtered out by the next page's `created_at < T` and never appear in the
+ * feed or the CSV export.
+ *
+ * Each source is paginated independently, so each needs its own tiebreaker on a
+ * unique column. A source not present on the previous page has no recorded id
+ * and falls back to the timestamp filter alone.
+ */
+interface ActivityCursor {
+  beforeTs: number;
+  emailProcessedId?: string;
+  actionCreatedId?: string;
+  actionExecutedId?: string;
+}
+
 class ActivityDAO extends BaseDAO {
   public async listForUser(userEmail: string, options: ListActivityOptions): Promise<ActivityEntryList> {
     const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
     const fetchLimit = limit + 1;
     const cursor = ActivityDAO.parseCursor(options.cursor);
-    const beforeTs = cursor?.beforeTs;
 
     const activeTypes: ActivityEventType[] =
       options.types && options.types.length > 0 ? options.types : ['email_processed', 'action_created', 'action_executed'];
@@ -29,32 +48,71 @@ class ActivityDAO extends BaseDAO {
     const queries: Array<Promise<ActivityEntry[]>> = [];
 
     if (activeTypes.includes('email_processed')) {
-      queries.push(this.queryEmailProcessed(userEmail, options.applicationId, beforeTs, fetchLimit));
+      queries.push(this.queryEmailProcessed(userEmail, options.applicationId, cursor, fetchLimit));
     }
     if (activeTypes.includes('action_created')) {
-      queries.push(this.queryActionCreated(userEmail, options.applicationId, beforeTs, fetchLimit));
+      queries.push(this.queryActionCreated(userEmail, options.applicationId, cursor, fetchLimit));
     }
     if (activeTypes.includes('action_executed')) {
-      queries.push(this.queryActionExecuted(userEmail, options.applicationId, beforeTs, fetchLimit));
+      queries.push(this.queryActionExecuted(userEmail, options.applicationId, cursor, fetchLimit));
     }
 
     const results = await Promise.all(queries);
     const merged: ActivityEntry[] = results.flat();
-    merged.sort((a, b) => b.timestamp - a.timestamp);
+    merged.sort((a: ActivityEntry, b: ActivityEntry): number => ActivityDAO.compareEntries(a, b));
 
     const pageEntries = merged.slice(0, limit);
     const hasMore = merged.length > limit;
 
     return {
       entries: pageEntries,
-      nextCursor: hasMore && pageEntries.length > 0 ? ActivityDAO.encodeCursor(pageEntries.at(-1)!.timestamp) : undefined,
+      nextCursor: hasMore && pageEntries.length > 0 ? ActivityDAO.encodeCursor(pageEntries.at(-1)!.timestamp, pageEntries) : undefined,
     };
+  }
+
+  /**
+   * Newest first, with the source's unique id breaking timestamp ties.
+   *
+   * The id must match each query's tiebreaker column so the merge order agrees
+   * with the per-source `WHERE` clauses; otherwise a page boundary could
+   * re-emit or skip a tied row.
+   */
+  private static compareEntries(a: ActivityEntry, b: ActivityEntry): number {
+    return a.timestamp === b.timestamp ? this.entryId(b).localeCompare(this.entryId(a)) : b.timestamp - a.timestamp;
+  }
+
+  private static entryId(entry: ActivityEntry): string {
+    if (entry.eventType === 'email_processed') return entry.providerMessageId;
+    return entry.eventType === 'action_created' ? entry.actionId : entry.executionId;
+  }
+
+  /**
+   * Append a source's tiebreaker to the WHERE clause.
+   *
+   * `idColumn` is a hard-coded literal from this file, never caller input.
+   */
+  private static pushTiebreak(
+    conditions: string[],
+    bindings: Array<string | number>,
+    beforeTs: number | undefined,
+    lastId: string | undefined,
+    tsExpression: string,
+    idColumn: string,
+  ): void {
+    if (beforeTs === undefined) return;
+    if (lastId === undefined) {
+      conditions.push(`${tsExpression} < ?`);
+      bindings.push(beforeTs);
+      return;
+    }
+    conditions.push(`(${tsExpression} < ? OR (${tsExpression} = ? AND ${idColumn} < ?))`);
+    bindings.push(beforeTs, beforeTs, lastId);
   }
 
   private async queryEmailProcessed(
     userEmail: string,
     applicationId: string | undefined,
-    beforeTs: number | undefined,
+    cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<EmailProcessedEntry[]> {
     const conditions: string[] = ['ca.user_email = ?'];
@@ -64,10 +122,7 @@ class ActivityDAO extends BaseDAO {
       conditions.push('pm.application_id = ?');
       bindings.push(applicationId);
     }
-    if (beforeTs !== undefined) {
-      conditions.push('pm.created_at < ?');
-      bindings.push(beforeTs);
-    }
+    ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.emailProcessedId, 'pm.created_at', 'pm.provider_message_id');
 
     const rows = await this.database
       .prepare(
@@ -76,7 +131,7 @@ class ActivityDAO extends BaseDAO {
           FROM processed_messages pm
           INNER JOIN connected_applications ca ON ca.application_id = pm.application_id
           WHERE ${conditions.join(' AND ')}
-          ORDER BY pm.created_at DESC
+          ORDER BY pm.created_at DESC, pm.provider_message_id DESC
           LIMIT ?
         `,
       )
@@ -103,7 +158,7 @@ class ActivityDAO extends BaseDAO {
   private async queryActionCreated(
     userEmail: string,
     applicationId: string | undefined,
-    beforeTs: number | undefined,
+    cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<ActionCreatedEntry[]> {
     const conditions: string[] = ['user_email = ?'];
@@ -113,10 +168,7 @@ class ActivityDAO extends BaseDAO {
       conditions.push('application_id = ?');
       bindings.push(applicationId);
     }
-    if (beforeTs !== undefined) {
-      conditions.push('created_at < ?');
-      bindings.push(beforeTs);
-    }
+    ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.actionCreatedId, 'created_at', 'action_id');
 
     const rows = await this.database
       .prepare(
@@ -124,7 +176,7 @@ class ActivityDAO extends BaseDAO {
           SELECT action_id, application_id, action_type, risk_level, created_at
           FROM email_summary_actions
           WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at DESC
+          ORDER BY created_at DESC, action_id DESC
           LIMIT ?
         `,
       )
@@ -151,7 +203,7 @@ class ActivityDAO extends BaseDAO {
   private async queryActionExecuted(
     userEmail: string,
     applicationId: string | undefined,
-    beforeTs: number | undefined,
+    cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<ActionExecutedEntry[]> {
     const conditions: string[] = ['esa.user_email = ?'];
@@ -161,10 +213,7 @@ class ActivityDAO extends BaseDAO {
       conditions.push('esa.application_id = ?');
       bindings.push(applicationId);
     }
-    if (beforeTs !== undefined) {
-      conditions.push('eae.created_at < ?');
-      bindings.push(beforeTs);
-    }
+    ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.actionExecutedId, 'eae.created_at', 'eae.execution_id');
 
     const rows = await this.database
       .prepare(
@@ -174,7 +223,7 @@ class ActivityDAO extends BaseDAO {
           FROM email_action_executions eae
           INNER JOIN email_summary_actions esa ON esa.action_id = eae.action_id
           WHERE ${conditions.join(' AND ')}
-          ORDER BY eae.created_at DESC
+          ORDER BY eae.created_at DESC, eae.execution_id DESC
           LIMIT ?
         `,
       )
@@ -194,6 +243,7 @@ class ActivityDAO extends BaseDAO {
       eventType: 'action_executed',
       applicationId: row.application_id,
       actionId: row.action_id,
+      executionId: row.execution_id,
       actionType: row.action_type,
       executionStatus: row.status,
       triggeredBy: row.triggered_by,
@@ -201,13 +251,50 @@ class ActivityDAO extends BaseDAO {
     }));
   }
 
-  private static encodeCursor(beforeTs: number): string {
-    return CursorUtil.encode({ beforeTs });
+  /**
+   * Encode the page position: the last timestamp plus each source's last id.
+   *
+   * A cursor written by the previous `{ beforeTs }`-only shape still decodes,
+   * and simply falls back to the timestamp filter, so in-flight clients do not
+   * break mid-scroll.
+   */
+  private static encodeCursor(beforeTs: number, pageEntries: ActivityEntry[]): string {
+    // `pageEntries` is newest-first, so the *last* occurrence of a source is
+    // that source's oldest row on the page and therefore its resume point.
+    // Taking the first would skip every row between the two.
+    const lastId = (match: (entry: ActivityEntry) => boolean, id: (entry: ActivityEntry) => string): string | undefined => {
+      let found: string | undefined;
+      for (const entry of pageEntries) {
+        if (match(entry)) found = id(entry);
+      }
+      return found;
+    };
+    const isProcessed = (entry: ActivityEntry): boolean => entry.eventType === 'email_processed';
+    const isCreated = (entry: ActivityEntry): boolean => entry.eventType === 'action_created';
+    const isExecuted = (entry: ActivityEntry): boolean => entry.eventType === 'action_executed';
+    return CursorUtil.encode({
+      beforeTs,
+      emailProcessedId: lastId(isProcessed, (entry) => (entry as EmailProcessedEntry).providerMessageId),
+      actionCreatedId: lastId(isCreated, (entry) => (entry as ActionCreatedEntry).actionId),
+      actionExecutedId: lastId(isExecuted, (entry) => (entry as ActionExecutedEntry).executionId),
+    });
   }
 
-  private static parseCursor(cursor: string | undefined): { beforeTs: number } | undefined {
-    const parsed = CursorUtil.decode<{ beforeTs?: unknown }>(cursor);
-    return parsed && typeof parsed.beforeTs === 'number' ? { beforeTs: parsed.beforeTs } : undefined;
+  private static parseCursor(cursor: string | undefined): ActivityCursor | undefined {
+    const parsed = CursorUtil.decode<{
+      beforeTs?: unknown;
+      emailProcessedId?: unknown;
+      actionCreatedId?: unknown;
+      actionExecutedId?: unknown;
+    }>(cursor);
+    if (!parsed || typeof parsed.beforeTs !== 'number') return undefined;
+    const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+    return {
+      beforeTs: parsed.beforeTs,
+      emailProcessedId: asString(parsed.emailProcessedId),
+      actionCreatedId: asString(parsed.actionCreatedId),
+      actionExecutedId: asString(parsed.actionExecutedId),
+    };
   }
 }
 

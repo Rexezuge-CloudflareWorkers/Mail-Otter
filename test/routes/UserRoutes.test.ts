@@ -13,6 +13,7 @@ const {
   mockCreateIntegration,
   mockGetAnalytics,
   mockListActivity,
+  mockExportActivity,
   mockGetConfig,
   mockSaveConfig,
   mockListTaskRuns,
@@ -34,6 +35,7 @@ const {
   mockCreateIntegration: vi.fn(),
   mockGetAnalytics: vi.fn(),
   mockListActivity: vi.fn(),
+  mockExportActivity: vi.fn(),
   mockGetConfig: vi.fn(),
   mockSaveConfig: vi.fn(),
   mockListTaskRuns: vi.fn(),
@@ -87,7 +89,7 @@ vi.mock('@mail-otter/backend-services/analytics', () => ({
 }));
 
 vi.mock('@mail-otter/backend-services/activity', () => ({
-  ActivityService: { listActivity: mockListActivity },
+  ActivityService: { listActivity: mockListActivity, exportActivity: mockExportActivity },
 }));
 
 vi.mock('@mail-otter/backend-services/digest', () => ({
@@ -401,6 +403,7 @@ describe('user routes', () => {
 
   it('GET /user/activity returns JSON entries by default', async () => {
     mockListActivity.mockResolvedValue({ entries: [{ id: 1 }] });
+    mockExportActivity.mockResolvedValue({ entries: [], truncated: false });
     const result = (await call(
       new ListActivityRoute(),
       { raw: new Request('https://x/user/activity?limit=10&types=email_processed') },
@@ -416,7 +419,8 @@ describe('user routes', () => {
   });
 
   it('GET /user/activity exports CSV when requested', async () => {
-    mockListActivity.mockResolvedValue({
+    mockExportActivity.mockResolvedValue({
+      truncated: false,
       entries: [
         {
           eventType: 'email_processed',
@@ -450,7 +454,9 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { rawBody: string; headers: Record<string, string> };
-    expect(mockListActivity).toHaveBeenCalledWith('user@example.com', expect.objectContaining({ limit: 1000 }), expect.anything());
+    // Paged to exhaustion instead of one clamped 1000-row request.
+    expect(mockExportActivity).toHaveBeenCalledWith('user@example.com', expect.anything(), expect.anything());
+    expect(mockListActivity).not.toHaveBeenCalledWith('user@example.com', expect.objectContaining({ limit: 1000 }), expect.anything());
     expect(result.headers['Content-Type']).toContain('text/csv');
     expect(result.rawBody).toContain('email_processed');
     expect(result.rawBody).toContain('action_created');

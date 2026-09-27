@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mockGetById,
+  mockGetMetadataByIdForUser,
   mockListApplicationIdsWithProviderConfig,
   mockListActiveImapSubscriptions,
   mockUpdateImapCursor,
@@ -22,6 +23,7 @@ const {
   mockGetFlightTrackingApiKey,
 } = vi.hoisted(() => ({
   mockGetById: vi.fn(),
+  mockGetMetadataByIdForUser: vi.fn().mockResolvedValue({ timeZone: 'UTC' }),
   mockListApplicationIdsWithProviderConfig: vi.fn().mockResolvedValue([]),
   mockListActiveImapSubscriptions: vi.fn().mockResolvedValue([]),
   mockUpdateImapCursor: vi.fn().mockResolvedValue(undefined),
@@ -44,7 +46,11 @@ const {
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
   ConnectedApplicationDAO: vi.fn(function () {
-    return { getById: mockGetById, listApplicationIdsWithProviderConfig: mockListApplicationIdsWithProviderConfig };
+    return {
+      getById: mockGetById,
+      listApplicationIdsWithProviderConfig: mockListApplicationIdsWithProviderConfig,
+      getMetadataByIdForUser: mockGetMetadataByIdForUser,
+    };
   }),
   ProviderSubscriptionDAO: vi.fn(function () {
     return {

@@ -39,6 +39,17 @@ jobs:
         run: node scripts/check-god-files.mjs
         continue-on-error: true
 
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
       - name: Run Tests with Coverage
         run: pnpm run test:coverage
 
@@ -75,6 +86,7 @@ jobs:
     name: Auto-Merge Dependabot PR
     needs:
       - checks
+      - unit-tests
       - integration-tests
       - build
     permissions:
@@ -100,6 +112,7 @@ jobs:
     name: Dispatch Upstream Sync Deployment
     needs:
       - checks
+      - unit-tests
       - integration-tests
       - build
     permissions:

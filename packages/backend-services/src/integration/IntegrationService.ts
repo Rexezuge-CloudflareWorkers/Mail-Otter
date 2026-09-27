@@ -2,7 +2,7 @@ import { ApplicationIntegrationDAO, ConnectedApplicationDAO, IntegrationDelivery
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import type { OutboundIntegration } from '@mail-otter/shared/model';
-import type { GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData } from '../email/EmailProcessingUtil';
+import type { GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData } from '../email/processing/EmailProcessingTypes';
 import type { DispatchResult, EmailSummaryNotification } from './observers/IntegrationObserver';
 import { IntegrationObserverRegistry } from './observers/IntegrationObserverRegistry';
 

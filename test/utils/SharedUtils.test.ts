@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BaseUrlUtil } from '@mail-otter/shared/utils';
-import { VoidUtil } from '@mail-otter/shared/utils';
 
 describe('BaseUrlUtil', () => {
   beforeEach(() => {
@@ -17,19 +16,5 @@ describe('BaseUrlUtil', () => {
     const request = new Request('http://localhost:8787/some/path');
     const result = BaseUrlUtil.getBaseUrl(request);
     expect(result).toBe('http://localhost:8787');
-  });
-});
-
-describe('VoidUtil', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('returns undefined when called with no arguments', () => {
-    expect(VoidUtil.void()).toBeUndefined();
-  });
-
-  it('returns undefined when called with arguments', () => {
-    expect(VoidUtil.void('anything', 42, { key: 'value' })).toBeUndefined();
   });
 });

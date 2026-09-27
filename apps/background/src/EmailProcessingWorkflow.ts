@@ -1,7 +1,13 @@
 import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
-import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
+import {
+  EmailApplicationResolver,
+  GmailMessageProcessor,
+  ImapMessageProcessor,
+  JmapMessageProcessor,
+  OutlookMessageProcessor,
+} from '@mail-otter/backend-services/email';
 import type {
   GmailMessageList,
   GmailSummaryData,
@@ -33,7 +39,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
       async (): Promise<ResolvedApplication> => {
         try {
-          return await EmailProcessingUtil.resolveApplication(event.payload, createD1SessionEnv(this.env));
+          return await new EmailApplicationResolver(createD1SessionEnv(this.env)).resolveApplication(event.payload);
         } catch (error: unknown) {
           throw EmailProcessingWorkflow.toWorkflowError(error);
         }
@@ -48,11 +54,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
           async (): Promise<GmailMessageList | null> => {
             try {
-              return await EmailProcessingUtil.listGmailMessages(
+              return await new EmailApplicationResolver(createD1SessionEnv(this.env)).listGmailMessages(
                 resolved.application,
                 resolved.accessToken,
                 gmailPayload.notificationHistoryId,
-                createD1SessionEnv(this.env),
               );
             } catch (error: unknown) {
               throw EmailProcessingWorkflow.toWorkflowError(error);
@@ -67,11 +72,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
               async (context: WorkflowStepContext): Promise<GmailSummaryData | null> => {
                 try {
-                  return await EmailProcessingUtil.generateGmailSummary(
+                  return await new GmailMessageProcessor(createD1SessionEnv(this.env)).generateSummary(
                     resolved.application,
                     resolved.accessToken,
                     messageId,
-                    createD1SessionEnv(this.env),
                     resolved.enabledApplicationIds,
                     { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
                   );
@@ -90,7 +94,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
               async (): Promise<void> => {
                 try {
-                  await EmailProcessingUtil.sendGmailSummary(summaryData, createD1SessionEnv(this.env));
+                  await new GmailMessageProcessor(createD1SessionEnv(this.env)).sendSummary(summaryData);
                 } catch (error: unknown) {
                   throw EmailProcessingWorkflow.toWorkflowError(error);
                 }
@@ -115,10 +119,9 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
             async (): Promise<void> => {
               try {
-                await EmailProcessingUtil.updateGmailHistory(
+                await new EmailApplicationResolver(createD1SessionEnv(this.env)).updateGmailHistory(
                   messageList.subscriptionId,
                   messageList.historyId,
-                  createD1SessionEnv(this.env),
                 );
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
@@ -136,11 +139,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
           async (context: WorkflowStepContext): Promise<OutlookSummaryData | null> => {
             try {
-              return await EmailProcessingUtil.generateOutlookSummary(
+              return await new OutlookMessageProcessor(createD1SessionEnv(this.env)).generateSummary(
                 resolved.application,
                 resolved.accessToken,
                 outlookPayload.messageId,
-                createD1SessionEnv(this.env),
                 resolved.enabledApplicationIds,
                 { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
               );
@@ -156,7 +158,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
             async (): Promise<void> => {
               try {
-                await EmailProcessingUtil.sendOutlookSummary(summaryData, createD1SessionEnv(this.env));
+                await new OutlookMessageProcessor(createD1SessionEnv(this.env)).sendSummary(summaryData);
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
               }
@@ -185,11 +187,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
           async (context: WorkflowStepContext): Promise<JmapSummaryData | null> => {
             try {
-              return await EmailProcessingUtil.generateJmapSummary(
+              return await new JmapMessageProcessor(createD1SessionEnv(this.env)).generateSummary(
                 resolved.application,
                 resolved.accessToken,
                 jmapPayload.emailId,
-                createD1SessionEnv(this.env),
                 resolved.enabledApplicationIds,
                 { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
               );
@@ -205,7 +206,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
             async (): Promise<void> => {
               try {
-                await EmailProcessingUtil.sendJmapSummary(summaryData, createD1SessionEnv(this.env));
+                await new JmapMessageProcessor(createD1SessionEnv(this.env)).sendSummary(summaryData);
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
               }
@@ -245,11 +246,10 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
               async (context: WorkflowStepContext): Promise<ImapSummaryData | null> => {
                 try {
-                  return await EmailProcessingUtil.generateImapSummary(
+                  return await new ImapMessageProcessor(createD1SessionEnv(this.env)).generateSummary(
                     resolved.application,
                     uid,
                     imapClient,
-                    createD1SessionEnv(this.env),
                     resolved.enabledApplicationIds,
                     { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
                   );
@@ -268,7 +268,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
               { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
               async (): Promise<void> => {
                 try {
-                  await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
+                  await new ImapMessageProcessor(createD1SessionEnv(this.env)).sendSummary(summaryData, imapClient);
                 } catch (error: unknown) {
                   throw EmailProcessingWorkflow.toWorkflowError(error);
                 }

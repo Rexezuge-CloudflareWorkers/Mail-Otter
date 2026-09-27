@@ -13,6 +13,9 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config test/integration/vitest.config.mts",
     "test:coverage:integration": "vitest run --coverage --config test/integration/vitest.config.mts",
+    "test:web": "vitest run --config vitest.web.config.mts",
+    "test:web:coverage": "vitest run --coverage --config vitest.web.config.mts",
+    "test:all": "pnpm run test:coverage && pnpm run test:integration && pnpm run test:web",
     "lint": "node scripts/lint-workspaces.mjs",
     "lint:fix": "node scripts/lint-workspaces.mjs --fix",
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.22.0",
     "@types/node": "26.6.2",
+    "@vitejs/plugin-react": "6.1.1",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
@@ -29,6 +33,7 @@
     "eslint-plugin-sonarjs": "4.2.1",
     "eslint-plugin-unicorn": "76.0.0",
     "globals": "17.12.0",
+    "jsdom": "^30.1.1",
     "jsonc-parser": "3.3.1",
     "prettier": "3.9.8",
     "tsx": "4.23.15",

@@ -41,6 +41,7 @@ lib-cov
 
 coverage
 coverage-integration
+coverage-web
 \*.lcov
 
 # nyc test coverage

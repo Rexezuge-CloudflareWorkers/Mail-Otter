@@ -15,7 +15,7 @@ function makeDb(fns: { run?: ReturnType<typeof vi.fn>; first?: ReturnType<typeof
   const allFn = fns.all ?? vi.fn().mockResolvedValue({ results: [] });
   return {
     prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run: runFn, first: firstFn, all: allFn })) })),
-  } as unknown as D1Database;
+  };
 }
 
 describe('Context split DAOs', () => {
@@ -34,9 +34,16 @@ describe('Context split DAOs', () => {
     const all = vi.fn().mockResolvedValue({
       results: [
         {
-          id: 'log-1', context_document_id: 'doc-1', application_id: 'app-1', user_email: 'u@e.com',
-          source_document_id: 'src-1', event_type: 'indexed', event_label: null, event_data: null,
-          severity: 'info', created_at: 100,
+          id: 'log-1',
+          context_document_id: 'doc-1',
+          application_id: 'app-1',
+          user_email: 'u@e.com',
+          source_document_id: 'src-1',
+          event_type: 'indexed',
+          event_label: null,
+          event_data: null,
+          severity: 'info',
+          created_at: 100,
         },
       ],
     });

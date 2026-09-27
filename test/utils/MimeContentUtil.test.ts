@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  buildAlternativeMimeBody,
-  extractTextFromRaw,
-  toCrlf,
-} from '../../packages/provider-clients/src/email-content/MimeContentUtil';
+import { buildAlternativeMimeBody, extractTextFromRaw, toCrlf } from '../../packages/provider-clients/src/email-content/MimeContentUtil';
 
 describe('toCrlf', () => {
   beforeEach(() => {

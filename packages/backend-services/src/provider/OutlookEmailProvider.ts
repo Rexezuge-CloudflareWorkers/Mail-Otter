@@ -2,7 +2,13 @@ import { PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
   ILabelProvider,
@@ -56,7 +62,11 @@ class OutlookEmailProvider extends AbstractOAuthEmailProvider implements ILabelP
     return result;
   }
 
-  public async renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, expiresAt: number | null): Promise<ProviderWatchResult> {
+  public async renewWatch(
+    credentials: AnyProviderCredentials,
+    subscriptionId: string,
+    expiresAt: number | null,
+  ): Promise<ProviderWatchResult> {
     this.requireOAuth2Credentials(credentials, 'Outlook');
     if (!expiresAt) throw new BadRequestError('expiresAt is required to renew an Outlook subscription.');
     const renewed = await OutlookProviderUtil.renewSubscription(credentials.accessToken, subscriptionId, expiresAt);
@@ -69,7 +79,10 @@ class OutlookEmailProvider extends AbstractOAuthEmailProvider implements ILabelP
     return result;
   }
 
-  public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+  public async pollNewMessages(
+    _credentials: AnyProviderCredentials,
+    _cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     return this.throwPollNotSupported('Outlook uses webhooks and does not support polling.');
   }
 

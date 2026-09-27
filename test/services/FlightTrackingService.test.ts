@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchFlightStatus, formatFlightSummary, formatDepartureTime, STATUS_LABELS } from '../../packages/backend-services/src/action/FlightTrackingService';
+import {
+  fetchFlightStatus,
+  formatFlightSummary,
+  formatDepartureTime,
+  STATUS_LABELS,
+} from '../../packages/backend-services/src/action/FlightTrackingService';
 
 const API_KEY = 'test-aviationstack-key';
 const FLIGHT_NUMBER = 'AA123';
@@ -20,9 +25,7 @@ function makeFlightResponse(overrides?: Record<string, unknown>) {
 }
 
 function mockFetch(status: number, body: unknown) {
-  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-    Response.json(body, { status }),
-  );
+  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(body, { status }));
 }
 
 describe('FlightTrackingService', () => {
@@ -48,7 +51,7 @@ describe('FlightTrackingService', () => {
 
       await fetchFlightStatus(FLIGHT_NUMBER, API_KEY);
 
-      const url = new URL((spy.mock.calls[0][0] as string));
+      const url = new URL(spy.mock.calls[0][0] as string);
       expect(url.searchParams.get('flight_iata')).toBe('AA123');
       expect(url.searchParams.get('access_key')).toBe(API_KEY);
     });

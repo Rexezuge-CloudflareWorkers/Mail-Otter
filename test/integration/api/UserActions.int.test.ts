@@ -78,7 +78,7 @@ async function seedCalendarAction(): Promise<{ applicationId: string; actionId: 
  */
 describe('User actions API', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
     await ensureUser(env.DB, TEST_EMAIL);
   });
 
@@ -99,9 +99,7 @@ describe('User actions API', () => {
       const listedBody = (await listed.json()) as { actions: Array<{ actionId: string; status: string }> };
       expect(listedBody.actions.map((action) => action.actionId)).toContain(actionId);
 
-      const filtered: Response = await SELF.fetch(
-        `http://localhost/user/actions?applicationId=${applicationId}&status=succeeded`,
-      );
+      const filtered: Response = await SELF.fetch(`http://localhost/user/actions?applicationId=${applicationId}&status=succeeded`);
       expect(filtered.status).toBe(200);
       const filteredBody = (await filtered.json()) as { actions: Array<{ actionId: string }> };
       expect(filteredBody.actions.map((action) => action.actionId)).not.toContain(actionId);
@@ -118,9 +116,7 @@ describe('User actions API', () => {
     });
 
     it('returns an empty list for an unknown action', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/user/actions/00000000-0000-0000-0000-000000000000/executions',
-      );
+      const response: Response = await SELF.fetch('http://localhost/user/actions/00000000-0000-0000-0000-000000000000/executions');
       expect(response.status).toBe(200);
       const body = (await response.json()) as { executions: unknown[] };
       expect(body.executions).toEqual([]);
@@ -145,9 +141,7 @@ describe('User actions API', () => {
       const hiddenBody = (await hidden.json()) as { actions: Array<{ actionId: string }> };
       expect(hiddenBody.actions.map((action) => action.actionId)).not.toContain(actionId);
 
-      const shown: Response = await SELF.fetch(
-        `http://localhost/user/actions?applicationId=${applicationId}&showSnoozed=true`,
-      );
+      const shown: Response = await SELF.fetch(`http://localhost/user/actions?applicationId=${applicationId}&showSnoozed=true`);
       const shownBody = (await shown.json()) as { actions: Array<{ actionId: string }> };
       expect(shownBody.actions.map((action) => action.actionId)).toContain(actionId);
     });
@@ -176,18 +170,15 @@ describe('User actions API', () => {
       const past: Response = await SELF.fetch(`http://localhost/user/actions/${actionId}/snooze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snoozedUntil: new Date(Date.now() - 3600_000).toISOString() }),
+        body: JSON.stringify({ snoozedUntil: new Date(Date.now() - 3_600_000).toISOString() }),
       });
       expect(past.status).toBe(400);
 
-      const missing: Response = await SELF.fetch(
-        'http://localhost/user/actions/00000000-0000-0000-0000-000000000000/snooze',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ snoozedUntil: new Date(Date.now() + 3600_000).toISOString() }),
-        },
-      );
+      const missing: Response = await SELF.fetch('http://localhost/user/actions/00000000-0000-0000-0000-000000000000/snooze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snoozedUntil: new Date(Date.now() + 3_600_000).toISOString() }),
+      });
       expect(missing.status).toBe(404);
     });
   });
@@ -212,7 +203,7 @@ describe('User actions API', () => {
       const response: Response = await SELF.fetch(`http://localhost/user/actions/${actionId}/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduledFor: new Date(Date.now() + 3600_000).toISOString() }),
+        body: JSON.stringify({ scheduledFor: new Date(Date.now() + 3_600_000).toISOString() }),
       });
       expect(response.status).toBe(400);
     });
@@ -240,14 +231,11 @@ describe('User actions API', () => {
     });
 
     it('returns 404 for an unknown action', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/user/actions/00000000-0000-0000-0000-000000000000/execute',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        },
-      );
+      const response: Response = await SELF.fetch('http://localhost/user/actions/00000000-0000-0000-0000-000000000000/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       expect(response.status).toBe(404);
     });
   });

@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockListCalendarEventsGmail,
-  mockListCalendarEventsOutlook,
-  mockUpsertEvents,
-} = vi.hoisted(() => ({
+const { mockListCalendarEventsGmail, mockListCalendarEventsOutlook, mockUpsertEvents } = vi.hoisted(() => ({
   mockListCalendarEventsGmail: vi.fn(),
   mockListCalendarEventsOutlook: vi.fn(),
   mockUpsertEvents: vi.fn().mockResolvedValue(undefined),
@@ -113,7 +109,7 @@ describe('CalendarEventSyncUtil', () => {
 
     it('filters out Gmail events without dateTime', async () => {
       mockListCalendarEventsGmail.mockResolvedValue([
-        makeGmailEvent({ start: { date: '2026-06-26' } }),  // all-day event — no dateTime
+        makeGmailEvent({ start: { date: '2026-06-26' } }), // all-day event — no dateTime
         makeGmailEvent({ id: 'evt-2', start: { dateTime: '2026-06-26T14:00:00Z' } }),
       ]);
 
@@ -145,9 +141,7 @@ describe('CalendarEventSyncUtil', () => {
     });
 
     it('sets location and notes to null when absent', async () => {
-      mockListCalendarEventsGmail.mockResolvedValue([
-        makeGmailEvent({ location: undefined, description: undefined }),
-      ]);
+      mockListCalendarEventsGmail.mockResolvedValue([makeGmailEvent({ location: undefined, description: undefined })]);
 
       await util.syncForApplication(makeGmailApplication() as any, 'access-token', NOW_ISO, END_ISO);
 
@@ -202,9 +196,7 @@ describe('CalendarEventSyncUtil', () => {
     });
 
     it('sets location to null when displayName absent', async () => {
-      mockListCalendarEventsOutlook.mockResolvedValue([
-        makeOutlookEvent({ location: {} }),
-      ]);
+      mockListCalendarEventsOutlook.mockResolvedValue([makeOutlookEvent({ location: {} })]);
 
       await util.syncForApplication(makeOutlookApplication() as any, 'access-token', NOW_ISO, END_ISO);
 
@@ -223,9 +215,9 @@ describe('CalendarEventSyncUtil', () => {
         timeZone: 'UTC',
       };
 
-      await expect(
-        util.syncForApplication(fastmailApp as any, 'access-token', NOW_ISO, END_ISO),
-      ).rejects.toThrow('Calendar sync is not supported for provider: fastmail-jmap');
+      await expect(util.syncForApplication(fastmailApp as any, 'access-token', NOW_ISO, END_ISO)).rejects.toThrow(
+        'Calendar sync is not supported for provider: fastmail-jmap',
+      );
 
       expect(mockListCalendarEventsGmail).not.toHaveBeenCalled();
       expect(mockListCalendarEventsOutlook).not.toHaveBeenCalled();

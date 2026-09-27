@@ -1,4 +1,13 @@
-import type { ConnectedApplication, DigestConfig, EmailProcessingRule, IntegrationDeliveryLog, OutboundIntegration, OutboundIntegrationType, SenderDomainFilters, ApplicationContextDeletionRun } from '../types';
+import type {
+  ConnectedApplication,
+  DigestConfig,
+  EmailProcessingRule,
+  IntegrationDeliveryLog,
+  OutboundIntegration,
+  OutboundIntegrationType,
+  SenderDomainFilters,
+  ApplicationContextDeletionRun,
+} from '../types';
 import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api';
 import type { ApplicationFormState } from '../components/mailboxes/MailboxForm';
 
@@ -198,17 +207,11 @@ export async function fetchIntegrationDeliveries(integrationId: string, limit = 
   });
 }
 
-export async function updateRules(
-  applicationId: string,
-  rules: EmailProcessingRule[],
-): Promise<{ application: ConnectedApplication }> {
+export async function updateRules(applicationId: string, rules: EmailProcessingRule[]): Promise<{ application: ConnectedApplication }> {
   return apiPut<{ application: ConnectedApplication }>('/user/application/rules', { applicationId, rules });
 }
 
-export async function suggestRule(
-  applicationId: string,
-  description: string,
-): Promise<{ rule: Omit<EmailProcessingRule, 'ruleId'> }> {
+export async function suggestRule(applicationId: string, description: string): Promise<{ rule: Omit<EmailProcessingRule, 'ruleId'> }> {
   return apiPost<{ rule: Omit<EmailProcessingRule, 'ruleId'> }>('/user/application/rules/suggest', {
     applicationId,
     description,

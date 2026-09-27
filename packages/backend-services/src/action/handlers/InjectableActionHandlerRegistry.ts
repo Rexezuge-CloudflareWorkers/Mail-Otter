@@ -27,8 +27,7 @@ class InjectableActionHandlerRegistry {
     overrides: ReadonlyMap<string, IActionHandler> | Readonly<Record<string, IActionHandler>>,
   ): InjectableActionHandlerRegistry {
     const merged = new Map(defaults as Map<EmailActionType, IActionHandler>);
-    const entries: Iterable<readonly [string, IActionHandler]> =
-      overrides instanceof Map ? overrides.entries() : Object.entries(overrides);
+    const entries: Iterable<readonly [string, IActionHandler]> = overrides instanceof Map ? overrides.entries() : Object.entries(overrides);
     for (const [key, handler] of entries) {
       merged.set(key as EmailActionType, handler);
     }

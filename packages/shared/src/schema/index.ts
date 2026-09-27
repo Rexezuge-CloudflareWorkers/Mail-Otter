@@ -76,7 +76,9 @@ const validateRequestInput = async (request: Request, body: unknown) => {
   if (!schema.body) return { success: true as const, data: body };
 
   const bodyResult = await schema.body.safeParseAsync(body);
-  return bodyResult.success ? { success: true as const, data: bodyResult.data } : { success: false as const, error: formatValidationError('body', bodyResult.error), scope: 'body' as const };
+  return bodyResult.success
+    ? { success: true as const, data: bodyResult.data }
+    : { success: false as const, error: formatValidationError('body', bodyResult.error), scope: 'body' as const };
 };
 
 export { getRequestInputSchema, validateRequestInput };

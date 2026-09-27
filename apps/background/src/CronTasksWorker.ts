@@ -55,7 +55,7 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
 
   protected async readRunRequest(request: Request): Promise<CronTasksRunRequest> {
     try {
-      return (await request.json());
+      return await request.json();
     } catch {
       return {};
     }

@@ -24,9 +24,7 @@ class ActivityDAO extends BaseDAO {
     const beforeTs = cursor?.beforeTs;
 
     const activeTypes: ActivityEventType[] =
-      options.types && options.types.length > 0
-        ? options.types
-        : ['email_processed', 'action_created', 'action_executed'];
+      options.types && options.types.length > 0 ? options.types : ['email_processed', 'action_created', 'action_executed'];
 
     const queries: Array<Promise<ActivityEntry[]>> = [];
 
@@ -49,10 +47,7 @@ class ActivityDAO extends BaseDAO {
 
     return {
       entries: pageEntries,
-      nextCursor:
-        hasMore && pageEntries.length > 0
-          ? ActivityDAO.encodeCursor(pageEntries.at(-1)!.timestamp)
-          : undefined,
+      nextCursor: hasMore && pageEntries.length > 0 ? ActivityDAO.encodeCursor(pageEntries.at(-1)!.timestamp) : undefined,
     };
   }
 

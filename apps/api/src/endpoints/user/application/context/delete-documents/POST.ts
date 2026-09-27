@@ -24,7 +24,11 @@ class DeleteApplicationContextDocumentsRoute extends IUserRoute<
     cxt: RouteContext<DeleteApplicationContextDocumentsEnv>,
   ): Promise<DeleteApplicationContextDocumentsResponse> {
     const scope = createRequestScope(env);
-    return { deletionRun: await scope.get(Tokens.ContextService).deleteDocuments(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId) };
+    return {
+      deletionRun: await scope
+        .get(Tokens.ContextService)
+        .deleteDocuments(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId),
+    };
   }
 }
 

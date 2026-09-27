@@ -18,15 +18,14 @@ vi.mock('@mail-otter/provider-clients/imap', () => ({
   }),
 }));
 
-const { mockGetProfile, mockListMailboxes, mockDeletePush, mockCreatePush, mockCreateCalendarEvent, mockCreateDraft } =
-  vi.hoisted(() => ({
-    mockGetProfile: vi.fn(),
-    mockListMailboxes: vi.fn(),
-    mockDeletePush: vi.fn(),
-    mockCreatePush: vi.fn(),
-    mockCreateCalendarEvent: vi.fn(),
-    mockCreateDraft: vi.fn(),
-  }));
+const { mockGetProfile, mockListMailboxes, mockDeletePush, mockCreatePush, mockCreateCalendarEvent, mockCreateDraft } = vi.hoisted(() => ({
+  mockGetProfile: vi.fn(),
+  mockListMailboxes: vi.fn(),
+  mockDeletePush: vi.fn(),
+  mockCreatePush: vi.fn(),
+  mockCreateCalendarEvent: vi.fn(),
+  mockCreateDraft: vi.fn(),
+}));
 
 vi.mock('@mail-otter/provider-clients/fastmail', () => ({
   FastmailProviderUtil: {
@@ -98,9 +97,7 @@ describe('CustomImapEmailProvider', () => {
   });
 
   it('requires host and username in oauth2 mode', async () => {
-    await expect(provider.startWatch({ type: 'oauth2', accessToken: 't' } as never, {} as never)).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(provider.startWatch({ type: 'oauth2', accessToken: 't' } as never, {} as never)).rejects.toThrow(BadRequestError);
   });
 
   it('polls new messages and advances the cursor', async () => {
@@ -194,18 +191,13 @@ describe('FastmailEmailProvider', () => {
 
   it('starts watch with a tokenized webhook URL', async () => {
     mockCreatePush.mockResolvedValue({ id: 'sub-9' });
-    const result = await provider.startWatch(oauth2, { baseUrl: 'https://app.example' } as never);
-    expect(mockCreatePush).toHaveBeenCalledWith(
-      'tok',
-      'https://app.example/api/webhooks/fastmail/__APPLICATION_ID__',
-    );
+    const result = await provider.startWatch(oauth2, { baseUrl: 'https://app.example' });
+    expect(mockCreatePush).toHaveBeenCalledWith('tok', 'https://app.example/api/webhooks/fastmail/__APPLICATION_ID__');
     expect(result).toMatchObject({ type: 'webhook', externalSubscriptionId: 'sub-9' });
   });
 
   it('requires OAuth2 credentials for watch operations', async () => {
-    await expect(provider.startWatch(imapPassword, { baseUrl: 'https://x' } as never)).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(provider.startWatch(imapPassword, { baseUrl: 'https://x' })).rejects.toThrow(BadRequestError);
   });
 
   it('renews watch idempotently when the old subscription is gone', async () => {

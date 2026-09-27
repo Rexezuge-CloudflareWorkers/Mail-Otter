@@ -19,14 +19,11 @@ class ListProcessedMessagesRoute extends IUserRoute<ListProcessedMessagesRequest
     cxt: RouteContext<ListProcessedMessagesEnv>,
   ): Promise<ListProcessedMessagesResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ProcessingService).listProcessedMessages(
-      this.getAuthenticatedUserEmailAddress(cxt),
-      {
-        applicationId: this.getQueryParam(request, 'applicationId'),
-        status: this.getQueryParam(request, 'status') as ProcessedMessageStatus | undefined,
-        cursor: this.getQueryParam(request, 'cursor'),
-      },
-    );
+    return scope.get(Tokens.ProcessingService).listProcessedMessages(this.getAuthenticatedUserEmailAddress(cxt), {
+      applicationId: this.getQueryParam(request, 'applicationId'),
+      status: this.getQueryParam(request, 'status') as ProcessedMessageStatus | undefined,
+      cursor: this.getQueryParam(request, 'cursor'),
+    });
   }
 }
 

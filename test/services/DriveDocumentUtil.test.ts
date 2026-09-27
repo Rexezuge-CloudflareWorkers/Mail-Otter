@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DriveDocumentUtil } from '@mail-otter/backend-services/drive/DriveDocumentUtil';
 
 function encode(s: string): ArrayBuffer {
-  return new TextEncoder().encode(s).buffer as ArrayBuffer;
+  return new TextEncoder().encode(s).buffer;
 }
 
 function pdf(content: string): ArrayBuffer {
@@ -25,7 +25,7 @@ describe('DriveDocumentUtil', () => {
     });
 
     it('returns null for whitespace-only text', () => {
-      expect(DriveDocumentUtil.extractText(encode('   '), 'text/plain')).toBeNull();
+      expect(DriveDocumentUtil.extractText(encode(' '.repeat(3)), 'text/plain')).toBeNull();
     });
 
     it('strips MIME type parameters', () => {
@@ -88,20 +88,20 @@ describe('DriveDocumentUtil', () => {
   });
 
   describe('extractText — PDF escape sequences', () => {
-    it('unescapes \\n in string', () => {
-      expect(DriveDocumentUtil.extractText(pdf('(line1\\nline2) Tj'), 'application/pdf')).toBe('line1\nline2');
+    it(String.raw`unescapes \n in string`, () => {
+      expect(DriveDocumentUtil.extractText(pdf(String.raw`(line1\nline2) Tj`), 'application/pdf')).toBe('line1\nline2');
     });
 
-    it('unescapes \\t in string', () => {
-      expect(DriveDocumentUtil.extractText(pdf('(col1\\tcol2) Tj'), 'application/pdf')).toBe('col1\tcol2');
+    it(String.raw`unescapes \t in string`, () => {
+      expect(DriveDocumentUtil.extractText(pdf(String.raw`(col1\tcol2) Tj`), 'application/pdf')).toBe('col1\tcol2');
     });
 
-    it('unescapes \\\\ to single backslash', () => {
-      expect(DriveDocumentUtil.extractText(pdf('(back\\\\slash) Tj'), 'application/pdf')).toBe('back\\slash');
+    it(String.raw`unescapes \\ to single backslash`, () => {
+      expect(DriveDocumentUtil.extractText(pdf(String.raw`(back\\slash) Tj`), 'application/pdf')).toBe(String.raw`back\slash`);
     });
 
     it('unescapes escaped parentheses', () => {
-      expect(DriveDocumentUtil.extractText(pdf('(a\\(b\\)c) Tj'), 'application/pdf')).toBe('a(b)c');
+      expect(DriveDocumentUtil.extractText(pdf(String.raw`(a\(b\)c) Tj`), 'application/pdf')).toBe('a(b)c');
     });
 
     it('handles balanced nested parentheses in string', () => {

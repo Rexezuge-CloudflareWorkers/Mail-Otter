@@ -20,16 +20,16 @@ SPA UI strings live in `src/locales/<tag>/translation.json` (12 locales: `en`, `
 
 **Never hardcode ALL CAPS in JSX.** Use CSS (`uppercase` Tailwind / `text-transform: uppercase`) instead. Components rendering uppercase via CSS — write Title Case in source:
 
-| Component | File | Affected |
-|---|---|---|
-| `Metric` | `src/components/shared/Metric.tsx` | `label` prop |
-| `AuditLogsModal` | `src/components/modals/AuditLogsModal.tsx` | event type span |
-| `ContextDocumentRow` | `src/components/context/ContextDocumentRow.tsx` | `AuditValue` label |
-| `IntegrationsSection` | `src/components/mailboxes/IntegrationsSection.tsx` | section badge |
-| `RulesSection` | `src/components/mailboxes/RulesSection.tsx` | badges |
-| `DigestSection` | `src/components/mailboxes/DigestSection.tsx` | section badge |
-| `AutoExecuteSection` | `src/components/mailboxes/AutoExecuteSection.tsx` | section badge |
-| `ActionsView` | `src/components/views/ActionsView.tsx` | badge |
-| `HelpView` | `src/components/views/HelpView.tsx` | badges |
+| Component             | File                                               | Affected           |
+| --------------------- | -------------------------------------------------- | ------------------ |
+| `Metric`              | `src/components/shared/Metric.tsx`                 | `label` prop       |
+| `AuditLogsModal`      | `src/components/modals/AuditLogsModal.tsx`         | event type span    |
+| `ContextDocumentRow`  | `src/components/context/ContextDocumentRow.tsx`    | `AuditValue` label |
+| `IntegrationsSection` | `src/components/mailboxes/IntegrationsSection.tsx` | section badge      |
+| `RulesSection`        | `src/components/mailboxes/RulesSection.tsx`        | badges             |
+| `DigestSection`       | `src/components/mailboxes/DigestSection.tsx`       | section badge      |
+| `AutoExecuteSection`  | `src/components/mailboxes/AutoExecuteSection.tsx`  | section badge      |
+| `ActionsView`         | `src/components/views/ActionsView.tsx`             | badge              |
+| `HelpView`            | `src/components/views/HelpView.tsx`                | badges             |
 
 **Exceptions** (no Title Case): `<code>` content, technical URI placeholders, dynamic API response content.

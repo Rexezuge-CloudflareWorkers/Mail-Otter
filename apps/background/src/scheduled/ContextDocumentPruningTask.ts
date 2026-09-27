@@ -21,12 +21,9 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
 
     for (const app of overLimitApps) {
       try {
-        await scope.get<ContextService>(Tokens.ContextService).pruneApplicationDocuments(
-          app.applicationId,
-          app.userEmail,
-          app.activeCount,
-          app.effectiveLimit,
-        );
+        await scope
+          .get<ContextService>(Tokens.ContextService)
+          .pruneApplicationDocuments(app.applicationId, app.userEmail, app.activeCount, app.effectiveLimit);
       } catch (error: unknown) {
         console.error(`Context document pruning failed for application ${app.applicationId}:`, error);
       }

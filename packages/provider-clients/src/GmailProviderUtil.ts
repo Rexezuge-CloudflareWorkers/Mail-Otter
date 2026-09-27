@@ -105,7 +105,7 @@ class GmailProviderUtil {
     const messageIds: Set<string> = new Set<string>();
     let pageToken: string | undefined;
     let currentHistoryId = startHistoryId;
-    const singleLabelId: string = labelIds && labelIds.length === 1 ? labelIds[0] : ((!labelIds || labelIds.length === 0) ? 'INBOX' : '');
+    const singleLabelId: string = labelIds && labelIds.length === 1 ? labelIds[0] : !labelIds || labelIds.length === 0 ? 'INBOX' : '';
     do {
       const url: URL = new URL('https://gmail.googleapis.com/gmail/v1/users/me/history');
       url.searchParams.set('startHistoryId', startHistoryId);
@@ -139,17 +139,22 @@ class GmailProviderUtil {
   }
 
   public static async createCalendarEvent(accessToken: string, input: GmailCalendarEventInput): Promise<GmailCalendarEventResult> {
-    return fetchJsonWithBearer<GmailCalendarEventResult>('https://www.googleapis.com/calendar/v3/calendars/primary/events', accessToken, 'Gmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        summary: input.eventTitle,
-        description: input.notes || undefined,
-        location: input.location || undefined,
-        start: { dateTime: input.startTime, timeZone: input.timeZone },
-        end: { dateTime: input.endTime, timeZone: input.timeZone },
-      }),
-    });
+    return fetchJsonWithBearer<GmailCalendarEventResult>(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      accessToken,
+      'Gmail',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary: input.eventTitle,
+          description: input.notes || undefined,
+          location: input.location || undefined,
+          start: { dateTime: input.startTime, timeZone: input.timeZone },
+          end: { dateTime: input.endTime, timeZone: input.timeZone },
+        }),
+      },
+    );
   }
 
   public static async createDraftReply(
@@ -329,11 +334,7 @@ class GmailProviderUtil {
     ].join('\r\n');
   }
 
-  public static async getAttachment(
-    accessToken: string,
-    messageId: string,
-    attachmentId: string,
-  ): Promise<{ data: string; size: number }> {
+  public static async getAttachment(accessToken: string, messageId: string, attachmentId: string): Promise<{ data: string; size: number }> {
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`;
     const result = await fetchJsonWithBearer<{ data?: string; size?: number }>(url, accessToken, 'Gmail');
     return { data: result.data ?? '', size: result.size ?? 0 };
@@ -373,7 +374,9 @@ class GmailProviderUtil {
     if (!/[\u{0080}-\u{10FFFF}]/u.test(value)) return value;
     const bytes = new TextEncoder().encode(value);
     let binary = '';
-    bytes.forEach((b: number) => { binary += String.fromCodePoint(b); });
+    bytes.forEach((b: number) => {
+      binary += String.fromCodePoint(b);
+    });
     return `=?UTF-8?B?${btoa(binary)}?=`;
   }
 
@@ -412,13 +415,11 @@ interface GmailCalendarEventListItem {
 }
 
 interface GmailHistoryListResponse {
-  history?:
-    | Array<{
-        messagesAdded?:
-          | Array<{
-              message?: { id?: string; threadId?: string };
-            }>;
-      }>;
+  history?: Array<{
+    messagesAdded?: Array<{
+      message?: { id?: string; threadId?: string };
+    }>;
+  }>;
   nextPageToken?: string;
   historyId?: string;
 }

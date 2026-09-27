@@ -82,10 +82,9 @@ describe('AiDailyUsageDAO', () => {
   });
 
   it('maps usage rows and deletes old dates', async () => {
-    const { db } = makeDb(
+    const { db } = makeDb({ usage_date: '2026-09-01', estimated_neurons: 42, request_count: 3, prompt_tokens: 10, completion_tokens: 5 }, [
       { usage_date: '2026-09-01', estimated_neurons: 42, request_count: 3, prompt_tokens: 10, completion_tokens: 5 },
-      [{ usage_date: '2026-09-01', estimated_neurons: 42, request_count: 3, prompt_tokens: 10, completion_tokens: 5 }],
-    );
+    ]);
     const dao = new AiDailyUsageDAO(db as never);
     const day = await dao.getByDate('2026-09-01');
     expect(day).toMatchObject({ estimatedNeurons: 42 });

@@ -246,11 +246,15 @@ describe('OAuth2AccessTokenRefreshTask', () => {
   it('reads due application IDs and refreshes tokens', async () => {
     mocks.mockListDueApplicationIds.mockResolvedValue(['app-1', 'app-2']);
     mocks.mockRefreshAccessToken.mockResolvedValue(undefined);
-    await new OAuth2AccessTokenRefreshTask().handle(createScheduledController(), createMockEnv({
-      AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
-      OAUTH2_TOKEN_CACHE: {},
-      OAUTH2_TOKEN_REFRESHERS: {},
-    }) as Env, createExecutionContext());
+    await new OAuth2AccessTokenRefreshTask().handle(
+      createScheduledController(),
+      createMockEnv({
+        AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
+        OAUTH2_TOKEN_CACHE: {},
+        OAUTH2_TOKEN_REFRESHERS: {},
+      }) as Env,
+      createExecutionContext(),
+    );
     expect(mocks.mockListDueApplicationIds).toHaveBeenCalled();
     expect(mocks.mockRefreshAccessToken).toHaveBeenCalledTimes(2);
     expect(mocks.mockRefreshAccessToken).toHaveBeenCalledWith('app-1', { forceRefresh: true });
@@ -260,11 +264,15 @@ describe('OAuth2AccessTokenRefreshTask', () => {
     mocks.mockListDueApplicationIds.mockResolvedValue(['app-1', 'app-2']);
     mocks.mockRefreshAccessToken.mockRejectedValueOnce(new Error('Refresh failed'));
     mocks.mockRefreshAccessToken.mockResolvedValueOnce(undefined);
-    await new OAuth2AccessTokenRefreshTask().handle(createScheduledController(), createMockEnv({
-      AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
-      OAUTH2_TOKEN_CACHE: {},
-      OAUTH2_TOKEN_REFRESHERS: {},
-    }) as Env, createExecutionContext());
+    await new OAuth2AccessTokenRefreshTask().handle(
+      createScheduledController(),
+      createMockEnv({
+        AES_ENCRYPTION_KEY_SECRET: { secret: 'test-key' },
+        OAUTH2_TOKEN_CACHE: {},
+        OAUTH2_TOKEN_REFRESHERS: {},
+      }) as Env,
+      createExecutionContext(),
+    );
     expect(mocks.mockRefreshAccessToken).toHaveBeenCalledTimes(2);
   });
 });

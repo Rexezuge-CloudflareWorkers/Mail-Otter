@@ -10,7 +10,7 @@ function sleep(ms: number): Promise<void> {
 
 function assertD1Success(result: D1Result, context: string): void {
   if (result.success) {
-  	return;
+    return;
   }
 
   const errorMessage: string = result.error ?? 'Unknown database error';

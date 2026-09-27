@@ -6,7 +6,7 @@ vi.mock('@mail-otter/backend-data/crypto', () => ({
 }));
 
 vi.mock('@mail-otter/shared/utils', () => ({
-  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1_000) },
+  TimestampUtil: { getCurrentUnixTimestampInSeconds: vi.fn(() => 1000) },
 }));
 
 import { EmailActionDAO } from '@mail-otter/backend-data/dao';

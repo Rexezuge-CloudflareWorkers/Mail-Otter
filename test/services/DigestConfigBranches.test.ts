@@ -62,9 +62,7 @@ describe('DigestConfigService branches', () => {
     const offWindow = makeDao({ digest_enabled: 'true', digest_send_time: '00:00' });
     const now = new Date();
     const atMidnightWindow = now.getHours() === 0 && now.getMinutes() < 10;
-    await expect(new DigestConfigService(offWindow as never).isDueToSend('app-1', 'UTC')).resolves.toBe(
-      atMidnightWindow,
-    );
+    await expect(new DigestConfigService(offWindow as never).isDueToSend('app-1', 'UTC')).resolves.toBe(atMidnightWindow);
   });
 
   it('forDatabase builds a service bound to the given database', async () => {

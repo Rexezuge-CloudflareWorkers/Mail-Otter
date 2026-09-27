@@ -48,16 +48,16 @@ describe('EmailApplicationResolver', () => {
 
   it('throws for missing applications', async () => {
     mocks.getById.mockResolvedValue(undefined);
-    await expect(
-      new EmailApplicationResolver(env()).resolveApplication({ applicationId: 'missing' } as never),
-    ).rejects.toThrow('Connected application was not found');
+    await expect(new EmailApplicationResolver(env()).resolveApplication({ applicationId: 'missing' } as never)).rejects.toThrow(
+      'Connected application was not found',
+    );
   });
 
   it('throws for applications without a provider mailbox', async () => {
     mocks.getById.mockResolvedValue({ applicationId: 'a', providerEmail: null, userEmail: 'u@x' });
-    await expect(
-      new EmailApplicationResolver(env()).resolveApplication({ applicationId: 'a' } as never),
-    ).rejects.toThrow('provider mailbox');
+    await expect(new EmailApplicationResolver(env()).resolveApplication({ applicationId: 'a' } as never)).rejects.toThrow(
+      'provider mailbox',
+    );
   });
 
   it('resolves imap-password apps without a token fetch', async () => {
@@ -74,11 +74,7 @@ describe('EmailApplicationResolver', () => {
 
   it('returns null for inactive gmail subscriptions and updates history', async () => {
     mocks.getByApplication.mockResolvedValue({ status: 'inactive' });
-    const result = await new EmailApplicationResolver(env()).listGmailMessages(
-      { applicationId: 'a' } as never,
-      'tok',
-      'hist-1',
-    );
+    const result = await new EmailApplicationResolver(env()).listGmailMessages({ applicationId: 'a' } as never, 'tok', 'hist-1');
     expect(result).toBeNull();
     await new EmailApplicationResolver(env()).updateGmailHistory('sub-1', 'hist-2');
     expect(mocks.updateGmailHistory).toHaveBeenCalledWith('sub-1', 'hist-2');

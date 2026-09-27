@@ -137,7 +137,8 @@ const frStrings: BackendLocaleStrings = {
     appointmentNotedSuffix: ' détails notés.',
   },
   csv: {
-    header: 'Type d’Événement,ID d’Application,Horodatage ISO,ID de Message du Fournisseur,Statut / Statut d’Exécution,Message d’Erreur,ID d’Action,Type d’Action,Niveau de Risque,Déclenché par',
+    header:
+      'Type d’Événement,ID d’Application,Horodatage ISO,ID de Message du Fournisseur,Statut / Statut d’Exécution,Message d’Erreur,ID d’Action,Type d’Action,Niveau de Risque,Déclenché par',
   },
 };
 

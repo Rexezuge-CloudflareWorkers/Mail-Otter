@@ -47,10 +47,7 @@ describe('WorkersAiResponseUtil', () => {
 
     it('extracts Responses API output text parts joined by newline', () => {
       const result = {
-        output: [
-          { content: [{ text: 'part one' }, { text: 'part two' }] },
-          { content: [{ text: 'part three' }] },
-        ],
+        output: [{ content: [{ text: 'part one' }, { text: 'part two' }] }, { content: [{ text: 'part three' }] }],
       };
       expect(WorkersAiResponseUtil.extractResponseText(result)).toBe('part one\npart two\npart three');
     });
@@ -93,15 +90,21 @@ describe('WorkersAiResponseUtil', () => {
 
   describe('extractUsage', () => {
     it('extracts OpenAI-style usage', () => {
-      expect(
-        WorkersAiResponseUtil.extractUsage({ usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } }),
-      ).toEqual({ promptTokens: 10, completionTokens: 5, totalTokens: 15, reasoningTokens: undefined });
+      expect(WorkersAiResponseUtil.extractUsage({ usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } })).toEqual({
+        promptTokens: 10,
+        completionTokens: 5,
+        totalTokens: 15,
+        reasoningTokens: undefined,
+      });
     });
 
     it('extracts Responses API style usage', () => {
-      expect(
-        WorkersAiResponseUtil.extractUsage({ usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 } }),
-      ).toEqual({ promptTokens: 7, completionTokens: 3, totalTokens: 10, reasoningTokens: undefined });
+      expect(WorkersAiResponseUtil.extractUsage({ usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 } })).toEqual({
+        promptTokens: 7,
+        completionTokens: 3,
+        totalTokens: 10,
+        reasoningTokens: undefined,
+      });
     });
 
     it('derives billed output tokens from total minus prompt when larger', () => {
@@ -160,8 +163,8 @@ describe('WorkersAiResponseUtil', () => {
     });
 
     it('handles escaped quotes inside strings', () => {
-      const text = WorkersAiResponseUtil.extractJsonObjectText('{"q": "say \\"hi\\""}');
-      expect(text).toBe('{"q": "say \\"hi\\""}');
+      const text = WorkersAiResponseUtil.extractJsonObjectText(String.raw`{"q": "say \"hi\""}`);
+      expect(text).toBe(String.raw`{"q": "say \"hi\""}`);
     });
 
     it('returns undefined when no object exists or braces never close', () => {
@@ -180,8 +183,8 @@ describe('WorkersAiResponseUtil', () => {
 
     it('returns finite numbers only', () => {
       expect(WorkersAiResponseUtil.getOptionalNumber(3)).toBe(3);
-      expect(WorkersAiResponseUtil.getOptionalNumber(Number.NaN)).toBeUndefined();
-      expect(WorkersAiResponseUtil.getOptionalNumber(Number.POSITIVE_INFINITY)).toBeUndefined();
+      expect(WorkersAiResponseUtil.getOptionalNumber(NaN)).toBeUndefined();
+      expect(WorkersAiResponseUtil.getOptionalNumber(Infinity)).toBeUndefined();
       expect(WorkersAiResponseUtil.getOptionalNumber('3')).toBeUndefined();
       expect(WorkersAiResponseUtil.getOptionalNumber(undefined)).toBeUndefined();
     });

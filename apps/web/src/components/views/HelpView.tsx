@@ -32,7 +32,10 @@ export function HelpView() {
           <CardTitle>{t('help.howItWorks', 'How It Works')}</CardTitle>
         </CardHeader>
         <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          {t('help.howItWorksIntro', 'Mail-Otter connects to your email using OAuth2. You register a private OAuth app with your email provider, supply the Client ID and Client Secret to Mail-Otter, and then authorize access from inside the app. Once connected, Mail-Otter monitors your inbox for new messages, summarizes them with AI, and delivers the summary as a reply in the same email thread — keeping everything organized in one place.')}
+          {t(
+            'help.howItWorksIntro',
+            'Mail-Otter connects to your email using OAuth2. You register a private OAuth app with your email provider, supply the Client ID and Client Secret to Mail-Otter, and then authorize access from inside the app. Once connected, Mail-Otter monitors your inbox for new messages, summarizes them with AI, and delivers the summary as a reply in the same email thread — keeping everything organized in one place.',
+          )}
         </p>
         <p className="mt-3 text-sm text-[var(--color-text-secondary)] leading-relaxed">
           {t('help.howItWorksFollow', 'Follow the provider-specific steps below to create your OAuth app, then return to the')}{' '}
@@ -74,16 +77,16 @@ export function HelpView() {
           </li>
           <li>
             {t('help.gmailStep5a', 'In the Mail-Otter')} <strong>{t('header.tabs.mailboxes', 'Mailboxes')}</strong>{' '}
-            {t('help.gmailStep5b', 'tab, create a new Gmail mailbox. Copy the')}{' '}
-            <strong>{t('help.redirectUri', 'Redirect URI')}</strong> {t('help.redirectUriHint', 'displayed in the form.')}
+            {t('help.gmailStep5b', 'tab, create a new Gmail mailbox. Copy the')} <strong>{t('help.redirectUri', 'Redirect URI')}</strong>{' '}
+            {t('help.redirectUriHint', 'displayed in the form.')}
           </li>
           <li>
-            {t('help.gmailStep6a', 'Back in Google Cloud Console, paste the redirect URI under')}{' '}
-            <strong>Authorized Redirect URIs</strong> {t('help.gmailStep6b', 'and save the client.')}
+            {t('help.gmailStep6a', 'Back in Google Cloud Console, paste the redirect URI under')} <strong>Authorized Redirect URIs</strong>{' '}
+            {t('help.gmailStep6b', 'and save the client.')}
           </li>
           <li>
-            {t('help.gmailStep7a', 'Copy the')} <strong>Client ID</strong> {t('help.gmailStep7b', 'and')}{' '}
-            <strong>Client Secret</strong> {t('help.gmailStep7c', 'from Google and paste them into the Mail-Otter mailbox form.')}
+            {t('help.gmailStep7a', 'Copy the')} <strong>Client ID</strong> {t('help.gmailStep7b', 'and')} <strong>Client Secret</strong>{' '}
+            {t('help.gmailStep7c', 'from Google and paste them into the Mail-Otter mailbox form.')}
           </li>
           <li>
             {t('help.gmailStep8a', 'Create a')} <strong>Pub/Sub Topic</strong> {t('help.gmailStep8b', 'in the same project:')}{' '}
@@ -112,17 +115,14 @@ export function HelpView() {
             {t('help.gmailStep12b', '. Mail-Otter will show you a webhook URL.')}
           </li>
           <li>
-            {t('help.gmailStep13a', 'In Google Cloud Console, open your Pub/Sub topic and create a')}{' '}
-            <strong>Push Subscription</strong>
+            {t('help.gmailStep13a', 'In Google Cloud Console, open your Pub/Sub topic and create a')} <strong>Push Subscription</strong>
             {t('help.gmailStep13b', '. Set the endpoint URL to the webhook URL shown in Mail-Otter.')}
           </li>
         </StepList>
         <p className="mt-4 text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
           {t('help.requiredScopes', 'Required Scopes (Requested Automatically)')}
         </p>
-        <ScopeBlock>
-          {`https://www.googleapis.com/auth/gmail.readonly\nhttps://www.googleapis.com/auth/gmail.send`}
-        </ScopeBlock>
+        <ScopeBlock>{`https://www.googleapis.com/auth/gmail.readonly\nhttps://www.googleapis.com/auth/gmail.send`}</ScopeBlock>
       </Card>
 
       {/* Outlook Setup */}
@@ -131,7 +131,10 @@ export function HelpView() {
           <CardTitle>{t('help.outlookSetup', 'Outlook Setup')}</CardTitle>
         </CardHeader>
         <p className="text-sm text-[var(--color-text-muted)]">
-          {t('help.outlookIntro', 'Outlook requires an app registration in the Azure Portal. Push notifications are handled automatically — no Pub/Sub setup needed.')}
+          {t(
+            'help.outlookIntro',
+            'Outlook requires an app registration in the Azure Portal. Push notifications are handled automatically — no Pub/Sub setup needed.',
+          )}
         </p>
         <StepList>
           <li>
@@ -165,7 +168,10 @@ export function HelpView() {
           </li>
           <li>
             {t('help.outlookStep6a', 'Copy the')} <strong>Application (Client) ID</strong>{' '}
-            {t('help.outlookStep6b', 'from the app overview page. Paste both the Client ID and Client Secret into the Mail-Otter mailbox form.')}
+            {t(
+              'help.outlookStep6b',
+              'from the app overview page. Paste both the Client ID and Client Secret into the Mail-Otter mailbox form.',
+            )}
           </li>
           <li>
             {t('help.outlookStep7a', 'Click')} <strong>{t('help.authorizeOAuth2', 'Authorize OAuth2')}</strong>{' '}
@@ -190,12 +196,18 @@ export function HelpView() {
         <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
           {t('help.imapIntro', 'Gmail, Outlook, Fastmail, and iCloud can connect using an IMAP password instead of OAuth2. Select')}{' '}
           <strong>{t('help.imapPassword', 'IMAP Password')}</strong>{' '}
-          {t('help.imapIntroEnd', 'as the connection method in the mailbox form and fill in the host, port, username, and password fields.')}
+          {t(
+            'help.imapIntroEnd',
+            'as the connection method in the mailbox form and fill in the host, port, username, and password fields.',
+          )}
         </p>
         <BulletList>
           <li>
             <strong>Gmail</strong>
-            {t('help.imapGmail', ' — generate an App Password from your Google account security settings. This requires 2-Step Verification to be enabled on your account.')}
+            {t(
+              'help.imapGmail',
+              ' — generate an App Password from your Google account security settings. This requires 2-Step Verification to be enabled on your account.',
+            )}
           </li>
           <li>
             <strong>Outlook</strong>
@@ -230,14 +242,15 @@ export function HelpView() {
         <BulletList>
           <li>
             <strong>{t('help.calendarFeature', 'Calendar')}</strong>
-            {t('help.calendarBodyA', ' — enables Mail-Otter to create calendar events extracted from emails. Enabling this feature for Gmail adds the')}{' '}
+            {t(
+              'help.calendarBodyA',
+              ' — enables Mail-Otter to create calendar events extracted from emails. Enabling this feature for Gmail adds the',
+            )}{' '}
             <code className="bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded text-xs font-mono">
               https://www.googleapis.com/auth/calendar.events
             </code>{' '}
             {t('help.calendarBodyB', 'scope; for Outlook it adds')}{' '}
-            <code className="bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded text-xs font-mono">
-              Calendars.ReadWrite
-            </code>
+            <code className="bg-[var(--color-surface-2)] px-1.5 py-0.5 rounded text-xs font-mono">Calendars.ReadWrite</code>
             {t('help.calendarBodyC', '. You must click')} <strong>{t('help.authorizeOAuth2', 'Authorize OAuth2')}</strong>{' '}
             {t('help.calendarBodyD', 'again after enabling a new feature to grant the additional permissions.')}
           </li>
@@ -252,14 +265,23 @@ export function HelpView() {
         <BulletList>
           <li>
             {t('help.noteRedirectA', 'The')} <strong>{t('help.redirectUri', 'Redirect URI')}</strong>{' '}
-            {t('help.noteRedirectB', 'is unique to each mailbox and is generated by Mail-Otter. Copy it from the mailbox form before registering it with your provider — using the wrong URI will cause the OAuth2 authorization to fail.')}
+            {t(
+              'help.noteRedirectB',
+              'is unique to each mailbox and is generated by Mail-Otter. Copy it from the mailbox form before registering it with your provider — using the wrong URI will cause the OAuth2 authorization to fail.',
+            )}
           </li>
           <li>
-            {t('help.noteGmailWatchA', 'Gmail watch tokens expire periodically. Mail-Otter renews them automatically via its scheduled job. If push notifications stop working, open the mailbox in Mail-Otter and click')}{' '}
+            {t(
+              'help.noteGmailWatchA',
+              'Gmail watch tokens expire periodically. Mail-Otter renews them automatically via its scheduled job. If push notifications stop working, open the mailbox in Mail-Otter and click',
+            )}{' '}
             <strong>{t('help.startWatch', 'Start Watch')}</strong> {t('help.noteGmailWatchB', 'again.')}
           </li>
           <li>
-            {t('help.noteOutlookRenewal', 'Outlook subscriptions are renewed automatically every hour — no manual action is required after initial setup.')}
+            {t(
+              'help.noteOutlookRenewal',
+              'Outlook subscriptions are renewed automatically every hour — no manual action is required after initial setup.',
+            )}
           </li>
         </BulletList>
       </Card>

@@ -133,10 +133,7 @@ function createRequestScope(env: RequestScopeEnv): Container {
   // mocked module when the token is actually resolved.
   scope.bind(Tokens.AppConfig, () => AppConfiguration.fromEnv(env));
   scope.bind(Tokens.AiService, () => new AiService({ db: env.DB }));
-  scope.bind(
-    Tokens.ActionHandlerRegistry,
-    () => InjectableActionHandlerRegistry.withDefaults(ActionHandlerRegistry.getHandlers()),
-  );
+  scope.bind(Tokens.ActionHandlerRegistry, () => InjectableActionHandlerRegistry.withDefaults(ActionHandlerRegistry.getHandlers()));
   scope.bind(Tokens.IntegrationObserverRegistry, () => InjectableIntegrationObserverRegistry.withDefaults());
   scope.bind(Tokens.ActionService, () => new ActionService({}));
   scope.bind(

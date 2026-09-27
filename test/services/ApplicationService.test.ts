@@ -125,7 +125,14 @@ describe('ApplicationService', () => {
 
       const result = await new ApplicationService(makeEnv()).updateUserApplication(
         'user@example.com',
-        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2', clientId: 'cid', clientSecret: 'cs' },
+        {
+          applicationId: 'app-1',
+          displayName: 'Updated',
+          providerId: 'google-gmail',
+          connectionMethod: 'oauth2',
+          clientId: 'cid',
+          clientSecret: 'cs',
+        },
         new Request('https://example.com'),
       );
 
@@ -138,7 +145,14 @@ describe('ApplicationService', () => {
       await expect(
         new ApplicationService(makeEnv()).updateUserApplication(
           'user@example.com',
-          { applicationId: 'nonexistent', displayName: 'X', providerId: 'google-gmail', connectionMethod: 'oauth2', clientId: 'cid', clientSecret: 'cs' },
+          {
+            applicationId: 'nonexistent',
+            displayName: 'X',
+            providerId: 'google-gmail',
+            connectionMethod: 'oauth2',
+            clientId: 'cid',
+            clientSecret: 'cs',
+          },
           new Request('https://example.com'),
         ),
       ).rejects.toThrow('Connected application was not found.');
@@ -155,7 +169,14 @@ describe('ApplicationService', () => {
       await expect(
         new ApplicationService(makeEnv()).updateUserApplication(
           'user@example.com',
-          { applicationId: 'app-1', displayName: 'X', providerId: 'microsoft-outlook', connectionMethod: 'oauth2', clientId: 'cid', clientSecret: 'cs' },
+          {
+            applicationId: 'app-1',
+            displayName: 'X',
+            providerId: 'microsoft-outlook',
+            connectionMethod: 'oauth2',
+            clientId: 'cid',
+            clientSecret: 'cs',
+          },
           new Request('https://example.com'),
         ),
       ).rejects.toThrow('Provider and connection method cannot be changed after creation.');
@@ -176,7 +197,9 @@ describe('ApplicationService', () => {
         new Request('https://example.com'),
       );
 
-      const calledCredentials = (mockUpdateForUser.mock.calls[0] as [unknown, unknown, unknown, { clientId: string; clientSecret: string; refreshToken: string }])[3];
+      const calledCredentials = (
+        mockUpdateForUser.mock.calls[0] as [unknown, unknown, unknown, { clientId: string; clientSecret: string; refreshToken: string }]
+      )[3];
       expect(calledCredentials).toEqual({ clientId: 'existing-cid', clientSecret: 'existing-cs', refreshToken: 'rt' });
     });
 
@@ -192,7 +215,13 @@ describe('ApplicationService', () => {
 
       await new ApplicationService(makeEnv()).updateUserApplication(
         'user@example.com',
-        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2', senderDomainFilters: filters },
+        {
+          applicationId: 'app-1',
+          displayName: 'Updated',
+          providerId: 'google-gmail',
+          connectionMethod: 'oauth2',
+          senderDomainFilters: filters,
+        },
         new Request('https://example.com'),
       );
 
@@ -212,7 +241,13 @@ describe('ApplicationService', () => {
 
       await new ApplicationService(makeEnv()).updateUserApplication(
         'user@example.com',
-        { applicationId: 'app-1', displayName: 'Updated', providerId: 'google-gmail', connectionMethod: 'oauth2', senderDomainFilters: null },
+        {
+          applicationId: 'app-1',
+          displayName: 'Updated',
+          providerId: 'google-gmail',
+          connectionMethod: 'oauth2',
+          senderDomainFilters: null,
+        },
         new Request('https://example.com'),
       );
 

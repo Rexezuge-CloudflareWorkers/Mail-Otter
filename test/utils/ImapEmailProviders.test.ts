@@ -34,8 +34,18 @@ const OAUTH2_CREDS = {
 
 describe.each([
   { name: 'GmailImapEmailProvider', Provider: GmailImapEmailProvider, expectedHost: 'imap.gmail.com', providerId: 'google-gmail' },
-  { name: 'OutlookImapEmailProvider', Provider: OutlookImapEmailProvider, expectedHost: 'outlook.office365.com', providerId: 'microsoft-outlook' },
-  { name: 'FastmailImapEmailProvider', Provider: FastmailImapEmailProvider, expectedHost: 'imap.fastmail.com', providerId: 'fastmail-jmap' },
+  {
+    name: 'OutlookImapEmailProvider',
+    Provider: OutlookImapEmailProvider,
+    expectedHost: 'outlook.office365.com',
+    providerId: 'microsoft-outlook',
+  },
+  {
+    name: 'FastmailImapEmailProvider',
+    Provider: FastmailImapEmailProvider,
+    expectedHost: 'imap.fastmail.com',
+    providerId: 'fastmail-jmap',
+  },
 ])('$name', ({ Provider, expectedHost, providerId }) => {
   let provider: InstanceType<typeof Provider>;
 
@@ -59,17 +69,13 @@ describe.each([
   it('startWatch connects to hardcoded host and returns imap-cursor', async () => {
     const result = await provider.startWatch(IMAP_PASSWORD_CREDS, { baseUrl: 'https://example.com' });
     expect(result).toEqual({ type: 'imap-cursor', imapCursor: '0' });
-    expect(mockConnect).toHaveBeenCalledWith(
-      expect.objectContaining({ host: expectedHost, port: 993 }),
-    );
+    expect(mockConnect).toHaveBeenCalledWith(expect.objectContaining({ host: expectedHost, port: 993 }));
   });
 
   it('startWatch ignores host in credentials and always uses hardcoded host', async () => {
     const creds = { ...IMAP_PASSWORD_CREDS, host: 'custom.host.com', port: 1234 };
     await provider.startWatch(creds, { baseUrl: '' });
-    expect(mockConnect).toHaveBeenCalledWith(
-      expect.objectContaining({ host: expectedHost, port: 993 }),
-    );
+    expect(mockConnect).toHaveBeenCalledWith(expect.objectContaining({ host: expectedHost, port: 993 }));
   });
 
   it('startWatch throws when given oauth2 credentials', async () => {

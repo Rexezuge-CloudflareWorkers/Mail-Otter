@@ -20,7 +20,9 @@ class StartApplicationWatchRoute extends IUserRoute<StartApplicationWatchRequest
     cxt: RouteContext<StartApplicationWatchEnv>,
   ): Promise<StartApplicationWatchResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.WatchService).startApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
+    return scope
+      .get(Tokens.WatchService)
+      .startApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
   }
 }
 

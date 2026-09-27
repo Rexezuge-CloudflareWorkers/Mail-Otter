@@ -23,10 +23,24 @@ export function ConfirmDeleteModal({
           {t('mailboxes.deleteMessage', 'Delete {{name}}? This Cannot Be Undone.', { name: displayName })}
         </p>
         <div className="flex gap-3">
-          <Button variant="ghost" className="flex-1" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
+          <Button
+            variant="ghost"
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancel();
+            }}
+          >
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button variant="danger" className="flex-1" onClick={(e) => { e.stopPropagation(); onConfirm(); }}>
+          <Button
+            variant="danger"
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
+          >
             {t('common.delete', 'Delete')}
           </Button>
         </div>

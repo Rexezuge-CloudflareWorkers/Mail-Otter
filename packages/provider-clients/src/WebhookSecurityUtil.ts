@@ -33,8 +33,11 @@ class WebhookSecurityUtil {
       binary += String.fromCodePoint(byte);
     });
     // btoa + URL-safe transform; Uint8Array#toBase64 not guaranteed in all Workers runtimes
-     
-    return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/={0,2}$/, '');
+
+    return btoa(binary)
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replace(/={0,2}$/, '');
   }
 }
 

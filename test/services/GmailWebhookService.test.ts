@@ -46,7 +46,13 @@ describe('GmailWebhookService', () => {
 
       const env = makeEnv();
       await GmailWebhookService.handleNotification(
-        { applicationId: 'app-1', token: 'valid-token', messageData: 'encoded', pubsubMessageId: 'msg-1', callbackBaseUrl: 'https://api.example.com' },
+        {
+          applicationId: 'app-1',
+          token: 'valid-token',
+          messageData: 'encoded',
+          pubsubMessageId: 'msg-1',
+          callbackBaseUrl: 'https://api.example.com',
+        },
         env,
       );
 
@@ -64,10 +70,7 @@ describe('GmailWebhookService', () => {
       mockGetByApplication.mockResolvedValue(undefined);
 
       await expect(
-        GmailWebhookService.handleNotification(
-          { applicationId: 'app-1', token: 'token', messageData: 'data' },
-          makeEnv() as never,
-        ),
+        GmailWebhookService.handleNotification({ applicationId: 'app-1', token: 'token', messageData: 'data' }, makeEnv() as never),
       ).rejects.toThrow('Invalid Gmail webhook token.');
     });
 
@@ -76,10 +79,7 @@ describe('GmailWebhookService', () => {
       (WebhookSecurityUtil.matchesSecret as ReturnType<typeof vi.fn>).mockResolvedValue(false);
 
       await expect(
-        GmailWebhookService.handleNotification(
-          { applicationId: 'app-1', token: 'bad-token', messageData: 'data' },
-          makeEnv() as never,
-        ),
+        GmailWebhookService.handleNotification({ applicationId: 'app-1', token: 'bad-token', messageData: 'data' }, makeEnv() as never),
       ).rejects.toThrow('Invalid Gmail webhook token.');
     });
 
@@ -91,25 +91,17 @@ describe('GmailWebhookService', () => {
       );
 
       await expect(
-        GmailWebhookService.handleNotification(
-          { applicationId: 'app-1', token: 'token', messageData: 'data' },
-          makeEnv() as never,
-        ),
+        GmailWebhookService.handleNotification({ applicationId: 'app-1', token: 'token', messageData: 'data' }, makeEnv() as never),
       ).rejects.toThrow('Gmail notification was missing historyId.');
     });
 
     it('works without optional pubsubMessageId and callbackBaseUrl', async () => {
       mockGetByApplication.mockResolvedValue({ subscriptionId: 'sub-1', webhookSecretHash: 'hash' });
       (WebhookSecurityUtil.matchesSecret as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (WebhookSecurityUtil.base64UrlDecodeToString as ReturnType<typeof vi.fn>).mockReturnValue(
-        JSON.stringify({ historyId: '99' }),
-      );
+      (WebhookSecurityUtil.base64UrlDecodeToString as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify({ historyId: '99' }));
 
       const env = makeEnv();
-      await GmailWebhookService.handleNotification(
-        { applicationId: 'app-1', token: 'token', messageData: 'data' },
-        env,
-      );
+      await GmailWebhookService.handleNotification({ applicationId: 'app-1', token: 'token', messageData: 'data' }, env);
 
       expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledWith(
         expect.objectContaining({ notificationHistoryId: '99', pubsubMessageId: undefined }),

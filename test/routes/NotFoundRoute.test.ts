@@ -17,7 +17,7 @@ describe('IBaseRoute typed errors', () => {
   function makeC() {
     return {
       req: {
-        raw: new Request('https://example.com/missing', { method: 'GET' }),
+        raw: new Request('https://example.com/missing'),
         json: vi.fn().mockResolvedValue({}),
       } as unknown,
       json: vi.fn().mockReturnValue(new Response()),
@@ -32,9 +32,6 @@ describe('IBaseRoute typed errors', () => {
     const route = new MissingRoute();
     const c = makeC();
     await route.handle(c as never);
-    expect(c.json).toHaveBeenCalledWith(
-      { Exception: { Type: 'NotFound', Message: 'Connected application was not found.' } },
-      404,
-    );
+    expect(c.json).toHaveBeenCalledWith({ Exception: { Type: 'NotFound', Message: 'Connected application was not found.' } }, 404);
   });
 });

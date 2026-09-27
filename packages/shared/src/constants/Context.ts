@@ -13,9 +13,7 @@ type AppContextDocumentStatus =
   | typeof APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED
   | typeof APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR;
 
-type AppContextDeletionStatus =
-  | typeof APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED
-  | typeof APPLICATION_CONTEXT_DELETION_STATUS_ERROR;
+type AppContextDeletionStatus = typeof APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED | typeof APPLICATION_CONTEXT_DELETION_STATUS_ERROR;
 
 const CONTEXT_AUDIT_EVENT_EMAIL_RECEIVED = 'email_received';
 const CONTEXT_AUDIT_EVENT_PROCESSING_STARTED = 'processing_started';
@@ -53,9 +51,7 @@ type ContextAuditEventType =
   | typeof CONTEXT_AUDIT_EVENT_ERROR;
 
 type ContextAuditLogSeverity =
-  | typeof CONTEXT_AUDIT_LOG_SEVERITY_INFO
-  | typeof CONTEXT_AUDIT_LOG_SEVERITY_WARNING
-  | typeof CONTEXT_AUDIT_LOG_SEVERITY_ERROR;
+  typeof CONTEXT_AUDIT_LOG_SEVERITY_INFO | typeof CONTEXT_AUDIT_LOG_SEVERITY_WARNING | typeof CONTEXT_AUDIT_LOG_SEVERITY_ERROR;
 
 export {
   CONTEXT_SOURCE_TYPE_GOOGLE_DRIVE,
@@ -83,4 +79,9 @@ export {
   CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
   CONTEXT_AUDIT_LOG_SEVERITY_ERROR,
 };
-export type { AppContextDeletionStatus as ApplicationContextDeletionStatus, AppContextDocumentStatus as ApplicationContextDocumentStatus, ContextAuditEventType, ContextAuditLogSeverity };
+export type {
+  AppContextDeletionStatus as ApplicationContextDeletionStatus,
+  AppContextDocumentStatus as ApplicationContextDocumentStatus,
+  ContextAuditEventType,
+  ContextAuditLogSeverity,
+};

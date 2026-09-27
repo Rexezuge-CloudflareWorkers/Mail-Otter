@@ -150,11 +150,19 @@ describe('ApplicationService branches', () => {
     mockGetByIdForUser.mockResolvedValue(undefined);
     const svc = new ApplicationService(makeEnv());
     await expect(
-      svc.updateUserApplication('u@x', { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd' } as never, new Request('https://x')),
+      svc.updateUserApplication(
+        'u@x',
+        { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd' },
+        new Request('https://x'),
+      ),
     ).rejects.toThrow(NotFoundError);
     mockGetByIdForUser.mockResolvedValue({ ...oauthApp, providerId: 'microsoft-outlook' });
     await expect(
-      svc.updateUserApplication('u@x', { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd' } as never, new Request('https://x')),
+      svc.updateUserApplication(
+        'u@x',
+        { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd' },
+        new Request('https://x'),
+      ),
     ).rejects.toThrow(BadRequestError);
   });
 
@@ -166,7 +174,11 @@ describe('ApplicationService branches', () => {
     });
     mockUpdateForUser.mockResolvedValue({ applicationId: 'app-1' });
     const svc = new ApplicationService(makeEnv());
-    await svc.updateUserApplication('u@x', { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'imap-password', displayName: 'd' } as never, new Request('https://x'));
+    await svc.updateUserApplication(
+      'u@x',
+      { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'imap-password', displayName: 'd' },
+      new Request('https://x'),
+    );
     expect(mockUpdateForUser.mock.calls[0][3]).toEqual({ imapPassword: 'old' });
   });
 
@@ -174,7 +186,11 @@ describe('ApplicationService branches', () => {
     mockGetByIdForUser.mockResolvedValue(oauthApp);
     mockUpdateForUser.mockResolvedValue({ applicationId: 'app-1' });
     const svc = new ApplicationService(makeEnv());
-    await svc.updateUserApplication('u@x', { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd', clientId: 'new' } as never, new Request('https://x'));
+    await svc.updateUserApplication(
+      'u@x',
+      { applicationId: 'a', providerId: 'google-gmail', connectionMethod: 'oauth2', displayName: 'd', clientId: 'new' },
+      new Request('https://x'),
+    );
     expect(mockUpdateForUser.mock.calls[0][4]).toBe('draft');
   });
 
@@ -182,9 +198,7 @@ describe('ApplicationService branches', () => {
     mockStopWatch.mockRejectedValue(new Error('gone'));
     mockListActiveVectorIds.mockResolvedValue(['v1']);
     const deleteByIds = vi.fn();
-    const svc = new ApplicationService(
-      makeEnv({ EMAIL_CONTEXT_INDEX: { deleteByIds }, OAUTH2_TOKEN_CACHE: {} }),
-    );
+    const svc = new ApplicationService(makeEnv({ EMAIL_CONTEXT_INDEX: { deleteByIds }, OAUTH2_TOKEN_CACHE: {} }));
     await svc.deleteUserApplication('u@x', 'app-1');
     expect(deleteByIds).toHaveBeenCalledWith(['v1']);
     expect(mockMarkDocumentsDeleted).toHaveBeenCalled();
@@ -197,7 +211,7 @@ describe('ApplicationService branches', () => {
     await svc.listIntegrations('u@x', 'app-1');
     expect(mockListByApplicationId).toHaveBeenCalledWith('app-1');
     mockGetIntegrationByIdForUser.mockResolvedValue(undefined);
-    await expect(svc.updateIntegration('u@x', { integrationId: 'i' } as never)).rejects.toThrow(NotFoundError);
+    await expect(svc.updateIntegration('u@x', { integrationId: 'i' })).rejects.toThrow(NotFoundError);
     await expect(svc.deleteIntegration('u@x', 'i')).rejects.toThrow(NotFoundError);
     await expect(svc.testIntegration('u@x', 'i')).rejects.toThrow(NotFoundError);
     await expect(svc.listIntegrationDeliveries('u@x', 'i', 5)).rejects.toThrow(NotFoundError);
@@ -241,6 +255,8 @@ describe('ApplicationService branches', () => {
     mockUpdateWatchedFolderIdsForUser.mockResolvedValue(undefined);
     const svc = new ApplicationService(makeEnv());
     await expect(svc.acknowledgeApplicationError('u@x', 'a', 'processing', new Request('https://x'))).rejects.toThrow(NotFoundError);
-    await expect(svc.updateWatchedFolderIds('u@x', { applicationId: 'a', folderIds: [] } as never, new Request('https://x'))).rejects.toThrow(NotFoundError);
+    await expect(svc.updateWatchedFolderIds('u@x', { applicationId: 'a', folderIds: [] }, new Request('https://x'))).rejects.toThrow(
+      NotFoundError,
+    );
   });
 });

@@ -3,7 +3,11 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { BackgroundTaskRun, BackgroundTaskRunStatus } from '@mail-otter/backend-data/dao';
 
-class ListBackgroundTaskRunsRoute extends IUserRoute<ListBackgroundTaskRunsRequest, ListBackgroundTaskRunsResponse, ListBackgroundTaskRunsEnv> {
+class ListBackgroundTaskRunsRoute extends IUserRoute<
+  ListBackgroundTaskRunsRequest,
+  ListBackgroundTaskRunsResponse,
+  ListBackgroundTaskRunsEnv
+> {
   schema = {
     tags: ['Processing'],
     summary: 'List background task runs for the authenticated user',
@@ -18,15 +22,12 @@ class ListBackgroundTaskRunsRoute extends IUserRoute<ListBackgroundTaskRunsReque
     cxt: RouteContext<ListBackgroundTaskRunsEnv>,
   ): Promise<ListBackgroundTaskRunsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ProcessingService).listTaskRuns(
-      this.getAuthenticatedUserEmailAddress(cxt),
-      {
-        taskType: this.getQueryParam(request, 'taskType'),
-        applicationId: this.getQueryParam(request, 'applicationId'),
-        status: this.getQueryParam(request, 'status') as BackgroundTaskRunStatus | undefined,
-        cursor: this.getQueryParam(request, 'cursor'),
-      },
-    );
+    return scope.get(Tokens.ProcessingService).listTaskRuns(this.getAuthenticatedUserEmailAddress(cxt), {
+      taskType: this.getQueryParam(request, 'taskType'),
+      applicationId: this.getQueryParam(request, 'applicationId'),
+      status: this.getQueryParam(request, 'status') as BackgroundTaskRunStatus | undefined,
+      cursor: this.getQueryParam(request, 'cursor'),
+    });
   }
 }
 

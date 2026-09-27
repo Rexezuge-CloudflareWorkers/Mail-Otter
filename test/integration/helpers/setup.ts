@@ -34,10 +34,7 @@ export async function ensureActionSecrets(env: TestEnv): Promise<void> {
 
 export async function ensureUser(db: D1Database, email: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await db
-    .prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`)
-    .bind(email, now, now)
-    .run();
+  await db.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(email, now, now).run();
 }
 
 export async function setupIntegrationTest(env: TestEnv, userEmail?: string): Promise<void> {

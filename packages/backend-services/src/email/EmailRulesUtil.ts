@@ -73,13 +73,17 @@ class EmailRulesUtil {
 
   private static getFieldValue(field: string, ctx: EmailRuleContext): string {
     switch (field) {
-      case 'from': { return ctx.from;
+      case 'from': {
+        return ctx.from;
       }
-      case 'subject': { return ctx.subject;
+      case 'subject': {
+        return ctx.subject;
       }
-      case 'body': { return ctx.body;
+      case 'body': {
+        return ctx.body;
       }
-      default: { return '';
+      default: {
+        return '';
       }
     }
   }

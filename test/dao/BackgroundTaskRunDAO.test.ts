@@ -53,7 +53,7 @@ describe('BackgroundTaskRunDAO', () => {
     it('inserts a running record and returns the runId', async () => {
       const runId = await dao.startRun({ taskType: 'calendar_sync', applicationId: 'app-1' });
       expect(runId).toBe(mockUUID);
-      expect((db.prepare as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).toHaveBeenCalled();
     });
 
     it('accepts undefined applicationId', async () => {
@@ -210,9 +210,7 @@ describe('BackgroundTaskRunDAO', () => {
     });
 
     it('provides nextCursor when more rows than limit', async () => {
-      const rows = Array.from({ length: 26 }, (_, i) =>
-        makeRunRow({ run_id: `run-${i}`, started_at: mockNow - i }),
-      );
+      const rows = Array.from({ length: 26 }, (_, i) => makeRunRow({ run_id: `run-${i}`, started_at: mockNow - i }));
       db = makeDb({ allResults: rows });
       dao = new BackgroundTaskRunDAO(db);
 
@@ -235,7 +233,7 @@ describe('BackgroundTaskRunDAO', () => {
       dao = new BackgroundTaskRunDAO(db);
 
       await dao.listForUser('user@example.com', { taskType: 'calendar_sync' });
-      expect((db.prepare as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).toHaveBeenCalled();
     });
 
     it('filters by applicationId', async () => {
@@ -243,7 +241,7 @@ describe('BackgroundTaskRunDAO', () => {
       dao = new BackgroundTaskRunDAO(db);
 
       await dao.listForUser('user@example.com', { applicationId: 'app-1' });
-      expect((db.prepare as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).toHaveBeenCalled();
     });
 
     it('filters by status', async () => {
@@ -251,7 +249,7 @@ describe('BackgroundTaskRunDAO', () => {
       dao = new BackgroundTaskRunDAO(db);
 
       await dao.listForUser('user@example.com', { status: 'error' });
-      expect((db.prepare as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).toHaveBeenCalled();
     });
 
     it('uses latestPerType query when no taskType specified', async () => {

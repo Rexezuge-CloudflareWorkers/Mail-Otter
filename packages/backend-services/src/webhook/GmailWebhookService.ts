@@ -12,18 +12,13 @@ class GmailWebhookService extends BaseWebhookService {
     }
     const decoded = JSON.parse(WebhookSecurityUtil.base64UrlDecodeToString(input.messageData)) as GmailNotificationData;
     if (!decoded.historyId) throw new BadRequestError('Gmail notification was missing historyId.');
-    await this.enqueueAndTouch(
-      env.EMAIL_EVENTS_QUEUE,
-      subscriptionDAO,
-      subscription.subscriptionId,
-      {
-        type: 'gmail-notification',
-        applicationId: input.applicationId,
-        notificationHistoryId: decoded.historyId,
-        pubsubMessageId: input.pubsubMessageId,
-        callbackBaseUrl: input.callbackBaseUrl,
-      },
-    );
+    await this.enqueueAndTouch(env.EMAIL_EVENTS_QUEUE, subscriptionDAO, subscription.subscriptionId, {
+      type: 'gmail-notification',
+      applicationId: input.applicationId,
+      notificationHistoryId: decoded.historyId,
+      pubsubMessageId: input.pubsubMessageId,
+      callbackBaseUrl: input.callbackBaseUrl,
+    });
   }
 }
 

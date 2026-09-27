@@ -21,16 +21,11 @@ export async function loadActions(
   cursor?: string,
   showSnoozed?: boolean,
 ): Promise<{ actions: EmailAction[]; nextCursor?: string }> {
-  return apiGet<{ actions: EmailAction[]; nextCursor?: string }>(
-    '/user/actions',
-    actionQuery(applicationId, status, cursor, showSnoozed),
-  );
+  return apiGet<{ actions: EmailAction[]; nextCursor?: string }>('/user/actions', actionQuery(applicationId, status, cursor, showSnoozed));
 }
 
 export async function loadActionExecutions(actionId: string): Promise<{ executions: EmailActionExecution[] }> {
-  return apiGet<{ executions: EmailActionExecution[] }>(
-    `/user/actions/${encodeURIComponent(actionId)}/executions`,
-  );
+  return apiGet<{ executions: EmailActionExecution[] }>(`/user/actions/${encodeURIComponent(actionId)}/executions`);
 }
 
 export async function executeAction(actionId: string): Promise<{ action: EmailAction }> {

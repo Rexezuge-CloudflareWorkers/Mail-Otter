@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { ConnectedApplicationBaseSchema as ConnectedAppBaseSchema, EmailProcessingRuleSchema, GmailPubsubTopicNameSchema, ProviderIdSchema, ConnectionMethodSchema, UuidSchema, nonEmptyStringSchema } from './common';
+import {
+  ConnectedApplicationBaseSchema as ConnectedAppBaseSchema,
+  EmailProcessingRuleSchema,
+  GmailPubsubTopicNameSchema,
+  ProviderIdSchema,
+  ConnectionMethodSchema,
+  UuidSchema,
+  nonEmptyStringSchema,
+} from './common';
 import { MAX_EMAIL_PROCESSING_RULES } from '../constants';
 import {
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
@@ -54,8 +62,7 @@ const UpdateAppBodySchema = z
     smtpPort: z.number().int().min(1).max(65_535).optional(),
   })
   .refine(
-    (input): boolean =>
-      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod)) ?? false,
+    (input): boolean => PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(

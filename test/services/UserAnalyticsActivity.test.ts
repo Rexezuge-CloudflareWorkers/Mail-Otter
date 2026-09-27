@@ -136,9 +136,9 @@ describe('AnalyticsService', () => {
 
   it('throws NotFoundError when the scoped application is missing', async () => {
     mockGetMetadataByIdForUser.mockResolvedValue(null);
-    await expect(
-      new AnalyticsService(analyticsEnv()).getAnalytics('user@example.com', { days: 7, applicationId: 'nope' }),
-    ).rejects.toThrow(NotFoundError);
+    await expect(new AnalyticsService(analyticsEnv()).getAnalytics('user@example.com', { days: 7, applicationId: 'nope' })).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it('aggregates AI usage totals and daily rows', async () => {

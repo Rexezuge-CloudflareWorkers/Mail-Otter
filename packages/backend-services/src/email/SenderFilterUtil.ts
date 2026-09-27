@@ -4,7 +4,12 @@ class SenderFilterUtil {
   public static extractEmailAddress(from: string): string {
     const lt = from.indexOf('<');
     const gt = lt === -1 ? -1 : from.indexOf('>', lt + 1);
-    return lt !== -1 && gt !== -1 ? from.slice(lt + 1, gt).toLowerCase().trim() : from.toLowerCase().trim();
+    return lt !== -1 && gt !== -1
+      ? from
+          .slice(lt + 1, gt)
+          .toLowerCase()
+          .trim()
+      : from.toLowerCase().trim();
   }
 
   public static matchesPattern(emailAddress: string, pattern: string): boolean {
@@ -12,10 +17,7 @@ class SenderFilterUtil {
     return p.startsWith('@') ? emailAddress.endsWith(p) : emailAddress === p;
   }
 
-  public static shouldSkip(
-    from: string,
-    filters: SenderDomainFilters,
-  ): { skip: false } | { skip: true; reason: string } {
+  public static shouldSkip(from: string, filters: SenderDomainFilters): { skip: false } | { skip: true; reason: string } {
     const address = this.extractEmailAddress(from);
 
     if (filters.includeRules.length > 0) {

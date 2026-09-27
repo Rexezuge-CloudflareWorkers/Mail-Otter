@@ -1,9 +1,5 @@
 import type { useTranslation } from 'react-i18next';
-import type {
-  EmailRuleAction,
-  EmailRuleActionType,
-  EmailRuleConditionMatcherField,
-} from '../../types';
+import type { EmailRuleAction, EmailRuleActionType, EmailRuleConditionMatcherField } from '../../types';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
@@ -11,7 +7,12 @@ const MAX_RULES = 20;
 const MAX_MATCHERS = 5;
 
 const PRE_PROCESSING_ACTION_TYPES: ReadonlySet<EmailRuleActionType> = new Set(['skip', 'skip_actions', 'prepend_instruction']);
-const POST_PROCESSING_ACTION_TYPES: ReadonlySet<EmailRuleActionType> = new Set(['apply_label', 'archive_message', 'mark_read', 'star_message']);
+const POST_PROCESSING_ACTION_TYPES: ReadonlySet<EmailRuleActionType> = new Set([
+  'apply_label',
+  'archive_message',
+  'mark_read',
+  'star_message',
+]);
 
 const FIELD_LABELS: Record<EmailRuleConditionMatcherField, string> = {
   from: 'From',

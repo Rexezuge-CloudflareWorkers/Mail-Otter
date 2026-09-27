@@ -12,13 +12,13 @@ async function seedApplication(): Promise<string> {
   const applicationId = `gmail-app-${appCounter}-${Date.now()}`;
   const email = `gmail-user-${appCounter}@example.com`;
   const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare(
-    `INSERT INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`,
-  ).bind(email, now, now).run();
+  await env.DB.prepare(`INSERT INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(email, now, now).run();
   await env.DB.prepare(
     `INSERT INTO connected_applications (application_id, user_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
-    `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'connected', ?, ?)`,
-  ).bind(applicationId, email, 'Gmail', now, now).run();
+      `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'connected', ?, ?)`,
+  )
+    .bind(applicationId, email, 'Gmail', now, now)
+    .run();
   return applicationId;
 }
 
@@ -61,8 +61,10 @@ describe('Gmail webhook endpoint', () => {
     const tokenHash: string = await CryptoUtil.sha256Hex(VALID_TOKEN);
     await env.DB.prepare(
       `INSERT INTO provider_subscriptions (subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, client_state_hash, status, created_at, updated_at) ` +
-      `VALUES (?, ?, 'google-gmail', 'ext-sub-1', ?, NULL, 'active', ?, ?)`,
-    ).bind(`sub-${appId}`, appId, tokenHash, now, now).run();
+        `VALUES (?, ?, 'google-gmail', 'ext-sub-1', ?, NULL, 'active', ?, ?)`,
+    )
+      .bind(`sub-${appId}`, appId, tokenHash, now, now)
+      .run();
 
     const data: string = btoa(JSON.stringify({ historyId: '12345' }));
     const response: Response = await SELF.fetch(`http://localhost/api/webhooks/gmail/${appId}?token=wrong-token`, {
@@ -82,8 +84,10 @@ describe('Gmail webhook endpoint', () => {
     const tokenHash: string = await CryptoUtil.sha256Hex(VALID_TOKEN);
     await env.DB.prepare(
       `INSERT INTO provider_subscriptions (subscription_id, application_id, provider_id, external_subscription_id, webhook_secret_hash, status, created_at, updated_at) ` +
-      `VALUES (?, ?, 'google-gmail', 'ext-sub-valid', ?, 'active', ?, ?)`,
-    ).bind(`sub-${appId}`, appId, tokenHash, now, now).run();
+        `VALUES (?, ?, 'google-gmail', 'ext-sub-valid', ?, 'active', ?, ?)`,
+    )
+      .bind(`sub-${appId}`, appId, tokenHash, now, now)
+      .run();
 
     const data: string = btoa(JSON.stringify({ historyId: '12345' }));
     const response: Response = await SELF.fetch(`http://localhost/api/webhooks/gmail/${appId}?token=${VALID_TOKEN}`, {

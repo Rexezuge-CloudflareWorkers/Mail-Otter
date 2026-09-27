@@ -3,7 +3,11 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { SyncedCalendarEvent } from '@mail-otter/shared/model';
 
-class ListProcessingCalendarEventsRoute extends IUserRoute<ListProcessingCalendarEventsRequest, ListProcessingCalendarEventsResponse, ListProcessingCalendarEventsEnv> {
+class ListProcessingCalendarEventsRoute extends IUserRoute<
+  ListProcessingCalendarEventsRequest,
+  ListProcessingCalendarEventsResponse,
+  ListProcessingCalendarEventsEnv
+> {
   schema = {
     tags: ['Processing'],
     summary: 'List synced calendar events for the authenticated user',
@@ -18,13 +22,10 @@ class ListProcessingCalendarEventsRoute extends IUserRoute<ListProcessingCalenda
     cxt: RouteContext<ListProcessingCalendarEventsEnv>,
   ): Promise<ListProcessingCalendarEventsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ProcessingService).listCalendarEvents(
-      this.getAuthenticatedUserEmailAddress(cxt),
-      {
-        applicationId: this.getQueryParam(request, 'applicationId'),
-        cursor: this.getQueryParam(request, 'cursor'),
-      },
-    );
+    return scope.get(Tokens.ProcessingService).listCalendarEvents(this.getAuthenticatedUserEmailAddress(cxt), {
+      applicationId: this.getQueryParam(request, 'applicationId'),
+      cursor: this.getQueryParam(request, 'cursor'),
+    });
   }
 }
 

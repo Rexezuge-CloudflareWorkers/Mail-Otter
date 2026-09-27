@@ -1,10 +1,7 @@
 import { OneDriveIngestionService } from '@mail-otter/backend-services/drive';
 import type { DriveIngestionResult } from '@mail-otter/backend-services/drive';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import {
-  BACKGROUND_TASK_TYPE_ONEDRIVE_SYNC,
-  PROVIDER_MICROSOFT_OUTLOOK,
-} from '@mail-otter/shared/constants';
+import { BACKGROUND_TASK_TYPE_ONEDRIVE_SYNC, PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import { BaseDriveSyncTask } from './BaseDriveSyncTask';
 import type { BaseDriveSyncTaskEnv, DriveSyncConfig } from './BaseDriveSyncTask';
 

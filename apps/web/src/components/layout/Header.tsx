@@ -52,9 +52,7 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-3">
-          {onLanguageChange && (
-            <LanguageSelector value={language} onChange={onLanguageChange} disabled={languageDisabled} />
-          )}
+          {onLanguageChange && <LanguageSelector value={language} onChange={onLanguageChange} disabled={languageDisabled} />}
           <div className="text-sm text-[var(--color-text-muted)] truncate max-w-xs">{userEmail}</div>
         </div>
       </div>

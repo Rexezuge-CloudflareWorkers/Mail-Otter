@@ -51,7 +51,9 @@ export default function SpaApp() {
   const mailboxes = useMailboxes({
     setIsBusy,
     showNotice,
-    onContextChanged: () => { void contextAudit.loadContextAudit(); },
+    onContextChanged: () => {
+      void contextAudit.loadContextAudit();
+    },
   });
 
   // Seed URL-provided values into their domains once on mount

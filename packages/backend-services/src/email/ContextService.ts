@@ -40,7 +40,7 @@ class ContextService {
   ) {
     const db = env.DB;
     this.deps = {
-      contextDAO: () => Promise.resolve(new ApplicationContextDAO(db),),
+      contextDAO: () => Promise.resolve(new ApplicationContextDAO(db)),
       applicationDAO: async () => {
         if (!env.AES_ENCRYPTION_KEY_SECRET) throw new Error('AES_ENCRYPTION_KEY_SECRET is required for this operation.');
         return new ConnectedApplicationDAO(db, await env.AES_ENCRYPTION_KEY_SECRET.get());
@@ -92,7 +92,7 @@ class ContextService {
 
   async pruneApplicationDocuments(applicationId: string, userEmail: string, activeCount: number, effectiveLimit: number): Promise<void> {
     const excessCount: number = activeCount - effectiveLimit;
-    if ((excessCount <= 0) || !this.env.EMAIL_CONTEXT_INDEX) return;
+    if (excessCount <= 0 || !this.env.EMAIL_CONTEXT_INDEX) return;
 
     const contextDAO = await this.deps.contextDAO();
     const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);

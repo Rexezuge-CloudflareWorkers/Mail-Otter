@@ -16,14 +16,14 @@ describe('FetchHttpClient', () => {
   });
 
   it('returns parsed JSON for an OK response', async () => {
-    global.fetch = vi.fn().mockResolvedValue(jsonResponse({ labelId: 'abc123' }));
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse({ labelId: 'abc123' }));
     const client = new FetchHttpClient();
 
     await expect(client.fetchJson('https://example.com/api')).resolves.toEqual({ labelId: 'abc123' });
   });
 
   it('returns an empty object for an OK response with an empty body', async () => {
-    global.fetch = vi.fn().mockResolvedValue(jsonResponse(''));
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(''));
     const client = new FetchHttpClient();
 
     await expect(client.fetchJson('https://example.com/api')).resolves.toEqual({});
@@ -31,7 +31,7 @@ describe('FetchHttpClient', () => {
 
   it('forwards init options to fetch', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}));
-    global.fetch = fetchMock;
+    globalThis.fetch = fetchMock;
     const client = new FetchHttpClient();
 
     await client.fetchJson('https://example.com/api', { method: 'POST', body: '{}' });
@@ -40,7 +40,9 @@ describe('FetchHttpClient', () => {
   });
 
   it('throws HttpFetchError with status and body for non-OK responses', async () => {
-    global.fetch = vi.fn().mockResolvedValue(jsonResponse('quota exceeded', { ok: false, status: 429, statusText: 'Too Many Requests' }));
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse('quota exceeded', { ok: false, status: 429, statusText: 'Too Many Requests' }));
     const client = new FetchHttpClient();
 
     const error = await client.fetchJson('https://example.com/api').catch((e: unknown) => e);
@@ -52,7 +54,7 @@ describe('FetchHttpClient', () => {
   });
 
   it('propagates network errors without wrapping them', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network unreachable'));
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network unreachable'));
     const client = new FetchHttpClient();
 
     await expect(client.fetchJson('https://example.com/api')).rejects.toThrow('Network unreachable');

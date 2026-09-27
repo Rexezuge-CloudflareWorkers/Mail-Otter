@@ -71,10 +71,7 @@ class ContextAuditLogDAO extends BaseDAO {
     );
   }
 
-  public async listAuditLogs(
-    contextDocumentId: string,
-    options: ListAuditLogsOptions = {},
-  ): Promise<ContextAuditLogList> {
+  public async listAuditLogs(contextDocumentId: string, options: ListAuditLogsOptions = {}): Promise<ContextAuditLogList> {
     const limit: number = Math.min(Math.max(options.limit ?? 50, 1), 100);
     const conditions: string[] = ['context_document_id = ?'];
     const bindings: Array<string | number> = [contextDocumentId];

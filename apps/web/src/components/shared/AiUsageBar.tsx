@@ -46,10 +46,7 @@ export function AiUsageBar({
         </span>
       </div>
       <div className="h-0.5 w-full bg-[var(--color-surface-2)]">
-        <div
-          className="h-full transition-all duration-500"
-          style={{ width: `${barWidth}%`, backgroundColor: barColor }}
-        />
+        <div className="h-full transition-all duration-500" style={{ width: `${barWidth}%`, backgroundColor: barColor }} />
       </div>
     </div>
   );

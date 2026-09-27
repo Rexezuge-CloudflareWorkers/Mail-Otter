@@ -58,7 +58,9 @@ export function MailboxesView({
           {applications.map((app, i) => (
             <div
               key={app.applicationId}
-              className={i === 0 ? 'animate-stagger-1' : i === 1 ? 'animate-stagger-2' : i === 2 ? 'animate-stagger-3' : 'animate-fade-in-up'}
+              className={
+                i === 0 ? 'animate-stagger-1' : i === 1 ? 'animate-stagger-2' : i === 2 ? 'animate-stagger-3' : 'animate-fade-in-up'
+              }
             >
               <MailboxCard
                 application={app}

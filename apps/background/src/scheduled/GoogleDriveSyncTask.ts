@@ -1,10 +1,7 @@
 import { GoogleDriveIngestionService } from '@mail-otter/backend-services/drive';
 import type { DriveIngestionResult } from '@mail-otter/backend-services/drive';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import {
-  BACKGROUND_TASK_TYPE_GOOGLE_DRIVE_SYNC,
-  PROVIDER_GOOGLE_GMAIL,
-} from '@mail-otter/shared/constants';
+import { BACKGROUND_TASK_TYPE_GOOGLE_DRIVE_SYNC, PROVIDER_GOOGLE_GMAIL } from '@mail-otter/shared/constants';
 import { BaseDriveSyncTask } from './BaseDriveSyncTask';
 import type { BaseDriveSyncTaskEnv, DriveSyncConfig } from './BaseDriveSyncTask';
 

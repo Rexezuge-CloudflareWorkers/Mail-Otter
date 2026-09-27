@@ -8,7 +8,10 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import prettier from 'eslint-plugin-prettier';
 
 export default tseslint.config(
-  { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'node_modules/**', 'test/**'] },
+  // NOTE: `test/**` is deliberately NOT ignored. Tests are linted with the same
+  // type-aware rules as source; the overrides block at the end of this file
+  // relaxes only the rules that misfire on Vitest idioms.
+  { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'coverage-integration/**', 'node_modules/**'] },
 
   // Base: globals for all JS/TS source files
   {
@@ -144,12 +147,15 @@ export default tseslint.config(
   // --- Regexp: static analysis for regular expressions ---
   pluginRegexp.configs['flat/recommended'],
 
-  // --- Prettier: report formatting drift as lint warnings; disable conflicting stylistic rules ---
+  // --- Prettier: formatting drift is an error, not a warning ---
+  // `pnpm run lint` uses `--quiet`, which suppresses `warn`-level rules. Keeping
+  // this rule at `warn` therefore made the format gate a silent no-op while 300+
+  // files drifted. `error` is the only level `--quiet` still reports.
   eslintConfigPrettier,
   {
     plugins: { prettier },
     rules: {
-      'prettier/prettier': 'warn',
+      'prettier/prettier': 'error',
     },
   },
 
@@ -248,7 +254,7 @@ export default tseslint.config(
 
   // --- Test file overrides (must be last to override plugin rules) ---
   {
-    files: ['test/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    files: ['test/**/*.{ts,tsx,mts,cts}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     rules: {
       // Unbound method is a common false positive in Vitest/Jest mock assertions like expect(fn).toHaveBeenCalledWith(...)
       '@typescript-eslint/unbound-method': 'off',
@@ -263,6 +269,47 @@ export default tseslint.config(
       'sonarjs/assertions-in-tests': 'off',
       // sonarjs/no-extra-arguments fires incorrectly on Vitest mock overloads
       'sonarjs/no-extra-arguments': 'off',
+
+      // --- Stubbing ambient platform globals is the purpose of these tests ---
+      // `globalThis.fetch = vi.fn()` / `globalThis.<binding> = ...` is how the
+      // Workers pool is faked. The rule targets accidental production writes.
+      'unicorn/no-global-object-property-assignment': 'off',
+
+      // --- Canonical-order comparisons over string arrays ---
+      // `.sort()` with no comparator is used to normalize a `string[]` before an
+      // order-insensitive assertion. The default comparator is already correct
+      // and a comparator would only add noise.
+      'unicorn/require-array-sort-compare': 'off',
+      'sonarjs/no-alphabetical-sort': 'off',
+
+      // `Array.from({ length: n }, () => value)` is the idiomatic fixture builder
+      'unicorn/no-array-from-fill': 'off',
+      // Loop-scoped accumulation variables read better at the top of a helper
+      'unicorn/no-top-level-assignment-in-function': 'off',
+      // `[...iterable]` reads better than `Array.from(iterable)` in assertions
+      'unicorn/prefer-iterator-to-array': 'off',
+      // Loopback fixtures legitimately use http://
+      'unicorn/prefer-https': 'off',
+      // `it.each` vs explicit `for...of` is a style choice, not a defect
+      'sonarjs/parameterized-tests': 'off',
+      // Base64 decoding is ASCII-only, so charCodeAt and codePointAt agree
+      'unicorn/prefer-code-point': 'off',
+      // False positive: fires on the constant EMAIL_ACTION_TYPE_MANUAL_TODO
+      'sonarjs/todo-tag': 'off',
+      // Deliberate `undefined` arguments exercise default-parameter branches
+      'sonarjs/no-undefined-argument': 'off',
+      // Purely cosmetic rewrites that make test intent harder to read
+      'sonarjs/prefer-specific-assertions': 'off',
+      'unicorn/no-unreadable-for-of-expression': 'off',
+      'unicorn/no-declarations-before-early-exit': 'off',
+      'unicorn/prefer-minimal-ternary': 'off',
+      'unicorn/prefer-continue': 'off',
+      'unicorn/prefer-regexp-exec': 'off',
+      'unicorn/no-this-outside-of-class': 'off',
+      'unicorn/import-style': 'off',
+      'unicorn/text-encoding-identifier-case': 'off',
+      'sonarjs/void-use': 'off',
+      'sonarjs/pseudo-random': 'off',
     },
   },
 );

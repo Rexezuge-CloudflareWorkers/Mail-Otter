@@ -21,9 +21,7 @@ function makeTrackingResponse(overrides?: Record<string, unknown>) {
 }
 
 function mockFetch(status: number, body: unknown) {
-  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-    Response.json(body, { status }),
-  );
+  return vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(body, { status }));
 }
 
 describe('PackageTrackingService', () => {
@@ -56,7 +54,10 @@ describe('PackageTrackingService', () => {
     });
 
     it('returns Delivered label for Delivered tag', async () => {
-      mockFetch(201, makeTrackingResponse({ tag: 'Delivered', checkpoints: [makeCheckpoint({ message: 'Delivered' })], expected_delivery: undefined }));
+      mockFetch(
+        201,
+        makeTrackingResponse({ tag: 'Delivered', checkpoints: [makeCheckpoint({ message: 'Delivered' })], expected_delivery: undefined }),
+      );
 
       const result = await fetchStatus('1Z999', 'UPS', API_KEY);
 

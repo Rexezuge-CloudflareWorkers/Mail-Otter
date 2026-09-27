@@ -12,7 +12,6 @@ interface CreateDeliveryLogInput {
 }
 
 class IntegrationDeliveryLogDAO extends BaseDAO {
-
   public async create(input: CreateDeliveryLogInput): Promise<IntegrationDeliveryLog> {
     const logId = UUIDUtil.getRandomUUID();
     const createdAt = TimestampUtil.getCurrentUnixTimestampInSeconds();
@@ -24,7 +23,16 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
              (log_id, integration_id, application_id, status, http_status, error_message, email_subject, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(logId, input.integrationId, input.applicationId, input.status, input.httpStatus ?? null, input.errorMessage ?? null, input.emailSubject ?? null, createdAt),
+        .bind(
+          logId,
+          input.integrationId,
+          input.applicationId,
+          input.status,
+          input.httpStatus ?? null,
+          input.errorMessage ?? null,
+          input.emailSubject ?? null,
+          createdAt,
+        ),
       this.database
         .prepare(
           `UPDATE application_integrations
@@ -50,9 +58,7 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
 
   public async listByIntegrationId(integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
     const rows = await this.database
-      .prepare(
-        'SELECT * FROM integration_delivery_logs WHERE integration_id = ? ORDER BY created_at DESC LIMIT ?',
-      )
+      .prepare('SELECT * FROM integration_delivery_logs WHERE integration_id = ? ORDER BY created_at DESC LIMIT ?')
       .bind(integrationId, limit)
       .all<IntegrationDeliveryLogInternal>()
       .then((r) => r.results ?? []);

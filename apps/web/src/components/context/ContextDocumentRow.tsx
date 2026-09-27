@@ -28,8 +28,7 @@ export function ContextDocumentRow({
 }) {
   const { t, i18n } = useTranslation();
   const lng = i18n.resolvedLanguage;
-  const fp = (value?: string | null): string =>
-    value ? value.slice(0, 16) : t('context.fingerprintNotAvailable', 'not available');
+  const fp = (value?: string | null): string => (value ? value.slice(0, 16) : t('context.fingerprintNotAvailable', 'not available'));
   return (
     <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 min-w-0 animate-fade-in-up">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
@@ -38,10 +37,17 @@ export function ContextDocumentRow({
             {t('context.documentTitle', 'Document {{fingerprint}}', { fingerprint: fp(document.sourceDocumentFingerprint) })}
           </div>
           <div className="text-sm text-[var(--color-text-secondary)] truncate mt-0.5">
-            {t('context.documentMeta', '{{app}} · {{provider}} · {{count}} Chars', { app: application?.displayName || document.applicationId, provider: providerLabels[document.sourceProviderId], count: document.indexedTextChars })}
+            {t('context.documentMeta', '{{app}} · {{provider}} · {{count}} Chars', {
+              app: application?.displayName || document.applicationId,
+              provider: providerLabels[document.sourceProviderId],
+              count: document.indexedTextChars,
+            })}
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-0.5">
-            {t('context.documentTimestamps', 'Indexed {{indexed}} · Updated {{updated}}', { indexed: formatTimestamp(document.indexedAt, lng), updated: formatTimestamp(document.updatedAt, lng) })}
+            {t('context.documentTimestamps', 'Indexed {{indexed}} · Updated {{updated}}', {
+              indexed: formatTimestamp(document.indexedAt, lng),
+              updated: formatTimestamp(document.updatedAt, lng),
+            })}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -67,9 +73,7 @@ export function ContextDocumentRow({
         <AuditValue label={t('context.auditTitle', 'Title')} value={fp(document.titleFingerprint)} />
         <AuditValue label={t('context.auditSender', 'Sender')} value={fp(document.senderFingerprint)} />
       </div>
-      {document.lastError && (
-        <div className="mt-3 text-sm text-[var(--color-error-text)] break-words">{document.lastError}</div>
-      )}
+      {document.lastError && <div className="mt-3 text-sm text-[var(--color-error-text)] break-words">{document.lastError}</div>}
     </article>
   );
 }

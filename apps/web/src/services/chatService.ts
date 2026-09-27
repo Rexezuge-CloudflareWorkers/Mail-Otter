@@ -19,10 +19,6 @@ export interface ChatResponse {
   truncated: boolean;
 }
 
-export async function sendChatMessage(options: {
-  query: string;
-  applicationId?: string;
-  history: ChatMessage[];
-}): Promise<ChatResponse> {
+export async function sendChatMessage(options: { query: string; applicationId?: string; history: ChatMessage[] }): Promise<ChatResponse> {
   return apiPost<ChatResponse>('/user/chat', options);
 }

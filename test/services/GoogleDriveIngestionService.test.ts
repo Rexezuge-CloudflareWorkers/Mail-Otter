@@ -47,15 +47,13 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
   }),
 }));
 
-const { mockGetStartPageToken, mockListChanges, mockExportDocument, mockDownloadFile, mockIsExportableMimeType } = vi.hoisted(
-  () => ({
-    mockGetStartPageToken: vi.fn(),
-    mockListChanges: vi.fn(),
-    mockExportDocument: vi.fn(),
-    mockDownloadFile: vi.fn(),
-    mockIsExportableMimeType: vi.fn(),
-  }),
-);
+const { mockGetStartPageToken, mockListChanges, mockExportDocument, mockDownloadFile, mockIsExportableMimeType } = vi.hoisted(() => ({
+  mockGetStartPageToken: vi.fn(),
+  mockListChanges: vi.fn(),
+  mockExportDocument: vi.fn(),
+  mockDownloadFile: vi.fn(),
+  mockIsExportableMimeType: vi.fn(),
+}));
 
 vi.mock('@mail-otter/provider-clients/google-drive', () => ({
   GoogleDriveProviderUtil: {
@@ -83,7 +81,7 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
     drive: { getMaxFilesPerSync: vi.fn(() => 20) },
     attachment: { getMaxSizeBytes: vi.fn(() => 2_097_152) },
     getAiEmbeddingModel: vi.fn(() => '@cf/baai/bge-base-en-v1.5'),
-    getMaxContextMemoryChars: vi.fn(() => 10000),
+    getMaxContextMemoryChars: vi.fn(() => 10_000),
   },
 }));
 
@@ -122,7 +120,9 @@ const MOCK_VECTORIZE = {
   getByIds: vi.fn(),
 };
 
-function makeEnv(extra: Record<string, unknown> = {}): Parameters<typeof GoogleDriveIngestionService.prototype.ingestForApplication>[0] extends never
+function makeEnv(
+  extra: Record<string, unknown> = {},
+): Parameters<typeof GoogleDriveIngestionService.prototype.ingestForApplication>[0] extends never
   ? never
   : ConstructorParameters<typeof GoogleDriveIngestionService>[0] {
   return {
@@ -163,11 +163,7 @@ describe('GoogleDriveIngestionService', () => {
     const result = await service().ingestForApplication(MOCK_APPLICATION, ACCESS_TOKEN);
 
     expect(mockGetStartPageToken).toHaveBeenCalledWith(ACCESS_TOKEN);
-    expect(mockSetProviderConfig).toHaveBeenCalledWith(
-      MOCK_APPLICATION.applicationId,
-      'google_drive_page_token',
-      'first-token',
-    );
+    expect(mockSetProviderConfig).toHaveBeenCalledWith(MOCK_APPLICATION.applicationId, 'google_drive_page_token', 'first-token');
     expect(result).toEqual({ indexed: 0, skipped: 0, failed: 0, newCursor: null });
     expect(mockListChanges).not.toHaveBeenCalled();
   });
@@ -194,11 +190,7 @@ describe('GoogleDriveIngestionService', () => {
     expect(mockExportDocument).toHaveBeenCalledWith(ACCESS_TOKEN, 'doc-id');
     expect(MOCK_VECTORIZE.upsert).toHaveBeenCalledOnce();
     expect(mockMarkDocumentIndexed).toHaveBeenCalledWith('ctx-1');
-    expect(mockSetProviderConfig).toHaveBeenCalledWith(
-      MOCK_APPLICATION.applicationId,
-      'google_drive_page_token',
-      'new-page-token',
-    );
+    expect(mockSetProviderConfig).toHaveBeenCalledWith(MOCK_APPLICATION.applicationId, 'google_drive_page_token', 'new-page-token');
     expect(result.indexed).toBe(1);
     expect(result.skipped).toBe(0);
     expect(result.newCursor).toBe('new-page-token');
@@ -245,11 +237,7 @@ describe('GoogleDriveIngestionService', () => {
     await service().ingestForApplication(MOCK_APPLICATION, ACCESS_TOKEN);
 
     expect(MOCK_VECTORIZE.deleteByIds).toHaveBeenCalledWith(['vec-3']);
-    expect(mockMarkDocumentsDeletedByVectorIds).toHaveBeenCalledWith(
-      MOCK_APPLICATION.applicationId,
-      'user@example.com',
-      ['vec-3'],
-    );
+    expect(mockMarkDocumentsDeletedByVectorIds).toHaveBeenCalledWith(MOCK_APPLICATION.applicationId, 'user@example.com', ['vec-3']);
   });
 
   it('counts failed files but continues processing remaining files', async () => {

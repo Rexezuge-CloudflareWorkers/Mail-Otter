@@ -80,13 +80,14 @@ export function ContextAuditView({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-base font-semibold text-[var(--color-text-primary)] truncate">
-                  {selectedApplication.displayName}
-                </h2>
+                <h2 className="text-base font-semibold text-[var(--color-text-primary)] truncate">{selectedApplication.displayName}</h2>
                 <ContextIndexBadge enabled={selectedApplication.contextIndexingEnabled} />
               </div>
               <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-                {t('context.docsSummary', '{{count}} Active Docs · Last Indexed {{date}}', { count: selectedApplication.contextDocumentCount || 0, date: formatTimestamp(selectedApplication.contextLastIndexedAt, lng) })}
+                {t('context.docsSummary', '{{count}} Active Docs · Last Indexed {{date}}', {
+                  count: selectedApplication.contextDocumentCount || 0,
+                  date: formatTimestamp(selectedApplication.contextLastIndexedAt, lng),
+                })}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -96,7 +97,9 @@ export function ContextAuditView({
                 onClick={() => onToggleIndexing(selectedApplication.applicationId, !selectedApplication.contextIndexingEnabled)}
                 disabled={busy}
               >
-                {selectedApplication.contextIndexingEnabled ? t('context.disableIndexing', 'Disable Indexing') : t('context.enableIndexing', 'Enable Indexing')}
+                {selectedApplication.contextIndexingEnabled
+                  ? t('context.disableIndexing', 'Disable Indexing')
+                  : t('context.enableIndexing', 'Enable Indexing')}
               </Button>
               <Button
                 variant="danger"
@@ -115,7 +118,9 @@ export function ContextAuditView({
         <div>
           <CardHeader className="mb-3 px-0">
             <CardTitle>{t('context.indexedDocuments', 'Indexed Documents')}</CardTitle>
-            <span className="text-sm text-[var(--color-text-muted)]">{t('actions.loaded', '{{count}} Loaded', { count: documents.length })}</span>
+            <span className="text-sm text-[var(--color-text-muted)]">
+              {t('actions.loaded', '{{count}} Loaded', { count: documents.length })}
+            </span>
           </CardHeader>
           <div className="space-y-2.5">
             {documents.map((doc) => (
@@ -156,9 +161,7 @@ export function ContextAuditView({
               </div>
             )}
           </div>
-          {deletionRunsCursor && (
-            <LoadMoreButton onLoadMore={onLoadMoreDeletions} loading={busy} />
-          )}
+          {deletionRunsCursor && <LoadMoreButton onLoadMore={onLoadMoreDeletions} loading={busy} />}
         </div>
       </div>
     </main>

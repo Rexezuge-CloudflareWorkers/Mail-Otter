@@ -20,7 +20,7 @@ class GetAnalyticsRoute extends IUserRoute<GetAnalyticsRequest, GetAnalyticsResp
     const scope = createRequestScope(env);
     const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
     const daysParam: string | undefined = this.getQueryParam(request, 'days');
-    const days: number = Math.min(Math.max(daysParam ? (Number(daysParam) || 30) : 30, 1), 365);
+    const days: number = Math.min(Math.max(daysParam ? Number(daysParam) || 30 : 30, 1), 365);
     const applicationId: string | undefined = this.getQueryParam(request, 'applicationId');
 
     return scope.get(Tokens.AnalyticsService).getAnalytics(userEmail, { days, applicationId });

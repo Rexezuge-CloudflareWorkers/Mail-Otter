@@ -187,7 +187,9 @@ describe('scheduleAction', () => {
 
   it('throws for non-auto-executable action types', async () => {
     mockGetForUser.mockResolvedValue(makePendingAction({ actionType: 'finance.pay_bill' }));
-    await expect(scheduleAction(makeEnv(), 'action-1', 'user@example.com', new Date((NOW + 3600) * 1000))).rejects.toThrow('does not support');
+    await expect(scheduleAction(makeEnv(), 'action-1', 'user@example.com', new Date((NOW + 3600) * 1000))).rejects.toThrow(
+      'does not support',
+    );
   });
 
   it('throws when action is not found', async () => {

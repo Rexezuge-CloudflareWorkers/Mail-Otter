@@ -2,7 +2,13 @@ import { PROVIDER_GOOGLE_GMAIL } from '@mail-otter/shared/constants';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import { BadRequestError } from '@mail-otter/backend-errors';
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
   ILabelProvider,
@@ -45,12 +51,19 @@ class GmailEmailProvider extends AbstractOAuthEmailProvider implements ILabelPro
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  public async renewWatch(credentials: AnyProviderCredentials, _subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
+  public async renewWatch(
+    credentials: AnyProviderCredentials,
+    _subscriptionId: string,
+    _expiresAt: number | null,
+  ): Promise<ProviderWatchResult> {
     this.requireOAuth2Credentials(credentials, 'Gmail');
     throw new BadRequestError('Gmail renewal must be triggered by the subscription renewal util with topic context.');
   }
 
-  public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+  public async pollNewMessages(
+    _credentials: AnyProviderCredentials,
+    _cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     return this.throwPollNotSupported('Gmail uses webhooks and does not support polling.');
   }
 

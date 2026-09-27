@@ -10,13 +10,13 @@ async function seedApplication(providerId: string = 'microsoft-outlook'): Promis
   const applicationId = `app-${appCounter}-${Date.now()}`;
   const email = `user-${appCounter}@example.com`;
   const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare(
-    `INSERT INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`,
-  ).bind(email, now, now).run();
+  await env.DB.prepare(`INSERT INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(email, now, now).run();
   await env.DB.prepare(
     `INSERT INTO connected_applications (application_id, user_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
-    `VALUES (?, ?, ?, ?, 'oauth2', 'enc', 'iv', 'connected', ?, ?)`,
-  ).bind(applicationId, email, 'Test App', providerId, now, now).run();
+      `VALUES (?, ?, ?, ?, 'oauth2', 'enc', 'iv', 'connected', ?, ?)`,
+  )
+    .bind(applicationId, email, 'Test App', providerId, now, now)
+    .run();
   return applicationId;
 }
 
@@ -144,9 +144,9 @@ describe('ProcessedMessageDAO', () => {
     const now = Math.floor(Date.now() / 1000);
     await dao.tryStart(applicationId, 'microsoft-outlook', 'delete-old', 'thread-1');
     await dao.markSummarized(applicationId, 'delete-old');
-    await env.DB.prepare(
-      `UPDATE processed_messages SET updated_at = ? WHERE application_id = ? AND provider_message_id = 'delete-old'`,
-    ).bind(now - 86_400, applicationId).run();
+    await env.DB.prepare(`UPDATE processed_messages SET updated_at = ? WHERE application_id = ? AND provider_message_id = 'delete-old'`)
+      .bind(now - 86_400, applicationId)
+      .run();
 
     const deleted = await dao.deleteOlderThan(now - 3600, ['summarized'], 10);
 

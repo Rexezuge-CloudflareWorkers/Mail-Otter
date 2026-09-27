@@ -21,7 +21,9 @@ class ListApplicationsRoute extends IUserRoute<ListApplicationsRequest, ListAppl
   ): Promise<ListApplicationsResponse> {
     const scope = createRequestScope(env);
     return {
-      applications: await scope.get(Tokens.ApplicationService).listUserApplications(this.getAuthenticatedUserEmailAddress(cxt), request.raw),
+      applications: await scope
+        .get(Tokens.ApplicationService)
+        .listUserApplications(this.getAuthenticatedUserEmailAddress(cxt), request.raw),
     };
   }
 }

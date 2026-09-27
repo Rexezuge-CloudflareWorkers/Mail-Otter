@@ -17,11 +17,9 @@ describe('Processing visibility API', () => {
     if (aesSecret) {
       await adminSecretsStore(aesSecret).create('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
     }
-    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(
-      TEST_EMAIL,
-      Math.floor(Date.now() / 1000),
-      Math.floor(Date.now() / 1000),
-    ).run();
+    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`)
+      .bind(TEST_EMAIL, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000))
+      .run();
   });
 
   it('lists task runs, messages, and calendar events', async () => {
@@ -46,7 +44,7 @@ describe('Processing visibility API', () => {
     const response: Response = await SELF.fetch('http://localhost/user/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: '   ' }),
+      body: JSON.stringify({ query: ' '.repeat(3) }),
     });
     expect(response.status).toBe(400);
   });

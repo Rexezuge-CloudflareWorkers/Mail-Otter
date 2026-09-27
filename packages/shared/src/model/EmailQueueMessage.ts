@@ -30,10 +30,7 @@ interface ImapNotificationQueueMessage {
 }
 
 type EmailQueueMessage =
-  | GmailNotificationQueueMessage
-  | OutlookNotificationQueueMessage
-  | JmapNotificationQueueMessage
-  | ImapNotificationQueueMessage;
+  GmailNotificationQueueMessage | OutlookNotificationQueueMessage | JmapNotificationQueueMessage | ImapNotificationQueueMessage;
 
 export type {
   EmailQueueMessage,

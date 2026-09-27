@@ -55,8 +55,7 @@ const ConnectedAppBaseSchema = z
     smtpPort: z.number().int().min(1).max(65_535).optional(),
   })
   .refine(
-    (input): boolean =>
-      (PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod)) ?? false,
+    (input): boolean => PROVIDER_SUPPORTED_CONNECTION_METHODS[input.providerId]?.includes(input.connectionMethod) ?? false,
     'providerId and connectionMethod are not a supported combination.',
   )
   .refine(
@@ -66,14 +65,10 @@ const ConnectedAppBaseSchema = z
       Boolean(input.gmailPubsubTopicName),
     'gmailPubsubTopicName is required for Gmail OAuth2 applications.',
   )
-  .refine(
-    (input): boolean => !IMAP_PROVIDERS.has(input.providerId) || Boolean(input.imapHost),
-    'imapHost is required for IMAP providers.',
-  )
+  .refine((input): boolean => !IMAP_PROVIDERS.has(input.providerId) || Boolean(input.imapHost), 'imapHost is required for IMAP providers.')
   .refine(
     (input): boolean =>
-      !(IMAP_PROVIDERS.has(input.providerId) || input.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) ||
-      Boolean(input.imapUsername),
+      !(IMAP_PROVIDERS.has(input.providerId) || input.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD) || Boolean(input.imapUsername),
     'imapUsername is required for IMAP providers and when using IMAP password authentication.',
   )
   .refine(
@@ -81,7 +76,10 @@ const ConnectedAppBaseSchema = z
     'clientId is required for OAuth2 providers.',
   )
   .refine(
-    (input): boolean => input.connectionMethod !== CONNECTION_METHOD_OAUTH2 || Boolean(input.clientSecret) || Boolean((input as { applicationId?: string }).applicationId),
+    (input): boolean =>
+      input.connectionMethod !== CONNECTION_METHOD_OAUTH2 ||
+      Boolean(input.clientSecret) ||
+      Boolean((input as { applicationId?: string }).applicationId),
     'clientSecret is required for new OAuth2 applications.',
   );
 
@@ -116,7 +114,10 @@ const EmailRuleConditionMatcherSchema = z.union([
 
 const EmailRuleConditionSchema = z.object({
   operator: z.enum(['all', 'any']),
-  matchers: z.array(EmailRuleConditionMatcherSchema).min(1, 'At least one matcher is required.').max(MAX_RULE_MATCHERS, `Maximum ${MAX_RULE_MATCHERS} matchers per rule.`),
+  matchers: z
+    .array(EmailRuleConditionMatcherSchema)
+    .min(1, 'At least one matcher is required.')
+    .max(MAX_RULE_MATCHERS, `Maximum ${MAX_RULE_MATCHERS} matchers per rule.`),
 });
 
 const EmailRuleActionSchema = z
@@ -142,12 +143,9 @@ const EmailProcessingRuleSchema = z
     conditions: EmailRuleConditionSchema,
     action: EmailRuleActionSchema,
   })
-  .refine(
-    (rule): boolean => {
-      return !PRE_PROCESSING_ACTION_TYPES.has(rule.action.type) || rule.conditions.matchers.every((m) => m.field !== 'detected_action_type');
-    },
-    'detected_action_type matcher is only valid with post-processing action types (apply_label, archive_message, mark_read, star_message).',
-  );
+  .refine((rule): boolean => {
+    return !PRE_PROCESSING_ACTION_TYPES.has(rule.action.type) || rule.conditions.matchers.every((m) => m.field !== 'detected_action_type');
+  }, 'detected_action_type matcher is only valid with post-processing action types (apply_label, archive_message, mark_read, star_message).');
 
 export {
   ConnectedAppBaseSchema as ConnectedApplicationBaseSchema,

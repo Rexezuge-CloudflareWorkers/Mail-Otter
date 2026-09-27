@@ -36,17 +36,9 @@ interface BaseDriveSyncTaskEnv extends IEnv {
 abstract class BaseDriveSyncTask<TEnv extends BaseDriveSyncTaskEnv> extends IScheduledTask<TEnv> {
   protected abstract config(): DriveSyncConfig;
 
-  protected abstract ingestForApplication(
-    env: TEnv,
-    application: ConnectedApplication,
-    accessToken: string,
-  ): Promise<DriveIngestionResult>;
+  protected abstract ingestForApplication(env: TEnv, application: ConnectedApplication, accessToken: string): Promise<DriveIngestionResult>;
 
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: TEnv,
-    _ctx: ExecutionContext,
-  ): Promise<TaskRunSummary> {
+  protected async handleScheduledTask(_event: ScheduledController, env: TEnv, _ctx: ExecutionContext): Promise<TaskRunSummary> {
     const scope = createRequestScope(env);
     const { taskType, featureFlag, expectedProviderId, unsupportedProviderMessage, noun } = this.config();
     const sessionEnv = createD1SessionEnv(env);

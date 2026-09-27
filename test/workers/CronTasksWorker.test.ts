@@ -194,7 +194,9 @@ describe('CronTasksWorker', () => {
     expect(taskSpies.oneDriveSync).toHaveBeenCalledOnce();
     expect(taskSpies.subscriptionRenewal).toHaveBeenCalledOnce();
     expect(taskSpies.oauth2Refresh.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.contextPruning.mock.invocationCallOrder[0]);
-    expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(taskSpies.processedMessagePruning.mock.invocationCallOrder[0]);
+    expect(taskSpies.contextPruning.mock.invocationCallOrder[0]).toBeLessThan(
+      taskSpies.processedMessagePruning.mock.invocationCallOrder[0],
+    );
     expect(taskSpies.oauth2Refresh.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         cron: '*/10 * * * *',
@@ -228,7 +230,7 @@ describe('CronTasksWorker', () => {
     const worker = new CronTasksWorker(createDurableObjectState(), {} as Env);
 
     const notFoundResponse: Response = await worker.fetch(new Request('https://cron-tasks.invalid/missing', { method: 'POST' }));
-    const methodResponse: Response = await worker.fetch(new Request('https://cron-tasks.invalid/run', { method: 'GET' }));
+    const methodResponse: Response = await worker.fetch(new Request('https://cron-tasks.invalid/run'));
 
     expect(notFoundResponse.status).toBe(404);
     expect(methodResponse.status).toBe(405);

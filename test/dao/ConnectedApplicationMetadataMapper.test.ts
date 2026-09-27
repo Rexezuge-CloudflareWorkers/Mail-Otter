@@ -46,12 +46,10 @@ describe('ConnectedApplicationMetadataMapper', () => {
 
   it('assembles metadata from row, config, and folders', () => {
     const config = { ...emptyConfig(), calendar_time_zone: 'Europe/Berlin', imap_port: '993', oauth2_enabled_features: '["a"]' };
-    const metadata = assembleMetadata(
-      makeRow(),
-      config,
-      [{ folderPath: 'INBOX', folderName: 'Inbox' }],
-      { senderDomainFilters: { includeRules: ['x'] }, resolvedRulesJson: null },
-    );
+    const metadata = assembleMetadata(makeRow(), config, [{ folderPath: 'INBOX', folderName: 'Inbox' }], {
+      senderDomainFilters: { includeRules: ['x'] },
+      resolvedRulesJson: null,
+    });
     expect(metadata).toMatchObject({
       applicationId: 'app-1',
       timeZone: 'Europe/Berlin',
@@ -83,9 +81,10 @@ describe('ConnectedApplicationMetadataMapper', () => {
       resolvedRulesJson: '{"a":1}',
     });
     expect(w.setConfig).not.toHaveBeenCalled();
-    await expect(
-      migrateLegacyExcludeRules('app-1', JSON.stringify({ includeRules: ['a'] }), null, w),
-    ).resolves.toEqual({ senderDomainFilters: { includeRules: ['a'] }, resolvedRulesJson: null });
+    await expect(migrateLegacyExcludeRules('app-1', JSON.stringify({ includeRules: ['a'] }), null, w)).resolves.toEqual({
+      senderDomainFilters: { includeRules: ['a'] },
+      resolvedRulesJson: null,
+    });
   });
 
   it('migrates legacy excludeRules into processing rules', async () => {

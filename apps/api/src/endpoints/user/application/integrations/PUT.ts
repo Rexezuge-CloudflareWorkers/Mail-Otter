@@ -20,7 +20,12 @@ class UpdateIntegrationRoute extends IUserRoute<UpdateIntegrationRequest, Update
     cxt: RouteContext<UpdateIntegrationEnv>,
   ): Promise<UpdateIntegrationResponse> {
     const scope = createRequestScope(env);
-    const integration = await scope.get(Tokens.ApplicationService).updateIntegration(this.getAuthenticatedUserEmailAddress(cxt), { integrationId: request.integrationId, name: request.name, enabled: request.enabled, webhookUrl: request.webhookUrl });
+    const integration = await scope.get(Tokens.ApplicationService).updateIntegration(this.getAuthenticatedUserEmailAddress(cxt), {
+      integrationId: request.integrationId,
+      name: request.name,
+      enabled: request.enabled,
+      webhookUrl: request.webhookUrl,
+    });
     return { integration };
   }
 }

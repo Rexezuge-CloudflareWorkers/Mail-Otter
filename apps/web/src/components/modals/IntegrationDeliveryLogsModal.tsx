@@ -16,16 +16,16 @@ export function IntegrationDeliveryLogsModal({
   const { t, i18n } = useTranslation();
   const lng = i18n.resolvedLanguage;
   return (
-    <ModalShell onClose={onClose} widthClass={WIDE_MODAL_CLASS} ariaLabel={t('integrations.deliveryHistoryTitle', 'Integration Delivery History')}>
+    <ModalShell
+      onClose={onClose}
+      widthClass={WIDE_MODAL_CLASS}
+      ariaLabel={t('integrations.deliveryHistoryTitle', 'Integration Delivery History')}
+    >
       <ModalHeader title={t('context.deliveryHistory', 'Delivery History')} onClose={onClose} />
 
       <ModalBody>
-        {loading && logs.length === 0 && (
-          <ModalEmpty message={t('common.loading', 'Loading…')} />
-        )}
-        {!loading && logs.length === 0 && (
-          <ModalEmpty message={t('integrations.noDeliveryLogs', 'No Delivery Logs Found.')} />
-        )}
+        {loading && logs.length === 0 && <ModalEmpty message={t('common.loading', 'Loading…')} />}
+        {!loading && logs.length === 0 && <ModalEmpty message={t('integrations.noDeliveryLogs', 'No Delivery Logs Found.')} />}
         {logs.map((log) => {
           const isSuccess = log.status === 'success';
           return (
@@ -42,9 +42,7 @@ export function IntegrationDeliveryLogsModal({
                     )}
                   </p>
                   {log.errorMessage && (
-                    <p className="mt-1.5 text-xs text-[var(--color-error-text)] font-mono truncate">
-                      {log.errorMessage}
-                    </p>
+                    <p className="mt-1.5 text-xs text-[var(--color-error-text)] font-mono truncate">{log.errorMessage}</p>
                   )}
                 </div>
                 <DeliveryStatusBadge status={isSuccess ? 'success' : 'failure'} />

@@ -137,7 +137,8 @@ const enStrings: BackendLocaleStrings = {
     appointmentNotedSuffix: ' details noted.',
   },
   csv: {
-    header: 'Event Type,Application ID,Timestamp ISO,Provider Message ID,Status / Execution Status,Error Message,Action ID,Action Type,Risk Level,Triggered By',
+    header:
+      'Event Type,Application ID,Timestamp ISO,Provider Message ID,Status / Execution Status,Error Message,Action ID,Action Type,Risk Level,Triggered By',
   },
 };
 

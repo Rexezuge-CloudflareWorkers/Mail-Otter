@@ -80,7 +80,9 @@ class ImapPollingTask extends IScheduledTask<ImapPollingTaskEnv> {
       };
     }
     const scope = createRequestScope(env);
-    const accessToken = await scope.get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService).getAccessToken(application.applicationId);
+    const accessToken = await scope
+      .get<OAuth2AccessTokenService>(Tokens.OAuth2AccessTokenService)
+      .getAccessToken(application.applicationId);
     return {
       type: 'oauth2',
       accessToken,

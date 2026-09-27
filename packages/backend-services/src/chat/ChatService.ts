@@ -148,11 +148,7 @@ class ChatService {
     return 'en';
   }
 
-  private static buildContextBlockWithDeps(
-    deps: Required<ChatServiceDeps>,
-    matches: VectorizeMatch[],
-    locale?: string | null,
-  ): string {
+  private static buildContextBlockWithDeps(deps: Required<ChatServiceDeps>, matches: VectorizeMatch[], locale?: string | null): string {
     const strings = getBackendStrings(locale);
     return matches
       .map((m, i) => {
@@ -179,12 +175,7 @@ class ChatService {
   private static buildSystemPrompt(contextBlock: string, locale?: string | null): string {
     const normalized = LocaleUtil.normalize(locale);
     const strings = getBackendStrings(normalized);
-    const lines = [
-      strings.chat.systemIntro1,
-      strings.chat.systemIntro2,
-      strings.chat.systemIntro3,
-      strings.chat.systemIntro4,
-    ];
+    const lines = [strings.chat.systemIntro1, strings.chat.systemIntro2, strings.chat.systemIntro3, strings.chat.systemIntro4];
     if (normalized !== 'en') {
       lines.push(formatBackendString(strings.chat.answerLanguageInstruction, { language: AI_LANGUAGE_NAMES[normalized] }));
     }

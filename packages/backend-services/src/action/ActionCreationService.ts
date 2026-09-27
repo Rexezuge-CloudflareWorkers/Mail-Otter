@@ -23,8 +23,6 @@ import { CryptoUtil, TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { createActionDAO, hashToken } from './ActionServiceUtils';
 import type { ActionDAOEnv } from './ActionServiceUtils';
 
-
-
 const MAX_ACTIONS_PER_SUMMARY = 4;
 const MAX_TEXT_LENGTH = 1000;
 
@@ -349,4 +347,4 @@ export {
   toManualTodo,
 };
 
-export {hashToken} from './ActionServiceUtils';
+export { hashToken } from './ActionServiceUtils';

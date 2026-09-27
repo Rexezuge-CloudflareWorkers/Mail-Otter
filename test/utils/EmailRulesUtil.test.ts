@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { EmailRulesUtil } from '@mail-otter/backend-services/email';
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
 
-const ctx = { from: 'Alice Smith <alice@newsletters.com>', subject: 'Weekly Digest - Unsubscribe anytime', body: 'Hello, this is your weekly digest.' };
+const ctx = {
+  from: 'Alice Smith <alice@newsletters.com>',
+  subject: 'Weekly Digest - Unsubscribe anytime',
+  body: 'Hello, this is your weekly digest.',
+};
 
 function rule(overrides: Partial<EmailProcessingRule> = {}): EmailProcessingRule {
   return {
@@ -27,19 +31,34 @@ describe('EmailRulesUtil', () => {
     });
 
     it('returns first matching rule', () => {
-      const r1 = rule({ name: 'Rule 1', conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] } });
-      const r2 = rule({ name: 'Rule 2', conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] } });
+      const r1 = rule({
+        name: 'Rule 1',
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] },
+      });
+      const r2 = rule({
+        name: 'Rule 2',
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] },
+      });
       expect(EmailRulesUtil.evaluate([r1, r2], ctx)?.name).toBe('Rule 2');
     });
 
     it('skips disabled rules', () => {
-      const r = rule({ enabled: false, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] } });
+      const r = rule({
+        enabled: false,
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] },
+      });
       expect(EmailRulesUtil.evaluate([r], ctx)).toBeNull();
     });
 
     it('stops at first match (first matching rule wins)', () => {
-      const r1 = rule({ name: 'First', conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] } });
-      const r2 = rule({ name: 'Second', conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] } });
+      const r1 = rule({
+        name: 'First',
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] },
+      });
+      const r2 = rule({
+        name: 'Second',
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'digest' }] },
+      });
       expect(EmailRulesUtil.evaluate([r1, r2], ctx)?.name).toBe('First');
     });
   });
@@ -146,7 +165,10 @@ describe('EmailRulesUtil', () => {
 
   describe('evaluatePreProcessing', () => {
     it('returns null when no pre-processing rule matches', () => {
-      const r = rule({ action: { type: 'skip' }, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] } });
+      const r = rule({
+        action: { type: 'skip' },
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] },
+      });
       expect(EmailRulesUtil.evaluatePreProcessing([r], ctx)).toBeNull();
     });
 
@@ -163,7 +185,10 @@ describe('EmailRulesUtil', () => {
 
   describe('evaluatePostProcessing', () => {
     it('returns empty array when no rules match', () => {
-      const r = rule({ action: { type: 'archive_message' }, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] } });
+      const r = rule({
+        action: { type: 'archive_message' },
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'invoice' }] },
+      });
       expect(EmailRulesUtil.evaluatePostProcessing([r], ctx)).toHaveLength(0);
     });
 
@@ -214,15 +239,21 @@ describe('EmailRulesUtil', () => {
 
   describe('matchesMatcher — has_attachment', () => {
     it('matches when email has attachment and value is true', () => {
-      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: true })).toBe(true);
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: true })).toBe(
+        true,
+      );
     });
 
     it('does not match when email has no attachment and value is true', () => {
-      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: false })).toBe(false);
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'true' }, { ...ctx, hasAttachment: false })).toBe(
+        false,
+      );
     });
 
     it('matches when email has no attachment and value is false', () => {
-      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'false' }, { ...ctx, hasAttachment: false })).toBe(true);
+      expect(EmailRulesUtil.matchesMatcher({ field: 'has_attachment', op: 'is', value: 'false' }, { ...ctx, hasAttachment: false })).toBe(
+        true,
+      );
     });
 
     it('treats undefined hasAttachment as false', () => {
@@ -233,26 +264,36 @@ describe('EmailRulesUtil', () => {
   describe('matchesMatcher — detected_action_type', () => {
     it('includes — returns true when action type is in detected list', () => {
       const ctxWithActions = { ...ctx, detectedActionTypes: ['calendar.add_event', 'email.draft_reply'] };
-      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(true);
+      expect(
+        EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions),
+      ).toBe(true);
     });
 
     it('includes — returns false when action type not in detected list', () => {
       const ctxWithActions = { ...ctx, detectedActionTypes: ['email.draft_reply'] };
-      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(false);
+      expect(
+        EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctxWithActions),
+      ).toBe(false);
     });
 
     it('not_includes — returns true when action type is absent', () => {
       const ctxWithActions = { ...ctx, detectedActionTypes: ['email.draft_reply'] };
-      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(true);
+      expect(
+        EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions),
+      ).toBe(true);
     });
 
     it('not_includes — returns false when action type is present', () => {
       const ctxWithActions = { ...ctx, detectedActionTypes: ['calendar.add_event'] };
-      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions)).toBe(false);
+      expect(
+        EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'not_includes', value: 'calendar.add_event' }, ctxWithActions),
+      ).toBe(false);
     });
 
     it('treats undefined detectedActionTypes as empty list', () => {
-      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctx)).toBe(false);
+      expect(EmailRulesUtil.matchesMatcher({ field: 'detected_action_type', op: 'includes', value: 'calendar.add_event' }, ctx)).toBe(
+        false,
+      );
     });
   });
 
@@ -292,7 +333,10 @@ describe('EmailRulesUtil', () => {
     });
 
     it('evaluatePostProcessing includes always-matcher rule for any email', () => {
-      const r = rule({ action: { type: 'star_message' }, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } });
+      const r = rule({
+        action: { type: 'star_message' },
+        conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] },
+      });
       const result = EmailRulesUtil.evaluatePostProcessing([r], { from: '', subject: '', body: '' });
       expect(result).toHaveLength(1);
       expect(result[0].action.type).toBe('star_message');

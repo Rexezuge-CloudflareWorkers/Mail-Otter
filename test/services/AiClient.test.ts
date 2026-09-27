@@ -33,7 +33,7 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
 import { AiClient } from '../../packages/backend-services/src/ai/AiClient';
 
 function createAi(runImpl: (model: string, input: unknown) => Promise<unknown>): Ai {
-  return { run: vi.fn(runImpl) } as unknown as Ai;
+  return { run: vi.fn(runImpl) };
 }
 
 describe('AiClient', () => {

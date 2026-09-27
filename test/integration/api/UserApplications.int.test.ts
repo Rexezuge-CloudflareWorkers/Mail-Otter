@@ -8,8 +8,10 @@ async function seedApplication(userEmail: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare(
     `INSERT INTO connected_applications (application_id, user_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
-    `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
-  ).bind(applicationId, userEmail, 'Test Gmail', now, now).run();
+      `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
+  )
+    .bind(applicationId, userEmail, 'Test Gmail', now, now)
+    .run();
   return applicationId;
 }
 
@@ -33,9 +35,9 @@ describe('User applications API', () => {
       // Valid base64-encoded 32-byte (AES-256-GCM) key (32 zero bytes)
       await admin.create('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
     }
-    await env.DB.prepare(
-      `INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`,
-    ).bind(TEST_EMAIL, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000)).run();
+    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`)
+      .bind(TEST_EMAIL, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000))
+      .run();
   });
 
   describe('GET /user/me', () => {
@@ -43,7 +45,7 @@ describe('User applications API', () => {
       const response: Response = await SELF.fetch('http://localhost/user/me');
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { email: string };
+      const body = (await response.json()) as { email: string };
       expect(body.email).toBe(TEST_EMAIL);
     });
   });
@@ -53,7 +55,7 @@ describe('User applications API', () => {
       const response: Response = await SELF.fetch('http://localhost/user/applications');
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { applications: unknown[] };
+      const body = (await response.json()) as { applications: unknown[] };
       expect(Array.isArray(body.applications)).toBe(true);
     });
 
@@ -63,7 +65,7 @@ describe('User applications API', () => {
       const response: Response = await SELF.fetch('http://localhost/user/applications');
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { applications: { providerId: string }[] };
+      const body = (await response.json()) as { applications: { providerId: string }[] };
       expect(body.applications.length).toBeGreaterThan(0);
     });
   });
@@ -77,7 +79,7 @@ describe('User applications API', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { application: { applicationId: string; providerId: string } };
+      const body = (await response.json()) as { application: { applicationId: string; providerId: string } };
       expect(body.application.applicationId).toBeDefined();
       expect(body.application.providerId).toBe('google-gmail');
     });
@@ -96,7 +98,7 @@ describe('User applications API', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { application: { providerId: string } };
+      const body = (await response.json()) as { application: { providerId: string } };
       expect(body.application.providerId).toBe('microsoft-outlook');
     });
 
@@ -135,7 +137,7 @@ describe('User applications API', () => {
         body: JSON.stringify(GMAIL_BODY),
       });
       expect(createResponse.status).toBe(200);
-      const createBody = await createResponse.json() as { application: { applicationId: string } };
+      const createBody = (await createResponse.json()) as { application: { applicationId: string } };
       const applicationId = createBody.application.applicationId;
 
       const response: Response = await SELF.fetch('http://localhost/user/application', {
@@ -151,7 +153,7 @@ describe('User applications API', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { application: { applicationId: string } };
+      const body = (await response.json()) as { application: { applicationId: string } };
       expect(body.application.applicationId).toBe(applicationId);
     });
 
@@ -183,7 +185,7 @@ describe('User applications API', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { success: boolean };
+      const body = (await response.json()) as { success: boolean };
       expect(body.success).toBe(true);
     });
 
@@ -195,7 +197,7 @@ describe('User applications API', () => {
       });
 
       expect(response.status).toBe(200);
-      const body = await response.json() as { success: boolean };
+      const body = (await response.json()) as { success: boolean };
       expect(body.success).toBe(true);
     });
   });
@@ -203,16 +205,18 @@ describe('User applications API', () => {
   describe('POST /user/application (max limit)', () => {
     it('returns 400 when the max applications limit is reached', async () => {
       const now = Math.floor(Date.now() / 1000);
-      const countRow = await env.DB.prepare(
-        `SELECT COUNT(*) as count FROM connected_applications WHERE user_email = ?`,
-      ).bind(TEST_EMAIL).first<{ count: number }>();
+      const countRow = await env.DB.prepare(`SELECT COUNT(*) as count FROM connected_applications WHERE user_email = ?`)
+        .bind(TEST_EMAIL)
+        .first<{ count: number }>();
       const existing = countRow?.count ?? 0;
 
       for (let i = existing; i < 99; i++) {
         await env.DB.prepare(
           `INSERT INTO connected_applications (application_id, user_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
-          `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
-        ).bind(`limit-app-${i}-${Date.now()}`, TEST_EMAIL, 'App', now, now).run();
+            `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
+        )
+          .bind(`limit-app-${i}-${Date.now()}`, TEST_EMAIL, 'App', now, now)
+          .run();
       }
 
       const response: Response = await SELF.fetch('http://localhost/user/application', {

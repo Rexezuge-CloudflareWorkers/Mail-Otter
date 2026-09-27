@@ -5,9 +5,7 @@ import { EmailProviderRegistry } from '@mail-otter/backend-services/provider';
 describe('InjectableEmailProviderRegistry', () => {
   it('withDefaults() resolves the same providers as the static registry', () => {
     const registry = InjectableEmailProviderRegistry.withDefaults();
-    expect(registry.resolve('google-gmail').providerId).toBe(
-      EmailProviderRegistry.get('google-gmail').providerId,
-    );
+    expect(registry.resolve('google-gmail').providerId).toBe(EmailProviderRegistry.get('google-gmail').providerId);
     expect(registry.resolve('google-gmail', 'imap-password').providerId).toBe(
       EmailProviderRegistry.get('google-gmail', 'imap-password').providerId,
     );

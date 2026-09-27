@@ -3,7 +3,11 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import type { ConnectedApplicationMetadata, EmailProcessingRule } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
-class UpdateApplicationRulesRoute extends IUserRoute<UpdateApplicationRulesRequest, UpdateApplicationRulesResponse, UpdateApplicationRulesEnv> {
+class UpdateApplicationRulesRoute extends IUserRoute<
+  UpdateApplicationRulesRequest,
+  UpdateApplicationRulesResponse,
+  UpdateApplicationRulesEnv
+> {
   schema = {
     tags: ['Rules'],
     summary: 'Replace email processing rules for a mailbox',
@@ -20,7 +24,9 @@ class UpdateApplicationRulesRoute extends IUserRoute<UpdateApplicationRulesReque
     cxt: RouteContext<UpdateApplicationRulesEnv>,
   ): Promise<UpdateApplicationRulesResponse> {
     const scope = createRequestScope(env);
-    const application = await scope.get(Tokens.ApplicationService).updateRules(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.rules);
+    const application = await scope
+      .get(Tokens.ApplicationService)
+      .updateRules(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.rules);
     return { application };
   }
 }

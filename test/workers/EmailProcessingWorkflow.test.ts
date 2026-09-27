@@ -5,7 +5,7 @@ import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig, WorkflowStepConte
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';
 
 vi.mock('@mail-otter/backend-services/email', async (importOriginal) => {
-  const actual = (await importOriginal());
+  const actual = await importOriginal();
   return {
     ...actual,
     EmailProcessingUtil: {

@@ -40,7 +40,12 @@ async function snoozeAction(env: ActionExecutionEnv, actionId: string, userEmail
   return (await dao.getForUser(actionId, userEmail)) ?? action;
 }
 
-async function scheduleAction(env: ActionExecutionEnv, actionId: string, userEmail: string, scheduledFor: Date | null): Promise<EmailAction> {
+async function scheduleAction(
+  env: ActionExecutionEnv,
+  actionId: string,
+  userEmail: string,
+  scheduledFor: Date | null,
+): Promise<EmailAction> {
   const dao = await createActionDAO(env);
   const action = await dao.getForUser(actionId, userEmail);
   if (!action) throw new NotFoundError('Email action was not found.');
@@ -94,7 +99,7 @@ async function executeScheduledActions(env: ActionExecutionEnv): Promise<Schedul
   return { attempted: actions.length, succeeded, failed };
 }
 
-export type {  ScheduledExecutionResult };
+export type { ScheduledExecutionResult };
 export { snoozeAction, scheduleAction, executeScheduledActions };
 
-export {type ActionExecutionEnv as ActionSchedulingEnv} from './ActionExecutionService';
+export { type ActionExecutionEnv as ActionSchedulingEnv } from './ActionExecutionService';

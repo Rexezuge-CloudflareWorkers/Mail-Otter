@@ -35,7 +35,7 @@ function getBrowserTimeZone(): string {
 }
 
 function getDefaultFeatures(providerId: ProviderId): string[] {
-  return (Object.entries(OAUTH2_FEATURES))
+  return Object.entries(OAUTH2_FEATURES)
     .filter(([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[providerId] ?? []).length > 0)
     .map(([featureId]) => featureId);
 }
@@ -100,9 +100,7 @@ export function MailboxForm({
   const update = (changes: Partial<ApplicationFormState>) => setForm({ ...form, ...changes });
 
   const toggleFeature = (featureId: string, checked: boolean) => {
-    const next = checked
-      ? [...form.enabledFeatures, featureId]
-      : form.enabledFeatures.filter((f) => f !== featureId);
+    const next = checked ? [...form.enabledFeatures, featureId] : form.enabledFeatures.filter((f) => f !== featureId);
     update({ enabledFeatures: next });
   };
 
@@ -114,7 +112,7 @@ export function MailboxForm({
   const showOAuth2Fields = isOAuth2Method && !isImapProvider;
   const isFixedHostImapProvider = isImapPasswordMethod && !isImapProvider;
 
-  const providerFeatures: [string, OAuth2Feature][] = (Object.entries(OAUTH2_FEATURES)).filter(
+  const providerFeatures: [string, OAuth2Feature][] = Object.entries(OAUTH2_FEATURES).filter(
     ([featureId]) => (OAUTH2_FEATURE_SCOPES[featureId]?.[form.providerId] ?? []).length > 0,
   );
 
@@ -141,10 +139,7 @@ export function MailboxForm({
           {form.applicationId ? t('mailboxes.editMailbox', 'Edit Mailbox') : t('mailboxes.newMailbox', 'New Mailbox')}
         </h2>
         <ChevronDown
-          className={cn(
-            'h-4 w-4 text-[var(--color-text-muted)] transition-transform duration-200',
-            isExpanded && 'rotate-180',
-          )}
+          className={cn('h-4 w-4 text-[var(--color-text-muted)] transition-transform duration-200', isExpanded && 'rotate-180')}
         />
       </button>
       {isExpanded && (
@@ -199,12 +194,16 @@ export function MailboxForm({
               <Input
                 value={form.clientId}
                 onChange={(e) => update({ clientId: e.target.value })}
-                placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')}
+                placeholder={
+                  form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')
+                }
               />
               <Input
                 value={form.clientSecret}
                 onChange={(e) => update({ clientSecret: e.target.value })}
-                placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')}
+                placeholder={
+                  form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')
+                }
                 type="password"
               />
             </>
@@ -252,7 +251,9 @@ export function MailboxForm({
               <Input
                 value={form.imapUsername}
                 onChange={(e) => update({ imapUsername: e.target.value })}
-                placeholder={isFixedHostImapProvider ? t('mailboxes.emailAddress', 'Email Address') : t('mailboxes.imapUsername', 'IMAP Username')}
+                placeholder={
+                  isFixedHostImapProvider ? t('mailboxes.emailAddress', 'Email Address') : t('mailboxes.imapUsername', 'IMAP Username')
+                }
               />
               {isImapPasswordMethod && (
                 <Input
@@ -273,12 +274,18 @@ export function MailboxForm({
                   <Input
                     value={form.clientId}
                     onChange={(e) => update({ clientId: e.target.value })}
-                    placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')}
+                    placeholder={
+                      form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientId', 'OAuth2 Client ID')
+                    }
                   />
                   <Input
                     value={form.clientSecret}
                     onChange={(e) => update({ clientSecret: e.target.value })}
-                    placeholder={form.applicationId ? t('mailboxes.unchanged', '(Unchanged)') : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')}
+                    placeholder={
+                      form.applicationId
+                        ? t('mailboxes.unchanged', '(Unchanged)')
+                        : t('mailboxes.oauthClientSecret', 'OAuth2 Client Secret')
+                    }
                     type="password"
                   />
                 </>
@@ -306,9 +313,14 @@ export function MailboxForm({
           {/* Optional features for OAuth2 providers */}
           {providerFeatures.length > 0 && showOAuth2Fields && (
             <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-[var(--color-text-secondary)]">{t('mailboxes.featuresTitle', 'Optional Features (Requires Re-Authorization)')}</p>
+              <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                {t('mailboxes.featuresTitle', 'Optional Features (Requires Re-Authorization)')}
+              </p>
               {providerFeatures.map(([featureId, feature]) => (
-                <label key={featureId} className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                <label
+                  key={featureId}
+                  className="inline-flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={form.enabledFeatures.includes(featureId)}
@@ -340,7 +352,9 @@ export function MailboxForm({
                 </option>
               ))}
             </Select>
-            <p className="text-xs text-[var(--color-text-muted)]">{t('mailboxes.contentLanguageHelp', 'Language for AI summaries, digests and action pages for this mailbox.')}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {t('mailboxes.contentLanguageHelp', 'Language for AI summaries, digests and action pages for this mailbox.')}
+            </p>
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="primary" className="flex-1" onClick={onSave} loading={busy}>

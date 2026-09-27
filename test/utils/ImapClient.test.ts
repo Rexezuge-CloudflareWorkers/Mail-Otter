@@ -13,8 +13,9 @@ function makeSocket(lines: Array<string | { raw: string }>) {
   const reader = {
     read: vi.fn(async () => {
       const next = queue.shift();
-      if (next === undefined) return { value: undefined, done: true as const };
-      return { value: new TextEncoder().encode(`${next}\r\n`), done: false as const };
+      return next === undefined
+        ? { value: undefined, done: true as const }
+        : { value: new TextEncoder().encode(`${next}\r\n`), done: false as const };
     }),
     cancel: vi.fn(async () => undefined),
   };
@@ -41,17 +42,15 @@ describe('ImapClient', () => {
   });
 
   function connectImaps(auth: 'xoauth2' | 'login' = 'login') {
-    const { socket, written } = makeSocket([
-      GREETING,
-      'A0001 OK authenticated',
-      'A0002 OK selected',
-    ]);
+    const { socket, written } = makeSocket([GREETING, 'A0001 OK authenticated', 'A0002 OK selected']);
     mockConnect.mockReturnValue(socket);
     const client = new ImapClient();
-    const options =
-      auth === 'xoauth2'
-        ? { host: 'h', port: 993, username: 'u', auth: { method: 'XOAUTH2', accessToken: 'tok' } as const }
-        : { host: 'h', port: 993, username: 'u', auth: { method: 'PLAIN', password: 'pw' } as const };
+    const options = {
+      host: 'h',
+      port: 993,
+      username: 'u',
+      auth: auth === 'xoauth2' ? ({ method: 'XOAUTH2', accessToken: 'tok' } as const) : ({ method: 'PLAIN', password: 'pw' } as const),
+    };
     return { client, options, socket, written };
   }
 
@@ -74,9 +73,9 @@ describe('ImapClient', () => {
     const bad = makeSocket([GREETING, 'A0001 NO bad credentials']);
     mockConnect.mockReturnValue(bad.socket);
     const client = new ImapClient();
-    await expect(
-      client.connect({ host: 'h', port: 993, username: 'u', auth: { method: 'PLAIN', password: 'x' } }),
-    ).rejects.toThrow(BadRequestError);
+    await expect(client.connect({ host: 'h', port: 993, username: 'u', auth: { method: 'PLAIN', password: 'x' } })).rejects.toThrow(
+      BadRequestError,
+    );
     const bad2 = makeSocket([GREETING, 'A0001 NO denied']);
     mockConnect.mockReturnValue(bad2.socket);
     await expect(

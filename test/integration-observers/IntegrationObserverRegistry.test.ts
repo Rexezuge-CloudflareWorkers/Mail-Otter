@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockListEnabled,
-  mockGetDecryptedWebhookUrl,
-  mockLogCreate,
-} = vi.hoisted(() => ({
+const { mockListEnabled, mockGetDecryptedWebhookUrl, mockLogCreate } = vi.hoisted(() => ({
   mockListEnabled: vi.fn(),
   mockGetDecryptedWebhookUrl: vi.fn(),
   mockLogCreate: vi.fn(),
@@ -74,12 +70,12 @@ describe('IntegrationObserverRegistry (IntegrationService fan-out)', () => {
       makeIntegration('webhook', 'integ-webhook'),
     ]);
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
-    global.fetch = fetchMock;
+    globalThis.fetch = fetchMock;
 
     await service.sendToIntegrations(makeSummaryData() as never);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    const bodies = fetchMock.mock.calls.map((call) => JSON.parse((call[1] as { body: string }).body as string));
+    const bodies = fetchMock.mock.calls.map((call) => JSON.parse((call[1] as { body: string }).body));
     expect(bodies[0]).toHaveProperty('blocks');
     expect(bodies[1]).toHaveProperty('embeds');
     expect(bodies[2]).toHaveProperty('event', 'email.processed');
@@ -91,7 +87,7 @@ describe('IntegrationObserverRegistry (IntegrationService fan-out)', () => {
     mockGetDecryptedWebhookUrl
       .mockRejectedValueOnce(new Error('secret deleted'))
       .mockResolvedValueOnce('https://hooks.example.com/webhook/secret');
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
     await service.sendToIntegrations(makeSummaryData() as never);
 
@@ -103,7 +99,7 @@ describe('IntegrationObserverRegistry (IntegrationService fan-out)', () => {
   it('skips dispatch entirely when no observers are registered', async () => {
     mockListEnabled.mockResolvedValue([]);
     const fetchMock = vi.fn();
-    global.fetch = fetchMock;
+    globalThis.fetch = fetchMock;
 
     await service.sendToIntegrations(makeSummaryData() as never);
 
@@ -114,7 +110,7 @@ describe('IntegrationObserverRegistry (IntegrationService fan-out)', () => {
   it('delivers test notifications through the registered observer', async () => {
     mockGetDecryptedWebhookUrl.mockResolvedValue('https://hooks.example.com/webhook/secret');
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
-    global.fetch = fetchMock;
+    globalThis.fetch = fetchMock;
     const integration = makeIntegration('slack', 'integ-slack');
 
     await expect(service.sendTestNotification(integration as never)).resolves.toBeUndefined();
@@ -123,10 +119,8 @@ describe('IntegrationObserverRegistry (IntegrationService fan-out)', () => {
 
   it('surfaces test delivery failures to the caller', async () => {
     mockGetDecryptedWebhookUrl.mockResolvedValue('https://hooks.example.com/webhook/secret');
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
 
-    await expect(service.sendTestNotification(makeIntegration('webhook', 'integ-1') as never)).rejects.toThrow(
-      'HTTP 500',
-    );
+    await expect(service.sendTestNotification(makeIntegration('webhook', 'integ-1') as never)).rejects.toThrow('HTTP 500');
   });
 });

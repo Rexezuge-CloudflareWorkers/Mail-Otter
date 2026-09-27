@@ -4,7 +4,11 @@ import { BadRequestError } from '@mail-otter/backend-errors';
 import type { IntegrationDeliveryLog } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
-class ListIntegrationDeliveriesRoute extends IUserRoute<ListIntegrationDeliveriesRequest, ListIntegrationDeliveriesResponse, ListIntegrationDeliveriesEnv> {
+class ListIntegrationDeliveriesRoute extends IUserRoute<
+  ListIntegrationDeliveriesRequest,
+  ListIntegrationDeliveriesResponse,
+  ListIntegrationDeliveriesEnv
+> {
   schema = {
     tags: ['Integrations'],
     summary: 'List delivery logs for an outbound integration',
@@ -25,11 +29,9 @@ class ListIntegrationDeliveriesRoute extends IUserRoute<ListIntegrationDeliverie
     if (!integrationId) throw new BadRequestError('integrationId is required.');
     const rawLimit = Number(this.getQueryParam(request, 'limit') ?? '20');
     const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
-    const logs = await scope.get(Tokens.ApplicationService).listIntegrationDeliveries(
-      this.getAuthenticatedUserEmailAddress(cxt),
-      integrationId,
-      limit,
-    );
+    const logs = await scope
+      .get(Tokens.ApplicationService)
+      .listIntegrationDeliveries(this.getAuthenticatedUserEmailAddress(cxt), integrationId, limit);
     return { logs };
   }
 }

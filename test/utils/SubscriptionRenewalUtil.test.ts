@@ -97,11 +97,7 @@ describe('SubscriptionRenewalUtil', () => {
 
     await new SubscriptionRenewalUtil(makeEnv()).renewDueSubscriptions();
 
-    expect(recordTransientError).toHaveBeenCalledWith(
-      'subscription-id',
-      expect.any(String),
-      expect.any(Number),
-    );
+    expect(recordTransientError).toHaveBeenCalledWith('subscription-id', expect.any(String), expect.any(Number));
     // retry_count=2 → delay = 300 * 2^2 = 1200s; nextRetryAt should be > now
     const nextRetryAt = (recordTransientError.mock.calls[0] as [string, string, number])[2];
     expect(nextRetryAt).toBeGreaterThan(now);
@@ -167,10 +163,6 @@ describe('SubscriptionRenewalUtil', () => {
 
     await new SubscriptionRenewalUtil(makeEnv()).renewDueSubscriptions();
 
-    expect(markError).toHaveBeenCalledWith(
-      'subscription-id',
-      expect.stringContaining('404'),
-      expect.any(Number),
-    );
+    expect(markError).toHaveBeenCalledWith('subscription-id', expect.stringContaining('404'), expect.any(Number));
   });
 });

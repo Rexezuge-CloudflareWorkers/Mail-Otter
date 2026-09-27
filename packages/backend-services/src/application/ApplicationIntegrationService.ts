@@ -6,7 +6,11 @@ import type { ApplicationServiceDeps } from './ApplicationServiceTypes';
  * Integrations slice of `ApplicationService`.
  */
 class ApplicationIntegrationService {
-  constructor(private readonly deps: Required<Pick<ApplicationServiceDeps, 'applicationDAO' | 'integrationDAO' | 'deliveryLogDAO' | 'integrationService'>>) {}
+  constructor(
+    private readonly deps: Required<
+      Pick<ApplicationServiceDeps, 'applicationDAO' | 'integrationDAO' | 'deliveryLogDAO' | 'integrationService'>
+    >,
+  ) {}
 
   public async listIntegrations(userEmail: string, applicationId: string): Promise<OutboundIntegration[]> {
     await this.assertOwnership(userEmail, applicationId);

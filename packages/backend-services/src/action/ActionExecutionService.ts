@@ -10,10 +10,7 @@ import {
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { CryptoUtil, TimestampUtil } from '@mail-otter/shared/utils';
-import type {
-  EmailAction,
-  EmailActionResult,
-} from '@mail-otter/shared/model';
+import type { EmailAction, EmailActionResult } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { ActionHandlerRegistry } from './handlers/ActionHandlerRegistry';
@@ -127,10 +124,17 @@ async function getConfirmationResponse(actionId: string, token: string, env: Act
   const action: EmailAction | undefined = await getActionForToken(actionId, token, env);
   const locale = action ? await resolveActionLocale(action, env) : 'en';
   const strings = getBackendStrings(locale);
-  return action ? { statusCode: 200, html: renderConfirmationPage(action, token, locale) } : { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
+  return action
+    ? { statusCode: 200, html: renderConfirmationPage(action, token, locale) }
+    : { statusCode: 404, html: renderMessagePage(strings.actionPage.notFoundTitle, strings.actionPage.notFoundBody, locale) };
 }
 
-async function executeActionWithToken(actionId: string, token: string, request: Request, env: ActionCallbackEnv): Promise<ActionHtmlResponse> {
+async function executeActionWithToken(
+  actionId: string,
+  token: string,
+  request: Request,
+  env: ActionCallbackEnv,
+): Promise<ActionHtmlResponse> {
   const action: EmailAction | undefined = await getActionForToken(actionId, token, env);
   const locale = action ? await resolveActionLocale(action, env) : 'en';
   const strings = getBackendStrings(locale);

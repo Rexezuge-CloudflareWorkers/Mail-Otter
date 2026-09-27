@@ -12,7 +12,6 @@ import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 
 class ProcessedMessageDAO extends BaseDAO {
-
   public async tryStart(
     applicationId: string,
     providerId: ProviderId,
@@ -223,7 +222,15 @@ class ProcessedMessageDAO extends BaseDAO {
               WHERE application_id = ? AND provider_message_id = ?
             `,
           )
-          .bind(status, setSummarySentAt ? 1 : 0, now, errorMessage ? errorMessage.slice(0, 1024) : null, now, applicationId, providerMessageId)
+          .bind(
+            status,
+            setSummarySentAt ? 1 : 0,
+            now,
+            errorMessage ? errorMessage.slice(0, 1024) : null,
+            now,
+            applicationId,
+            providerMessageId,
+          )
           .run(),
       'update processed message',
     );
@@ -302,10 +309,7 @@ class ProcessedMessageDAO extends BaseDAO {
     };
   }
 
-  public async listForUser(
-    userEmail: string,
-    options: ListProcessedMessagesOptions = {},
-  ): Promise<ProcessedMessageList> {
+  public async listForUser(userEmail: string, options: ListProcessedMessagesOptions = {}): Promise<ProcessedMessageList> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
     const conditions: string[] = ['ca.user_email = ?'];
     const bindings: Array<string | number> = [userEmail];
@@ -345,10 +349,7 @@ class ProcessedMessageDAO extends BaseDAO {
       messages: pageRows.map((row) => this.toProcessedMessage(row)),
       nextCursor:
         rows.length > limit
-          ? ProcessedMessageDAO.encodeListCursor(
-              pageRows.at(-1)!.created_at,
-              pageRows.at(-1)!.processed_message_id,
-            )
+          ? ProcessedMessageDAO.encodeListCursor(pageRows.at(-1)!.created_at, pageRows.at(-1)!.processed_message_id)
           : undefined,
     };
   }
@@ -359,7 +360,9 @@ class ProcessedMessageDAO extends BaseDAO {
 
   private static parseListCursor(cursor: string | undefined): { createdAt: number; processedMessageId: string } | undefined {
     const parsed = CursorUtil.decode<{ createdAt?: unknown; processedMessageId?: unknown }>(cursor);
-    return !parsed || typeof parsed.createdAt !== 'number' || typeof parsed.processedMessageId !== 'string' ? undefined : { createdAt: parsed.createdAt, processedMessageId: parsed.processedMessageId };
+    return !parsed || typeof parsed.createdAt !== 'number' || typeof parsed.processedMessageId !== 'string'
+      ? undefined
+      : { createdAt: parsed.createdAt, processedMessageId: parsed.processedMessageId };
   }
 
   private static readonly processedMessageColumns: string = [

@@ -33,7 +33,7 @@ class TrackedTask extends IScheduledTask<{ DB: unknown }> {
 describe('IScheduledTask task-run DAO factory', () => {
   it('records start/succeed around the task via the injected DAO', async () => {
     const task = new TrackedTask();
-    await task.handle({} as never, { DB: {} } as never, {} as never);
+    await task.handle({}, { DB: {} }, {});
     expect(task.calls).toEqual(['start', 'run', 'succeed']);
   });
 
@@ -44,7 +44,7 @@ describe('IScheduledTask task-run DAO factory', () => {
       }
     }
     const task = new FailingTask();
-    await task.handle({} as never, { DB: {} } as never, {} as never);
+    await task.handle({}, { DB: {} }, {});
     expect(task.calls).toEqual(['start', 'fail']);
   });
 });

@@ -62,9 +62,7 @@ export function AuditLogsModal({
       />
 
       <ModalBody>
-        {logs.length === 0 && !loading && (
-          <ModalEmpty message={t('context.noAuditLogs', 'No Audit Logs Found For This Document.')} />
-        )}
+        {logs.length === 0 && !loading && <ModalEmpty message={t('context.noAuditLogs', 'No Audit Logs Found For This Document.')} />}
         {logs.map((log, index) => {
           const dotClass =
             log.severity === 'error'
@@ -74,7 +72,8 @@ export function AuditLogsModal({
                 : 'bg-[var(--color-success-text)]';
           const attemptNumber = (log.eventData as { attempt?: number })?.attempt;
           const labelKey = auditEventLabelKeys[log.eventType];
-          const eventLabel = log.eventLabel || (labelKey === undefined ? log.eventType : t(labelKey, auditEventDefaults[log.eventType] ?? log.eventType));
+          const eventLabel =
+            log.eventLabel || (labelKey === undefined ? log.eventType : t(labelKey, auditEventDefaults[log.eventType] ?? log.eventType));
           return (
             <ModalRow key={log.id}>
               <div className="flex items-start gap-2.5">
@@ -83,7 +82,9 @@ export function AuditLogsModal({
                   <div className="text-sm font-medium text-[var(--color-text-primary)]">
                     {eventLabel}
                     {attemptNumber != null && attemptNumber > 1 && (
-                      <span className="ml-2 text-[var(--color-text-muted)] font-normal">{t('context.attemptNumber', '(Attempt {{n}})', { n: attemptNumber })}</span>
+                      <span className="ml-2 text-[var(--color-text-muted)] font-normal">
+                        {t('context.attemptNumber', '(Attempt {{n}})', { n: attemptNumber })}
+                      </span>
                     )}
                   </div>
                   <div className="text-xs text-[var(--color-text-muted)] mt-0.5 flex items-center gap-2 flex-wrap">

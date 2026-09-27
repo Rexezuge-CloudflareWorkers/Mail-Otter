@@ -100,11 +100,7 @@ describe('WatchService', () => {
         expiresAt: 1_778_200_000 + 86_400 * 3,
       });
 
-      const result = await new WatchService(makeEnv()).startApplicationWatch(
-        'user@example.com',
-        'app-1',
-        'https://example.com',
-      );
+      const result = await new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com');
 
       expect(result.message).toContain('Gmail watch started');
       expect(result.webhookUrl).toContain('/api/webhooks/gmail/app-1');
@@ -128,11 +124,7 @@ describe('WatchService', () => {
         expiresAt: 1_778_200_000 + 86_400 * 6,
       });
 
-      const result = await new WatchService(makeEnv()).startApplicationWatch(
-        'user@example.com',
-        'app-1',
-        'https://example.com',
-      );
+      const result = await new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com');
 
       expect(result.message).toContain('Outlook subscription started');
       expect(result.webhookUrl).toContain('/api/webhooks/outlook/app-1');
@@ -154,9 +146,9 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(
-        new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com'),
-      ).rejects.toThrow('Complete authorization');
+      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+        'Complete authorization',
+      );
     });
 
     it('throws when missing provider email', async () => {
@@ -167,9 +159,9 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(
-        new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com'),
-      ).rejects.toThrow('missing provider mailbox metadata');
+      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+        'missing provider mailbox metadata',
+      );
     });
 
     it('throws when Gmail watch without pubsub topic', async () => {
@@ -182,9 +174,9 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(
-        new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com'),
-      ).rejects.toThrow('Gmail Pub/Sub topic name is required');
+      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+        'Gmail Pub/Sub topic name is required',
+      );
     });
 
     it('throws for unsupported provider', async () => {
@@ -196,9 +188,9 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(
-        new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com'),
-      ).rejects.toThrow('Unsupported provider');
+      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+        'Unsupported provider',
+      );
     });
   });
 

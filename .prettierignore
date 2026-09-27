@@ -1,0 +1,26 @@
+# Keep in sync with the `ignores` list in eslint.config.mjs so that
+# `prettier --check .` and `eslint` cover the same set of files.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+apps/web/dist/
+app/dist/
+
+# Test + coverage artifacts
+coverage/
+coverage-integration/
+
+# Generated sources (do not edit)
+worker-configuration.d.ts
+apps/api/src/generated/
+src/generated/
+
+# Tooling config that is intentionally not formatted
+eslint.config.mjs
+scripts/
+
+# Lockfiles (maintained by pnpm)
+pnpm-lock.yaml

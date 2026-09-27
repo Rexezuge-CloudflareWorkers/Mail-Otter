@@ -8,9 +8,7 @@ function aiWith(response: unknown) {
 
 describe('EmailSummaryUtil parsing and rendering', () => {
   it('parses fenced JSON summaries', () => {
-    const summary = EmailSummaryUtil.parseAiSummaryResult(
-      '```json\n{"gist":"Hi","keyDetails":["a"],"actions":[]}\n```',
-    );
+    const summary = EmailSummaryUtil.parseAiSummaryResult('```json\n{"gist":"Hi","keyDetails":["a"],"actions":[]}\n```');
     expect(summary).toMatchObject({ gist: 'Hi', keyDetails: ['a'], actions: [] });
   });
 
@@ -55,20 +53,17 @@ describe('EmailSummaryUtil parsing and rendering', () => {
   });
 
   it('throws retryable errors on empty or invalid AI output', async () => {
-    await expect(
-      EmailSummaryUtil.summarizeEmailWithUsage(aiWith({ response: '' }), 'model', 's', 'f', 'b'),
-    ).rejects.toThrow(AiSummaryRetryableError);
-    await expect(
-      EmailSummaryUtil.summarizeEmailWithUsage(aiWith({ response: '{"nope":1}' }), 'model', 's', 'f', 'b'),
-    ).rejects.toThrow(AiSummaryRetryableError);
+    await expect(EmailSummaryUtil.summarizeEmailWithUsage(aiWith({ response: '' }), 'model', 's', 'f', 'b')).rejects.toThrow(
+      AiSummaryRetryableError,
+    );
+    await expect(EmailSummaryUtil.summarizeEmailWithUsage(aiWith({ response: '{"nope":1}' }), 'model', 's', 'f', 'b')).rejects.toThrow(
+      AiSummaryRetryableError,
+    );
   });
 
   it('disables thinking for reasoning models with JSON mode', async () => {
     const ai = aiWith({ response: JSON.stringify({ gist: 'g', keyDetails: [], actions: [] }) });
     await EmailSummaryUtil.summarizeEmail(ai, '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', 's', 'f', 'b');
-    expect(ai.run).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ chat_template_kwargs: { thinking: false } }),
-    );
+    expect(ai.run).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ chat_template_kwargs: { thinking: false } }));
   });
 });

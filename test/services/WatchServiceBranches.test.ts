@@ -86,7 +86,14 @@ describe('WatchService branches', () => {
   it('starts IMAP watches without client state', async () => {
     const ctx = makeDeps();
     ctx.applicationDAO.getByIdForUser.mockResolvedValue(
-      makeApp({ providerId: 'custom-imap', connectionMethod: 'imap-password', imapUsername: 'u', imapPassword: 'p', imapHost: 'h', imapPort: 993 }),
+      makeApp({
+        providerId: 'custom-imap',
+        connectionMethod: 'imap-password',
+        imapUsername: 'u',
+        imapPassword: 'p',
+        imapHost: 'h',
+        imapPort: 993,
+      }),
     );
     ctx.provider.startWatch.mockResolvedValue({ type: 'imap-cursor', imapCursor: '5' });
     const svc = new WatchService(makeEnv(), ctx.deps);

@@ -95,7 +95,9 @@ describe('Error Classes', () => {
     it('is a singleton instance with default message', () => {
       expect(DefaultInternalServerError.getErrorCode()).toBe(500);
       expect(DefaultInternalServerError.getErrorType()).toBe('InternalServerError');
-      expect(DefaultInternalServerError.getErrorMessage()).toBe('The server encountered an internal error and was unable to complete your request.');
+      expect(DefaultInternalServerError.getErrorMessage()).toBe(
+        'The server encountered an internal error and was unable to complete your request.',
+      );
     });
   });
 

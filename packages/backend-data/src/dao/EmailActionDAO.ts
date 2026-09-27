@@ -455,7 +455,9 @@ class EmailActionDAO extends EncryptedDAO {
 
   private static parseCursor(cursor: string | undefined): { updatedAt: number; createdAt: number } | undefined {
     const parsed = CursorUtil.decode<{ updatedAt?: unknown; createdAt?: unknown }>(cursor);
-    return parsed && typeof parsed.updatedAt === 'number' && typeof parsed.createdAt === 'number' ? { updatedAt: parsed.updatedAt, createdAt: parsed.createdAt } : undefined;
+    return parsed && typeof parsed.updatedAt === 'number' && typeof parsed.createdAt === 'number'
+      ? { updatedAt: parsed.updatedAt, createdAt: parsed.createdAt }
+      : undefined;
   }
 
   private static readonly actionColumns: string = [

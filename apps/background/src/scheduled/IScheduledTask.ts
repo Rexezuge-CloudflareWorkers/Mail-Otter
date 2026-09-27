@@ -67,25 +67,34 @@ abstract class IScheduledTask<TEnv extends IEnv> {
   protected async createApplicationRun(taskType: string, applicationId: string, db: D1Queryable): Promise<ApplicationRunHandle> {
     const dao = this.createTaskRunDAO(db);
     const runId = await dao.startRun({ taskType, applicationId });
-    const warn = (op: string) => (error: unknown): void => {
-      console.warn(`[${this.constructor.name}] Failed to mark application run ${op}:`, error);
-    };
+    const warn =
+      (op: string) =>
+      (error: unknown): void => {
+        console.warn(`[${this.constructor.name}] Failed to mark application run ${op}:`, error);
+      };
     return {
-      succeed: (result: TaskRunSummary): Promise<void> => dao.succeedRun(runId, result).catch(warn('succeeded')).then(() => undefined),
+      succeed: (result: TaskRunSummary): Promise<void> =>
+        dao
+          .succeedRun(runId, result)
+          .catch(warn('succeeded'))
+          .then(() => undefined),
       fail: (errorMessage: string, partial?: Partial<TaskRunSummary>): Promise<void> =>
-        dao.failRun(runId, errorMessage, partial).catch(warn('failed')).then(() => undefined),
-      skip: (reason?: string): Promise<void> => dao.skipRun(runId, reason).catch(warn('skipped')).then(() => undefined),
+        dao
+          .failRun(runId, errorMessage, partial)
+          .catch(warn('failed'))
+          .then(() => undefined),
+      skip: (reason?: string): Promise<void> =>
+        dao
+          .skipRun(runId, reason)
+          .catch(warn('skipped'))
+          .then(() => undefined),
     };
   }
 
   // Return type is widened to TaskRunSummary | void for backward compatibility.
   // Existing tasks returning void satisfy this signature without changes.
   // New observable tasks return TaskRunSummary for richer run records.
-  protected abstract handleScheduledTask(
-    event: ScheduledController,
-    env: TEnv,
-    ctx: ExecutionContext,
-  ): Promise<TaskRunSummary | void>;
+  protected abstract handleScheduledTask(event: ScheduledController, env: TEnv, ctx: ExecutionContext): Promise<TaskRunSummary | void>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -26,12 +26,16 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
   return (
     <CollapsibleSection title={t('senderFilter.allowlistTitle', 'Sender Allowlist')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        {t('senderFilter.description1', 'When set, only emails from matching senders are processed. Leave empty to process all senders. Use')}{' '}
-        <code className="font-mono">@domain.com</code>{' '}
-        {t('senderFilter.description2', 'to match a domain or')}{' '}
-        <code className="font-mono">user@domain.com</code>{' '}
-        {t('senderFilter.description3', 'for an exact address.')}{' '}
-        {t('senderFilter.description4', 'To block specific senders, create a rule with Field: From, Operator: Matches Sender, Action: Skip.')}
+        {t(
+          'senderFilter.description1',
+          'When set, only emails from matching senders are processed. Leave empty to process all senders. Use',
+        )}{' '}
+        <code className="font-mono">@domain.com</code> {t('senderFilter.description2', 'to match a domain or')}{' '}
+        <code className="font-mono">user@domain.com</code> {t('senderFilter.description3', 'for an exact address.')}{' '}
+        {t(
+          'senderFilter.description4',
+          'To block specific senders, create a rule with Field: From, Operator: Matches Sender, Action: Skip.',
+        )}
       </p>
       {current.includeRules.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -59,11 +63,14 @@ export function SenderFilterSection({ application }: { application: ConnectedApp
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key !== 'Enter') {
-          	return;
-          }
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') {
+              return;
+            }
 
-          e.preventDefault(); handleAdd(); }}
+            e.preventDefault();
+            handleAdd();
+          }}
           placeholder={t('senderFilter.placeholder', '@domain.com or user@domain.com')}
           disabled={busy}
           className="text-sm"

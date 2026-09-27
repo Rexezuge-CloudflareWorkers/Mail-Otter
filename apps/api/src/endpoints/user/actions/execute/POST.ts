@@ -4,7 +4,11 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import { ActionService } from '@mail-otter/backend-services/action';
 import type { EmailAction } from '@mail-otter/shared/model';
 
-class ExecuteUserEmailActionRoute extends IUserRoute<ExecuteUserEmailActionRequest, ExecuteUserEmailActionResponse, ExecuteUserEmailActionEnv> {
+class ExecuteUserEmailActionRoute extends IUserRoute<
+  ExecuteUserEmailActionRequest,
+  ExecuteUserEmailActionResponse,
+  ExecuteUserEmailActionEnv
+> {
   schema = {
     tags: ['Actions'],
     summary: 'Execute an email action from the authenticated UI',

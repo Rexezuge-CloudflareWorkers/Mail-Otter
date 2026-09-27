@@ -32,10 +32,8 @@ function apiResponse(payload: unknown) {
 
 function installFetch(handler: (url: string, init?: RequestInit & { body?: string }) => unknown) {
   (globalThis as unknown as { fetch: unknown }).fetch = vi.fn(async (url: string, init?: RequestInit) => {
-    const body = typeof (init as { body?: unknown } | undefined)?.body === 'string'
-      ? ((init as { body: string }).body as string)
-      : undefined;
-    return handler(url, { ...(init as object), body } as never);
+    const body = typeof (init as { body?: unknown } | undefined)?.body === 'string' ? (init as { body: string }).body : undefined;
+    return handler(url, { ...(init as object), body });
   });
 }
 
@@ -67,7 +65,7 @@ function installDefaultFetch() {
   installFetch((url, init) => {
     if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
     if (url === SESSION.apiUrl && init?.method === 'POST') {
-      const parsed = JSON.parse((init as { body: string }).body as string) as { methodCalls: unknown[][] };
+      const parsed = JSON.parse((init as { body: string }).body) as { methodCalls: unknown[][] };
       return routeJmapApi(parsed.methodCalls);
     }
     throw new Error(`unexpected fetch: ${url}`);
@@ -110,15 +108,14 @@ describe('FastmailProviderUtil', () => {
 
   it('lists mailboxes', async () => {
     installDefaultFetch();
-    await expect(FastmailProviderUtil.listMailboxes('tok')).resolves.toEqual([
-      { id: 'drafts-1', name: 'Drafts', role: 'drafts' },
-    ]);
+    await expect(FastmailProviderUtil.listMailboxes('tok')).resolves.toEqual([{ id: 'drafts-1', name: 'Drafts', role: 'drafts' }]);
   });
 
   it('throws when the JMAP API call fails', async () => {
-    installFetch((url, init) => {
-      if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
-      return { ok: false, statusText: 'Boom', json: async () => ({}) };
+    installFetch((url, _init) => {
+      return url === 'https://api.fastmail.com/jmap/session'
+        ? sessionResponse()
+        : { ok: false, statusText: 'Boom', json: async () => ({}) };
     });
     await expect(FastmailProviderUtil.listMailboxes('tok')).rejects.toThrow('Fastmail JMAP API call failed');
   });
@@ -129,9 +126,10 @@ describe('FastmailProviderUtil', () => {
   });
 
   it('throws when the email is not found', async () => {
-    installFetch((url, init) => {
-      if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
-      return apiResponse({ methodResponses: [['Email/get', { list: [] }]] });
+    installFetch((url, _init) => {
+      return url === 'https://api.fastmail.com/jmap/session'
+        ? sessionResponse()
+        : apiResponse({ methodResponses: [['Email/get', { list: [] }]] });
     });
     await expect(FastmailProviderUtil.getEmail('tok', 'missing')).rejects.toThrow('Fastmail email not found');
   });
@@ -146,29 +144,23 @@ describe('FastmailProviderUtil', () => {
   it('throws when no Drafts mailbox exists', async () => {
     installFetch((url, init) => {
       if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
-      const parsed = JSON.parse((init as { body: string }).body as string) as { methodCalls: unknown[][] };
+      const parsed = JSON.parse((init as { body: string }).body) as { methodCalls: unknown[][] };
       const [method] = parsed.methodCalls[0] as [string, Record<string, unknown>];
-      if (method === 'Mailbox/get') {
-        return apiResponse({ methodResponses: [[method, { list: [{ id: 'inbox', name: 'Inbox', role: 'inbox' }] }]] });
-      }
-      return routeJmapApi(parsed.methodCalls);
+      return method === 'Mailbox/get'
+        ? apiResponse({ methodResponses: [[method, { list: [{ id: 'inbox', name: 'Inbox', role: 'inbox' }] }]] })
+        : routeJmapApi(parsed.methodCalls);
     });
-    await expect(FastmailProviderUtil.createDraftReply('tok', 'email-1', 'body')).rejects.toThrow(
-      'No Drafts mailbox found',
-    );
+    await expect(FastmailProviderUtil.createDraftReply('tok', 'email-1', 'body')).rejects.toThrow('No Drafts mailbox found');
   });
 
   it('throws when draft creation returns no id', async () => {
     installFetch((url, init) => {
       if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
-      const parsed = JSON.parse((init as { body: string }).body as string) as { methodCalls: unknown[][] };
+      const parsed = JSON.parse((init as { body: string }).body) as { methodCalls: unknown[][] };
       const [method] = parsed.methodCalls[0] as [string, Record<string, unknown>];
-      if (method === 'Email/set') return apiResponse({ methodResponses: [[method, { created: {} }]] });
-      return routeJmapApi(parsed.methodCalls);
+      return method === 'Email/set' ? apiResponse({ methodResponses: [[method, { created: {} }]] }) : routeJmapApi(parsed.methodCalls);
     });
-    await expect(FastmailProviderUtil.createDraftReply('tok', 'email-1', 'body')).rejects.toThrow(
-      'draft creation returned no ID',
-    );
+    await expect(FastmailProviderUtil.createDraftReply('tok', 'email-1', 'body')).rejects.toThrow('draft creation returned no ID');
   });
 
   it('creates a calendar event', async () => {
@@ -192,9 +184,7 @@ describe('FastmailProviderUtil', () => {
       }
       throw new Error(`unexpected fetch: ${url}`);
     });
-    await expect(FastmailProviderUtil.createCalendarEvent('tok', { title: 'x' } as never)).rejects.toThrow(
-      'Calendar feature enabled',
-    );
+    await expect(FastmailProviderUtil.createCalendarEvent('tok', { title: 'x' } as never)).rejects.toThrow('Calendar feature enabled');
   });
 
   it('creates and deletes push subscriptions', async () => {
@@ -208,10 +198,11 @@ describe('FastmailProviderUtil', () => {
   it('throws when push subscription creation returns no id', async () => {
     installFetch((url, init) => {
       if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
-      const parsed = JSON.parse((init as { body: string }).body as string) as { methodCalls: unknown[][] };
+      const parsed = JSON.parse((init as { body: string }).body) as { methodCalls: unknown[][] };
       const [method] = parsed.methodCalls[0] as [string, Record<string, unknown>];
-      if (method === 'PushSubscription/set') return apiResponse({ methodResponses: [[method, { created: {} }]] });
-      return routeJmapApi(parsed.methodCalls);
+      return method === 'PushSubscription/set'
+        ? apiResponse({ methodResponses: [[method, { created: {} }]] })
+        : routeJmapApi(parsed.methodCalls);
     });
     await expect(FastmailProviderUtil.createPushSubscription('tok', 'https://example.com/hook')).rejects.toThrow(
       'push subscription creation returned no ID',
@@ -222,10 +213,11 @@ describe('FastmailProviderUtil', () => {
     installFetch((url, init) => {
       if (url === 'https://api.fastmail.com/jmap/session') return sessionResponse();
       if (typeof url === 'string' && url.includes('/jmap/download/')) {
-        if (url.includes('bad-blob')) return { ok: false, statusText: 'Gone', arrayBuffer: async () => new ArrayBuffer(0) };
-        return { ok: true, statusText: 'OK', arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
+        return url.includes('bad-blob')
+          ? { ok: false, statusText: 'Gone', arrayBuffer: async () => new ArrayBuffer(0) }
+          : { ok: true, statusText: 'OK', arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
       }
-      const parsed = JSON.parse((init as { body: string }).body as string) as { methodCalls: unknown[][] };
+      const parsed = JSON.parse((init as { body: string }).body) as { methodCalls: unknown[][] };
       return routeJmapApi(parsed.methodCalls);
     });
     const email = {
@@ -245,12 +237,8 @@ describe('FastmailProviderUtil', () => {
 
   it('returns empty when no attachments are eligible', async () => {
     installDefaultFetch();
-    await expect(
-      FastmailProviderUtil.downloadImageAttachments('tok', { id: 'e', attachments: [] }, 1024, 5),
-    ).resolves.toEqual([]);
-    await expect(
-      FastmailProviderUtil.downloadImageAttachments('tok', { id: 'e' }, 1024, 5),
-    ).resolves.toEqual([]);
+    await expect(FastmailProviderUtil.downloadImageAttachments('tok', { id: 'e', attachments: [] }, 1024, 5)).resolves.toEqual([]);
+    await expect(FastmailProviderUtil.downloadImageAttachments('tok', { id: 'e' }, 1024, 5)).resolves.toEqual([]);
   });
 });
 

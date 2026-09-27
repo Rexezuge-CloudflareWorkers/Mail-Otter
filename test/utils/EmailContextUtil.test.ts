@@ -21,10 +21,9 @@ class FakeStatement {
   }
 
   async first<T>(): Promise<T | null> {
-    if (this.sql.includes('WHERE application_id = ? AND source_type = ? AND source_document_id = ?')) {
-      return null;
-    }
-    return (this.database.documentRow || null) as T | null;
+    return this.sql.includes('WHERE application_id = ? AND source_type = ? AND source_document_id = ?')
+      ? null
+      : ((this.database.documentRow || null) as T | null);
   }
 
   async run(): Promise<D1Result> {

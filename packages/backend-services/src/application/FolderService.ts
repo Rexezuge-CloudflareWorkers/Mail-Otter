@@ -36,6 +36,6 @@ interface FolderServiceEnv {
 }
 
 export { FolderService, FolderServiceFactory };
-export type { FolderServiceEnv,  };
+export type { FolderServiceEnv };
 
-export {type ProviderFolder} from '../provider/IEmailProvider';
+export { type ProviderFolder } from '../provider/IEmailProvider';

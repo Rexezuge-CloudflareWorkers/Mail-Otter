@@ -137,7 +137,8 @@ const nlStrings: BackendLocaleStrings = {
     appointmentNotedSuffix: ' details genoteerd.',
   },
   csv: {
-    header: 'Gebeurtenistype,Applicatie-ID,Tijdstempel ISO,Provider-bericht-ID,Status / Uitvoeringsstatus,Foutmelding,Actie-ID,Actietype,Risiconiveau,Geactiveerd Door',
+    header:
+      'Gebeurtenistype,Applicatie-ID,Tijdstempel ISO,Provider-bericht-ID,Status / Uitvoeringsstatus,Foutmelding,Actie-ID,Actietype,Risiconiveau,Geactiveerd Door',
   },
 };
 

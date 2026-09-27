@@ -35,7 +35,10 @@ const SUGGESTION_JSON_SCHEMA = {
       type: 'object',
       required: ['type'],
       properties: {
-        type: { type: 'string', enum: ['skip', 'skip_actions', 'prepend_instruction', 'apply_label', 'archive_message', 'mark_read', 'star_message'] },
+        type: {
+          type: 'string',
+          enum: ['skip', 'skip_actions', 'prepend_instruction', 'apply_label', 'archive_message', 'mark_read', 'star_message'],
+        },
         instruction: { type: 'string' },
         labelName: { type: 'string' },
       },
@@ -99,20 +102,12 @@ interface EmailRuleSuggestionResult {
 }
 
 class EmailRuleSuggestionUtil {
-  public static async suggest(
-    ai: Ai,
-    model: string,
-    description: string,
-  ): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
+  public static async suggest(ai: Ai, model: string, description: string): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
     const { rule } = await this.suggestWithUsage(ai, model, description);
     return rule;
   }
 
-  public static async suggestWithUsage(
-    ai: Ai,
-    model: string,
-    description: string,
-  ): Promise<EmailRuleSuggestionResult> {
+  public static async suggestWithUsage(ai: Ai, model: string, description: string): Promise<EmailRuleSuggestionResult> {
     const request: Record<string, unknown> = {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -177,7 +172,9 @@ class EmailRuleSuggestionUtil {
     // before schema validation (the shared schema enforces these as Zod refinements).
     const conditions = this.sanitizeConditions(p['conditions'], actionResult.data.type);
     const condResult = EmailRuleConditionSchema.safeParse(conditions);
-    return condResult.success ? { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction } : undefined;
+    return condResult.success
+      ? { name: name.trim(), enabled, conditions: condResult.data, action: actionResult.data as EmailRuleAction }
+      : undefined;
   }
 
   private static sanitizeConditions(conditions: unknown, actionType?: string): unknown {
@@ -192,7 +189,9 @@ class EmailRuleSuggestionUtil {
         if (matcher['op'] === 'matches_sender' && matcher['field'] !== 'from') {
           return { ...matcher, op: 'contains' };
         }
-        return actionType && matcher['field'] === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType) ? { field: 'subject', op: 'contains', value: matcher['value'] ?? '' } : matcher;
+        return actionType && matcher['field'] === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)
+          ? { field: 'subject', op: 'contains', value: matcher['value'] ?? '' }
+          : matcher;
       }),
     };
   }

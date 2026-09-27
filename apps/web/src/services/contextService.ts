@@ -16,10 +16,7 @@ export async function loadContextAudit(
       '/user/application/context/documents',
       status ? { ...base, status } : base,
     ),
-    apiGet<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>(
-      '/user/application/context/deletions',
-      base,
-    ),
+    apiGet<{ deletionRuns: ApplicationContextDeletionRun[]; nextCursor?: string }>('/user/application/context/deletions', base),
   ]);
   return {
     documents: docData.documents,
@@ -29,7 +26,12 @@ export async function loadContextAudit(
   };
 }
 
-async function loadContextPage<T>(path: string, applicationId: string, extra: Record<string, string | undefined>, cursor: string): Promise<T> {
+async function loadContextPage<T>(
+  path: string,
+  applicationId: string,
+  extra: Record<string, string | undefined>,
+  cursor: string,
+): Promise<T> {
   return apiGet<T>(path, { ...extra, ...(applicationId && { applicationId }), cursor });
 }
 
@@ -59,7 +61,5 @@ export async function loadMoreDeletions(
 }
 
 export async function openContextDocumentInProvider(contextDocumentId: string): Promise<{ url: string }> {
-  return apiGet<{ url: string }>(
-    `/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`,
-  );
+  return apiGet<{ url: string }>(`/user/application/context/document/${encodeURIComponent(contextDocumentId)}/provider-link`);
 }

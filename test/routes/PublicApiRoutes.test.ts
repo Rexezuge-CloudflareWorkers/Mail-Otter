@@ -58,11 +58,7 @@ function makeEnv() {
 }
 
 function call(route: unknown, request: unknown, env: never, cxt: never) {
-  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(
-    request,
-    env,
-    cxt,
-  );
+  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(request, env, cxt);
 }
 
 function req(url: string, extra: Record<string, unknown> = {}) {
@@ -75,39 +71,27 @@ describe('public api routes', () => {
   });
 
   it('GET action confirmation requires actionId, then renders HTML', async () => {
-    await expect(call(new GetActionConfirmationRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(call(new GetActionConfirmationRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     mockGetConfirmationResponse.mockResolvedValue({ statusCode: 200, html: '<h1>ok</h1>' });
-    const result = (await call(
-      new GetActionConfirmationRoute(),
-      req('https://x/?token=t'),
-      makeEnv(),
-      makeCxt({ actionId: 'a-1' }),
-    )) as { rawBody: string };
+    const result = (await call(new GetActionConfirmationRoute(), req('https://x/?token=t'), makeEnv(), makeCxt({ actionId: 'a-1' }))) as {
+      rawBody: string;
+    };
     expect(mockGetConfirmationResponse).toHaveBeenCalledWith('a-1', 't', expect.anything());
     expect(result.rawBody).toBe('<h1>ok</h1>');
   });
 
   it('POST action execute requires actionId, then renders HTML', async () => {
-    await expect(call(new ExecuteActionCallbackRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(call(new ExecuteActionCallbackRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     mockExecuteActionWithToken.mockResolvedValue({ statusCode: 200, html: '<h1>done</h1>' });
-    const result = (await call(
-      new ExecuteActionCallbackRoute(),
-      req('https://x/?token=t'),
-      makeEnv(),
-      makeCxt({ actionId: 'a-1' }),
-    )) as { rawBody: string };
+    const result = (await call(new ExecuteActionCallbackRoute(), req('https://x/?token=t'), makeEnv(), makeCxt({ actionId: 'a-1' }))) as {
+      rawBody: string;
+    };
     expect(mockExecuteActionWithToken).toHaveBeenCalledWith('a-1', 't', expect.any(Request), expect.anything());
     expect(result.rawBody).toBe('<h1>done</h1>');
   });
 
   it('OAuth2 callback validates params, redirects on error/success', async () => {
-    await expect(call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     const errRedirect = (await call(
       new OAuth2CallbackRoute(),
       req('https://x/?error=denied'),
@@ -115,9 +99,9 @@ describe('public api routes', () => {
       makeCxt({ applicationId: 'app-1' }),
     )) as { statusCode: number };
     expect(errRedirect.statusCode).toBeGreaterThanOrEqual(300);
-    await expect(
-      call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt({ applicationId: 'app-1' })),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt({ applicationId: 'app-1' }))).rejects.toThrow(
+      BadRequestError,
+    );
     mockCompleteCallback.mockResolvedValue(undefined);
     const okRedirect = (await call(
       new OAuth2CallbackRoute(),
@@ -138,19 +122,14 @@ describe('public api routes', () => {
   });
 
   it('Gmail webhook requires applicationId, then accepts', async () => {
-    await expect(
-      call(new GmailWebhookRoute(), req('https://x/', { message: {} }), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new GmailWebhookRoute(), req('https://x/', { message: {} }), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     const result = (await call(
       new GmailWebhookRoute(),
       req('https://x/?token=t', { message: { data: 'd', messageId: 'm' } }),
       makeEnv(),
       makeCxt({ applicationId: 'app-1' }),
     )) as { message: string };
-    expect(mockHandleGmail).toHaveBeenCalledWith(
-      expect.objectContaining({ applicationId: 'app-1', token: 't' }),
-      expect.anything(),
-    );
+    expect(mockHandleGmail).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 'app-1', token: 't' }), expect.anything());
     expect(result.message).toBe('accepted');
   });
 
@@ -163,9 +142,7 @@ describe('public api routes', () => {
     )) as { rawBody: string };
     expect(echo.rawBody).toBe('vt');
     expect(mockHandleOutlook).not.toHaveBeenCalled();
-    await expect(
-      call(new OutlookWebhookRoute(), req('https://x/', { value: [] }), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new OutlookWebhookRoute(), req('https://x/', { value: [] }), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     const accepted = (await call(
       new OutlookWebhookRoute(),
       req('https://x/', { value: [] }),
@@ -184,9 +161,9 @@ describe('public api routes', () => {
       makeCxt({ applicationId: 'app-1' }),
     )) as { rawBody: string };
     expect(echo.rawBody).toBe('vt');
-    await expect(
-      call(new OutlookLifecycleWebhookRoute(), req('https://x/', { value: [] }), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new OutlookLifecycleWebhookRoute(), req('https://x/', { value: [] }), makeEnv(), makeCxt())).rejects.toThrow(
+      BadRequestError,
+    );
     const accepted = (await call(
       new OutlookLifecycleWebhookRoute(),
       req('https://x/', { value: [] }),
@@ -198,12 +175,12 @@ describe('public api routes', () => {
   });
 
   it('Fastmail webhook validates applicationId and emailId', async () => {
-    await expect(
-      call(new FastmailWebhookRoute(), req('https://x/', { emailId: 'e' }), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
-    await expect(
-      call(new FastmailWebhookRoute(), req('https://x/', {}), makeEnv(), makeCxt({ applicationId: 'app-1' })),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new FastmailWebhookRoute(), req('https://x/', { emailId: 'e' }), makeEnv(), makeCxt())).rejects.toThrow(
+      BadRequestError,
+    );
+    await expect(call(new FastmailWebhookRoute(), req('https://x/', {}), makeEnv(), makeCxt({ applicationId: 'app-1' }))).rejects.toThrow(
+      BadRequestError,
+    );
     const result = (await call(
       new FastmailWebhookRoute(),
       req('https://x/?token=t', { emailId: 'e-1' }),

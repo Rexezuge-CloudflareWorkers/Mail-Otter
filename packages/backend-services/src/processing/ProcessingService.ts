@@ -99,12 +99,7 @@ class ProcessingService {
     return new ProcessingService(env).listProcessedMessages(userEmail, options);
   }
 
-  public static async triggerTask(
-    userEmail: string,
-    taskType: string,
-    applicationId: string,
-    env: TriggerTaskEnv,
-  ): Promise<void> {
+  public static async triggerTask(userEmail: string, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
     return new ProcessingService(env).triggerTask(userEmail, taskType, applicationId, env);
   }
 

@@ -22,25 +22,19 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())   // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())   // sentitems check
-        .mockResolvedValueOnce(mockReplyResponse)     // reply
-        .mockResolvedValueOnce(mockFindResponse)      // find after reply
-        .mockResolvedValueOnce(mockCopyResponse)      // copy
-        .mockResolvedValueOnce(mockDeleteResponse);   // delete
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValueOnce(mockReplyResponse) // reply
+        .mockResolvedValueOnce(mockFindResponse) // find after reply
+        .mockResolvedValueOnce(mockCopyResponse) // copy
+        .mockResolvedValueOnce(mockDeleteResponse); // delete
 
       vi.stubGlobal('fetch', fetchMock);
 
       const originalMessage = { id: 'original-msg-id' };
 
-      const htmlSummary =
-        '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
-      await OutlookProviderUtil.sendSelfSummaryReply(
-        'test-access-token',
-        originalMessage,
-        'sender@example.com',
-        htmlSummary,
-      );
+      const htmlSummary = '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
+      await OutlookProviderUtil.sendSelfSummaryReply('test-access-token', originalMessage, 'sender@example.com', htmlSummary);
 
       expect(fetchMock).toHaveBeenCalledTimes(6);
 
@@ -74,12 +68,8 @@ describe('OutlookProviderUtil', () => {
         contentType: 'html',
         content: htmlSummary,
       });
-      expect(parsedBody.message.toRecipients).toEqual([
-        { emailAddress: { address: 'sender+sink@example.com' } },
-      ]);
-      expect(parsedBody.message.internetMessageHeaders).toEqual([
-        { name: 'X-Mail-Otter-Summary', value: 'true' },
-      ]);
+      expect(parsedBody.message.toRecipients).toEqual([{ emailAddress: { address: 'sender+sink@example.com' } }]);
+      expect(parsedBody.message.internetMessageHeaders).toEqual([{ name: 'X-Mail-Otter-Summary', value: 'true' }]);
 
       // Step 4: find sent summary message by same marker, no $orderby
       const findUrl = fetchMock.mock.calls[3][0] as string;
@@ -111,17 +101,12 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockInboxResponse)   // inbox check (found)
+        .mockResolvedValueOnce(mockInboxResponse) // inbox check (found)
         .mockResolvedValueOnce(mockEmptyResponse()); // sentitems check (empty)
 
       vi.stubGlobal('fetch', fetchMock);
 
-      await OutlookProviderUtil.sendSelfSummaryReply(
-        'test-access-token',
-        { id: 'original-msg-id' },
-        'sender@example.com',
-        'Summary text',
-      );
+      await OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text');
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
       const inboxUrl = fetchMock.mock.calls[0][0] as string;
@@ -136,18 +121,13 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockInboxResponse)     // inbox check (found)
+        .mockResolvedValueOnce(mockInboxResponse) // inbox check (found)
         .mockResolvedValueOnce(mockSentItemsResponse) // sentitems check (stale copy found)
-        .mockResolvedValueOnce(mockDeleteResponse);   // delete stale copy
+        .mockResolvedValueOnce(mockDeleteResponse); // delete stale copy
 
       vi.stubGlobal('fetch', fetchMock);
 
-      await OutlookProviderUtil.sendSelfSummaryReply(
-        'test-access-token',
-        { id: 'original-msg-id' },
-        'sender@example.com',
-        'Summary text',
-      );
+      await OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text');
 
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -164,19 +144,14 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())    // inbox check (empty)
-        .mockResolvedValueOnce(mockSentItemsResponse)  // sentitems check (found)
-        .mockResolvedValueOnce(mockCopyResponse)       // copy
-        .mockResolvedValueOnce(mockDeleteResponse);    // delete
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check (empty)
+        .mockResolvedValueOnce(mockSentItemsResponse) // sentitems check (found)
+        .mockResolvedValueOnce(mockCopyResponse) // copy
+        .mockResolvedValueOnce(mockDeleteResponse); // delete
 
       vi.stubGlobal('fetch', fetchMock);
 
-      await OutlookProviderUtil.sendSelfSummaryReply(
-        'test-access-token',
-        { id: 'original-msg-id' },
-        'sender@example.com',
-        'Summary text',
-      );
+      await OutlookProviderUtil.sendSelfSummaryReply('test-access-token', { id: 'original-msg-id' }, 'sender@example.com', 'Summary text');
 
       expect(fetchMock).toHaveBeenCalledTimes(4);
 
@@ -198,9 +173,9 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())    // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())    // sentitems check
-        .mockResolvedValue(mockReplyResponse);          // reply fails
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValue(mockReplyResponse); // reply fails
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -217,10 +192,10 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())                           // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())                           // sentitems check
-        .mockResolvedValueOnce(mockReplyResponse)                             // reply
-        .mockImplementation(() => Promise.resolve(mockEmptyResponse()));      // all 4 find retries (fresh body each time)
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValueOnce(mockReplyResponse) // reply
+        .mockImplementation(() => Promise.resolve(mockEmptyResponse())); // all 4 find retries (fresh body each time)
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -237,10 +212,10 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())      // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())      // sentitems check
-        .mockResolvedValueOnce(mockReplyResponse)        // reply
-        .mockResolvedValueOnce(mockFindFailResponse);    // find fails
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValueOnce(mockReplyResponse) // reply
+        .mockResolvedValueOnce(mockFindFailResponse); // find fails
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -256,11 +231,11 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())     // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())     // sentitems check
-        .mockResolvedValueOnce(mockReplyResponse)       // reply
-        .mockResolvedValueOnce(mockFindResponse)        // find after reply
-        .mockResolvedValueOnce(mockCopyFailResponse);   // copy fails
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValueOnce(mockReplyResponse) // reply
+        .mockResolvedValueOnce(mockFindResponse) // find after reply
+        .mockResolvedValueOnce(mockCopyFailResponse); // copy fails
 
       vi.stubGlobal('fetch', fetchMock);
 
@@ -277,12 +252,12 @@ describe('OutlookProviderUtil', () => {
 
       const fetchMock = vi
         .fn()
-        .mockResolvedValueOnce(mockEmptyResponse())       // inbox check
-        .mockResolvedValueOnce(mockEmptyResponse())       // sentitems check
-        .mockResolvedValueOnce(mockReplyResponse)         // reply
-        .mockResolvedValueOnce(mockFindResponse)          // find after reply
-        .mockResolvedValueOnce(mockCopyResponse)          // copy
-        .mockResolvedValueOnce(mockDeleteFailResponse);   // delete fails
+        .mockResolvedValueOnce(mockEmptyResponse()) // inbox check
+        .mockResolvedValueOnce(mockEmptyResponse()) // sentitems check
+        .mockResolvedValueOnce(mockReplyResponse) // reply
+        .mockResolvedValueOnce(mockFindResponse) // find after reply
+        .mockResolvedValueOnce(mockCopyResponse) // copy
+        .mockResolvedValueOnce(mockDeleteFailResponse); // delete fails
 
       vi.stubGlobal('fetch', fetchMock);
 

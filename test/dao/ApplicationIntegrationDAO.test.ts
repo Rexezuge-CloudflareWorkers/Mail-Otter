@@ -20,7 +20,12 @@ import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 const WEBHOOK_URL = 'https://hooks.example.com/webhook/abcdefg-long-suffix';
 const MASKED_URL = WEBHOOK_URL.slice(0, 30);
 
-function makeDb(overrides?: { firstResult?: unknown; allResults?: unknown[]; countResult?: { cnt: number }; runMeta?: { changes: number } }): D1Database {
+function makeDb(overrides?: {
+  firstResult?: unknown;
+  allResults?: unknown[];
+  countResult?: { cnt: number };
+  runMeta?: { changes: number };
+}): D1Database {
   const runFn = vi.fn().mockResolvedValue({ success: true, meta: overrides?.runMeta ?? { changes: 1 } });
   const firstFn = vi.fn().mockResolvedValue(overrides?.firstResult ?? null);
   const allFn = vi.fn().mockResolvedValue({ results: overrides?.allResults ?? [] });
@@ -67,8 +72,7 @@ describe('ApplicationIntegrationDAO', () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } });
       db = {
         prepare: vi.fn(() => ({
-          bind: vi.fn(() => ({ first: firstFn, run: runFn, all: vi.fn().mockResolvedValue({ results: [] }) }),
-          ),
+          bind: vi.fn(() => ({ first: firstFn, run: runFn, all: vi.fn().mockResolvedValue({ results: [] }) })),
         })),
       };
       dao = new ApplicationIntegrationDAO(db, 'master-key');

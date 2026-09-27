@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BaseDAO } from '@mail-otter/backend-data/dao';
 
+const DEFAULT_ROW: { id: string } = { id: 'r1' };
+
 class TestDAO extends BaseDAO {
   constructor(db: never) {
-    super(db as never);
+    super(db);
   }
 
   public find(table: string, column: string, value: string): Promise<{ id: string } | null> {
@@ -19,7 +21,7 @@ class TestDAO extends BaseDAO {
   }
 }
 
-function makeDb(firstResult: unknown = { id: 'r1' }): never {
+function makeDb(firstResult: unknown = DEFAULT_ROW): never {
   const first = vi.fn().mockResolvedValue(firstResult);
   const run = vi.fn().mockResolvedValue({ success: true, meta: { changes: 3 } });
   return { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first, run })) })) } as never;
@@ -30,9 +32,7 @@ describe('BaseDAO instance helpers', () => {
     const db = makeDb();
     const row = await new TestDAO(db).find('widgets', 'id', 'r1');
     expect(row).toEqual({ id: 'r1' });
-    expect((db as { prepare: ReturnType<typeof vi.fn> }).prepare).toHaveBeenCalledWith(
-      expect.stringContaining('FROM widgets'),
-    );
+    expect((db as { prepare: ReturnType<typeof vi.fn> }).prepare).toHaveBeenCalledWith(expect.stringContaining('FROM widgets'));
   });
 
   it('deleteRowsOlderThan() returns affected changes', async () => {

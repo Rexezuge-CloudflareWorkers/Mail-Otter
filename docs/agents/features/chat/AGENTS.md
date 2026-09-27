@@ -8,6 +8,7 @@ Scope: `packages/backend-services/src/chat/ChatService.ts`. Parent index: `../..
 **Response**: `{ "answer": "...", "sources": [{ "vectorId", "title", "sender", "applicationId", "score" }], "truncated": false }`
 
 **Backend flow** (`ChatService`):
+
 1. Guard: require `EMAIL_CONTEXT_INDEX`; check daily neuron quota (`AiDailyUsageDAO`).
 2. Embed query with the configured embedding model (`AI_EMBEDDING_MODEL`, default `@cf/baai/bge-m3`); record usage.
 3. Query Vectorize using user namespace (`EmailContextUtil.getUserVectorNamespace`); filter by `applicationId` in-memory.

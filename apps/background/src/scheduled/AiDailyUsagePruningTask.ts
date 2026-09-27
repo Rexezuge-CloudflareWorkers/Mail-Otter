@@ -5,11 +5,7 @@ import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
 
 class AiDailyUsagePruningTask extends IScheduledTask<AiDailyUsagePruningTaskEnv> {
-  protected async handleScheduledTask(
-    _event: ScheduledController,
-    env: AiDailyUsagePruningTaskEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
+  protected async handleScheduledTask(_event: ScheduledController, env: AiDailyUsagePruningTaskEnv, _ctx: ExecutionContext): Promise<void> {
     const retentionDays: number = ConfigurationManager.getAiDailyUsageRetentionDays(env);
     const date: Date = new Date(Date.now() - retentionDays * 86_400 * 1000);
     const olderThanDate: string = date.toISOString().split('T', 1)[0];

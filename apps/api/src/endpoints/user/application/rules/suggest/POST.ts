@@ -3,7 +3,11 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
-class SuggestApplicationRuleRoute extends IUserRoute<SuggestApplicationRuleRequest, SuggestApplicationRuleResponse, SuggestApplicationRuleEnv> {
+class SuggestApplicationRuleRoute extends IUserRoute<
+  SuggestApplicationRuleRequest,
+  SuggestApplicationRuleResponse,
+  SuggestApplicationRuleEnv
+> {
   schema = {
     tags: ['Rules'],
     summary: 'Generate an email processing rule from a natural language description',
@@ -20,7 +24,9 @@ class SuggestApplicationRuleRoute extends IUserRoute<SuggestApplicationRuleReque
     cxt: RouteContext<SuggestApplicationRuleEnv>,
   ): Promise<SuggestApplicationRuleResponse> {
     const scope = createRequestScope(env);
-    const rule = await scope.get(Tokens.ApplicationService).suggestRule(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.description);
+    const rule = await scope
+      .get(Tokens.ApplicationService)
+      .suggestRule(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.description);
     return { rule };
   }
 }

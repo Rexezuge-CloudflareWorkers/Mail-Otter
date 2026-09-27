@@ -74,15 +74,11 @@ describe('renderActionDetails', () => {
   });
 
   it('renders draft replies, links, and manual tasks', () => {
-    expect(
-      renderActionDetails(makeAction('email.draft_reply', { draftBody: 'Hello there' }), 'en'),
-    ).toContain('Hello there');
-    expect(
-      renderActionDetails(makeAction('external.open_link', { url: 'https://example.com/x' }), 'en'),
-    ).toContain('https://example.com/x');
-    expect(
-      renderActionDetails(makeAction('manual.todo', { instructions: 'File the report' }), 'en'),
-    ).toContain('File the report');
+    expect(renderActionDetails(makeAction('email.draft_reply', { draftBody: 'Hello there' }), 'en')).toContain('Hello there');
+    expect(renderActionDetails(makeAction('external.open_link', { url: 'https://example.com/x' }), 'en')).toContain(
+      'https://example.com/x',
+    );
+    expect(renderActionDetails(makeAction('manual.todo', { instructions: 'File the report' }), 'en')).toContain('File the report');
   });
 
   it('renders package tracking with optional carrier and tracking URL', () => {
@@ -211,11 +207,7 @@ describe('renderConfirmationPage states', () => {
   });
 
   it('shows the no-longer-pending note for executed actions', () => {
-    const html = renderConfirmationPage(
-      makeAction('manual.todo', { instructions: 'Do it' }, { status: 'succeeded' }),
-      'token-1',
-      'en',
-    );
+    const html = renderConfirmationPage(makeAction('manual.todo', { instructions: 'Do it' }, { status: 'succeeded' }), 'token-1', 'en');
     expect(html).not.toContain('<form');
   });
 

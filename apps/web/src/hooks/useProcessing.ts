@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as processingService from '../services/processingService';
-import type { BackgroundTaskRun, BackgroundTaskRunStatus, ProcessedMessage, ProcessedMessageStatus, SyncedCalendarEvent } from '../services/processingService';
+import type {
+  BackgroundTaskRun,
+  BackgroundTaskRunStatus,
+  ProcessedMessage,
+  ProcessedMessageStatus,
+  SyncedCalendarEvent,
+} from '../services/processingService';
 
 interface UseProcessingOptions {
   showNotice: (type: 'success' | 'error', text: string) => void;

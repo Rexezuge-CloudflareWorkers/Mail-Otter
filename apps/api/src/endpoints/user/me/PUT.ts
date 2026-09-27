@@ -27,7 +27,11 @@ class UpdateCurrentUserRoute extends IUserRoute<UpdateCurrentUserRequest, Update
     const scope = createRequestScope(env);
     const candidate = request.preferredLanguage.trim().toLowerCase();
     const englishAliases = ['en', 'en-us', 'en_us', 'en-gb', 'en_gb'];
-    if (!LocaleUtil.isSupported(request.preferredLanguage) && LocaleUtil.normalize(request.preferredLanguage) === 'en' && !englishAliases.includes(candidate)) {
+    if (
+      !LocaleUtil.isSupported(request.preferredLanguage) &&
+      LocaleUtil.normalize(request.preferredLanguage) === 'en' &&
+      !englishAliases.includes(candidate)
+    ) {
       throw new BadRequestError('Unsupported language.');
     }
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);

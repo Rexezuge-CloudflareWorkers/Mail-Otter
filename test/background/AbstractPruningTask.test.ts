@@ -91,7 +91,7 @@ function createExecutionContext(): ExecutionContext {
 }
 
 function createEnv(): Env {
-  return { DB: {} } as unknown as Env;
+  return { DB: {} };
 }
 
 describe('AbstractPruningTask (IScheduledTask template method)', () => {
@@ -139,18 +139,13 @@ describe('AbstractPruningTask (IScheduledTask template method)', () => {
     mocks.startRun.mockRejectedValue(new Error('D1 down'));
     const task = new StartFailureTask();
 
-    await expect(
-      task.handle(createScheduledController(), createEnv(), createExecutionContext()),
-    ).resolves.toBeUndefined();
+    await expect(task.handle(createScheduledController(), createEnv(), createExecutionContext())).resolves.toBeUndefined();
     expect(task.calls).toBe(1);
     expect(mocks.succeedRun).not.toHaveBeenCalled();
   });
 
   it('supports per-application run handles for succeed, fail, and skip', async () => {
-    mocks.startRun
-      .mockResolvedValueOnce('run-app-1')
-      .mockResolvedValueOnce('run-app-2')
-      .mockResolvedValueOnce('run-app-3');
+    mocks.startRun.mockResolvedValueOnce('run-app-1').mockResolvedValueOnce('run-app-2').mockResolvedValueOnce('run-app-3');
 
     await new PerApplicationTask().runApplicationBranches({ DB: {} as D1Database });
 

@@ -46,7 +46,7 @@ export function DigestSection({ application }: { application: ConnectedApplicati
   };
 
   const sectionLabels: Record<string, string> = {
-    calendar: t('digest.sectionCalendar', "Calendar Events"),
+    calendar: t('digest.sectionCalendar', 'Calendar Events'),
     tasks: t('digest.sectionTasks', 'Pending Tasks'),
     packages: t('digest.sectionPackages', 'Package Deliveries'),
     flights: t('digest.sectionFlights', 'Upcoming Flights'),
@@ -69,9 +69,11 @@ export function DigestSection({ application }: { application: ConnectedApplicati
 
   return (
     <CollapsibleSection title={t('digest.title', 'Daily Digest')}>
-
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        {t('digest.description', 'Receive a daily digest email summarizing your pending tasks, calendar events, package deliveries, and more.')}
+        {t(
+          'digest.description',
+          'Receive a daily digest email summarizing your pending tasks, calendar events, package deliveries, and more.',
+        )}
       </p>
 
       <div className="space-y-4">
@@ -83,7 +85,9 @@ export function DigestSection({ application }: { application: ConnectedApplicati
             disabled={busy}
             onChange={(e) => handleEnabledChange(e.target.checked)}
           />
-          <span className="text-sm font-medium text-[var(--color-text-primary)]">{t('digest.enableDailyDigest', 'Enable Daily Digest')}</span>
+          <span className="text-sm font-medium text-[var(--color-text-primary)]">
+            {t('digest.enableDailyDigest', 'Enable Daily Digest')}
+          </span>
         </label>
 
         {enabled && (
@@ -97,7 +101,9 @@ export function DigestSection({ application }: { application: ConnectedApplicati
                 onChange={(e) => handleTimeChange(e.target.value)}
                 className="text-sm border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
               />
-              <span className="text-xs text-[var(--color-text-muted)]">{t('digest.inTimeZone', 'in {{tz}}', { tz: application.timeZone || 'UTC' })}</span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                {t('digest.inTimeZone', 'in {{tz}}', { tz: application.timeZone || 'UTC' })}
+              </span>
             </div>
 
             <div>
@@ -134,12 +140,7 @@ export function DigestSection({ application }: { application: ConnectedApplicati
           <span className="text-xs text-[var(--color-text-muted)]">{lastSentLabel}</span>
           <div className="flex items-center gap-2">
             {cfg && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={busy}
-                onClick={() => onSendDigestNow(application.applicationId)}
-              >
+              <Button variant="secondary" size="sm" disabled={busy} onClick={() => onSendDigestNow(application.applicationId)}>
                 {t('digest.sendNowShort', 'Send Now')}
               </Button>
             )}

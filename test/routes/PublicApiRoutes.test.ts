@@ -96,27 +96,27 @@ describe('public api routes', () => {
       new OAuth2CallbackRoute(),
       req('https://x/?error=denied'),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { statusCode: number };
     expect(errRedirect.statusCode).toBeGreaterThanOrEqual(300);
-    await expect(call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt({ applicationId: 'app-1' }))).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(
+      call(new OAuth2CallbackRoute(), req('https://x/'), makeEnv(), makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' })),
+    ).rejects.toThrow(BadRequestError);
     mockCompleteCallback.mockResolvedValue(undefined);
     const okRedirect = (await call(
       new OAuth2CallbackRoute(),
       req('https://x/?code=c&state=s'),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { statusCode: number };
-    expect(mockCompleteCallback).toHaveBeenCalledWith({ applicationId: 'app-1', code: 'c', state: 's' });
+    expect(mockCompleteCallback).toHaveBeenCalledWith({ applicationId: '11111111-1111-4111-8111-111111111111', code: 'c', state: 's' });
     expect(okRedirect.statusCode).toBeGreaterThanOrEqual(300);
     mockCompleteCallback.mockRejectedValue(new Error('bad verifier'));
     const failRedirect = (await call(
       new OAuth2CallbackRoute(),
       req('https://x/?code=c&state=s'),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { statusCode: number };
     expect(failRedirect.statusCode).toBeGreaterThanOrEqual(300);
   });
@@ -127,9 +127,12 @@ describe('public api routes', () => {
       new GmailWebhookRoute(),
       req('https://x/?token=t', { message: { data: 'd', messageId: 'm' } }),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { message: string };
-    expect(mockHandleGmail).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 'app-1', token: 't' }), expect.anything());
+    expect(mockHandleGmail).toHaveBeenCalledWith(
+      expect.objectContaining({ applicationId: '11111111-1111-4111-8111-111111111111', token: 't' }),
+      expect.anything(),
+    );
     expect(result.message).toBe('accepted');
   });
 
@@ -138,7 +141,7 @@ describe('public api routes', () => {
       new OutlookWebhookRoute(),
       req('https://x/?validationToken=vt'),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { rawBody: string };
     expect(echo.rawBody).toBe('vt');
     expect(mockHandleOutlook).not.toHaveBeenCalled();
@@ -147,9 +150,9 @@ describe('public api routes', () => {
       new OutlookWebhookRoute(),
       req('https://x/', { value: [] }),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { statusCode: number };
-    expect(mockHandleOutlook).toHaveBeenCalledWith('app-1', [], expect.anything(), expect.any(String));
+    expect(mockHandleOutlook).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', [], expect.anything(), expect.any(String));
     expect(accepted.statusCode).toBe(202);
   });
 
@@ -158,7 +161,7 @@ describe('public api routes', () => {
       new OutlookLifecycleWebhookRoute(),
       req('https://x/?validationToken=vt'),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { rawBody: string };
     expect(echo.rawBody).toBe('vt');
     await expect(call(new OutlookLifecycleWebhookRoute(), req('https://x/', { value: [] }), makeEnv(), makeCxt())).rejects.toThrow(
@@ -168,9 +171,9 @@ describe('public api routes', () => {
       new OutlookLifecycleWebhookRoute(),
       req('https://x/', { value: [] }),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { statusCode: number };
-    expect(mockHandleLifecycle).toHaveBeenCalledWith('app-1', [], expect.anything());
+    expect(mockHandleLifecycle).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', [], expect.anything());
     expect(accepted.statusCode).toBe(202);
   });
 
@@ -178,17 +181,22 @@ describe('public api routes', () => {
     await expect(call(new FastmailWebhookRoute(), req('https://x/', { emailId: 'e' }), makeEnv(), makeCxt())).rejects.toThrow(
       BadRequestError,
     );
-    await expect(call(new FastmailWebhookRoute(), req('https://x/', {}), makeEnv(), makeCxt({ applicationId: 'app-1' }))).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(
+      call(
+        new FastmailWebhookRoute(),
+        req('https://x/', {}),
+        makeEnv(),
+        makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
+      ),
+    ).rejects.toThrow(BadRequestError);
     const result = (await call(
       new FastmailWebhookRoute(),
       req('https://x/?token=t', { emailId: 'e-1' }),
       makeEnv(),
-      makeCxt({ applicationId: 'app-1' }),
+      makeCxt({ applicationId: '11111111-1111-4111-8111-111111111111' }),
     )) as { message: string };
     expect(mockHandleFastmail).toHaveBeenCalledWith(
-      expect.objectContaining({ applicationId: 'app-1', emailId: 'e-1', token: 't' }),
+      expect.objectContaining({ applicationId: '11111111-1111-4111-8111-111111111111', emailId: 'e-1', token: 't' }),
       expect.anything(),
     );
     expect(result.message).toBe('accepted');

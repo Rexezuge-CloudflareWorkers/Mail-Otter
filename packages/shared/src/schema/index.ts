@@ -65,7 +65,8 @@ const getRouteKey = (request: Request): string => {
  *
  * A key repeated on the URL (`?types=a&types=b`) becomes an array so schemas
  * can declare `z.array(...)`; a key seen once stays a string so scalar fields
- * keep validating as scalars. Routes using `searchParams.getAll()` rely on this.
+ * keep validating as scalars. Routes serving repeated parameters read them with
+ * `IBaseRoute.getQueryParams`.
  */
 const getQueryData = (request: Request): Record<string, string | string[]> => {
   const query: Record<string, string | string[]> = {};
@@ -107,10 +108,10 @@ const getRequestInputSchema = (request: Request): RequestInputSchema | undefined
  * that state. An unregistered route is now rejected so the omission surfaces
  * immediately instead of as a production incident.
  *
- * NOTE: `data` carries the validated body only. Query strings are validated
- * here but routes still read them via `IBaseRoute.getQueryParam`, which
- * re-parses `request.raw.url`; routing those reads through the validated
- * values is tracked separately.
+ * On success `query` carries the validated query parameters (defaults and
+ * coercions applied) so `IBaseRoute.getQueryParam` can serve reads from them
+ * instead of re-parsing the raw URL. A parameter the schema does not declare is
+ * absent from `query` and reads back as `undefined`.
  */
 const validateRequestInput = async (request: Request, body: unknown) => {
   const routeKey: string = getRouteKey(request);
@@ -123,18 +124,20 @@ const validateRequestInput = async (request: Request, body: unknown) => {
     };
   }
 
+  let validatedQuery: Record<string, unknown> = {};
   if (schema.query) {
     const queryResult = await schema.query.safeParseAsync(getQueryData(request));
     if (!queryResult.success) {
       return { success: false as const, error: formatValidationError('query', queryResult.error), scope: 'query' as const };
     }
+    validatedQuery = (queryResult.data ?? {}) as Record<string, unknown>;
   }
 
-  if (!schema.body) return { success: true as const, data: body };
+  if (!schema.body) return { success: true as const, data: body, query: validatedQuery };
 
   const bodyResult = await schema.body.safeParseAsync(body);
   return bodyResult.success
-    ? { success: true as const, data: bodyResult.data }
+    ? { success: true as const, data: bodyResult.data, query: validatedQuery }
     : { success: false as const, error: formatValidationError('body', bodyResult.error), scope: 'body' as const };
 };
 

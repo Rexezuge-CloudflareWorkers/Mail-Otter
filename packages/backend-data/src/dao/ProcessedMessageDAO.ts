@@ -11,6 +11,14 @@ import type { ProcessedMessageStatus, ProviderId } from '@mail-otter/shared/cons
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 
+/**
+ * How long a row may sit in `processing` before a retry is allowed to reclaim
+ * it. Comfortably longer than a single summarize+send cycle, so a healthy
+ * in-flight attempt is never stolen, but short enough that a crashed workflow
+ * does not block the message forever.
+ */
+const PROCESSING_STALE_AFTER_SECONDS = 15 * 60;
+
 class ProcessedMessageDAO extends BaseDAO {
   public async tryStart(
     applicationId: string,
@@ -63,8 +71,14 @@ class ProcessedMessageDAO extends BaseDAO {
         return false;
       }
     }
-    await this.updateRetryMetadata(applicationId, providerMessageId, providerThreadId, options.providerStableMessageFingerprint);
-    return true;
+    return this.claimRetry(
+      applicationId,
+      providerMessageId,
+      existing.status,
+      existing.updated_at,
+      providerThreadId,
+      options.providerStableMessageFingerprint,
+    );
   }
 
   public async markSummarized(applicationId: string, providerMessageId: string): Promise<void> {
@@ -268,29 +282,69 @@ class ProcessedMessageDAO extends BaseDAO {
       .first<ProcessedMessageInternal>();
   }
 
-  private async updateRetryMetadata(
+  /**
+   * Atomically claim an existing row for a retry attempt.
+   *
+   * This used to be a read-then-write with no claim at all: the caller read the
+   * row, saw `status` of `processing` or `error`, wrote thread/fingerprint
+   * metadata, and returned `true`. Nothing transitioned `status`, so two
+   * concurrent callers both succeeded and both ran the summarize pipeline —
+   * producing two AI summaries and delivering two summary emails for one
+   * message. Two workflow instances for the same provider message are genuinely
+   * concurrent, because a different queue message id yields a different
+   * workflow instance id. `SummaryDeliveryService` re-checks `summarized`, but
+   * only after generation has already been paid for.
+   *
+   * The claim is a single conditional UPDATE whose `WHERE` pins both the status
+   * the caller observed and — for a row already `processing` — its `updated_at`.
+   * The first caller to match flips the row to `processing` and bumps
+   * `updated_at`, so the second caller's pinned predicates no longer match and
+   * its `meta.changes` is 0. Pinning `updated_at` also stops a retry from
+   * stealing a row that another worker is actively processing.
+   *
+   * Mirrors the conditional-UPDATE claim in `EmailActionDAO.claimForExecution`.
+   */
+  private async claimRetry(
     applicationId: string,
     providerMessageId: string,
+    observedStatus: ProcessedMessageStatus,
+    observedUpdatedAt: number,
     providerThreadId: string | null | undefined,
     providerStableMessageFingerprint: string | null | undefined,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
+    const staleCutoff: number = now - PROCESSING_STALE_AFTER_SECONDS;
+    const result: D1Result = await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
           .prepare(
             `
               UPDATE processed_messages
-              SET provider_thread_id = COALESCE(?, provider_thread_id),
+              SET status = ?,
+                  provider_thread_id = COALESCE(?, provider_thread_id),
                   provider_stable_message_fingerprint = COALESCE(?, provider_stable_message_fingerprint),
                   updated_at = ?
-              WHERE application_id = ? AND provider_message_id = ?
+              WHERE application_id = ?
+                AND provider_message_id = ?
+                AND status = ?
+                AND (status <> ? OR updated_at <= ?)
             `,
           )
-          .bind(providerThreadId || null, providerStableMessageFingerprint || null, now, applicationId, providerMessageId)
+          .bind(
+            PROCESSED_MESSAGE_STATUS_PROCESSING,
+            providerThreadId || null,
+            providerStableMessageFingerprint || null,
+            now,
+            applicationId,
+            providerMessageId,
+            observedStatus,
+            PROCESSED_MESSAGE_STATUS_PROCESSING,
+            staleCutoff,
+          )
           .run(),
-      'update processed message retry metadata',
+      'claim processed message retry',
     );
+    return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   private toProcessedMessage(row: ProcessedMessageInternal): ProcessedMessage {

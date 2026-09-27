@@ -20,9 +20,8 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
     cxt: RouteContext<ListActivityEnv>,
   ): Promise<ListActivityResponse | ExtendedResponse<ListActivityResponse>> {
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
-    const url = new URL(request.raw.url);
-    const format = url.searchParams.get('format');
-    const types = url.searchParams.getAll('types');
+    const format = this.getQueryParam(request, 'format');
+    const types = this.getQueryParams(request, 'types');
     const applicationId = this.getQueryParam(request, 'applicationId');
 
     if (format === 'csv') {

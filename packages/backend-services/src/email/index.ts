@@ -7,7 +7,6 @@ export * from './EmailPipelineFactory';
 export * from './EmailSummaryOrchestrator';
 export * from './AiUsageUtil';
 export * from './EmailContextUtil';
-export * from './EmailProcessingUtil';
 export * from './processing/EmailProcessingTypes';
 export * from './processing/EmailApplicationResolver';
 export * from './processing/SummaryDeliveryService';

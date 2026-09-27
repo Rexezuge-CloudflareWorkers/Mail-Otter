@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EmailProcessingUtil, EmailSummaryUtil } from '@mail-otter/backend-services/email';
+import {
+  EmailApplicationResolver,
+  EmailSummaryUtil,
+  GmailMessageProcessor,
+  OutlookMessageProcessor,
+} from '@mail-otter/backend-services/email';
 import type { EmailProcessingEnv } from '@mail-otter/backend-services/email';
 import { AiDailyUsageDAO, ConnectedApplicationDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
@@ -7,7 +12,7 @@ import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
 import { AiSummaryRetryableError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 
-describe('EmailProcessingUtil', () => {
+describe('email processing processors', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(ProcessedMessageDAO.prototype, 'getByMessageId').mockResolvedValue(createProcessedMessage());
@@ -17,7 +22,9 @@ describe('EmailProcessingUtil', () => {
     it('classifies missing applications as non-retryable', async () => {
       vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(undefined);
 
-      await expect(EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv())).rejects.toThrow(NonRetryableError);
+      await expect(new EmailApplicationResolver(createEnv()).resolveApplication(createOutlookQueueMessage())).rejects.toThrow(
+        NonRetryableError,
+      );
     });
 
     it('classifies applications without a provider email as non-retryable', async () => {
@@ -29,7 +36,9 @@ describe('EmailProcessingUtil', () => {
         credentials: { refreshToken: 'refresh-token' },
       });
 
-      await expect(EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv())).rejects.toThrow(NonRetryableError);
+      await expect(new EmailApplicationResolver(createEnv()).resolveApplication(createOutlookQueueMessage())).rejects.toThrow(
+        NonRetryableError,
+      );
     });
   });
 
@@ -45,7 +54,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'message-1', null, { allowExistingForRetry: false });
@@ -63,7 +72,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), [], { retryAttempt: 2 }),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', [], { retryAttempt: 2 }),
       ).resolves.toBeUndefined();
 
       expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'message-1', null, { allowExistingForRetry: true });
@@ -75,7 +84,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(OutlookProviderUtil, 'getMessage').mockRejectedValue(new Error('Temporary Graph failure.'));
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).rejects.toThrow(RetryableError);
 
       expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Temporary Graph failure.');
@@ -90,7 +99,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'moved-message-2', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'moved-message-2', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'moved-message-2', 'conversation-1', {
@@ -112,7 +121,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'reply-message-2', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'reply-message-2', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).toHaveBeenCalledWith('app-1', 'microsoft-outlook', 'reply-message-2', 'conversation-1', {
@@ -142,11 +151,10 @@ describe('EmailProcessingUtil', () => {
         usage: { promptTokens: 1000, completionTokens: 100, totalTokens: 1100 },
       });
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv({ DEBUG_MODE: 'true' })).processMessage(
         createApplication(),
         'access-token',
         'message-1',
-        createEnv({ DEBUG_MODE: 'true' }),
         [],
       );
 
@@ -177,11 +185,10 @@ describe('EmailProcessingUtil', () => {
         usage: { promptTokens: 1000, completionTokens: 100 },
       });
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' })).processMessage(
         createApplication(),
         'access-token',
         'message-1',
-        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' }),
         [],
       );
 
@@ -217,11 +224,10 @@ describe('EmailProcessingUtil', () => {
         usage: { promptTokens: 1000, completionTokens: 100 },
       });
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' })).processMessage(
         createApplication(),
         'access-token',
         'message-1',
-        createEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '6000' }),
         [],
       );
 
@@ -264,7 +270,7 @@ describe('EmailProcessingUtil', () => {
           usage: { promptTokens: 500, completionTokens: 50 },
         });
 
-      await EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []);
+      await new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []);
 
       expect(summarizeEmail).toHaveBeenNthCalledWith(
         1,
@@ -315,7 +321,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).rejects.toThrow(NonRetryableError);
 
       expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Workers AI daily free allocation was exceeded.');
@@ -335,7 +341,7 @@ describe('EmailProcessingUtil', () => {
       });
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).rejects.toThrow(NonRetryableError);
 
       expect(markError).toHaveBeenCalledWith('app-1', 'message-1', 'Workers AI daily free allocation was exceeded.');
@@ -351,7 +357,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).not.toHaveBeenCalled();
@@ -368,7 +374,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processOutlookMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new OutlookMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).not.toHaveBeenCalled();
@@ -381,7 +387,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(createGmailMessage({ fromHeader: 'Owner <owner@example.com>' }));
 
       await expect(
-        EmailProcessingUtil.processGmailMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new GmailMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).not.toHaveBeenCalled();
@@ -396,7 +402,7 @@ describe('EmailProcessingUtil', () => {
       );
 
       await expect(
-        EmailProcessingUtil.processGmailMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
+        new GmailMessageProcessor(createEnv()).processMessage(createApplication(), 'access-token', 'message-1', []),
       ).resolves.toBeUndefined();
 
       expect(tryStart).not.toHaveBeenCalled();
@@ -414,11 +420,10 @@ describe('EmailProcessingUtil', () => {
           createOutlookMessage({ from: { emailAddress: { address: 'alice@other.com' } } }),
         );
 
-        await EmailProcessingUtil.processOutlookMessage(
+        await new OutlookMessageProcessor(createEnv()).processMessage(
           createApplication({ senderDomainFilters: { includeRules: ['@company.com'] } }),
           'access-token',
           'message-1',
-          createEnv(),
           [],
         );
 
@@ -437,11 +442,10 @@ describe('EmailProcessingUtil', () => {
         vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
         vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
 
-        await EmailProcessingUtil.processOutlookMessage(
+        await new OutlookMessageProcessor(createEnv()).processMessage(
           createApplication({ senderDomainFilters: { includeRules: ['@company.com'] } }),
           'access-token',
           'message-1',
-          createEnv(),
           [],
         );
 
@@ -457,11 +461,10 @@ describe('EmailProcessingUtil', () => {
         vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
         vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
 
-        await EmailProcessingUtil.processOutlookMessage(
+        await new OutlookMessageProcessor(createEnv()).processMessage(
           createApplication({ senderDomainFilters: null }),
           'access-token',
           'message-1',
-          createEnv(),
           [],
         );
 
@@ -476,11 +479,10 @@ describe('EmailProcessingUtil', () => {
         const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
         vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(createGmailMessage({ fromHeader: 'Alice <alice@other.com>' }));
 
-        await EmailProcessingUtil.processGmailMessage(
+        await new GmailMessageProcessor(createEnv()).processMessage(
           createApplication({ senderDomainFilters: { includeRules: ['@company.com'] } }),
           'access-token',
           'message-1',
-          createEnv(),
           [],
         );
 
@@ -497,11 +499,10 @@ describe('EmailProcessingUtil', () => {
         vi.spyOn(GmailProviderUtil, 'sendSummaryReply').mockResolvedValue();
         vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
 
-        await EmailProcessingUtil.processGmailMessage(
+        await new GmailMessageProcessor(createEnv()).processMessage(
           createApplication({ senderDomainFilters: null }),
           'access-token',
           'message-1',
-          createEnv(),
           [],
         );
 
@@ -517,7 +518,7 @@ describe('EmailProcessingUtil', () => {
       const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
       vi.spyOn(OutlookProviderUtil, 'getMessage').mockResolvedValue(createOutlookMessage({ subject: 'Newsletter: Weekly Digest' }));
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv()).processMessage(
         createApplication({
           emailProcessingRules: [
             {
@@ -531,7 +532,6 @@ describe('EmailProcessingUtil', () => {
         }),
         'access-token',
         'message-1',
-        createEnv(),
         [],
       );
 
@@ -547,7 +547,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
       const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv()).processMessage(
         createApplication({
           emailProcessingRules: [
             {
@@ -561,7 +561,6 @@ describe('EmailProcessingUtil', () => {
         }),
         'access-token',
         'message-1',
-        createEnv(),
         [],
       );
 
@@ -576,7 +575,7 @@ describe('EmailProcessingUtil', () => {
       vi.spyOn(OutlookProviderUtil, 'sendSelfSummaryReply').mockResolvedValue();
       const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage').mockResolvedValue({ summary: 'Summary text' });
 
-      await EmailProcessingUtil.processOutlookMessage(
+      await new OutlookMessageProcessor(createEnv()).processMessage(
         createApplication({
           emailProcessingRules: [
             {
@@ -590,7 +589,6 @@ describe('EmailProcessingUtil', () => {
         }),
         'access-token',
         'message-1',
-        createEnv(),
         [],
       );
 

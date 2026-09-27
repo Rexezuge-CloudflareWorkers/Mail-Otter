@@ -1,1 +1,0 @@
-export { OutlookWebhookRoute } from './POST';

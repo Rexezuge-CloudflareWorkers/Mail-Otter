@@ -5,7 +5,6 @@ export * from './ConnectedApplication';
 export * from './ConnectedApplicationHelpers';
 export * from './DigestConfig';
 export * from './EmailAction';
-export * from './EmailActionHelpers';
 export * from './EmailQueueMessage';
 export * from './EmailRule';
 export * from './OAuth2AuthorizationSession';

@@ -9,7 +9,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
-import { CryptoUtil, TimestampUtil } from '@mail-otter/shared/utils';
+import { CryptoUtil, TimestampUtil, logError } from '@mail-otter/shared/utils';
 import type { EmailAction, EmailActionResult } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
@@ -165,7 +165,7 @@ async function autoExecuteCreatedActions(
       try {
         await executeAction(created.action, EMAIL_ACTION_TRIGGER_AUTO_EXECUTE, null, env);
       } catch (error: unknown) {
-        console.warn(`Auto-execute failed for action ${created.action.actionId}:`, error);
+        logError('warn', `Auto-execute failed for action ${created.action.actionId}`, error);
       }
     }),
   );

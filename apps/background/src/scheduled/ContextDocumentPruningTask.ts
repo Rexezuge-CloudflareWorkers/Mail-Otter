@@ -6,6 +6,7 @@ import { Tokens, createRequestScope } from '@mail-otter/backend-services/composi
 import { ContextService } from '@mail-otter/backend-services/email';
 import { IScheduledTask } from './IScheduledTask';
 import type { IEnv } from './IScheduledTask';
+import { logTokenAdjacentError } from '@mail-otter/shared/utils';
 
 class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTaskEnv> {
   protected async handleScheduledTask(
@@ -24,8 +25,8 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
         await scope
           .get<ContextService>(Tokens.ContextService)
           .pruneApplicationDocuments(app.applicationId, app.userEmail, app.activeCount, app.effectiveLimit);
-      } catch (error: unknown) {
-        console.error(`Context document pruning failed for application ${app.applicationId}:`, error);
+      } catch {
+        logTokenAdjacentError('error', 'Context document pruning failed', { applicationId: app.applicationId });
       }
     }
   }

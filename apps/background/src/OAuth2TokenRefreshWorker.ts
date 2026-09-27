@@ -8,7 +8,7 @@ import {
 import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
-import { TimestampUtil } from '@mail-otter/shared/utils';
+import { TimestampUtil, logTokenAdjacentError } from '@mail-otter/shared/utils';
 import { BadRequestError, NotFoundError, ProviderApiNonRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
@@ -65,7 +65,11 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
             ? 400
             : 500;
       const message: string = error instanceof Error ? error.message : String(error);
-      if (status >= 500) console.error('OAuth2 token operation failed:', error);
+      // Never interpolate the caught error here: this DO handles refresh tokens
+      // and auth codes, and `js/clear-text-logging` traces that taint through
+      // the thrown value. The cause is already persisted by
+      // `OAuth2AccessTokenRefreshStatusDAO.recordRefreshFailure`.
+      if (status >= 500) logTokenAdjacentError('error', 'OAuth2 token operation failed');
       return Response.json({ error: message }, { status });
     }
   }

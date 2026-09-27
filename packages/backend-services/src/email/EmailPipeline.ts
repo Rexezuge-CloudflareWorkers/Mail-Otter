@@ -4,7 +4,7 @@ import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import type { ProviderId } from '@mail-otter/shared/constants';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
-import { CryptoUtil } from '@mail-otter/shared/utils';
+import { CryptoUtil, logError } from '@mail-otter/shared/utils';
 import { EmailProcessingAuditLogger } from './EmailProcessingAuditLogger';
 import { EmailSummaryOrchestrator } from './EmailSummaryOrchestrator';
 import type { OrchestrationResult, OrchestratorEnv } from './EmailSummaryOrchestrator';
@@ -238,7 +238,7 @@ async function getAttachmentImagesSafe(
   try {
     return await fetcher();
   } catch (error: unknown) {
-    console.warn(`[EmailPipeline] ${providerLabel} attachment fetch failed:`, error);
+    logError('warn', `[EmailPipeline] ${providerLabel} attachment fetch failed`, error);
     return [];
   }
 }

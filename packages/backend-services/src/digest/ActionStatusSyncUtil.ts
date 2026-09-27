@@ -4,6 +4,7 @@ import type { DeliveryTrackPackageActionPayload, EmailAction, TravelTrackFlightA
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { formatExpectedDelivery, TAG_LABELS } from '../action/PackageTrackingService';
 import { fetchFlightStatus } from '../action/FlightTrackingService';
+import { logError } from '@mail-otter/shared/utils';
 
 interface PackageSyncStatus {
   carrier?: string;
@@ -28,7 +29,7 @@ class ActionStatusSyncUtil {
       try {
         await this.syncPackageAction(action, packageTrackingApiKey);
       } catch (error: unknown) {
-        console.error(`[ActionStatusSyncUtil] Failed to sync package action ${action.actionId}:`, error);
+        logError('error', `[ActionStatusSyncUtil] Failed to sync package action ${action.actionId}`, error);
       }
     }
   }
@@ -39,7 +40,7 @@ class ActionStatusSyncUtil {
       try {
         await this.syncFlightAction(action, flightTrackingApiKey);
       } catch (error: unknown) {
-        console.error(`[ActionStatusSyncUtil] Failed to sync flight action ${action.actionId}:`, error);
+        logError('error', `[ActionStatusSyncUtil] Failed to sync flight action ${action.actionId}`, error);
       }
     }
   }

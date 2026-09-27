@@ -5,7 +5,7 @@ import {
   EMAIL_ACTION_TRIGGER_SCHEDULED,
 } from '@mail-otter/shared/constants';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
-import { TimestampUtil } from '@mail-otter/shared/utils';
+import { TimestampUtil, logError } from '@mail-otter/shared/utils';
 import type { EmailAction } from '@mail-otter/shared/model';
 import { createActionDAO } from './ActionServiceUtils';
 import { executeAction } from './ActionExecutionService';
@@ -92,7 +92,7 @@ async function executeScheduledActions(env: ActionExecutionEnv): Promise<Schedul
       }
     } catch (error: unknown) {
       failed++;
-      console.warn(`[ActionSchedulingService] Scheduled execution failed for action ${action.actionId}:`, error);
+      logError('warn', `[ActionSchedulingService] Scheduled execution failed for action ${action.actionId}`, error);
     }
   }
 

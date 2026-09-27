@@ -7,6 +7,7 @@ import { AiUsageUtil } from '../email/AiUsageUtil';
 import type { AiTextGenerationUsage } from '../email/WorkersAiResponseUtil';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import type { ApplicationServiceDeps, ApplicationServiceEnv } from './ApplicationServiceTypes';
+import { logError } from '@mail-otter/shared/utils';
 
 /**
  * Rules + labels slice of `ApplicationService`.
@@ -29,7 +30,7 @@ class ApplicationRulesService {
       const provider = EmailProviderRegistry.get(app.providerId, app.connectionMethod);
       return (await provider.listLabels?.(accessToken)) ?? [];
     } catch (error: unknown) {
-      console.warn('[ApplicationService] listLabels failed:', error);
+      logError('warn', '[ApplicationService] listLabels failed:', error);
       return [];
     }
   }
@@ -74,7 +75,7 @@ class ApplicationRulesService {
         completionTokens: estimate.completionTokens,
       });
     } catch (error: unknown) {
-      console.warn('Failed to record rule suggestion usage estimate:', error);
+      logError('warn', 'Failed to record rule suggestion usage estimate:', error);
     }
   }
 

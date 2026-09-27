@@ -14,6 +14,7 @@ import { Tokens, createRequestScope } from '@mail-otter/backend-services/composi
 import { buildImapConnectOptions } from '@mail-otter/backend-services/provider';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
 import { CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
+import { logError, logTokenAdjacentError } from '@mail-otter/shared/utils';
 import type { ConnectedApplication, EmailQueueMessage } from '@mail-otter/shared/model';
 import { ImapClient } from '@mail-otter/provider-clients/imap';
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
@@ -315,11 +316,13 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     // OAuth2 4xx from the Durable Object can be transient (cold-start, network hiccup);
     // let the step's configured retry policy handle it rather than killing the workflow immediately.
     if (error instanceof OAuth2TokenNonRetryableError) {
-      console.error('[Workflow] OAuth2 token error (will retry via step policy):', error.message);
+      // Token-adjacent: log the classification only. The OAuth2 DO's error text
+      // can carry credentials, and `js/clear-text-logging` traces that taint.
+      logTokenAdjacentError('error', '[Workflow] OAuth2 token error (will retry via step policy)');
       return new RetryableError(error.message);
     }
     if (error instanceof NonRetryableError) {
-      console.error('[Workflow] Non-retryable error (permanent failure):', error.constructor.name, error.message);
+      logError('error', `[Workflow] Non-retryable error (permanent failure): ${error.constructor.name}`, error);
       return new WorkflowNonRetryableError(error.message, error.name);
     }
     if (error instanceof RetryableError) {
@@ -327,7 +330,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     }
     if (error instanceof DatabaseError) {
       if (!error.retryable) {
-        console.error('[Workflow] Non-retryable database error (permanent failure):', error.message);
+        logError('error', '[Workflow] Non-retryable database error (permanent failure)', error);
         return new WorkflowNonRetryableError(error.message, 'DatabaseError');
       }
       return new RetryableError(error.message);

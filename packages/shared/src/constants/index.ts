@@ -1,4 +1,5 @@
 export * from './BackgroundTasks';
+export * from './ChatLimits';
 export * from './Context';
 export * from './Digest';
 export * from './EmailRules';

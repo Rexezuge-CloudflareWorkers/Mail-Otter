@@ -11,7 +11,7 @@ import {
   CONTEXT_AUDIT_LOG_SEVERITY_INFO,
   CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
 } from '@mail-otter/shared/constants';
-import { CryptoUtil } from '@mail-otter/shared/utils';
+import { CryptoUtil, logError } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiClient } from '../ai/AiClient';
 import { WorkersAiErrorUtil } from './WorkersAiErrorUtil';
@@ -117,7 +117,7 @@ class EmailContextUtil {
       }
       return ragContext;
     } catch (error: unknown) {
-      console.warn('Email context indexing or retrieval failed:', error);
+      logError('warn', 'Email context indexing or retrieval failed:', error);
       if (document) {
         await contextDAO.markDocumentError(document.contextDocumentId, error instanceof Error ? error.message : String(error));
         await contextDAO.insertAuditLog({

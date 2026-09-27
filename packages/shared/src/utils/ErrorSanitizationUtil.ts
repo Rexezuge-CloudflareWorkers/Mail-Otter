@@ -2,8 +2,15 @@
 // because `unicorn/no-unsafe-string-replacement` requires literal replacements,
 // and CodeQL models `.replaceAll(regex, literal)` with a wildcard `.` in the
 // pattern as a masking barrier for js/clear-text-logging.
-const BEARER_PATTERN = /\bearer\s+.\S*/gi;
-const BASIC_PATTERN = /\basic\s+.\S*/gi;
+//
+// `\bearer` / `\basic` used to be written without the closing word boundary on
+// the `b`, which parses as "word boundary, then the literal `earer`" — a
+// substring no real header contains. Both patterns therefore matched nothing
+// and Authorization headers leaked verbatim. The existing test only passed
+// because its sample also contained a `ya29.` token, which
+// GOOGLE_TOKEN_PATTERN caught independently.
+const BEARER_PATTERN = /\bbearer\s+.\S*/gi;
+const BASIC_PATTERN = /\bbasic\s+.\S*/gi;
 const TOKEN_KV_PATTERN = /((?:access|refresh|id)[_-]?token\s*[:=]\s*).\S*/gi;
 const SECRET_KV_PATTERN = /((?:client[_-]?secret|auth[_-]?code|code[_-]?verifier)\s*[:=]\s*).\S*/gi;
 const TOKEN_QUERY_PATTERN = /([?&](?:access_token|refresh_token|code|client_secret)=).[^&\s;}]*/gi;

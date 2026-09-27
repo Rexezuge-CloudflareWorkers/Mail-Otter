@@ -1,62 +1,12 @@
 import { AbstractEntrypointWorker } from '@mail-otter/backend-runtime/base';
 import { fromHono, HonoOpenAPIRouterType } from 'chanfana';
 import { Hono } from 'hono';
-import {
-  GetAnalyticsRoute,
-  ListBackgroundTaskRunsRoute,
-  ListProcessingCalendarEventsRoute,
-  ListProcessedMessagesRoute,
-  RunTaskNowRoute,
-  ListActivityRoute,
-  ChatRoute,
-  CreateApplicationRoute,
-  GetApplicationRulesRoute,
-  UpdateApplicationRulesRoute,
-  SuggestApplicationRuleRoute,
-  GetApplicationLabelsRoute,
-  GetDigestConfigRoute,
-  UpdateDigestConfigRoute,
-  SendDigestNowRoute,
-  ListIntegrationsRoute,
-  CreateIntegrationRoute,
-  UpdateIntegrationRoute,
-  DeleteIntegrationRoute,
-  TestIntegrationRoute,
-  ListIntegrationDeliveriesRoute,
-  CreateOAuth2AuthorizationRoute,
-  DeleteApplicationRoute,
-  DeleteApplicationContextDocumentsRoute,
-  DismissApplicationErrorRoute,
-  ExecuteActionCallbackRoute,
-  ExecuteUserEmailActionRoute,
-  GetActionConfirmationRoute,
-  GetCurrentUserRoute,
-  UpdateCurrentUserRoute,
-  GetApplicationContextDocumentProviderLinkRoute,
-  GetApplicationFoldersRoute,
-  FastmailWebhookRoute,
-  GmailWebhookRoute,
-  ListApplicationContextDeletionRunsRoute,
-  ListApplicationContextDocumentsRoute,
-  ListContextDocumentAuditLogsRoute,
-  ListEmailActionExecutionsRoute,
-  ListEmailActionsRoute,
-  ScheduleEmailActionRoute,
-  SnoozeEmailActionRoute,
-  ListApplicationsRoute,
-  OAuth2CallbackRoute,
-  OutlookLifecycleWebhookRoute,
-  OutlookWebhookRoute,
-  StartApplicationWatchRoute,
-  StopApplicationWatchRoute,
-  UpdateApplicationContextRoute,
-  UpdateApplicationRoute,
-  UpdateApplicationWatchSettingsRoute,
-} from '@/endpoints';
 import { MiddlewareHandlers } from '@/middleware';
+import { allRoutes } from '@/endpoints/routeTable';
 import { SPA_HTML } from '@/generated/spa-shell';
 import { DURABLE_OBJECT_CRON_TASKS_RUN_URL, DURABLE_OBJECT_NAMESPACE_GLOBAL } from '@mail-otter/backend-runtime/constants';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
+import { logError } from '@mail-otter/shared/utils';
 
 const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
 
@@ -101,9 +51,7 @@ class MailOtterWorker extends AbstractEntrypointWorker {
       openapi_url: '/openapi.json',
     });
 
-    this.registerUserRoutes(openapi);
-    this.registerPublicApiRoutes(openapi);
-    this.registerWebhookRoutes(openapi);
+    this.registerRoutes(openapi);
 
     app.get('*', (c) => {
       const path: string = new URL(c.req.url).pathname;
@@ -113,73 +61,18 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     this.app = openapi;
   }
 
-  private registerUserRoutes(openapi: AppRouter): void {
-    openapi.get('/user/me', GetCurrentUserRoute);
-    openapi.put('/user/me', UpdateCurrentUserRoute);
-    openapi.get('/user/analytics', GetAnalyticsRoute);
-
-    openapi.get('/user/applications', ListApplicationsRoute);
-    openapi.post('/user/application', CreateApplicationRoute);
-    openapi.put('/user/application', UpdateApplicationRoute);
-    openapi.delete('/user/application', DeleteApplicationRoute);
-    openapi.post('/user/application/dismiss-error', DismissApplicationErrorRoute);
-    openapi.post('/user/application/oauth2/authorize', CreateOAuth2AuthorizationRoute);
-    openapi.post('/user/application/watch', StartApplicationWatchRoute);
-    openapi.post('/user/application/stop', StopApplicationWatchRoute);
-    openapi.get('/user/application/folders', GetApplicationFoldersRoute);
-    openapi.put('/user/application/watch-settings', UpdateApplicationWatchSettingsRoute);
-
-    openapi.put('/user/application/context', UpdateApplicationContextRoute);
-    openapi.post('/user/application/context/delete-documents', DeleteApplicationContextDocumentsRoute);
-    openapi.get('/user/application/context/documents', ListApplicationContextDocumentsRoute);
-    openapi.get('/user/application/context/deletions', ListApplicationContextDeletionRunsRoute);
-    openapi.get('/user/application/context/document/:contextDocumentId/provider-link', GetApplicationContextDocumentProviderLinkRoute);
-    openapi.get('/user/application/context/document/:contextDocumentId/logs', ListContextDocumentAuditLogsRoute);
-
-    openapi.get('/user/application/rules', GetApplicationRulesRoute);
-    openapi.put('/user/application/rules', UpdateApplicationRulesRoute);
-    openapi.post('/user/application/rules/suggest', SuggestApplicationRuleRoute);
-    openapi.get('/user/application/labels', GetApplicationLabelsRoute);
-
-    openapi.get('/user/application/digest', GetDigestConfigRoute);
-    openapi.put('/user/application/digest', UpdateDigestConfigRoute);
-    openapi.post('/user/application/digest/send', SendDigestNowRoute);
-
-    openapi.get('/user/application/integrations', ListIntegrationsRoute);
-    openapi.post('/user/application/integration', CreateIntegrationRoute);
-    openapi.put('/user/application/integration', UpdateIntegrationRoute);
-    openapi.delete('/user/application/integration', DeleteIntegrationRoute);
-    openapi.post('/user/application/integration/test', TestIntegrationRoute);
-    openapi.get('/user/application/integration/deliveries', ListIntegrationDeliveriesRoute);
-
-    openapi.get('/user/actions', ListEmailActionsRoute);
-    openapi.get('/user/actions/:actionId/executions', ListEmailActionExecutionsRoute);
-    openapi.post('/user/actions/:actionId/execute', ExecuteUserEmailActionRoute);
-    openapi.post('/user/actions/:actionId/snooze', SnoozeEmailActionRoute);
-    openapi.post('/user/actions/:actionId/schedule', ScheduleEmailActionRoute);
-
-    openapi.get('/user/activity', ListActivityRoute);
-    openapi.post('/user/chat', ChatRoute);
-
-    openapi.get('/user/processing/task-runs', ListBackgroundTaskRunsRoute);
-    openapi.get('/user/processing/calendar-events', ListProcessingCalendarEventsRoute);
-    openapi.get('/user/processing/messages', ListProcessedMessagesRoute);
-    openapi.post('/user/processing/run-task', RunTaskNowRoute);
-  }
-
-  private registerPublicApiRoutes(openapi: AppRouter): void {
-    openapi.get('/api/oauth2/callback/:applicationId', OAuth2CallbackRoute);
-    openapi.get('/api/actions/:actionId', GetActionConfirmationRoute);
-    openapi.post('/api/actions/:actionId/execute', ExecuteActionCallbackRoute);
-  }
-
-  private registerWebhookRoutes(openapi: AppRouter): void {
-    openapi.post('/api/webhooks/fastmail/:applicationId', FastmailWebhookRoute);
-    openapi.post('/api/webhooks/gmail/:applicationId', GmailWebhookRoute);
-    openapi.get('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);
-    openapi.post('/api/webhooks/outlook/:applicationId', OutlookWebhookRoute);
-    openapi.get('/api/webhooks/outlook/lifecycle/:applicationId', OutlookLifecycleWebhookRoute);
-    openapi.post('/api/webhooks/outlook/lifecycle/:applicationId', OutlookLifecycleWebhookRoute);
+  /**
+   * Register every route in the declarative table.
+   *
+   * Keeping this as data (`endpoints/routeTable.ts`) rather than three blocks
+   * of `openapi.get(path, Class)` lets `test/schema` assert that every served
+   * route has an input schema registered, which the old imperative form made
+   * impossible to check.
+   */
+  private registerRoutes(openapi: AppRouter): void {
+    for (const { method, path, handler } of allRoutes) {
+      openapi[method](path, handler);
+    }
   }
 
   protected async onRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -219,11 +112,11 @@ class MailOtterWorker extends AbstractEntrypointWorker {
         .fetch(cronTasksRequest)
         .then(async (response: Response): Promise<void> => {
           if (!response.ok && response.status !== 202) {
-            console.error('CronTasksWorker returned an error response:', response.status, await response.text());
+            logError('error', `CronTasksWorker returned an error response (status ${response.status})`, await response.text());
           }
         })
         .catch((error: unknown): void => {
-          console.error('Failed to invoke CronTasksWorker:', error);
+          logError('error', 'Failed to invoke CronTasksWorker', error);
         }),
     );
   }

@@ -1,7 +1,7 @@
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import { AI_LANGUAGE_NAMES } from '@mail-otter/shared/i18n';
 import type { EmailActionProposal } from '@mail-otter/shared/model';
-import { LocaleUtil } from '@mail-otter/shared/utils';
+import { LocaleUtil, logError } from '@mail-otter/shared/utils';
 import { WorkersAiResponseUtil } from './WorkersAiResponseUtil';
 import type { AiTextGenerationUsage } from './WorkersAiResponseUtil';
 
@@ -90,7 +90,7 @@ class AttachmentAnalysisUtil {
           totalTokens += result.usage.totalTokens ?? 0;
         }
       } catch (error) {
-        console.warn(`[AttachmentAnalysisUtil] Vision analysis failed for ${attachment.filename}:`, error);
+        logError('warn', `[AttachmentAnalysisUtil] Vision analysis failed for ${attachment.filename}`, error);
       }
     }
 

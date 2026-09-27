@@ -17,6 +17,7 @@ import { SenderFilterUtil } from './SenderFilterUtil';
 import { EmailSummaryUtil, type AiTextGenerationUsage, type EmailSummaryResult } from './EmailSummaryUtil';
 import { AiUsageUtil, type AiTextGenerationUsageEstimate } from './AiUsageUtil';
 import { AttachmentAnalysisUtil } from './AttachmentAnalysisUtil';
+import { logError } from '@mail-otter/shared/utils';
 
 const EMAIL_SUMMARY_MAX_COMPLETION_TOKENS = 1200;
 
@@ -155,7 +156,7 @@ class EmailSummaryOrchestrator {
           options.retryAttempt,
         );
       } catch (error) {
-        console.warn('[EmailSummaryOrchestrator] Attachment vision analysis failed:', error);
+        logError('warn', '[EmailSummaryOrchestrator] Attachment vision analysis failed:', error);
       }
     }
 
@@ -189,7 +190,7 @@ class EmailSummaryOrchestrator {
             this.env as OrchestratorEnv & { OAUTH2_TOKEN_CACHE: KVNamespace; OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace },
           ).executePostProcessingRules(application, resolvedMessageId, matchedPostRules);
         } catch (error: unknown) {
-          console.error('[EmailSummaryOrchestrator] Post-processing rules failed:', error);
+          logError('error', '[EmailSummaryOrchestrator] Post-processing rules failed:', error);
         }
       }
     }
@@ -246,7 +247,7 @@ class EmailSummaryOrchestrator {
       await this.recordSummaryFailureUsage(model, error, promptText);
       const fallbackModel: string = ConfigurationManager.getEmailSummaryFallbackModel(this.env);
       if (model === fallbackModel) throw error;
-      console.warn(`AI summary failed with primary model ${model}, retrying with fallback ${fallbackModel}:`, error);
+      logError('warn', `AI summary failed with primary model ${model}, retrying with fallback ${fallbackModel}`, error);
       await this.auditLogger.logModelFallback(application, sourceDocumentId, model, error);
       model = fallbackModel;
       try {
@@ -342,7 +343,7 @@ class EmailSummaryOrchestrator {
         ? ConfigurationManager.getEmailSummaryFallbackModel(this.env)
         : primaryModel;
     } catch (error: unknown) {
-      console.warn('Failed to read Workers AI daily usage estimate:', error);
+      logError('warn', 'Failed to read Workers AI daily usage estimate:', error);
       return primaryModel;
     }
   }

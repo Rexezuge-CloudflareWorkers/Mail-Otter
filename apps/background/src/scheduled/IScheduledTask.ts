@@ -1,5 +1,6 @@
 import { BackgroundTaskRunDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import { ErrorSanitizationUtil, logTokenAdjacentError } from '@mail-otter/shared/utils';
 
 interface TaskRunSummary {
   itemsProcessed: number;
@@ -37,8 +38,8 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     let runId: string | undefined;
     if (taskType && db) {
       const dao = this.createTaskRunDAO(db);
-      runId = await dao.startRun({ taskType }).catch((error: unknown) => {
-        console.warn(`[${this.constructor.name}] Failed to start task run record:`, error);
+      runId = await dao.startRun({ taskType }).catch(() => {
+        logTokenAdjacentError('warn', `[${this.constructor.name}] Failed to start task run record`);
         return undefined;
       });
     }
@@ -47,16 +48,16 @@ abstract class IScheduledTask<TEnv extends IEnv> {
       const result = await this.handleScheduledTask(event, tEnv, ctx);
       if (runId && db) {
         const dao = this.createTaskRunDAO(db);
-        await dao.succeedRun(runId, result ?? { itemsProcessed: 0, itemsFailed: 0 }).catch((error: unknown) => {
-          console.warn(`[${this.constructor.name}] Failed to mark task run succeeded:`, error);
+        await dao.succeedRun(runId, result ?? { itemsProcessed: 0, itemsFailed: 0 }).catch(() => {
+          logTokenAdjacentError('warn', `[${this.constructor.name}] Failed to mark task run succeeded`);
         });
       }
     } catch (error: unknown) {
-      console.error(`[${this.constructor.name}] Uncaught error:`, error);
+      logTokenAdjacentError('error', `[${this.constructor.name}] Uncaught error`);
       if (runId && db) {
         const dao = this.createTaskRunDAO(db);
-        await dao.failRun(runId, String(error)).catch((recordError: unknown) => {
-          console.warn(`[${this.constructor.name}] Failed to mark task run failed:`, recordError);
+        await dao.failRun(runId, ErrorSanitizationUtil.sanitizeErrorForLogging(error)).catch(() => {
+          logTokenAdjacentError('warn', `[${this.constructor.name}] Failed to mark task run failed`);
         });
       }
     }
@@ -67,11 +68,9 @@ abstract class IScheduledTask<TEnv extends IEnv> {
   protected async createApplicationRun(taskType: string, applicationId: string, db: D1Queryable): Promise<ApplicationRunHandle> {
     const dao = this.createTaskRunDAO(db);
     const runId = await dao.startRun({ taskType, applicationId });
-    const warn =
-      (op: string) =>
-      (error: unknown): void => {
-        console.warn(`[${this.constructor.name}] Failed to mark application run ${op}:`, error);
-      };
+    const warn = (op: string) => (): void => {
+      logTokenAdjacentError('warn', `[${this.constructor.name}] Failed to mark application run ${op}`);
+    };
     return {
       succeed: (result: TaskRunSummary): Promise<void> =>
         dao

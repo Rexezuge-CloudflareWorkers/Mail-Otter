@@ -53,6 +53,20 @@ jobs:
       - name: Run Tests with Coverage
         run: pnpm run test:coverage
 
+  web-tests:
+    name: Web Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run SPA Unit Tests
+        run: pnpm run test:web
+
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -87,6 +101,7 @@ jobs:
     needs:
       - checks
       - unit-tests
+      - web-tests
       - integration-tests
       - build
     permissions:
@@ -113,6 +128,7 @@ jobs:
     needs:
       - checks
       - unit-tests
+      - web-tests
       - integration-tests
       - build
     permissions:

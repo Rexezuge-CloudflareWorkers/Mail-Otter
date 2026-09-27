@@ -11,7 +11,7 @@ export default tseslint.config(
   // NOTE: `test/**` is deliberately NOT ignored. Tests are linted with the same
   // type-aware rules as source; the overrides block at the end of this file
   // relaxes only the rules that misfire on Vitest idioms.
-  { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'coverage-integration/**', 'node_modules/**'] },
+  { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'coverage-integration/**', 'coverage-web/**', 'node_modules/**'] },
 
   // Base: globals for all JS/TS source files
   {
@@ -134,6 +134,18 @@ export default tseslint.config(
       'sonarjs/public-static-readonly': 'warn',
       // Nested template literals are used intentionally in SQL queries and prompt construction
       'sonarjs/no-nested-template-literals': 'warn',
+    },
+  },
+
+  // --- SPA target constraints ---
+  // `apps/web/tsconfig.json` targets ES2020, so `Array#at` and
+  // `String#replaceAll` are absent from that package's types even though both
+  // ship in every browser the SPA supports. Prefer the index form there.
+  {
+    files: ['apps/web/**/*.{ts,tsx}'],
+    rules: {
+      'unicorn/prefer-at': 'off',
+      'unicorn/prefer-string-replace-all': 'off',
     },
   },
 

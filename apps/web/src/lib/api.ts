@@ -1,6 +1,24 @@
 const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
 
+// Module state, deliberately: the bookmark must outlive a single request so a
+// browser session stays pinned to one D1 replica. The eslint-disable below is
+// the price of that, and the alternative (threading it through every caller)
+// would be worse.
 let latestD1Bookmark: string | undefined;
+
+/**
+ * Clear the cached D1 session bookmark.
+ *
+ * The bookmark is deliberately module state — it must survive across requests so
+ * a browser session stays pinned to one D1 replica for causal consistency. That
+ * makes it leak between tests within a file, so this exists purely to restore
+ * isolation; production code never needs it.
+ */
+// eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- module state by design
+export function resetD1Bookmark(): void {
+  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- see the declaration
+  latestD1Bookmark = undefined;
+}
 
 export async function apiFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
   const isUserRequest: boolean = getFetchPath(input).startsWith('/user/');
@@ -79,7 +97,7 @@ function rememberD1Bookmark(bookmark: string | null): void {
   const nextBookmark: string | undefined = bookmark?.trim() || undefined;
   if (!nextBookmark) return;
   if (!latestD1Bookmark || latestD1Bookmark < nextBookmark) {
-    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
+    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- see the declaration
     latestD1Bookmark = nextBookmark;
   }
 }

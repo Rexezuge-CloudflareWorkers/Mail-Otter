@@ -12,6 +12,7 @@ app/dist/
 # Test + coverage artifacts
 coverage/
 coverage-integration/
+coverage-web/
 
 # Generated sources (do not edit)
 worker-configuration.d.ts

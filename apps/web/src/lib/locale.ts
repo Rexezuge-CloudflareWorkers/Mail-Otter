@@ -1,9 +1,9 @@
-import { normalizeLanguage } from '../i18n';
+import { LANGUAGE_STORAGE_KEY, normalizeLanguage } from '../i18n';
 
 export function resolveLocale(lng?: string | null): string {
   if (lng) return normalizeLanguage(lng);
   try {
-    const stored = typeof localStorage === 'undefined' ? null : localStorage.getItem('mail-otter-lng');
+    const stored = typeof localStorage === 'undefined' ? null : localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (stored) return normalizeLanguage(stored);
   } catch {
     // Ignore storage errors.

@@ -85,18 +85,32 @@ function splitSql(sql: string): string[] {
   return statements;
 }
 
+/**
+ * Apply every migration statement through a single `db.batch()`.
+ *
+ * D1 rejects `BEGIN TRANSACTION`; a migration file is only atomic because
+ * wrangler wraps it, and `batch()` is the only way to reproduce that behaviour
+ * from the Workers binding. Running statements one at a time (as this helper
+ * used to) auto-commits each one, so an interrupted or failing migration left
+ * the schema half-migrated and the tests were exercising a schema that
+ * production could never reach.
+ *
+ * Every migration must therefore be ordered so each intermediate state is a
+ * valid schema — see `migrations/0027_action_execution_scheduled_trigger.sql`.
+ */
 export async function applyMigrations(db: D1Database): Promise<void> {
   const statements = splitSql(__INTEGRATION_MIGRATION_SQL__);
-  for (const stmt of statements) {
-    if (stmt.length === 0) continue;
+  const executable = statements.filter((stmt) => {
     // Skip pure-comment statements (no executable SQL).
-    const withoutComments = stmt
-      .replaceAll(/--[^\n]*/g, '')
-      .replaceAll(/\/\*[\s\S]*?\*\//g, '')
-      .trim();
-    if (withoutComments.length === 0) continue;
-    await db.prepare(stmt).run();
-  }
+    return (
+      stmt
+        .replaceAll(/--[^\n]*/g, '')
+        .replaceAll(/\/\*[\s\S]*?\*\//g, '')
+        .trim().length > 0
+    );
+  });
+  if (executable.length === 0) return;
+  await db.batch(executable.map((stmt) => db.prepare(stmt)));
 }
 
 export { splitSql };

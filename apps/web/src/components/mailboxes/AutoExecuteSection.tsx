@@ -54,7 +54,10 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
   };
   const actionWarnings: Partial<Record<EmailActionType, string>> = {
     'email.draft_reply': t('autoExecute.draftReplyWarning', 'Creates drafts without review.'),
-    'calendar.add_event': t('autoExecute.addCalendarEventWarning', 'Adds events to your calendar without review. Requires the calendar feature to be enabled.'),
+    'calendar.add_event': t(
+      'autoExecute.addCalendarEventWarning',
+      'Adds events to your calendar without review. Requires the calendar feature to be enabled.',
+    ),
   };
   const riskLabels: Record<'low' | 'medium' | 'high', string> = {
     low: t('autoExecute.risk.low', 'low'),
@@ -75,7 +78,10 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
   return (
     <CollapsibleSection title={t('autoExecute.title', 'Action Auto-Execution')}>
       <p className="text-xs text-[var(--color-text-muted)] mb-4">
-        {t('autoExecute.description', 'Automatically execute these action types when a matching email is processed. Results appear in the Actions view without requiring a manual click.')}
+        {t(
+          'autoExecute.description',
+          'Automatically execute these action types when a matching email is processed. Results appear in the Actions view without requiring a manual click.',
+        )}
       </p>
       <div className="space-y-2">
         {ACTION_TYPES.map(({ type, risk }) => {
@@ -105,9 +111,7 @@ export function AutoExecuteSection({ application }: { application: ConnectedAppl
                   <span className={`text-[10px] font-semibold uppercase ${RISK_COLORS[risk]}`}>{riskLabels[risk]}</span>
                 </div>
                 <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>
-                {warning && (
-                  <p className={`text-xs mt-0.5 ${RISK_COLORS[risk]}`}>{warning}</p>
-                )}
+                {warning && <p className={`text-xs mt-0.5 ${RISK_COLORS[risk]}`}>{warning}</p>}
               </div>
             </label>
           );

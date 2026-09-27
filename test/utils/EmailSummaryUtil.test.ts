@@ -123,8 +123,8 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/google/gemma-4-26b-a4b-it', 'Campaign budget', 'sam@example.com', 'body')).resolves
-      .toBe(`<p>The sender needs approval for the budget.</p>
+    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/google/gemma-4-26b-a4b-it', 'Campaign budget', 'sam@example.com', 'body'))
+      .resolves.toBe(`<p>The sender needs approval for the budget.</p>
 
 <p><strong>Details:</strong></p>
 <ul>
@@ -160,8 +160,9 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmail(ai, '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', 'Campaign budget', 'sam@example.com', 'body')).resolves
-      .toBe(`<p>The sender needs approval for the budget.</p>
+    await expect(
+      EmailSummaryUtil.summarizeEmail(ai, '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', 'Campaign budget', 'sam@example.com', 'body'),
+    ).resolves.toBe(`<p>The sender needs approval for the budget.</p>
 
 <p><strong>Details:</strong></p>
 <ul>
@@ -249,15 +250,16 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
-      .toMatchObject({
-        summary: expect.stringContaining('The email asks for feedback.'),
-        usage: {
-          promptTokens: 1000,
-          completionTokens: 100,
-          totalTokens: 1100,
-        },
-      });
+    await expect(
+      EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body'),
+    ).resolves.toMatchObject({
+      summary: expect.stringContaining('The email asks for feedback.'),
+      usage: {
+        promptTokens: 1000,
+        completionTokens: 100,
+        totalTokens: 1100,
+      },
+    });
   });
 
   it('uses Responses API totals as billed output tokens when they exceed visible output tokens', async () => {
@@ -278,16 +280,17 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
-      .toMatchObject({
-        summary: expect.stringContaining('The email asks for feedback.'),
-        usage: {
-          promptTokens: 1000,
-          completionTokens: 800,
-          totalTokens: 1800,
-          reasoningTokens: 700,
-        },
-      });
+    await expect(
+      EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body'),
+    ).resolves.toMatchObject({
+      summary: expect.stringContaining('The email asks for feedback.'),
+      usage: {
+        promptTokens: 1000,
+        completionTokens: 800,
+        totalTokens: 1800,
+        reasoningTokens: 700,
+      },
+    });
   });
 
   describe('buildEmailSummaryPromptText', () => {
@@ -306,7 +309,7 @@ describe('EmailSummaryUtil', () => {
 
     it('falls back to UTC when no time zone is provided', () => {
       const prompt = EmailSummaryUtil.buildEmailSummaryPromptText('Subject', 'sam@example.com', 'body');
-      expect(prompt).toContain("time zone UTC");
+      expect(prompt).toContain('time zone UTC');
     });
   });
 
@@ -334,15 +337,16 @@ describe('EmailSummaryUtil', () => {
       }),
     } as unknown as Ai;
 
-    await expect(EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body')).resolves
-      .toMatchObject({
-        summary: expect.stringContaining('The email asks for feedback.'),
-        usage: {
-          promptTokens: 1000,
-          completionTokens: 800,
-          totalTokens: 1800,
-          reasoningTokens: 700,
-        },
-      });
+    await expect(
+      EmailSummaryUtil.summarizeEmailWithUsage(ai, '@cf/openai/gpt-oss-120b', 'Review', 'sam@example.com', 'body'),
+    ).resolves.toMatchObject({
+      summary: expect.stringContaining('The email asks for feedback.'),
+      usage: {
+        promptTokens: 1000,
+        completionTokens: 800,
+        totalTokens: 1800,
+        reasoningTokens: 700,
+      },
+    });
   });
 });

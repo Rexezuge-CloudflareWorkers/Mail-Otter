@@ -1,4 +1,3 @@
-
 import { Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ConnectedApplication } from '../../types';
@@ -28,20 +27,17 @@ function TaskRunRow({ run, applications }: { run: BackgroundTaskRun; application
   return (
     <div className="flex flex-col gap-1 px-4 py-3 border-b border-[var(--color-border)] last:border-0">
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm font-medium text-[var(--color-text-primary)] min-w-[140px]">
-          {getTaskTypeLabel(run.taskType)}
-        </span>
+        <span className="text-sm font-medium text-[var(--color-text-primary)] min-w-[140px]">{getTaskTypeLabel(run.taskType)}</span>
         <TaskRunStatusBadge status={run.status} />
         <span className="text-xs text-[var(--color-text-muted)]">{appName(run.applicationId, applications)}</span>
         <span className="text-xs text-[var(--color-text-muted)] ml-auto">
-          {t('processing.processedCount', '{{count}} processed', { count: run.itemsProcessed })}{run.itemsFailed > 0 ? t('processing.failedCount', ', {{count}} failed', { count: run.itemsFailed }) : ''}
+          {t('processing.processedCount', '{{count}} processed', { count: run.itemsProcessed })}
+          {run.itemsFailed > 0 ? t('processing.failedCount', ', {{count}} failed', { count: run.itemsFailed }) : ''}
         </span>
         <span className="text-xs text-[var(--color-text-muted)]">{formatDuration(run.startedAt, run.completedAt)}</span>
         <span className="text-xs text-[var(--color-text-muted)]">{formatTimestamp(run.startedAt, lng)}</span>
       </div>
-      {run.summary && (
-        <p className="text-xs text-[var(--color-text-secondary)] pl-1">{run.summary}</p>
-      )}
+      {run.summary && <p className="text-xs text-[var(--color-text-secondary)] pl-1">{run.summary}</p>}
       {run.status === 'error' && run.errorMessage && (
         <p className="text-xs text-[var(--color-error-text)] pl-1 font-mono break-all">{run.errorMessage}</p>
       )}
@@ -56,9 +52,7 @@ function ProcessedMessageRow({ message, applications }: { message: ProcessedMess
     <div className="flex items-center gap-3 flex-wrap px-4 py-2.5 border-b border-[var(--color-border)] last:border-0">
       <ProcessedMessageStatusBadge status={message.status} />
       <span className="text-xs text-[var(--color-text-muted)]">{appName(message.applicationId, applications)}</span>
-      <span className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[180px]">
-        {message.providerMessageId}
-      </span>
+      <span className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[180px]">{message.providerMessageId}</span>
       {message.status === 'error' && message.errorMessage && (
         <span className="text-xs text-[var(--color-error-text)] truncate max-w-[200px]">{message.errorMessage}</span>
       )}
@@ -79,7 +73,9 @@ function CalendarEventRow({ event, applications }: { event: SyncedCalendarEvent;
       <div className="flex items-center gap-2">
         <span className="text-xs text-[var(--color-text-muted)]">{appName(event.applicationId, applications)}</span>
         <span className="text-xs text-[var(--color-text-muted)]">·</span>
-        <span className="text-xs text-[var(--color-text-muted)]">{t('processing.syncedAt', 'Synced {{date}}', { date: formatTimestamp(event.syncedAt, lng) })}</span>
+        <span className="text-xs text-[var(--color-text-muted)]">
+          {t('processing.syncedAt', 'Synced {{date}}', { date: formatTimestamp(event.syncedAt, lng) })}
+        </span>
       </div>
     </div>
   );
@@ -173,22 +169,18 @@ export function ProcessingView({
     <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
       <FilterBar>
         <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
-        <Select
-          value={taskType}
-          onChange={(e) => setTaskType(e.target.value)}
-          className="min-w-[160px]"
-        >
+        <Select value={taskType} onChange={(e) => setTaskType(e.target.value)} className="min-w-[160px]">
           {TASK_TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </Select>
-        <Select
-          value={runStatus}
-          onChange={(e) => setRunStatus(e.target.value as BackgroundTaskRunStatus | '')}
-          className="min-w-[140px]"
-        >
+        <Select value={runStatus} onChange={(e) => setRunStatus(e.target.value as BackgroundTaskRunStatus | '')} className="min-w-[140px]">
           {RUN_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </Select>
         <Button
@@ -209,17 +201,19 @@ export function ProcessingView({
           <CardTitle>{t('processing.backgroundTaskRuns', 'Background Task Runs')}</CardTitle>
         </CardHeader>
         {taskRunsLoading && taskRuns.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('common.loading', 'Loading…')}</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+            {t('common.loading', 'Loading…')}
+          </div>
         ) : taskRuns.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('processing.noTaskRunsFound', 'No Task Runs Found')}</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+            {t('processing.noTaskRunsFound', 'No Task Runs Found')}
+          </div>
         ) : (
           <>
             {taskRuns.map((run) => (
               <TaskRunRow key={run.runId} run={run} applications={applications} />
             ))}
-            {taskRunsCursor && (
-              <LoadMoreButton onLoadMore={onLoadMoreTaskRuns} loading={taskRunsLoading} />
-            )}
+            {taskRunsCursor && <LoadMoreButton onLoadMore={onLoadMoreTaskRuns} loading={taskRunsLoading} />}
           </>
         )}
       </Card>
@@ -236,22 +230,26 @@ export function ProcessingView({
               className="w-36 text-xs"
             >
               {MESSAGE_STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </Select>
           </CardHeader>
           {processedMessagesLoading && processedMessages.length === 0 ? (
-            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('common.loading', 'Loading…')}</div>
+            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+              {t('common.loading', 'Loading…')}
+            </div>
           ) : processedMessages.length === 0 ? (
-            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('processing.noMessagesFound', 'No Messages Found')}</div>
+            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+              {t('processing.noMessagesFound', 'No Messages Found')}
+            </div>
           ) : (
             <>
               {processedMessages.map((msg) => (
                 <ProcessedMessageRow key={msg.processedMessageId} message={msg} applications={applications} />
               ))}
-              {processedMessagesCursor && (
-                <LoadMoreButton onLoadMore={onLoadMoreProcessedMessages} loading={processedMessagesLoading} />
-              )}
+              {processedMessagesCursor && <LoadMoreButton onLoadMore={onLoadMoreProcessedMessages} loading={processedMessagesLoading} />}
             </>
           )}
         </Card>
@@ -262,17 +260,19 @@ export function ProcessingView({
             <CardTitle>{t('processing.syncedCalendarEvents', 'Synced Calendar Events')}</CardTitle>
           </CardHeader>
           {calendarEventsLoading && calendarEvents.length === 0 ? (
-            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('common.loading', 'Loading…')}</div>
+            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+              {t('common.loading', 'Loading…')}
+            </div>
           ) : calendarEvents.length === 0 ? (
-            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('processing.noEventsFound', 'No Events Found')}</div>
+            <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+              {t('processing.noEventsFound', 'No Events Found')}
+            </div>
           ) : (
             <>
               {calendarEvents.map((event) => (
                 <CalendarEventRow key={event.syncEventId} event={event} applications={applications} />
               ))}
-              {calendarEventsCursor && (
-                <LoadMoreButton onLoadMore={onLoadMoreCalendarEvents} loading={calendarEventsLoading} />
-              )}
+              {calendarEventsCursor && <LoadMoreButton onLoadMore={onLoadMoreCalendarEvents} loading={calendarEventsLoading} />}
             </>
           )}
         </Card>

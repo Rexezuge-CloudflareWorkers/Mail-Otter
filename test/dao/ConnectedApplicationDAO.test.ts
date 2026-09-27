@@ -19,16 +19,10 @@ vi.mock('@mail-otter/shared/utils', () => ({
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { encryptData } from '@mail-otter/backend-data/crypto';
 import { UUIDUtil } from '@mail-otter/shared/utils';
-import type {
-  ConnectedApplicationInternal,
-} from '@mail-otter/shared/model';
+import type { ConnectedApplicationInternal } from '@mail-otter/shared/model';
 import type { D1Result } from '@mail-otter/shared/constants';
 
-function createMockDb(overrides?: {
-  firstResult?: unknown;
-  allResults?: unknown[];
-  runMeta?: { changes: number };
-}): D1Database {
+function createMockDb(overrides?: { firstResult?: unknown; allResults?: unknown[]; runMeta?: { changes: number } }): D1Database {
   const firstResult = overrides?.firstResult;
   const allResults = overrides?.allResults;
   const runMeta = overrides?.runMeta ?? { changes: 1 };
@@ -89,10 +83,7 @@ describe('ConnectedApplicationDAO', () => {
       dao = new ConnectedApplicationDAO(mockDb, 'key');
       (UUIDUtil.getRandomUUID as ReturnType<typeof vi.fn>).mockReturnValue('new-app-id');
 
-      const result = await dao.create(
-        'user@example.com', 'My App', 'google-gmail', 'oauth2',
-        { refreshToken: 'rt' }, 'draft',
-      );
+      const result = await dao.create('user@example.com', 'My App', 'google-gmail', 'oauth2', { refreshToken: 'rt' }, 'draft');
 
       expect(result.applicationId).toBe(mockAppId);
       expect(encryptData).toHaveBeenCalledWith(JSON.stringify({ refreshToken: 'rt' }), 'key');
@@ -112,10 +103,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.create(
-        'user@example.com', 'My App', 'google-gmail', 'oauth2',
-        {}, 'draft', 'projects/p/topics/t',
-      );
+      await dao.create('user@example.com', 'My App', 'google-gmail', 'oauth2', {}, 'draft', 'projects/p/topics/t');
 
       expect(setConfigSpy).toHaveBeenCalledWith('new-app-id', 'gmail_pubsub_topic_name', 'projects/p/topics/t', mockNow);
     });
@@ -236,9 +224,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await expect(
-        dao.markOAuth2Connected(mockAppId, 'rt', 'email@provider.com'),
-      ).rejects.toThrow('OAuth2 application was not found.');
+      await expect(dao.markOAuth2Connected(mockAppId, 'rt', 'email@provider.com')).rejects.toThrow('OAuth2 application was not found.');
     });
 
     it('updates credentials and status', async () => {

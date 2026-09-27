@@ -4,7 +4,9 @@ import { WorkersAiErrorUtil } from '@mail-otter/backend-services/email';
 describe('WorkersAiErrorUtil', () => {
   describe('isDailyFreeAllocationError', () => {
     it('returns true for error matching daily free allocation text', () => {
-      expect(WorkersAiErrorUtil.isDailyFreeAllocationError(new Error('You have used up your daily free allocation of 10,000 neurons'))).toBe(true);
+      expect(
+        WorkersAiErrorUtil.isDailyFreeAllocationError(new Error('You have used up your daily free allocation of 10,000 neurons')),
+      ).toBe(true);
     });
 
     it('returns true for error code 4006', () => {

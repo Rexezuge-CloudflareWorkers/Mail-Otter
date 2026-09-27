@@ -48,7 +48,14 @@ describe('GmailProviderUtil extended', () => {
   });
 
   it('lists labels sorted by name and defaults to empty', async () => {
-    stubFetch(() => jsonResponse({ labels: [{ id: '2', name: 'b' }, { id: '1', name: 'a' }] }));
+    stubFetch(() =>
+      jsonResponse({
+        labels: [
+          { id: '2', name: 'b' },
+          { id: '1', name: 'a' },
+        ],
+      }),
+    );
     await expect(GmailProviderUtil.listLabels('tok')).resolves.toEqual([
       { id: '1', name: 'a' },
       { id: '2', name: 'b' },
@@ -60,16 +67,16 @@ describe('GmailProviderUtil extended', () => {
   it('watches the inbox with explicit and default labels', async () => {
     const seen: string[] = [];
     stubFetch((_url, init) => {
-      seen.push(String((JSON.parse(String((init as { body: string }).body)) as { labelIds: string[] }).labelIds));
+      seen.push(String((JSON.parse((init as { body: string }).body) as { labelIds: string[] }).labelIds));
       return jsonResponse({ historyId: 'h1', expiration: '1700000000000' });
     });
     await expect(GmailProviderUtil.watchInbox('tok', 'projects/x/topics/y', ['INBOX', 'UNREAD'])).resolves.toEqual({
       historyId: 'h1',
-      expiresAt: 1700000000,
+      expiresAt: 1_700_000_000,
     });
     await expect(GmailProviderUtil.watchInbox('tok', 'projects/x/topics/y')).resolves.toEqual({
       historyId: 'h1',
-      expiresAt: 1700000000,
+      expiresAt: 1_700_000_000,
     });
     await expect(GmailProviderUtil.watchInbox('tok', 'projects/x/topics/y', [])).resolves.toBeDefined();
     expect(seen[0]).toBe('INBOX,UNREAD');
@@ -160,7 +167,7 @@ describe('GmailProviderUtil extended', () => {
   it('creates draft replies with and without explicit subjects', async () => {
     const bodies: string[] = [];
     stubFetch((_url, init) => {
-      bodies.push(String((init as { body: string }).body));
+      bodies.push((init as { body: string }).body);
       return jsonResponse({ id: 'd1', message: { id: 'm9', threadId: 't9' } });
     });
     const original = {
@@ -175,14 +182,12 @@ describe('GmailProviderUtil extended', () => {
       },
     } as never;
     await GmailProviderUtil.createDraftReply('tok', 'me@gmail.com', original, 'reply text');
-    expect(decodeRaw(bodies[0] as string)).toContain('Re: Hello');
-    expect(decodeRaw(bodies[0] as string)).toContain('In-Reply-To');
+    expect(decodeRaw(bodies[0])).toContain('Re: Hello');
+    expect(decodeRaw(bodies[0])).toContain('In-Reply-To');
     await GmailProviderUtil.createDraftReply('tok', 'me@gmail.com', original, 'reply text', 'Custom subject');
-    expect(decodeRaw(bodies[1] as string)).toContain('Custom subject');
+    expect(decodeRaw(bodies[1])).toContain('Custom subject');
     const noHeaders = { id: 'm2', threadId: 't2' } as never;
-    await expect(
-      GmailProviderUtil.createDraftReply('tok', 'me@gmail.com', noHeaders, 'hi'),
-    ).resolves.toBeDefined();
+    await expect(GmailProviderUtil.createDraftReply('tok', 'me@gmail.com', noHeaders, 'hi')).resolves.toBeDefined();
   });
 
   it('modifies messages and throws on failure', async () => {
@@ -196,38 +201,31 @@ describe('GmailProviderUtil extended', () => {
     stubFetch(() => jsonResponse({ labels: [{ id: 'L1', name: 'Mail-Otter' }] }));
     await expect(GmailProviderUtil.findOrCreateLabel('tok', 'mail-otter')).resolves.toBe('L1');
     stubFetch((url, init) => {
-      if ((init as { method?: string }).method === 'POST') return jsonResponse({ id: 'L2', name: 'New' });
-      return jsonResponse({ labels: [] });
+      return jsonResponse((init as { method?: string }).method === 'POST' ? { id: 'L2', name: 'New' } : { labels: [] });
     });
     await expect(GmailProviderUtil.findOrCreateLabel('tok', 'New')).resolves.toBe('L2');
   });
 
   it('lists calendar events and defaults to empty', async () => {
     stubFetch(() => jsonResponse({ items: [{ id: 'e1' }] }));
-    await expect(GmailProviderUtil.listCalendarEventsByDateRange('tok', '2026-09-01', '2026-09-02')).resolves.toEqual([
-      { id: 'e1' },
-    ]);
+    await expect(GmailProviderUtil.listCalendarEventsByDateRange('tok', '2026-09-01', '2026-09-02')).resolves.toEqual([{ id: 'e1' }]);
     stubFetch(() => jsonResponse({}));
-    await expect(GmailProviderUtil.listCalendarEventsByDateRange('tok', '2026-09-01', '2026-09-02')).resolves.toEqual(
-      [],
-    );
+    await expect(GmailProviderUtil.listCalendarEventsByDateRange('tok', '2026-09-01', '2026-09-02')).resolves.toEqual([]);
   });
 
   it('sends standalone email and encodes unicode subjects', async () => {
     stubFetch((url) => {
-      if (url.includes('/messages/send')) return jsonResponse({ id: 'sent-1' });
-      return jsonResponse({});
+      return url.includes('/messages/send') ? jsonResponse({ id: 'sent-1' }) : jsonResponse({});
     });
     await expect(GmailProviderUtil.sendStandaloneEmail('tok', 'me@gmail.com', 'Täglich digest', '<p>hi</p>')).resolves.toBeUndefined();
     const sendCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/messages/send'));
-    const sendBody = String((sendCall?.[1] as { body: string }).body);
+    const sendBody = (sendCall?.[1] as { body: string }).body;
     expect(decodeRaw(sendBody)).toContain('=?UTF-8?B?');
   });
 
   it('throws when standalone send fails', async () => {
     stubFetch((url) => {
-      if (url.includes('/messages/send')) return jsonResponse('denied', 403, 'Forbidden');
-      return jsonResponse({});
+      return url.includes('/messages/send') ? jsonResponse('denied', 403, 'Forbidden') : jsonResponse({});
     });
     await expect(GmailProviderUtil.sendStandaloneEmail('tok', 'me@gmail.com', 's', '<p>hi</p>')).rejects.toThrow(
       'Gmail send digest email failed',
@@ -251,7 +249,7 @@ describe('GmailProviderUtil extended', () => {
       parts: [
         { mimeType: 'image/png', filename: 'inline.png', body: { size: 3, data: 'xx-yy' } },
         { mimeType: 'image/jpeg', filename: 'remote.jpg', body: { size: 4, attachmentId: 'att-1' } },
-        { mimeType: 'image/png', filename: 'big.png', body: { size: 99999, attachmentId: 'att-2' } },
+        { mimeType: 'image/png', filename: 'big.png', body: { size: 99_999, attachmentId: 'att-2' } },
         { mimeType: 'application/pdf', filename: 'doc.pdf', body: { size: 1, attachmentId: 'att-3' } },
         { mimeType: 'image/gif', filename: '', body: { size: 1, data: 'zz' } },
         { mimeType: 'image/webp', filename: 'noid.webp', body: { size: 1 } },

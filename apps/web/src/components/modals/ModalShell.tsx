@@ -36,15 +36,7 @@ export function ModalShell({
 
 export const WIDE_MODAL_CLASS = 'w-full max-w-2xl max-h-[82vh] overflow-hidden mx-4';
 
-export function ModalHeader({
-  title,
-  onClose,
-  actions,
-}: {
-  title: string;
-  onClose: () => void;
-  actions?: ReactNode;
-}) {
+export function ModalHeader({ title, onClose, actions }: { title: string; onClose: () => void; actions?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
@@ -64,21 +56,13 @@ export function ModalHeader({
 }
 
 export function ModalBody({ children }: { children: ReactNode }) {
-  return (
-    <div className="overflow-y-auto p-5 space-y-2.5 max-h-[calc(82vh-4rem)]">{children}</div>
-  );
+  return <div className="overflow-y-auto p-5 space-y-2.5 max-h-[calc(82vh-4rem)]">{children}</div>;
 }
 
 export function ModalRow({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-base)] p-4">
-      {children}
-    </div>
-  );
+  return <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-base)] p-4">{children}</div>;
 }
 
 export function ModalEmpty({ message }: { message: string }) {
-  return (
-    <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">{message}</div>
-  );
+  return <div className="text-center text-[var(--color-text-muted)] py-10 text-sm">{message}</div>;
 }

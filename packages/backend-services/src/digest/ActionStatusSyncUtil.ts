@@ -1,8 +1,5 @@
 import { EmailActionDAO } from '@mail-otter/backend-data/dao';
-import {
-  EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE,
-  EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
-} from '@mail-otter/shared/constants';
+import { EMAIL_ACTION_TYPE_DELIVERY_TRACK_PACKAGE, EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT } from '@mail-otter/shared/constants';
 import type { DeliveryTrackPackageActionPayload, EmailAction, TravelTrackFlightActionPayload } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { formatExpectedDelivery, TAG_LABELS } from '../action/PackageTrackingService';

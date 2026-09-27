@@ -3,7 +3,14 @@ import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { NonRetryableError } from '@mail-otter/backend-errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ApplicationContextDocument, ConnectedApplication } from '@mail-otter/shared/model';
-import { CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED, CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED, CONTEXT_AUDIT_EVENT_RAG_QUERIED, CONTEXT_AUDIT_EVENT_ERROR, CONTEXT_AUDIT_LOG_SEVERITY_INFO, CONTEXT_AUDIT_LOG_SEVERITY_WARNING } from '@mail-otter/shared/constants';
+import {
+  CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED,
+  CONTEXT_AUDIT_EVENT_EMBEDDING_GENERATED,
+  CONTEXT_AUDIT_EVENT_RAG_QUERIED,
+  CONTEXT_AUDIT_EVENT_ERROR,
+  CONTEXT_AUDIT_LOG_SEVERITY_INFO,
+  CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
+} from '@mail-otter/shared/constants';
 import { CryptoUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { AiClient } from '../ai/AiClient';
@@ -155,9 +162,7 @@ class EmailContextUtil {
     const secret: string = await input.env.AES_ENCRYPTION_KEY_SECRET.get();
     return {
       sourceDocumentFingerprint: await AiClient.fingerprint(secret, 'source-document', input.sourceDocumentId),
-      sourceThreadFingerprint: input.sourceThreadId
-        ? await AiClient.fingerprint(secret, 'source-thread', input.sourceThreadId)
-        : null,
+      sourceThreadFingerprint: input.sourceThreadId ? await AiClient.fingerprint(secret, 'source-thread', input.sourceThreadId) : null,
       titleFingerprint: input.subject ? await AiClient.fingerprint(secret, 'title', input.subject) : null,
       senderFingerprint: input.from ? await AiClient.fingerprint(secret, 'sender', input.from) : null,
       contentFingerprint: await AiClient.fingerprint(secret, 'indexed-text', indexedText),
@@ -206,7 +211,9 @@ class EmailContextUtil {
       .slice(0, ragTopK)
       .map((match: VectorizeMatch, index: number): string => this.renderMatch(index + 1, match))
       .filter(Boolean);
-    return snippets.length === 0 ? undefined : EmailContentUtil.truncate(['Prior relevant documents:', ...snippets].join('\n\n'), maxContextChars);
+    return snippets.length === 0
+      ? undefined
+      : EmailContentUtil.truncate(['Prior relevant documents:', ...snippets].join('\n\n'), maxContextChars);
   }
 
   private static renderMatch(index: number, match: VectorizeMatch): string {

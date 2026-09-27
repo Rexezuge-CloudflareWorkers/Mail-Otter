@@ -56,11 +56,7 @@ interface OneDriveDeltaApiResponse {
   '@odata.deltaLink'?: string;
 }
 
-function classifyDeltaItem(
-  item: OneDriveItem,
-  items: OneDriveItem[],
-  deletedIds: string[],
-): 'supported' | 'deleted' | 'skipped' {
+function classifyDeltaItem(item: OneDriveItem, items: OneDriveItem[], deletedIds: string[]): 'supported' | 'deleted' | 'skipped' {
   if (item.deleted) {
     deletedIds.push(item.id);
     return 'deleted';
@@ -92,17 +88,11 @@ class OneDriveProviderUtil {
     );
   }
 
-  public static async getDelta(
-    accessToken: string,
-    deltaOrNextLink?: string,
-    maxItems = 100,
-  ): Promise<OneDriveDeltaResult> {
+  public static async getDelta(accessToken: string, deltaOrNextLink?: string, maxItems = 100): Promise<OneDriveDeltaResult> {
     const items: OneDriveItem[] = [];
     const deletedIds: string[] = [];
 
-    const initialUrl =
-      deltaOrNextLink ??
-      `${GRAPH_API}/me/drive/root/delta?$select=id,name,size,file,deleted,lastModifiedDateTime`;
+    const initialUrl = deltaOrNextLink ?? `${GRAPH_API}/me/drive/root/delta?$select=id,name,size,file,deleted,lastModifiedDateTime`;
 
     let currentUrl: string | null = initialUrl;
     let nextLink: string | null = null;
@@ -149,11 +139,7 @@ class OneDriveProviderUtil {
     return buffer.slice(0, maxBytes);
   }
 
-  public static async convertItemToPdf(
-    accessToken: string,
-    itemId: string,
-    maxBytes: number,
-  ): Promise<ArrayBuffer> {
+  public static async convertItemToPdf(accessToken: string, itemId: string, maxBytes: number): Promise<ArrayBuffer> {
     const url = `${GRAPH_API}/me/drive/items/${encodeURIComponent(itemId)}/content?format=pdf`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },

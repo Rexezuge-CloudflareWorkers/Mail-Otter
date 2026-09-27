@@ -17,9 +17,7 @@ class ProviderOrganizationService {
     const accessToken = await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId);
     const provider = EmailProviderRegistry.get(application.providerId, application.connectionMethod);
 
-    const results = await Promise.allSettled(
-      matchedRules.map((rule) => this.executeRule(provider, accessToken, messageId, rule)),
-    );
+    const results = await Promise.allSettled(matchedRules.map((rule) => this.executeRule(provider, accessToken, messageId, rule)));
 
     for (const result of results) {
       if (result.status === 'rejected') {
@@ -28,12 +26,7 @@ class ProviderOrganizationService {
     }
   }
 
-  private async executeRule(
-    provider: IEmailProvider,
-    accessToken: string,
-    messageId: string,
-    rule: EmailProcessingRule,
-  ): Promise<void> {
+  private async executeRule(provider: IEmailProvider, accessToken: string, messageId: string, rule: EmailProcessingRule): Promise<void> {
     try {
       switch (rule.action.type) {
         case 'apply_label': {

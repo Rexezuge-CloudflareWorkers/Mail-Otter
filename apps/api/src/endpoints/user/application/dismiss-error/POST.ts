@@ -3,11 +3,7 @@ import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IU
 import type { ApplicationResponse } from '@mail-otter/backend-services/application';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 
-class DismissApplicationErrorRoute extends IUserRoute<
-  DismissApplicationErrorRequest,
-  DismissApplicationErrorResponse,
-  IUserEnv
-> {
+class DismissApplicationErrorRoute extends IUserRoute<DismissApplicationErrorRequest, DismissApplicationErrorResponse, IUserEnv> {
   schema = {
     tags: ['Applications'],
     summary: 'Acknowledge and dismiss a processing or context error',
@@ -25,7 +21,9 @@ class DismissApplicationErrorRoute extends IUserRoute<
   ): Promise<DismissApplicationErrorResponse> {
     const scope = createRequestScope(env);
     return {
-      application: await scope.get(Tokens.ApplicationService).acknowledgeApplicationError(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.errorType, request.raw),
+      application: await scope
+        .get(Tokens.ApplicationService)
+        .acknowledgeApplicationError(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.errorType, request.raw),
     };
   }
 }

@@ -55,9 +55,7 @@ describe('SummaryDeliveryService', () => {
   it('records errors and rethrows classified failures', async () => {
     mocks.getByMessageId.mockResolvedValue(null);
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
-    await expect(
-      new SummaryDeliveryService({ DB: {} } as never).sendSummaryTemplate(app(), 'm1', undefined, send),
-    ).rejects.toThrow();
+    await expect(new SummaryDeliveryService({ DB: {} } as never).sendSummaryTemplate(app(), 'm1', undefined, send)).rejects.toThrow();
     expect(mocks.markError).toHaveBeenCalledWith('app-1', 'm1', expect.anything());
     expect(mocks.logProcessingError).toHaveBeenCalled();
   });

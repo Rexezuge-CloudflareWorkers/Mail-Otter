@@ -39,12 +39,8 @@ export function AnalyticsView({
     { value: 30, label: t('analytics.days30', '30 Days') },
     { value: 90, label: t('analytics.days90', '90 Days') },
   ];
-  const statusItems = data
-    ? Object.entries(data.actions.byStatus).map(([label, value]) => ({ label, value }))
-    : [];
-  const typeItems = data
-    ? Object.entries(data.actions.byType).map(([label, value]) => ({ label, value }))
-    : [];
+  const statusItems = data ? Object.entries(data.actions.byStatus).map(([label, value]) => ({ label, value })) : [];
+  const typeItems = data ? Object.entries(data.actions.byType).map(([label, value]) => ({ label, value })) : [];
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5 animate-fade-in-up">
@@ -87,7 +83,9 @@ export function AnalyticsView({
           <Card>
             <CardHeader>
               <CardTitle>{t('analytics.aiUsage', 'AI Usage')}</CardTitle>
-              <span className="text-xs text-[var(--color-text-muted)]">{t('analytics.aiUsageSubtitle', 'Global usage across all accounts')}</span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                {t('analytics.aiUsageSubtitle', 'Global usage across all accounts')}
+              </span>
             </CardHeader>
             <LineChart
               points={data?.aiUsage.daily.map((d) => ({ date: d.date, value: d.estimatedNeurons })) ?? []}
@@ -125,9 +123,16 @@ export function AnalyticsView({
               </span>
             </div>
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Metric label={t('analytics.summarized', 'Summarized')} value={data ? data.processing.total.summarized.toLocaleString(lng) : '—'} />
+              <Metric
+                label={t('analytics.summarized', 'Summarized')}
+                value={data ? data.processing.total.summarized.toLocaleString(lng) : '—'}
+              />
               <Metric label={t('analytics.skipped', 'Skipped')} value={data ? data.processing.total.skipped.toLocaleString(lng) : '—'} />
-              <Metric label={t('analytics.errors', 'Errors')} value={data ? data.processing.total.error.toLocaleString(lng) : '—'} tone={data && data.processing.total.error > 0 ? 'error' : 'muted'} />
+              <Metric
+                label={t('analytics.errors', 'Errors')}
+                value={data ? data.processing.total.error.toLocaleString(lng) : '—'}
+                tone={data && data.processing.total.error > 0 ? 'error' : 'muted'}
+              />
               <Metric
                 label={t('analytics.successRate', 'Success Rate')}
                 value={data ? `${Math.round(data.processing.total.successRate * 100)}%` : '—'}
@@ -156,9 +161,19 @@ export function AnalyticsView({
               <CardTitle>{t('analytics.contextIndex', 'Context Index')}</CardTitle>
             </CardHeader>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Metric label={t('analytics.activeDocuments', 'Active Documents')} value={data ? data.context.active.toLocaleString(lng) : '—'} />
-              <Metric label={t('analytics.deletedDocuments', 'Deleted Documents')} value={data ? data.context.deleted.toLocaleString(lng) : '—'} />
-              <Metric label={t('analytics.errorDocuments', 'Error Documents')} value={data ? data.context.error.toLocaleString(lng) : '—'} tone={data && data.context.error > 0 ? 'error' : 'muted'} />
+              <Metric
+                label={t('analytics.activeDocuments', 'Active Documents')}
+                value={data ? data.context.active.toLocaleString(lng) : '—'}
+              />
+              <Metric
+                label={t('analytics.deletedDocuments', 'Deleted Documents')}
+                value={data ? data.context.deleted.toLocaleString(lng) : '—'}
+              />
+              <Metric
+                label={t('analytics.errorDocuments', 'Error Documents')}
+                value={data ? data.context.error.toLocaleString(lng) : '—'}
+                tone={data && data.context.error > 0 ? 'error' : 'muted'}
+              />
               <Metric
                 label={t('analytics.charsIndexed', 'Chars Indexed')}
                 value={data ? data.context.totalCharsIndexed.toLocaleString(lng) : '—'}

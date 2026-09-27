@@ -37,8 +37,8 @@ class UserService {
   ) {
     const db = env.DB;
     this.deps = {
-      userDAO: () => Promise.resolve(new UserDAO(db),),
-      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db),),
+      userDAO: () => Promise.resolve(new UserDAO(db)),
+      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db)),
       ...deps,
     };
   }

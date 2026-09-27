@@ -11,11 +11,7 @@ function makeDb(queues: Record<string, unknown[]>) {
         bind: vi.fn((...bindings: unknown[]) => ({
           all: vi.fn(async () => {
             calls.push({ sql, bindings });
-            const key = sql.includes('processed_messages')
-              ? 'processed'
-              : sql.includes('email_action_executions')
-                ? 'executed'
-                : 'created';
+            const key = sql.includes('processed_messages') ? 'processed' : sql.includes('email_action_executions') ? 'executed' : 'created';
             return { results: queues[key] ?? [] };
           }),
         })),

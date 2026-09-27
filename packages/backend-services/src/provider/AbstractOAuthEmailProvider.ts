@@ -1,5 +1,11 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
   IEmailProvider,
@@ -22,17 +28,32 @@ abstract class AbstractOAuthEmailProvider implements IEmailProvider {
 
   public abstract startWatch(credentials: AnyProviderCredentials, input: StartWatchInput): Promise<ProviderWatchResult>;
 
-  public abstract renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, expiresAt: number | null): Promise<ProviderWatchResult>;
+  public abstract renewWatch(
+    credentials: AnyProviderCredentials,
+    subscriptionId: string,
+    expiresAt: number | null,
+  ): Promise<ProviderWatchResult>;
 
-  public abstract pollNewMessages(credentials: AnyProviderCredentials, cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }>;
+  public abstract pollNewMessages(
+    credentials: AnyProviderCredentials,
+    cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }>;
 
   public abstract getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string;
 
   public abstract createCalendarEvent(accessToken: string, payload: CalendarAddEventActionPayload): Promise<EmailActionResult>;
 
-  public abstract createDraftReply(accessToken: string, messageId: string, fromEmail: string, payload: EmailDraftReplyActionPayload): Promise<EmailActionResult>;
+  public abstract createDraftReply(
+    accessToken: string,
+    messageId: string,
+    fromEmail: string,
+    payload: EmailDraftReplyActionPayload,
+  ): Promise<EmailActionResult>;
 
-  protected requireOAuth2Credentials(credentials: AnyProviderCredentials, providerName: string): asserts credentials is ProviderCredentials {
+  protected requireOAuth2Credentials(
+    credentials: AnyProviderCredentials,
+    providerName: string,
+  ): asserts credentials is ProviderCredentials {
     if (credentials.type !== 'oauth2') throw new BadRequestError(`${providerName} requires OAuth2 credentials.`);
   }
 

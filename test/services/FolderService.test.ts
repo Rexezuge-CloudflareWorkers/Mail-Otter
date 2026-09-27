@@ -87,9 +87,9 @@ describe('FolderService', () => {
   it('throws when application not found', async () => {
     mockGetByIdForUser.mockResolvedValue(undefined);
 
-    await expect(
-      new FolderService(makeEnv()).listFolders('user@example.com', 'nonexistent'),
-    ).rejects.toThrow('Connected application was not found.');
+    await expect(new FolderService(makeEnv()).listFolders('user@example.com', 'nonexistent')).rejects.toThrow(
+      'Connected application was not found.',
+    );
   });
 
   it('throws for unsupported provider', async () => {
@@ -99,8 +99,6 @@ describe('FolderService', () => {
       credentials: { clientId: 'cid' },
     });
 
-    await expect(
-      new FolderService(makeEnv()).listFolders('user@example.com', 'app-1'),
-    ).rejects.toThrow('Unsupported provider');
+    await expect(new FolderService(makeEnv()).listFolders('user@example.com', 'app-1')).rejects.toThrow('Unsupported provider');
   });
 });

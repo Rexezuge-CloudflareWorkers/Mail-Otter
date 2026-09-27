@@ -136,9 +136,15 @@ function SpaViewRouter(props: any) {
       <AnalyticsView
         applications={mailboxes.applications}
         days={analytics.analyticsDays}
-        setDays={(d: number) => { analytics.setAnalyticsDays(d); void analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined); }}
+        setDays={(d: number) => {
+          analytics.setAnalyticsDays(d);
+          void analytics.loadAnalytics(d, analytics.analyticsApplicationId || undefined);
+        }}
         applicationId={analytics.analyticsApplicationId}
-        setApplicationId={(id: string) => { analytics.setAnalyticsApplicationId(id); void analytics.loadAnalytics(analytics.analyticsDays, id || undefined); }}
+        setApplicationId={(id: string) => {
+          analytics.setAnalyticsApplicationId(id);
+          void analytics.loadAnalytics(analytics.analyticsDays, id || undefined);
+        }}
         data={analytics.analyticsData}
         loading={analytics.analyticsLoading}
         onRefresh={() => void analytics.loadAnalytics()}

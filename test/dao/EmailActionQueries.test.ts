@@ -6,7 +6,11 @@ vi.mock('@mail-otter/shared/utils', async (importOriginal) => {
   return { ...actual, UUIDUtil: { getRandomUUID: () => 'e-1' } };
 });
 
-function makeDb(handlers: { all?: (sql: string) => unknown[]; first?: (sql: string) => unknown; run?: (sql: string) => { changes: number } }) {
+function makeDb(handlers: {
+  all?: (sql: string) => unknown[];
+  first?: (sql: string) => unknown;
+  run?: (sql: string) => { changes: number };
+}) {
   const calls: string[] = [];
   return {
     calls,
@@ -54,8 +58,7 @@ describe('EmailActionQueries', () => {
     const { db } = makeDb({
       all: (sql) => {
         seen.push(sql);
-        if (sql.includes('GROUP BY status')) return [{ status: 'pending', cnt: 2 }];
-        return [{ action_type: 'x', cnt: 2 }];
+        return [sql.includes('GROUP BY status') ? { status: 'pending', cnt: 2 } : { action_type: 'x', cnt: 2 }];
       },
     });
     const queries = new EmailActionQueries(db as never);
@@ -102,7 +105,7 @@ describe('EmailActionQueries', () => {
       errorMessage: 'x'.repeat(2000),
     });
     expect(execution.attempt).toBe(5);
-    expect((bound[0][7] as string)).toHaveLength(1024);
+    expect(bound[0][7] as string).toHaveLength(1024);
   });
 
   it('throws when the execution row cannot be reloaded', async () => {

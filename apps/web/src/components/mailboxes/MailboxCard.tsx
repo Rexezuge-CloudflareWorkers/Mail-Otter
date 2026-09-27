@@ -27,15 +27,15 @@ export function MailboxCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium text-[var(--color-text-primary)] truncate">{application.displayName}</div>
-          <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            {providerLabels[application.providerId]}
-          </div>
+          <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">{providerLabels[application.providerId]}</div>
           <div className="text-xs text-[var(--color-text-muted)] truncate mt-0.5">
             {application.providerEmail || t('mailboxes.notAuthorized', 'Not Authorized')}
           </div>
           <div className="mt-2 flex items-center gap-2">
             <ContextIndexBadge enabled={application.contextIndexingEnabled} />
-            <span className="text-xs text-[var(--color-text-muted)]">{t('mailboxes.docsCount', '{{count}} Docs', { count: application.contextDocumentCount || 0 })}</span>
+            <span className="text-xs text-[var(--color-text-muted)]">
+              {t('mailboxes.docsCount', '{{count}} Docs', { count: application.contextDocumentCount || 0 })}
+            </span>
           </div>
         </div>
         <ConnectionBadge status={application.status} />

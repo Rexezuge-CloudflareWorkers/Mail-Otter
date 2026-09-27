@@ -20,7 +20,12 @@ describe('AttachmentAnalysisUtil', () => {
       const ai = makeAi({
         summary: 'Receipt from Acme for $42.00.',
         actions: [
-          { type: 'finance.pay_bill', title: 'Pay Acme Invoice', description: 'Invoice #123', parameters: { payee: 'Acme', amount: '42.00', currency: 'USD' } },
+          {
+            type: 'finance.pay_bill',
+            title: 'Pay Acme Invoice',
+            description: 'Invoice #123',
+            parameters: { payee: 'Acme', amount: '42.00', currency: 'USD' },
+          },
         ],
       });
 
@@ -43,22 +48,30 @@ describe('AttachmentAnalysisUtil', () => {
 
     it('accumulates summaries and proposals across multiple attachments', async () => {
       const ai = {
-        run: vi.fn()
+        run: vi
+          .fn()
           .mockResolvedValueOnce({
-            response: JSON.stringify({ summary: 'Boarding pass summary.', actions: [{ type: 'travel.track_flight', title: 'Track Flight', description: 'AA100', parameters: { flightNumber: 'AA100' } }] }),
+            response: JSON.stringify({
+              summary: 'Boarding pass summary.',
+              actions: [
+                { type: 'travel.track_flight', title: 'Track Flight', description: 'AA100', parameters: { flightNumber: 'AA100' } },
+              ],
+            }),
           })
           .mockResolvedValueOnce({
-            response: JSON.stringify({ summary: 'Package label.', actions: [{ type: 'delivery.track_package', title: 'Track Package', description: 'UPS', parameters: { trackingNumber: '1Z999' } }] }),
+            response: JSON.stringify({
+              summary: 'Package label.',
+              actions: [
+                { type: 'delivery.track_package', title: 'Track Package', description: 'UPS', parameters: { trackingNumber: '1Z999' } },
+              ],
+            }),
           }),
       } as unknown as Ai;
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'vision-model',
-        'Your shipment',
-        'shipping@carrier.com',
-        [makeAttachment({ filename: 'boarding.jpg' }), makeAttachment({ filename: 'label.jpg' })],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'vision-model', 'Your shipment', 'shipping@carrier.com', [
+        makeAttachment({ filename: 'boarding.jpg' }),
+        makeAttachment({ filename: 'label.jpg' }),
+      ]);
 
       expect(result.attachmentSummaries).toHaveLength(2);
       expect(result.attachmentSummaries[0]).toContain('boarding.jpg');
@@ -79,20 +92,18 @@ describe('AttachmentAnalysisUtil', () => {
 
     it('skips an attachment and continues when AI call throws', async () => {
       const ai = {
-        run: vi.fn()
+        run: vi
+          .fn()
           .mockRejectedValueOnce(new Error('Vision model unavailable'))
           .mockResolvedValueOnce({
             response: JSON.stringify({ summary: 'Package label.', actions: [] }),
           }),
       } as unknown as Ai;
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment({ filename: 'bad.jpg' }), makeAttachment({ filename: 'good.jpg' })],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [
+        makeAttachment({ filename: 'bad.jpg' }),
+        makeAttachment({ filename: 'good.jpg' }),
+      ]);
 
       expect(result.attachmentSummaries).toEqual(['good.jpg: Package label.']);
       expect(result.actionProposals).toEqual([]);
@@ -101,13 +112,7 @@ describe('AttachmentAnalysisUtil', () => {
     it('omits summary when AI returns no summary field', async () => {
       const ai = makeAi({ actions: [] });
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment()],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [makeAttachment()]);
 
       expect(result.attachmentSummaries).toEqual([]);
     });
@@ -122,13 +127,7 @@ describe('AttachmentAnalysisUtil', () => {
         ],
       });
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment()],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [makeAttachment()]);
 
       expect(result.actionProposals).toHaveLength(1);
       expect(result.actionProposals[0].type).toBe('finance.pay_bill');
@@ -137,13 +136,7 @@ describe('AttachmentAnalysisUtil', () => {
     it('returns empty proposals when AI response text is empty', async () => {
       const ai = { run: vi.fn().mockResolvedValue({ response: '' }) } as unknown as Ai;
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment()],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [makeAttachment()]);
 
       expect(result.actionProposals).toEqual([]);
       expect(result.attachmentSummaries).toEqual([]);
@@ -152,20 +145,15 @@ describe('AttachmentAnalysisUtil', () => {
     it('returns empty proposals when AI response is invalid JSON', async () => {
       const ai = { run: vi.fn().mockResolvedValue({ response: 'not json at all' }) } as unknown as Ai;
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment()],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [makeAttachment()]);
 
       expect(result.actionProposals).toEqual([]);
     });
 
     it('accumulates token usage across multiple attachments', async () => {
       const ai = {
-        run: vi.fn()
+        run: vi
+          .fn()
           .mockResolvedValueOnce({
             response: JSON.stringify({ summary: 'First.', actions: [] }),
             usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
@@ -176,13 +164,10 @@ describe('AttachmentAnalysisUtil', () => {
           }),
       } as unknown as Ai;
 
-      const result = await AttachmentAnalysisUtil.analyzeAttachments(
-        ai,
-        'model',
-        'subject',
-        'from@example.com',
-        [makeAttachment({ filename: 'a.jpg' }), makeAttachment({ filename: 'b.jpg' })],
-      );
+      const result = await AttachmentAnalysisUtil.analyzeAttachments(ai, 'model', 'subject', 'from@example.com', [
+        makeAttachment({ filename: 'a.jpg' }),
+        makeAttachment({ filename: 'b.jpg' }),
+      ]);
 
       expect(result.totalUsage).toBeDefined();
       expect(result.totalUsage?.promptTokens).toBe(300);

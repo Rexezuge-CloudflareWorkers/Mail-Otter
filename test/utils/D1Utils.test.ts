@@ -28,9 +28,9 @@ describe('D1Utils', () => {
     });
 
     it('throws with retryable=true for retryable errors', () => {
-      expect(() =>
-        assertD1Success({ success: false, error: 'database is busy', results: [], meta: {} as never }, 'update'),
-      ).toThrow(expect.objectContaining({ retryable: true }));
+      expect(() => assertD1Success({ success: false, error: 'database is busy', results: [], meta: {} as never }, 'update')).toThrow(
+        expect.objectContaining({ retryable: true }),
+      );
     });
 
     it('throws with retryable=false for non-retryable errors', () => {
@@ -40,9 +40,7 @@ describe('D1Utils', () => {
     });
 
     it('uses fallback error message when result.error is undefined', () => {
-      expect(() =>
-        assertD1Success({ success: false, results: [], meta: {} as never }, 'fetch'),
-      ).toThrow('Unknown database error');
+      expect(() => assertD1Success({ success: false, results: [], meta: {} as never }, 'fetch')).toThrow('Unknown database error');
     });
   });
 
@@ -55,10 +53,7 @@ describe('D1Utils', () => {
     });
 
     it('retries on retryable Error and eventually succeeds', async () => {
-      const op = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('database is busy'))
-        .mockResolvedValue({ success: true, results: [], meta: {} });
+      const op = vi.fn().mockRejectedValueOnce(new Error('database is busy')).mockResolvedValue({ success: true, results: [], meta: {} });
       const result = await executeD1WithRetry(op, 'test', { maxRetries: 3, baseDelayMs: 0 });
       expect(result.success).toBe(true);
       expect(op).toHaveBeenCalledTimes(2);

@@ -5,11 +5,7 @@ import {
   CONNECTION_METHOD_OAUTH2,
   OAUTH2_FEATURE_SCOPES,
 } from '@mail-otter/shared/constants';
-import type {
-  ApplicationContextDAO,
-  ConnectedApplicationDAO,
-  OAuth2AccessTokenCacheDAO,
-} from '@mail-otter/backend-data/dao';
+import type { ApplicationContextDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import { isImapPasswordApplication } from '@mail-otter/shared/model';
 import type {
@@ -23,7 +19,13 @@ import { EmailContextUtil } from '../email/EmailContextUtil';
 import { WatchService } from '../subscription/WatchService';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
 import type { ApplicationResponse } from './ApplicationResponseUtil';
-import type { ApplicationServiceDeps, ApplicationServiceEnv, CreateUserApplicationInput, UpdateUserApplicationInput, UpdateWatchedFolderIdsInput } from './ApplicationServiceTypes';
+import type {
+  ApplicationServiceDeps,
+  ApplicationServiceEnv,
+  CreateUserApplicationInput,
+  UpdateUserApplicationInput,
+  UpdateWatchedFolderIdsInput,
+} from './ApplicationServiceTypes';
 
 /**
  * CRUD slice of `ApplicationService` (list/create/update/delete/ownership).

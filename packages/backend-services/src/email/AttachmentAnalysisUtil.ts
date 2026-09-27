@@ -20,13 +20,7 @@ const VISION_JSON_SCHEMA = {
         properties: {
           type: {
             type: 'string',
-            enum: [
-              'delivery.track_package',
-              'travel.track_flight',
-              'finance.pay_bill',
-              'appointment.confirm',
-              'manual.todo',
-            ],
+            enum: ['delivery.track_package', 'travel.track_flight', 'finance.pay_bill', 'appointment.confirm', 'manual.todo'],
           },
           title: { type: 'string' },
           description: { type: 'string' },
@@ -116,9 +110,10 @@ class AttachmentAnalysisUtil {
     locale?: string | null,
   ): Promise<{ summary?: string; proposals: EmailActionProposal[]; usage?: AiTextGenerationUsage }> {
     const normalizedLocale = LocaleUtil.normalize(locale);
-    const systemPrompt = normalizedLocale === 'en'
-      ? VISION_SYSTEM_PROMPT
-      : `${VISION_SYSTEM_PROMPT} Write the summary and action titles and descriptions in ${AI_LANGUAGE_NAMES[normalizedLocale]}.`;
+    const systemPrompt =
+      normalizedLocale === 'en'
+        ? VISION_SYSTEM_PROMPT
+        : `${VISION_SYSTEM_PROMPT} Write the summary and action titles and descriptions in ${AI_LANGUAGE_NAMES[normalizedLocale]}.`;
     const request = {
       messages: [
         { role: 'system', content: systemPrompt },

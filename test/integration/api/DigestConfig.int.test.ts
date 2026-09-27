@@ -30,19 +30,15 @@ describe('Digest config API', () => {
     if (aesSecret) {
       await adminSecretsStore(aesSecret).create('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
     }
-    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(
-      TEST_EMAIL,
-      Math.floor(Date.now() / 1000),
-      Math.floor(Date.now() / 1000),
-    ).run();
+    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`)
+      .bind(TEST_EMAIL, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000))
+      .run();
   });
 
   it('returns defaults then persists config via DI scope', async () => {
     const applicationId = await createApplication();
 
-    const initial: Response = await SELF.fetch(
-      `http://localhost/user/application/digest?applicationId=${applicationId}`,
-    );
+    const initial: Response = await SELF.fetch(`http://localhost/user/application/digest?applicationId=${applicationId}`);
     expect(initial.status).toBe(200);
     const initialBody = (await initial.json()) as { digestConfig: { enabled: boolean; sendTime: string } };
     expect(typeof initialBody.digestConfig.enabled).toBe('boolean');
@@ -58,9 +54,7 @@ describe('Digest config API', () => {
     expect(updatedBody.digestConfig.sendTime).toBe('07:30');
     expect(updatedBody.digestConfig.sections).toEqual(['tasks', 'calendar']);
 
-    const reread: Response = await SELF.fetch(
-      `http://localhost/user/application/digest?applicationId=${applicationId}`,
-    );
+    const reread: Response = await SELF.fetch(`http://localhost/user/application/digest?applicationId=${applicationId}`);
     const rereadBody = (await reread.json()) as { digestConfig: { sendTime: string } };
     expect(rereadBody.digestConfig.sendTime).toBe('07:30');
   });

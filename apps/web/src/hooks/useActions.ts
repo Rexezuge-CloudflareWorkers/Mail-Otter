@@ -74,7 +74,10 @@ export function useActions({ setIsBusy, showNotice }: UseActionsOptions) {
     try {
       const data = await actionSvc.scheduleAction(actionId, scheduledFor);
       setActions((c) => c.map((a) => (a.actionId === data.action.actionId ? data.action : a)));
-      showNotice('success', scheduledFor ? t('toasts.actionScheduled', 'Action Scheduled.') : t('toasts.scheduleCancelled', 'Schedule Cancelled.'));
+      showNotice(
+        'success',
+        scheduledFor ? t('toasts.actionScheduled', 'Action Scheduled.') : t('toasts.scheduleCancelled', 'Schedule Cancelled.'),
+      );
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.actionScheduleFailed', 'Unable To Schedule Action.'));
     } finally {

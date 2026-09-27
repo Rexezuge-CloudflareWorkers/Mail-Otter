@@ -16,15 +16,7 @@ const NATIVE_NAMES: Record<string, string> = {
   ko: '한국어',
 };
 
-export function LanguageSelector({
-  value,
-  onChange,
-  disabled,
-}: {
-  value?: string;
-  onChange: (lng: string) => void;
-  disabled?: boolean;
-}) {
+export function LanguageSelector({ value, onChange, disabled }: { value?: string; onChange: (lng: string) => void; disabled?: boolean }) {
   const { t, i18n } = useTranslation();
   const unknownLabel = t('header.unknownLanguage', 'Unknown');
   if (value === 'unknown') {

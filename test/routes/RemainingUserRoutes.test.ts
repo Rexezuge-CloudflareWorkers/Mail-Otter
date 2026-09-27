@@ -215,11 +215,7 @@ function makeEnv(extra: Record<string, unknown> = {}) {
 }
 
 function call(route: unknown, request: unknown, env: never, cxt: never) {
-  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(
-    request,
-    env,
-    cxt,
-  );
+  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(request, env, cxt);
 }
 
 function req(url: string, extra: Record<string, unknown> = {}) {
@@ -232,21 +228,16 @@ describe('remaining user routes', () => {
   });
 
   it('GET executions requires actionId, then delegates', async () => {
-    await expect(call(new ListEmailActionExecutionsRoute(), req('https://x/e'), makeEnv(), makeCxt())).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(call(new ListEmailActionExecutionsRoute(), req('https://x/e'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     mockListExecutions.mockResolvedValue({ executions: [] });
     await call(new ListEmailActionExecutionsRoute(), req('https://x/e'), makeEnv(), makeCxt({ actionId: 'a-1' }));
     expect(mockListExecutions).toHaveBeenCalledWith('a-1', 'user@example.com', expect.anything());
   });
 
   it('DELETE application delegates and returns success', async () => {
-    const result = (await call(
-      new DeleteApplicationRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    )) as { success: boolean };
+    const result = (await call(new DeleteApplicationRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt())) as {
+      success: boolean;
+    };
     expect(mockDeleteUserApplication).toHaveBeenCalledWith('user@example.com', 'app-1');
     expect(result.success).toBe(true);
   });
@@ -256,62 +247,35 @@ describe('remaining user routes', () => {
       call(new UpdateApplicationContextRoute(), req('https://x/', { maxContextDocuments: 0 }), makeEnv(), makeCxt()),
     ).rejects.toThrow(BadRequestError);
     mockUpdateContextSettings.mockResolvedValue({ applicationId: 'app-1' });
-    await call(
-      new UpdateApplicationContextRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new UpdateApplicationContextRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt());
     expect(mockUpdateContextSettings).toHaveBeenCalled();
   });
 
   it('POST delete-documents delegates', async () => {
     mockDeleteDocuments.mockResolvedValue({ runId: 'r-1' });
-    await call(
-      new DeleteApplicationContextDocumentsRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new DeleteApplicationContextDocumentsRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt());
     expect(mockDeleteDocuments).toHaveBeenCalledWith('user@example.com', 'app-1');
   });
 
   it('GET deletions/documents forward query params', async () => {
     mockListDeletionRuns.mockResolvedValue({ deletionRuns: [] });
     mockListDocuments.mockResolvedValue({ documents: [] });
-    await call(
-      new ListApplicationContextDeletionRunsRoute(),
-      req('https://x/?applicationId=app-1&cursor=c'),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new ListApplicationContextDeletionRunsRoute(), req('https://x/?applicationId=app-1&cursor=c'), makeEnv(), makeCxt());
     expect(mockListDeletionRuns).toHaveBeenCalledWith('user@example.com', { applicationId: 'app-1', cursor: 'c' });
-    await call(
-      new ListApplicationContextDocumentsRoute(),
-      req('https://x/?applicationId=app-1&cursor=c'),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new ListApplicationContextDocumentsRoute(), req('https://x/?applicationId=app-1&cursor=c'), makeEnv(), makeCxt());
     expect(mockListDocuments).toHaveBeenCalled();
   });
 
   it('document provider-link and audit-logs require contextDocumentId', async () => {
-    await expect(
-      call(new GetApplicationContextDocumentProviderLinkRoute(), req('https://x/'), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
-    await expect(
-      call(new ListContextDocumentAuditLogsRoute(), req('https://x/'), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new GetApplicationContextDocumentProviderLinkRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(
+      BadRequestError,
+    );
+    await expect(call(new ListContextDocumentAuditLogsRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     mockGetDocumentProviderLink.mockResolvedValue('https://provider/doc');
     mockListAuditLogs.mockResolvedValue({ logs: [] });
     await call(new GetApplicationContextDocumentProviderLinkRoute(), req('https://x/'), makeEnv(), makeCxt({ contextDocumentId: 'd-1' }));
     expect(mockGetDocumentProviderLink).toHaveBeenCalledWith('user@example.com', 'd-1');
-    await call(
-      new ListContextDocumentAuditLogsRoute(),
-      req('https://x/?cursor=c'),
-      makeEnv(),
-      makeCxt({ contextDocumentId: 'd-1' }),
-    );
+    await call(new ListContextDocumentAuditLogsRoute(), req('https://x/?cursor=c'), makeEnv(), makeCxt({ contextDocumentId: 'd-1' }));
     expect(mockListAuditLogs).toHaveBeenCalledWith('user@example.com', 'd-1', 'c');
   });
 
@@ -341,66 +305,36 @@ describe('remaining user routes', () => {
   it('PUT rules and POST suggest delegate', async () => {
     mockUpdateRules.mockResolvedValue({ applicationId: 'app-1' });
     mockSuggestRule.mockResolvedValue({ condition: 'x' });
-    await call(
-      new UpdateApplicationRulesRoute(),
-      req('https://x/', { applicationId: 'app-1', rules: [] }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new UpdateApplicationRulesRoute(), req('https://x/', { applicationId: 'app-1', rules: [] }), makeEnv(), makeCxt());
     expect(mockUpdateRules).toHaveBeenCalledWith('user@example.com', 'app-1', []);
-    await call(
-      new SuggestApplicationRuleRoute(),
-      req('https://x/', { applicationId: 'app-1', description: 'vip' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new SuggestApplicationRuleRoute(), req('https://x/', { applicationId: 'app-1', description: 'vip' }), makeEnv(), makeCxt());
     expect(mockSuggestRule).toHaveBeenCalledWith('user@example.com', 'app-1', 'vip');
   });
 
   it('watch start/stop and watch-settings delegate', async () => {
     mockStartWatch.mockResolvedValue({ ok: true });
-    await call(
-      new StartApplicationWatchRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new StartApplicationWatchRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt());
     expect(mockStartWatch).toHaveBeenCalled();
-    const stopped = (await call(
-      new StopApplicationWatchRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    )) as { message: string };
+    const stopped = (await call(new StopApplicationWatchRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt())) as {
+      message: string;
+    };
     expect(mockStopWatch).toHaveBeenCalledWith('user@example.com', 'app-1');
     expect(stopped.message).toContain('stopped');
     mockUpdateWatchedFolderIds.mockResolvedValue({ applicationId: 'app-1' });
-    await call(
-      new UpdateApplicationWatchSettingsRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new UpdateApplicationWatchSettingsRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt());
     expect(mockUpdateWatchedFolderIds).toHaveBeenCalled();
   });
 
   it('POST oauth2/authorize delegates', async () => {
     mockCreateAuthorization.mockResolvedValue({ url: 'https://auth' });
-    await call(
-      new CreateOAuth2AuthorizationRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    );
+    await call(new CreateOAuth2AuthorizationRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt());
     expect(mockCreateAuthorization).toHaveBeenCalled();
   });
 
   it('integrations PUT/DELETE/deliveries/test delegate; deliveries validates input', async () => {
     mockUpdateIntegration.mockResolvedValue({ integrationId: 'i-1' });
     mockListIntegrationDeliveries.mockResolvedValue([]);
-    await expect(
-      call(new ListIntegrationDeliveriesRoute(), req('https://x/'), makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new ListIntegrationDeliveriesRoute(), req('https://x/'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     await call(
       new UpdateIntegrationRoute(),
       req('https://x/', { integrationId: 'i-1', name: 'n', enabled: true, webhookUrl: 'https://h' }),
@@ -408,22 +342,16 @@ describe('remaining user routes', () => {
       makeCxt(),
     );
     expect(mockUpdateIntegration).toHaveBeenCalled();
-    const deleted = (await call(
-      new DeleteIntegrationRoute(),
-      req('https://x/', { integrationId: 'i-1' }),
-      makeEnv(),
-      makeCxt(),
-    )) as { success: boolean };
+    const deleted = (await call(new DeleteIntegrationRoute(), req('https://x/', { integrationId: 'i-1' }), makeEnv(), makeCxt())) as {
+      success: boolean;
+    };
     expect(mockDeleteIntegration).toHaveBeenCalledWith('user@example.com', 'i-1');
     expect(deleted.success).toBe(true);
     await call(new ListIntegrationDeliveriesRoute(), req('https://x/?integrationId=i-1&limit=5'), makeEnv(), makeCxt());
     expect(mockListIntegrationDeliveries).toHaveBeenCalledWith('user@example.com', 'i-1', 5);
-    const tested = (await call(
-      new TestIntegrationRoute(),
-      req('https://x/', { integrationId: 'i-1' }),
-      makeEnv(),
-      makeCxt(),
-    )) as { success: boolean };
+    const tested = (await call(new TestIntegrationRoute(), req('https://x/', { integrationId: 'i-1' }), makeEnv(), makeCxt())) as {
+      success: boolean;
+    };
     expect(mockTestIntegration).toHaveBeenCalledWith('user@example.com', 'i-1');
     expect(tested.success).toBe(true);
   });
@@ -450,51 +378,36 @@ describe('remaining user routes', () => {
     await call(new ListIntegrationDeliveriesRoute(), req('https://x/?integrationId=i-1&limit=bogus'), makeEnv(), makeCxt());
     expect(mockListIntegrationDeliveries).toHaveBeenCalledWith('user@example.com', 'i-1', 20);
     await expect(
-      call(
-        new UpdateApplicationContextRoute(),
-        req('https://x/', { maxContextDocuments: 99_999_999 }),
-        makeEnv(),
-        makeCxt(),
-      ),
+      call(new UpdateApplicationContextRoute(), req('https://x/', { maxContextDocuments: 99_999_999 }), makeEnv(), makeCxt()),
     ).rejects.toThrow(BadRequestError);
   });
 
   it('POST digest/send resolves ownership, token, and forced send', async () => {
     mockGetOwnedApplication.mockResolvedValue({ applicationId: 'app-1' });
     mockGetAccessToken.mockResolvedValue('tok');
-    const result = (await call(
-      new SendDigestNowRoute(),
-      req('https://x/', { applicationId: 'app-1' }),
-      makeEnv(),
-      makeCxt(),
-    )) as { sent: boolean };
+    const result = (await call(new SendDigestNowRoute(), req('https://x/', { applicationId: 'app-1' }), makeEnv(), makeCxt())) as {
+      sent: boolean;
+    };
     expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', 'app-1');
     expect(mockGetAccessToken).toHaveBeenCalledWith('app-1');
     expect(mockSendDigestForced).toHaveBeenCalledWith({ applicationId: 'app-1' }, 'tok');
     expect(result.sent).toBe(true);
     mockGetOwnedApplication.mockRejectedValue(new NotFoundError('Connected application not found.'));
-    await expect(
-      call(new SendDigestNowRoute(), req('https://x/', { applicationId: 'missing' }), makeEnv(), makeCxt()),
-    ).rejects.toThrow(NotFoundError);
+    await expect(call(new SendDigestNowRoute(), req('https://x/', { applicationId: 'missing' }), makeEnv(), makeCxt())).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it('processing calendar-events/messages forward filters', async () => {
     mockListCalendarEvents.mockResolvedValue({ events: [] });
     mockListProcessedMessages.mockResolvedValue({ messages: [] });
     await call(new ListProcessingCalendarEventsRoute(), req('https://x/?applicationId=app-1&cursor=c'), makeEnv(), makeCxt());
-    expect(mockListCalendarEvents).toHaveBeenCalledWith(
-      'user@example.com',
-      { applicationId: 'app-1', cursor: 'c' },
-    );
-    await call(
-      new ListProcessedMessagesRoute(),
-      req('https://x/?applicationId=app-1&status=processed&cursor=c'),
-      makeEnv(),
-      makeCxt(),
-    );
-    expect(mockListProcessedMessages).toHaveBeenCalledWith(
-      'user@example.com',
-      { applicationId: 'app-1', status: 'processed', cursor: 'c' },
-    );
+    expect(mockListCalendarEvents).toHaveBeenCalledWith('user@example.com', { applicationId: 'app-1', cursor: 'c' });
+    await call(new ListProcessedMessagesRoute(), req('https://x/?applicationId=app-1&status=processed&cursor=c'), makeEnv(), makeCxt());
+    expect(mockListProcessedMessages).toHaveBeenCalledWith('user@example.com', {
+      applicationId: 'app-1',
+      status: 'processed',
+      cursor: 'c',
+    });
   });
 });

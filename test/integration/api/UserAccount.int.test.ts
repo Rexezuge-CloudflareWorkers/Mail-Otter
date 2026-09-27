@@ -10,7 +10,7 @@ const TEST_EMAIL = 'test@example.com';
  */
 describe('User account API', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
   });
 
   describe('PUT /user/me', () => {
@@ -87,9 +87,7 @@ describe('User account API', () => {
     });
 
     it('returns 404 for a foreign applicationId filter', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/user/analytics?applicationId=00000000-0000-0000-0000-000000000000',
-      );
+      const response: Response = await SELF.fetch('http://localhost/user/analytics?applicationId=00000000-0000-0000-0000-000000000000');
       expect(response.status).toBe(404);
     });
   });

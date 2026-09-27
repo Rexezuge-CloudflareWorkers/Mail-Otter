@@ -26,7 +26,6 @@ interface OAuth2AccessTokenRefreshStatusInternal {
 }
 
 class OAuth2AccessTokenRefreshStatusDAO extends BaseDAO {
-
   public async getByApplication(applicationId: string): Promise<OAuth2AccessTokenRefreshStatus | undefined> {
     const row: OAuth2AccessTokenRefreshStatusInternal | null = await this.database
       .prepare(

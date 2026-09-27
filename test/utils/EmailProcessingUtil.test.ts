@@ -17,9 +17,7 @@ describe('EmailProcessingUtil', () => {
     it('classifies missing applications as non-retryable', async () => {
       vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(undefined);
 
-      await expect(
-        EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv()),
-      ).rejects.toThrow(NonRetryableError);
+      await expect(EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv())).rejects.toThrow(NonRetryableError);
     });
 
     it('classifies applications without a provider email as non-retryable', async () => {
@@ -31,9 +29,7 @@ describe('EmailProcessingUtil', () => {
         credentials: { refreshToken: 'refresh-token' },
       });
 
-      await expect(
-        EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv()),
-      ).rejects.toThrow(NonRetryableError);
+      await expect(EmailProcessingUtil.resolveApplication(createOutlookQueueMessage(), createEnv())).rejects.toThrow(NonRetryableError);
     });
   });
 
@@ -125,7 +121,12 @@ describe('EmailProcessingUtil', () => {
       });
       expect(summarizeEmail).toHaveBeenCalledOnce();
       expect(sendSelfSummaryReply).toHaveBeenCalledOnce();
-      expect(sendSelfSummaryReply).toHaveBeenCalledWith('access-token', expect.anything(), 'owner@example.com', 'Summary text\n\n<p><em>Powered by Mail-Otter</em></p>');
+      expect(sendSelfSummaryReply).toHaveBeenCalledWith(
+        'access-token',
+        expect.anything(),
+        'owner@example.com',
+        'Summary text\n\n<p><em>Powered by Mail-Otter</em></p>',
+      );
       expect(markSummarized).toHaveBeenCalledWith('app-1', 'reply-message-2');
     });
 
@@ -149,7 +150,7 @@ describe('EmailProcessingUtil', () => {
         [],
       );
 
-      const summary: string = sendSelfSummaryReply.mock.calls[0]![3];
+      const summary: string = sendSelfSummaryReply.mock.calls[0][3];
       expect(summary).toContain('<hr>');
       expect(summary).toContain('<pre style="font-size:11px;color:#666;white-space:pre-wrap;">');
       expect(summary).toContain('--- Debug Informations ---');
@@ -328,7 +329,7 @@ describe('EmailProcessingUtil', () => {
         errors: [
           {
             code: 4006,
-            message: "you have used up your daily free allocation of 10,000 neurons",
+            message: 'you have used up your daily free allocation of 10,000 neurons',
           },
         ],
       });
@@ -377,9 +378,7 @@ describe('EmailProcessingUtil', () => {
     it('silently drops Gmail messages sent from the mailbox owner without recording a processed message', async () => {
       const tryStart = vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
       const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
-      vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
-        createGmailMessage({ fromHeader: 'Owner <owner@example.com>' }),
-      );
+      vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(createGmailMessage({ fromHeader: 'Owner <owner@example.com>' }));
 
       await expect(
         EmailProcessingUtil.processGmailMessage(createApplication(), 'access-token', 'message-1', createEnv(), []),
@@ -475,9 +474,7 @@ describe('EmailProcessingUtil', () => {
         vi.spyOn(ProcessedMessageDAO.prototype, 'tryStart').mockResolvedValue(true);
         const markSkipped = vi.spyOn(ProcessedMessageDAO.prototype, 'markSkipped').mockResolvedValue();
         const summarizeEmail = vi.spyOn(EmailSummaryUtil, 'summarizeEmailWithUsage');
-        vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(
-          createGmailMessage({ fromHeader: 'Alice <alice@other.com>' }),
-        );
+        vi.spyOn(GmailProviderUtil, 'getMessage').mockResolvedValue(createGmailMessage({ fromHeader: 'Alice <alice@other.com>' }));
 
         await EmailProcessingUtil.processGmailMessage(
           createApplication({ senderDomainFilters: { includeRules: ['@company.com'] } }),
@@ -522,13 +519,15 @@ describe('EmailProcessingUtil', () => {
 
       await EmailProcessingUtil.processOutlookMessage(
         createApplication({
-          emailProcessingRules: [{
-            ruleId: 'rule-1',
-            name: 'Skip Newsletters',
-            enabled: true,
-            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Newsletter' }] },
-            action: { type: 'skip' },
-          }],
+          emailProcessingRules: [
+            {
+              ruleId: 'rule-1',
+              name: 'Skip Newsletters',
+              enabled: true,
+              conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Newsletter' }] },
+              action: { type: 'skip' },
+            },
+          ],
         }),
         'access-token',
         'message-1',
@@ -550,13 +549,15 @@ describe('EmailProcessingUtil', () => {
 
       await EmailProcessingUtil.processOutlookMessage(
         createApplication({
-          emailProcessingRules: [{
-            ruleId: 'rule-2',
-            name: 'Skip Actions For Low Priority',
-            enabled: true,
-            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Low priority' }] },
-            action: { type: 'skip_actions' },
-          }],
+          emailProcessingRules: [
+            {
+              ruleId: 'rule-2',
+              name: 'Skip Actions For Low Priority',
+              enabled: true,
+              conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Low priority' }] },
+              action: { type: 'skip_actions' },
+            },
+          ],
         }),
         'access-token',
         'message-1',
@@ -577,13 +578,15 @@ describe('EmailProcessingUtil', () => {
 
       await EmailProcessingUtil.processOutlookMessage(
         createApplication({
-          emailProcessingRules: [{
-            ruleId: 'rule-3',
-            name: 'Extract Invoice Details',
-            enabled: true,
-            conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Invoice' }] },
-            action: { type: 'prepend_instruction', instruction: 'Always extract invoice number and due date.' },
-          }],
+          emailProcessingRules: [
+            {
+              ruleId: 'rule-3',
+              name: 'Extract Invoice Details',
+              enabled: true,
+              conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'contains', value: 'Invoice' }] },
+              action: { type: 'prepend_instruction', instruction: 'Always extract invoice number and due date.' },
+            },
+          ],
         }),
         'access-token',
         'message-1',
@@ -617,7 +620,10 @@ function createApplication(overrides: Record<string, unknown> = {}) {
   } as never;
 }
 
-function createGmailMessage({ fromHeader = 'Sender <sender@example.com>', xMailOtterSummary }: { fromHeader?: string; xMailOtterSummary?: string } = {}) {
+function createGmailMessage({
+  fromHeader = 'Sender <sender@example.com>',
+  xMailOtterSummary,
+}: { fromHeader?: string; xMailOtterSummary?: string } = {}) {
   const headers: { name: string; value: string }[] = [
     { name: 'Subject', value: 'Project update' },
     { name: 'From', value: fromHeader },

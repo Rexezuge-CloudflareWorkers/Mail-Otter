@@ -1,7 +1,4 @@
-import {
-  PROCESSED_MESSAGE_STATUS_SKIPPED,
-  PROCESSED_MESSAGE_STATUS_SUMMARIZED,
-} from '@mail-otter/shared/constants';
+import { PROCESSED_MESSAGE_STATUS_SKIPPED, PROCESSED_MESSAGE_STATUS_SUMMARIZED } from '@mail-otter/shared/constants';
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';

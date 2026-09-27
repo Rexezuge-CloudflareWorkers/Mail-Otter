@@ -15,7 +15,7 @@ describe('AiUsageUtil', () => {
   describe('estimateTokensFromText', () => {
     it('returns 0 for empty or whitespace-only text', () => {
       expect(AiUsageUtil.estimateTokensFromText('')).toBe(0);
-      expect(AiUsageUtil.estimateTokensFromText('   ')).toBe(0);
+      expect(AiUsageUtil.estimateTokensFromText(' '.repeat(3))).toBe(0);
     });
 
     it('estimates roughly one token per four chars', () => {
@@ -81,7 +81,7 @@ describe('AiUsageUtil', () => {
     it('ignores invalid usage values and falls back to text', () => {
       const estimate = AiUsageUtil.estimateTextGenerationUsage(
         '@cf/openai/gpt-oss-120b',
-        { promptTokens: -3, completionTokens: Number.NaN, totalTokens: -1 },
+        { promptTokens: -3, completionTokens: NaN, totalTokens: -1 },
         'abcd',
         'efgh',
       );

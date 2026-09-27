@@ -13,11 +13,7 @@ class ChatRoute extends IUserRoute<ChatRequest, ChatResponse, ChatEnv> {
     },
   };
 
-  protected async handleRequest(
-    request: ChatRequest,
-    env: ChatEnv,
-    cxt: RouteContext<ChatEnv>,
-  ): Promise<ChatResponse> {
+  protected async handleRequest(request: ChatRequest, env: ChatEnv, cxt: RouteContext<ChatEnv>): Promise<ChatResponse> {
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const query = (request.query ?? '').trim();
     if (!query) throw new BadRequestError('query is required');

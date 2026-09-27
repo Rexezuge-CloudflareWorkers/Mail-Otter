@@ -9,12 +9,10 @@ const mockDecryptedResult = JSON.stringify({ status: 'ok' });
 
 vi.mock('@mail-otter/backend-data/crypto', () => ({
   encryptDataWithSalt: vi.fn((data: string) => {
-    if (data.includes('title')) return Promise.resolve(mockEncryptedPayload);
-    return Promise.resolve(mockEncryptedResult);
+    return data.includes('title') ? Promise.resolve(mockEncryptedPayload) : Promise.resolve(mockEncryptedResult);
   }),
   decryptDataWithSalt: vi.fn((enc: string) => {
-    if (enc === mockEncryptedPayload.encrypted) return Promise.resolve(mockDecryptedPayload);
-    return Promise.resolve(mockDecryptedResult);
+    return enc === mockEncryptedPayload.encrypted ? Promise.resolve(mockDecryptedPayload) : Promise.resolve(mockDecryptedResult);
   }),
 }));
 
@@ -71,11 +69,7 @@ function createExecutionRow(overrides?: Partial<EmailActionExecutionInternal>): 
   };
 }
 
-function makeDb(dbFns: {
-  run?: ReturnType<typeof vi.fn>;
-  first?: ReturnType<typeof vi.fn>;
-  all?: ReturnType<typeof vi.fn>;
-}): D1Database {
+function makeDb(dbFns: { run?: ReturnType<typeof vi.fn>; first?: ReturnType<typeof vi.fn>; all?: ReturnType<typeof vi.fn> }): D1Database {
   const runFn = dbFns.run ?? vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
   const firstFn = dbFns.first ?? vi.fn().mockResolvedValue(null);
   const allFn = dbFns.all ?? vi.fn().mockResolvedValue({ results: [] } as D1Result);

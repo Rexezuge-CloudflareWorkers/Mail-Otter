@@ -3,7 +3,13 @@
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { ImapClient } from '@mail-otter/provider-clients/imap';
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
   ImapCursorWatchResult,
@@ -62,12 +68,19 @@ abstract class ImapEmailProviderBase implements IEmailProvider {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  public async renewWatch(_credentials: AnyProviderCredentials, _subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
+  public async renewWatch(
+    _credentials: AnyProviderCredentials,
+    _subscriptionId: string,
+    _expiresAt: number | null,
+  ): Promise<ProviderWatchResult> {
     // IMAP subscriptions do not expire; nothing to renew.
     return { type: 'imap-cursor', imapCursor: '0' };
   }
 
-  public async pollNewMessages(credentials: AnyProviderCredentials, cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+  public async pollNewMessages(
+    credentials: AnyProviderCredentials,
+    cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     const sinceUid = cursor ? Number(cursor) : 0;
     const client = new ImapClient();
     try {
@@ -103,7 +116,12 @@ abstract class ImapEmailProviderBase implements IEmailProvider {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  public async createDraftReply(_accessToken: string, _messageId: string, _fromEmail: string, _payload: EmailDraftReplyActionPayload): Promise<EmailActionResult> {
+  public async createDraftReply(
+    _accessToken: string,
+    _messageId: string,
+    _fromEmail: string,
+    _payload: EmailDraftReplyActionPayload,
+  ): Promise<EmailActionResult> {
     throw new BadRequestError('Draft reply actions are not yet supported for IMAP providers.');
   }
 }

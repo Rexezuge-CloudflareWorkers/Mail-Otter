@@ -59,13 +59,7 @@ function localDatetimeToISO(local: string): string {
   return new Date(local).toISOString();
 }
 
-function SnoozeDropdown({
-  onSnooze,
-  disabled,
-}: {
-  onSnooze: (isoString: string) => void;
-  disabled: boolean;
-}) {
+function SnoozeDropdown({ onSnooze, disabled }: { onSnooze: (isoString: string) => void; disabled: boolean }) {
   const { t } = useTranslation();
   const presets = useSnoozePresets();
   const [open, setOpen] = useState(false);
@@ -124,7 +118,7 @@ function SnoozeDropdown({
               disabled={!customValue}
               onClick={() => {
                 if (!customValue) {
-                	return;
+                  return;
                 }
 
                 onSnooze(localDatetimeToISO(customValue));
@@ -216,7 +210,9 @@ export function ActionsView({
           <Select value={status} onChange={(e) => setStatus(e.target.value as EmailActionStatus | '')} className="min-w-[140px]">
             <option value="">{t('actions.allStatuses', 'All Statuses')}</option>
             {(['pending', 'executing', 'succeeded', 'failed', 'expired', 'cancelled'] as EmailActionStatus[]).map((s) => (
-              <option key={s} value={s}>{t(`status.${s}`, s.charAt(0).toUpperCase() + s.slice(1))}</option>
+              <option key={s} value={s}>
+                {t(`status.${s}`, s.charAt(0).toUpperCase() + s.slice(1))}
+              </option>
             ))}
           </Select>
         </div>
@@ -238,7 +234,9 @@ export function ActionsView({
         <Card className="p-0 overflow-hidden">
           <CardHeader className="px-5 pt-5 pb-4 border-b border-[var(--color-border)] mb-0">
             <CardTitle>{t('actions.actionItems', 'Action Items')}</CardTitle>
-            <span className="text-sm text-[var(--color-text-muted)]">{t('actions.loaded', '{{count}} Loaded', { count: actions.length })}</span>
+            <span className="text-sm text-[var(--color-text-muted)]">
+              {t('actions.loaded', '{{count}} Loaded', { count: actions.length })}
+            </span>
           </CardHeader>
           <div className="divide-y divide-[var(--color-border)]">
             {actions.map((action) => (
@@ -267,7 +265,9 @@ export function ActionsView({
                       {isScheduled(action) && !isSnoozed(action) && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
                           <CalendarClock className="h-2.5 w-2.5" />
-                          {t('actions.scheduledBadge', 'Scheduled {{duration}}', { duration: formatSnoozedUntil(action.scheduledFor!, lng) })}
+                          {t('actions.scheduledBadge', 'Scheduled {{duration}}', {
+                            duration: formatSnoozedUntil(action.scheduledFor!, lng),
+                          })}
                         </span>
                       )}
                     </div>
@@ -299,15 +299,24 @@ export function ActionsView({
                   <ActionStatusBadge status={selectedAction.status} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Metric label={t('actions.type', 'Type')} value={t(`actionTypes.${selectedAction.actionType}`, selectedAction.actionType)} />
+                  <Metric
+                    label={t('actions.type', 'Type')}
+                    value={t(`actionTypes.${selectedAction.actionType}`, selectedAction.actionType)}
+                  />
                   <Metric label={t('actions.risk', 'Risk')} value={selectedAction.riskLevel} />
                   <Metric label={t('actions.expires', 'Expires')} value={formatExpiryTimestamp(selectedAction.expiresAt, lng)} />
                   <Metric label={t('actions.executed', 'Executed')} value={formatTimestamp(selectedAction.executedAt, lng)} />
                   {selectedAction.snoozedUntil && selectedAction.snoozedUntil > now && (
-                    <Metric label={t('actions.snoozedUntil', 'Snoozed Until')} value={new Date(selectedAction.snoozedUntil * 1000).toLocaleString(lng)} />
+                    <Metric
+                      label={t('actions.snoozedUntil', 'Snoozed Until')}
+                      value={new Date(selectedAction.snoozedUntil * 1000).toLocaleString(lng)}
+                    />
                   )}
                   {selectedAction.scheduledFor && selectedAction.scheduledFor > now && (
-                    <Metric label={t('actions.scheduledFor', 'Scheduled For')} value={new Date(selectedAction.scheduledFor * 1000).toLocaleString(lng)} />
+                    <Metric
+                      label={t('actions.scheduledFor', 'Scheduled For')}
+                      value={new Date(selectedAction.scheduledFor * 1000).toLocaleString(lng)}
+                    />
                   )}
                 </div>
                 <ActionPayloadDetails action={selectedAction} />
@@ -327,25 +336,15 @@ export function ActionsView({
                     )}
                   </div>
                 )}
-                {selectedAction.errorMessage && (
-                  <div className="text-sm text-[var(--color-error-text)]">{selectedAction.errorMessage}</div>
-                )}
+                {selectedAction.errorMessage && <div className="text-sm text-[var(--color-error-text)]">{selectedAction.errorMessage}</div>}
 
                 {selectedAction.status === 'pending' && (
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() => onExecuteAction(selectedAction.actionId)}
-                    >
+                    <Button variant="primary" size="sm" disabled={busy} onClick={() => onExecuteAction(selectedAction.actionId)}>
                       {t('actions.execute', 'Execute From UI')}
                     </Button>
 
-                    <SnoozeDropdown
-                      disabled={busy}
-                      onSnooze={(iso) => onSnoozeAction(selectedAction.actionId, iso)}
-                    />
+                    <SnoozeDropdown disabled={busy} onSnooze={(iso) => onSnoozeAction(selectedAction.actionId, iso)} />
 
                     {isSnoozed(selectedAction) && (
                       <Button
@@ -367,15 +366,12 @@ export function ActionsView({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         <CalendarClock className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-                        <span className="text-sm font-medium text-[var(--color-text-primary)]">{t('actions.autoExecuteAt', 'Auto-Execute At')}</span>
+                        <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                          {t('actions.autoExecuteAt', 'Auto-Execute At')}
+                        </span>
                       </div>
                       {isScheduled(selectedAction) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => onScheduleAction(selectedAction.actionId, null)}
-                        >
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => onScheduleAction(selectedAction.actionId, null)}>
                           <X className="h-3.5 w-3.5" />
                           {t('common.cancel', 'Cancel')}
                         </Button>
@@ -383,7 +379,9 @@ export function ActionsView({
                     </div>
                     {isScheduled(selectedAction) ? (
                       <p className="text-sm text-[var(--color-text-secondary)]">
-                        {t('actions.scheduledHint', 'Scheduled for {{date}}', { date: new Date(selectedAction.scheduledFor! * 1000).toLocaleString(lng) })}
+                        {t('actions.scheduledHint', 'Scheduled for {{date}}', {
+                          date: new Date(selectedAction.scheduledFor! * 1000).toLocaleString(lng),
+                        })}
                       </p>
                     ) : (
                       <p className="text-xs text-[var(--color-text-muted)]">
@@ -404,7 +402,7 @@ export function ActionsView({
                         disabled={busy || !scheduleCustomValue}
                         onClick={() => {
                           if (!scheduleCustomValue) {
-                          	return;
+                            return;
                           }
 
                           onScheduleAction(selectedAction.actionId, localDatetimeToISO(scheduleCustomValue));
@@ -428,15 +426,22 @@ export function ActionsView({
                 </CardHeader>
                 <div className="space-y-2.5">
                   {executions.map((execution) => (
-                    <div key={execution.executionId} className="rounded-xl bg-[var(--color-surface-base)] border border-[var(--color-border)] p-3.5">
+                    <div
+                      key={execution.executionId}
+                      className="rounded-xl bg-[var(--color-surface-base)] border border-[var(--color-border)] p-3.5"
+                    >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-[var(--color-text-primary)]">{t('actions.attempt', 'Attempt {{n}}', { n: execution.attempt })}</span>
+                        <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                          {t('actions.attempt', 'Attempt {{n}}', { n: execution.attempt })}
+                        </span>
                         <ActionStatusBadge status={execution.status} />
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] mt-1">
                         {execution.triggeredBy === 'auto_execute' || execution.triggeredBy === 'scheduled' ? (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
-                            {execution.triggeredBy === 'scheduled' ? t('actions.scheduledLabel', 'Scheduled') : t('actions.autoLabel', 'Auto')}
+                            {execution.triggeredBy === 'scheduled'
+                              ? t('actions.scheduledLabel', 'Scheduled')
+                              : t('actions.autoLabel', 'Auto')}
                           </span>
                         ) : (
                           <span>{execution.triggeredBy}</span>
@@ -445,7 +450,9 @@ export function ActionsView({
                         <span>{formatTimestamp(execution.createdAt, lng)}</span>
                       </div>
                       {execution.providerOperationId && (
-                        <div className="text-xs text-[var(--color-text-muted)] mt-1">{t('actions.providerIdLabel', 'Provider ID: {{id}}', { id: execution.providerOperationId })}</div>
+                        <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                          {t('actions.providerIdLabel', 'Provider ID: {{id}}', { id: execution.providerOperationId })}
+                        </div>
                       )}
                       {execution.errorMessage && (
                         <div className="text-xs text-[var(--color-error-text)] mt-1">{execution.errorMessage}</div>
@@ -453,7 +460,9 @@ export function ActionsView({
                     </div>
                   ))}
                   {executions.length === 0 && (
-                    <div className="text-sm text-[var(--color-text-muted)]">{t('actions.noExecutions', 'No Execution Attempts Recorded.')}</div>
+                    <div className="text-sm text-[var(--color-text-muted)]">
+                      {t('actions.noExecutions', 'No Execution Attempts Recorded.')}
+                    </div>
                   )}
                 </div>
               </Card>

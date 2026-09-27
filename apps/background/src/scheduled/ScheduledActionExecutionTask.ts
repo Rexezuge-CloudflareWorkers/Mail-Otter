@@ -14,7 +14,9 @@ class ScheduledActionExecutionTask extends IScheduledTask<ScheduledActionExecuti
     _ctx: ExecutionContext,
   ): Promise<TaskRunSummary> {
     const result = await ActionService.executeScheduledActions(env);
-    console.log(`[ScheduledActionExecutionTask] Executed ${result.attempted} scheduled actions: ${result.succeeded} succeeded, ${result.failed} failed`);
+    console.log(
+      `[ScheduledActionExecutionTask] Executed ${result.attempted} scheduled actions: ${result.succeeded} succeeded, ${result.failed} failed`,
+    );
     return {
       itemsProcessed: result.succeeded,
       itemsFailed: result.failed,

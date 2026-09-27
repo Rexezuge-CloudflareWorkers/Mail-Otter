@@ -30,7 +30,13 @@ class EmailProcessingAuditLogger {
     );
   }
 
-  async logSummaryGenerated(application: ConnectedApplication, sourceDocumentId: string, model: string, estimatedNeurons: number, retryAttempt?: number): Promise<void> {
+  async logSummaryGenerated(
+    application: ConnectedApplication,
+    sourceDocumentId: string,
+    model: string,
+    estimatedNeurons: number,
+    retryAttempt?: number,
+  ): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
@@ -110,14 +116,23 @@ class EmailProcessingAuditLogger {
     );
   }
 
-  async logProcessingError(application: ConnectedApplication, sourceDocumentId: string, error: Error, retryAttempt?: number): Promise<void> {
+  async logProcessingError(
+    application: ConnectedApplication,
+    sourceDocumentId: string,
+    error: Error,
+    retryAttempt?: number,
+  ): Promise<void> {
     return this.logAuditEvent(
       application,
       sourceDocumentId,
       CONTEXT_AUDIT_EVENT_ERROR,
       'Email Processing Error',
       error instanceof NonRetryableError ? CONTEXT_AUDIT_LOG_SEVERITY_ERROR : CONTEXT_AUDIT_LOG_SEVERITY_WARNING,
-      { error: error.message, errorType: error.constructor?.name, ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }) },
+      {
+        error: error.message,
+        errorType: error.constructor?.name,
+        ...(retryAttempt != null && retryAttempt > 1 && { attempt: retryAttempt }),
+      },
     );
   }
 

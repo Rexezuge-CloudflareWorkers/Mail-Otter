@@ -5,7 +5,6 @@ import type { SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEv
 import { BaseDAO } from './BaseDAO';
 
 class SyncedCalendarEventDAO extends BaseDAO {
-
   public async upsertEvents(applicationId: string, events: UpsertCalendarEventInput[]): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (const event of events) {
@@ -90,12 +89,7 @@ class SyncedCalendarEventDAO extends BaseDAO {
     return {
       events: pageRows.map((r) => SyncedCalendarEventDAO.toEvent(r)),
       nextCursor:
-        rows.length > limit
-          ? SyncedCalendarEventDAO.encodeCursor(
-              pageRows.at(-1)!.synced_at,
-              pageRows.at(-1)!.sync_event_id,
-            )
-          : undefined,
+        rows.length > limit ? SyncedCalendarEventDAO.encodeCursor(pageRows.at(-1)!.synced_at, pageRows.at(-1)!.sync_event_id) : undefined,
     };
   }
 
@@ -109,7 +103,9 @@ class SyncedCalendarEventDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { syncedAt: number; syncEventId: string } | undefined {
     const parsed = CursorUtil.decode<{ syncedAt?: unknown; syncEventId?: unknown }>(cursor);
-    return !parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string' ? undefined : { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };
+    return !parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string'
+      ? undefined
+      : { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };
   }
 
   private static toEvent(row: SyncedCalendarEventInternal): SyncedCalendarEvent {

@@ -34,16 +34,34 @@ const TAG_LABELS: Record<string, string> = {
 function tagLabelFor(tag: string, locale?: string | null): string {
   const strings = getBackendStrings(locale);
   switch (tag) {
-    case 'Delivered': { return strings.tracking.tagDelivered; }
-    case 'OutForDelivery': { return strings.tracking.tagOutForDelivery; }
-    case 'InTransit': { return strings.tracking.tagInTransit; }
-    case 'AttemptFail': { return strings.tracking.tagAttemptFail; }
-    case 'Exception': { return strings.tracking.tagException; }
-    case 'AvailableForPickup': { return strings.tracking.tagAvailableForPickup; }
+    case 'Delivered': {
+      return strings.tracking.tagDelivered;
+    }
+    case 'OutForDelivery': {
+      return strings.tracking.tagOutForDelivery;
+    }
+    case 'InTransit': {
+      return strings.tracking.tagInTransit;
+    }
+    case 'AttemptFail': {
+      return strings.tracking.tagAttemptFail;
+    }
+    case 'Exception': {
+      return strings.tracking.tagException;
+    }
+    case 'AvailableForPickup': {
+      return strings.tracking.tagAvailableForPickup;
+    }
     case 'Pending':
-    case 'InfoReceived': { return strings.tracking.tagLabelCreated; }
-    case 'Expired': { return strings.tracking.tagExpired; }
-    default: { return tag; }
+    case 'InfoReceived': {
+      return strings.tracking.tagLabelCreated;
+    }
+    case 'Expired': {
+      return strings.tracking.tagExpired;
+    }
+    default: {
+      return tag;
+    }
   }
 }
 
@@ -60,7 +78,6 @@ interface AftershippTracking {
   checkpoints?: AftershippCheckpoint[];
 }
 
-
 interface PackageTrackingStatus {
   summary: string;
 }
@@ -76,7 +93,9 @@ function resolveSlug(carrier: string | undefined): string | undefined {
 
 function formatExpectedDelivery(raw: string, locale?: string | null): string {
   const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString(LocaleUtil.normalize(locale), { month: 'short', day: 'numeric', year: 'numeric' });
+  return Number.isNaN(date.getTime())
+    ? raw
+    : date.toLocaleDateString(LocaleUtil.normalize(locale), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function buildSummary(tracking: AftershippTracking, locale?: string | null): string {
@@ -101,7 +120,12 @@ function buildSummary(tracking: AftershippTracking, locale?: string | null): str
   return summary;
 }
 
-async function fetchStatus(trackingNumber: string, carrier: string | undefined, apiKey: string, locale?: string | null): Promise<PackageTrackingStatus | null> {
+async function fetchStatus(
+  trackingNumber: string,
+  carrier: string | undefined,
+  apiKey: string,
+  locale?: string | null,
+): Promise<PackageTrackingStatus | null> {
   const slug = resolveSlug(carrier);
   const body: Record<string, unknown> = { tracking_number: trackingNumber };
   if (slug) body.slug = slug;

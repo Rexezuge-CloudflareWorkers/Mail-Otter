@@ -46,14 +46,14 @@ class ApplicationService {
     const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
     const full: Required<ApplicationServiceDeps> = {
       applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
-      contextDAO: () => Promise.resolve(new ApplicationContextDAO(db),),
+      contextDAO: () => Promise.resolve(new ApplicationContextDAO(db)),
       integrationDAO: async () => new ApplicationIntegrationDAO(db, await masterKey()),
-      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db),),
-      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db),),
+      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db)),
+      usageDAO: () => Promise.resolve(new AiDailyUsageDAO(db)),
       tokenCacheDAO: async () => new OAuth2AccessTokenCacheDAO(env.OAUTH2_TOKEN_CACHE as KVNamespace, await masterKey()),
-      watchService: () => Promise.resolve(new WatchService(env as WatchServiceEnv),),
-      integrationService: () => Promise.resolve(new IntegrationService(env),),
-      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env as OAuth2AccessTokenServiceEnv),),
+      watchService: () => Promise.resolve(new WatchService(env as WatchServiceEnv)),
+      integrationService: () => Promise.resolve(new IntegrationService(env)),
+      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env as OAuth2AccessTokenServiceEnv)),
       ...deps,
     };
     this.crud = new ApplicationCrudService(env, full);

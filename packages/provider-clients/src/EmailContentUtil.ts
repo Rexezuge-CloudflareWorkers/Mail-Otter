@@ -39,10 +39,7 @@ class EmailContentUtil {
     return truncate(value, maxChars);
   }
 
-  public static isFromMailbox(
-    fromHeaderOrAddress: string | undefined | null,
-    mailboxAddress: string | undefined | null,
-  ): boolean {
+  public static isFromMailbox(fromHeaderOrAddress: string | undefined | null, mailboxAddress: string | undefined | null): boolean {
     return isFromMailbox(fromHeaderOrAddress, mailboxAddress);
   }
 
@@ -68,6 +65,6 @@ class EmailContentUtil {
 }
 
 export { EmailContentUtil };
-export type {   MailHeader };
+export type { MailHeader };
 
-export {type ExtractedEmailContent, type GmailMessagePart} from './email-content/GmailContentUtil';
+export { type ExtractedEmailContent, type GmailMessagePart } from './email-content/GmailContentUtil';

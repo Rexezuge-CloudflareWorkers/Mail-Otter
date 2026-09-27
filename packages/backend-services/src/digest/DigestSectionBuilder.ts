@@ -1,7 +1,4 @@
-import {
-  DIGEST_APPOINTMENTS_HOURS,
-  DIGEST_BILLS_DUE_DAYS,
-} from '@mail-otter/shared/constants';
+import { DIGEST_APPOINTMENTS_HOURS, DIGEST_BILLS_DUE_DAYS } from '@mail-otter/shared/constants';
 import type { AppointmentConfirmActionPayload, FinancePayBillActionPayload } from '@mail-otter/shared/model';
 import type { EmailAction } from '@mail-otter/shared/model';
 

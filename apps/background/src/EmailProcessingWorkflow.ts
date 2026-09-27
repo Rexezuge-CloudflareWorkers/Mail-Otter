@@ -2,7 +2,14 @@ import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
 import { EmailProcessingUtil } from '@mail-otter/backend-services/email';
-import type { GmailMessageList, GmailSummaryData, ImapSummaryData, JmapSummaryData, OutlookSummaryData, ResolvedApplication } from '@mail-otter/backend-services/email';
+import type {
+  GmailMessageList,
+  GmailSummaryData,
+  ImapSummaryData,
+  JmapSummaryData,
+  OutlookSummaryData,
+  ResolvedApplication,
+} from '@mail-otter/backend-services/email';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import { buildImapConnectOptions } from '@mail-otter/backend-services/provider';
 import { IntegrationService } from '@mail-otter/backend-services/integration';
@@ -33,83 +40,17 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     );
 
     switch (event.payload.type) {
-    case 'gmail-notification': {
-      const gmailPayload = event.payload;
-      const messageList = await step.do(
-        'List Gmail Messages',
-        { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-        async (): Promise<GmailMessageList | null> => {
-          try {
-            return await EmailProcessingUtil.listGmailMessages(
-              resolved.application,
-              resolved.accessToken,
-              gmailPayload.notificationHistoryId,
-              createD1SessionEnv(this.env),
-            );
-          } catch (error: unknown) {
-            throw EmailProcessingWorkflow.toWorkflowError(error);
-          }
-        },
-      );
-
-      if (messageList) {
-        for (const messageId of messageList.messageIds) {
-          const summaryData = await step.do(
-            `Generate Gmail Summary for ${messageId}`,
-            { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
-            async (context: WorkflowStepContext): Promise<GmailSummaryData | null> => {
-              try {
-                return await EmailProcessingUtil.generateGmailSummary(
-                  resolved.application,
-                  resolved.accessToken,
-                  messageId,
-                  createD1SessionEnv(this.env),
-                  resolved.enabledApplicationIds,
-                  { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
-                );
-              } catch (error: unknown) {
-                throw EmailProcessingWorkflow.toWorkflowError(error);
-              }
-            },
-          );
-
-          if (!summaryData) {
-            continue;
-          }
-
-          await step.do(
-            `Send Gmail Summary for ${messageId}`,
-            { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-            async (): Promise<void> => {
-              try {
-                await EmailProcessingUtil.sendGmailSummary(summaryData, createD1SessionEnv(this.env));
-              } catch (error: unknown) {
-                throw EmailProcessingWorkflow.toWorkflowError(error);
-              }
-            },
-          );
-
-          await step.do(
-            `Send To Integrations for ${messageId}`,
-            { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
-            async (): Promise<void> => {
-              try {
-                await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
-              } catch (error: unknown) {
-                throw EmailProcessingWorkflow.toWorkflowError(error);
-              }
-            },
-          );
-        }
-
-        await step.do(
-          'Update Gmail History',
+      case 'gmail-notification': {
+        const gmailPayload = event.payload;
+        const messageList = await step.do(
+          'List Gmail Messages',
           { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-          async (): Promise<void> => {
+          async (): Promise<GmailMessageList | null> => {
             try {
-              await EmailProcessingUtil.updateGmailHistory(
-                messageList.subscriptionId,
-                messageList.historyId,
+              return await EmailProcessingUtil.listGmailMessages(
+                resolved.application,
+                resolved.accessToken,
+                gmailPayload.notificationHistoryId,
                 createD1SessionEnv(this.env),
               );
             } catch (error: unknown) {
@@ -117,146 +58,104 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             }
           },
         );
-      }
-    
-    break;
-    }
-    case 'outlook-notification': {
-      const outlookPayload = event.payload;
-      const summaryData = await step.do(
-        'Generate Outlook Summary',
-        { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
-        async (context: WorkflowStepContext): Promise<OutlookSummaryData | null> => {
-          try {
-            return await EmailProcessingUtil.generateOutlookSummary(
-              resolved.application,
-              resolved.accessToken,
-              outlookPayload.messageId,
-              createD1SessionEnv(this.env),
-              resolved.enabledApplicationIds,
-              { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+
+        if (messageList) {
+          for (const messageId of messageList.messageIds) {
+            const summaryData = await step.do(
+              `Generate Gmail Summary for ${messageId}`,
+              { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+              async (context: WorkflowStepContext): Promise<GmailSummaryData | null> => {
+                try {
+                  return await EmailProcessingUtil.generateGmailSummary(
+                    resolved.application,
+                    resolved.accessToken,
+                    messageId,
+                    createD1SessionEnv(this.env),
+                    resolved.enabledApplicationIds,
+                    { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+                  );
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
             );
-          } catch (error: unknown) {
-            throw EmailProcessingWorkflow.toWorkflowError(error);
-          }
-        },
-      );
 
-      if (summaryData) {
-        await step.do(
-          'Send Outlook Summary',
-          { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-          async (): Promise<void> => {
-            try {
-              await EmailProcessingUtil.sendOutlookSummary(summaryData, createD1SessionEnv(this.env));
-            } catch (error: unknown) {
-              throw EmailProcessingWorkflow.toWorkflowError(error);
+            if (!summaryData) {
+              continue;
             }
-          },
-        );
 
-        await step.do(
-          'Send To Integrations',
-          { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
-          async (): Promise<void> => {
-            try {
-              await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
-            } catch (error: unknown) {
-              throw EmailProcessingWorkflow.toWorkflowError(error);
-            }
-          },
-        );
-      }
-    
-    break;
-    }
-    case 'jmap-notification': {
-      const jmapPayload = event.payload;
-      const summaryData = await step.do(
-        `Generate JMAP Summary for ${jmapPayload.emailId}`,
-        { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
-        async (context: WorkflowStepContext): Promise<JmapSummaryData | null> => {
-          try {
-            return await EmailProcessingUtil.generateJmapSummary(
-              resolved.application,
-              resolved.accessToken,
-              jmapPayload.emailId,
-              createD1SessionEnv(this.env),
-              resolved.enabledApplicationIds,
-              { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+            await step.do(
+              `Send Gmail Summary for ${messageId}`,
+              { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+              async (): Promise<void> => {
+                try {
+                  await EmailProcessingUtil.sendGmailSummary(summaryData, createD1SessionEnv(this.env));
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
             );
-          } catch (error: unknown) {
-            throw EmailProcessingWorkflow.toWorkflowError(error);
+
+            await step.do(
+              `Send To Integrations for ${messageId}`,
+              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+              async (): Promise<void> => {
+                try {
+                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
           }
-        },
-      );
 
-      if (summaryData) {
-        await step.do(
-          `Send JMAP Summary for ${jmapPayload.emailId}`,
-          { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
-          async (): Promise<void> => {
-            try {
-              await EmailProcessingUtil.sendJmapSummary(summaryData, createD1SessionEnv(this.env));
-            } catch (error: unknown) {
-              throw EmailProcessingWorkflow.toWorkflowError(error);
-            }
-          },
-        );
-
-        await step.do(
-          `Send To Integrations for ${jmapPayload.emailId}`,
-          { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
-          async (): Promise<void> => {
-            try {
-              await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
-            } catch (error: unknown) {
-              throw EmailProcessingWorkflow.toWorkflowError(error);
-            }
-          },
-        );
-      }
-    
-    break;
-    }
-    case 'imap-notification': {
-      const imapPayload = event.payload;
-      const isImapPassword = resolved.application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
-      const imapConnectOptions = EmailProcessingWorkflow.buildImapConnectOptions(resolved.application, resolved.accessToken, isImapPassword);
-      const imapClient = new ImapClient();
-      try {
-        await imapClient.connect(imapConnectOptions);
-
-        for (const uid of imapPayload.messageUids) {
-          const summaryData = await step.do(
-            `Generate IMAP Summary for UID ${uid}`,
-            { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
-            async (context: WorkflowStepContext): Promise<ImapSummaryData | null> => {
+          await step.do(
+            'Update Gmail History',
+            { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+            async (): Promise<void> => {
               try {
-                return await EmailProcessingUtil.generateImapSummary(
-                  resolved.application,
-                  uid,
-                  imapClient,
+                await EmailProcessingUtil.updateGmailHistory(
+                  messageList.subscriptionId,
+                  messageList.historyId,
                   createD1SessionEnv(this.env),
-                  resolved.enabledApplicationIds,
-                  { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
                 );
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
               }
             },
           );
+        }
 
-          if (!summaryData) {
-            continue;
-          }
+        break;
+      }
+      case 'outlook-notification': {
+        const outlookPayload = event.payload;
+        const summaryData = await step.do(
+          'Generate Outlook Summary',
+          { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+          async (context: WorkflowStepContext): Promise<OutlookSummaryData | null> => {
+            try {
+              return await EmailProcessingUtil.generateOutlookSummary(
+                resolved.application,
+                resolved.accessToken,
+                outlookPayload.messageId,
+                createD1SessionEnv(this.env),
+                resolved.enabledApplicationIds,
+                { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+              );
+            } catch (error: unknown) {
+              throw EmailProcessingWorkflow.toWorkflowError(error);
+            }
+          },
+        );
 
+        if (summaryData) {
           await step.do(
-            `Send IMAP Summary for UID ${uid}`,
+            'Send Outlook Summary',
             { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
             async (): Promise<void> => {
               try {
-                await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
+                await EmailProcessingUtil.sendOutlookSummary(summaryData, createD1SessionEnv(this.env));
               } catch (error: unknown) {
                 throw EmailProcessingWorkflow.toWorkflowError(error);
               }
@@ -264,7 +163,7 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
           );
 
           await step.do(
-            `Send To Integrations for UID ${uid}`,
+            'Send To Integrations',
             { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
             async (): Promise<void> => {
               try {
@@ -275,13 +174,125 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
             },
           );
         }
-      } finally {
-        await imapClient.close();
+
+        break;
       }
-    
-    break;
-    }
-    // No default
+      case 'jmap-notification': {
+        const jmapPayload = event.payload;
+        const summaryData = await step.do(
+          `Generate JMAP Summary for ${jmapPayload.emailId}`,
+          { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+          async (context: WorkflowStepContext): Promise<JmapSummaryData | null> => {
+            try {
+              return await EmailProcessingUtil.generateJmapSummary(
+                resolved.application,
+                resolved.accessToken,
+                jmapPayload.emailId,
+                createD1SessionEnv(this.env),
+                resolved.enabledApplicationIds,
+                { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+              );
+            } catch (error: unknown) {
+              throw EmailProcessingWorkflow.toWorkflowError(error);
+            }
+          },
+        );
+
+        if (summaryData) {
+          await step.do(
+            `Send JMAP Summary for ${jmapPayload.emailId}`,
+            { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+            async (): Promise<void> => {
+              try {
+                await EmailProcessingUtil.sendJmapSummary(summaryData, createD1SessionEnv(this.env));
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
+
+          await step.do(
+            `Send To Integrations for ${jmapPayload.emailId}`,
+            { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+            async (): Promise<void> => {
+              try {
+                await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
+              } catch (error: unknown) {
+                throw EmailProcessingWorkflow.toWorkflowError(error);
+              }
+            },
+          );
+        }
+
+        break;
+      }
+      case 'imap-notification': {
+        const imapPayload = event.payload;
+        const isImapPassword = resolved.application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD;
+        const imapConnectOptions = EmailProcessingWorkflow.buildImapConnectOptions(
+          resolved.application,
+          resolved.accessToken,
+          isImapPassword,
+        );
+        const imapClient = new ImapClient();
+        try {
+          await imapClient.connect(imapConnectOptions);
+
+          for (const uid of imapPayload.messageUids) {
+            const summaryData = await step.do(
+              `Generate IMAP Summary for UID ${uid}`,
+              { retries: { limit: 5, delay: '30 seconds', backoff: 'exponential' }, timeout: '5 minutes' },
+              async (context: WorkflowStepContext): Promise<ImapSummaryData | null> => {
+                try {
+                  return await EmailProcessingUtil.generateImapSummary(
+                    resolved.application,
+                    uid,
+                    imapClient,
+                    createD1SessionEnv(this.env),
+                    resolved.enabledApplicationIds,
+                    { retryAttempt: context.attempt, callbackBaseUrl: event.payload.callbackBaseUrl },
+                  );
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
+
+            if (!summaryData) {
+              continue;
+            }
+
+            await step.do(
+              `Send IMAP Summary for UID ${uid}`,
+              { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' }, timeout: '2 minutes' },
+              async (): Promise<void> => {
+                try {
+                  await EmailProcessingUtil.sendImapSummary(summaryData, imapClient, createD1SessionEnv(this.env));
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
+
+            await step.do(
+              `Send To Integrations for UID ${uid}`,
+              { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' }, timeout: '1 minute' },
+              async (): Promise<void> => {
+                try {
+                  await scope.get<IntegrationService>(Tokens.IntegrationService).sendToIntegrations(summaryData);
+                } catch (error: unknown) {
+                  throw EmailProcessingWorkflow.toWorkflowError(error);
+                }
+              },
+            );
+          }
+        } finally {
+          await imapClient.close();
+        }
+
+        break;
+      }
+      // No default
     }
 
     return {
@@ -290,7 +301,11 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
     };
   }
 
-  private static buildImapConnectOptions(application: ConnectedApplication, accessToken: string, isImapPassword: boolean): ImapConnectOptions {
+  private static buildImapConnectOptions(
+    application: ConnectedApplication,
+    accessToken: string,
+    isImapPassword: boolean,
+  ): ImapConnectOptions {
     // Single source of defaults lives in `ImapConnectionFactory`; this wrapper
     // remains so existing unit tests mocking the workflow keep working.
     return buildImapConnectOptions(application, accessToken, isImapPassword);

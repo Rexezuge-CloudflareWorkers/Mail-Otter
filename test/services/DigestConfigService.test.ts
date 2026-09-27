@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockGetProviderConfig,
-  mockSetProviderConfig,
-} = vi.hoisted(() => ({
+const { mockGetProviderConfig, mockSetProviderConfig } = vi.hoisted(() => ({
   mockGetProviderConfig: vi.fn(),
   mockSetProviderConfig: vi.fn().mockResolvedValue(undefined),
 }));
@@ -44,10 +41,10 @@ describe('DigestConfigService', () => {
 
     it('returns stored enabled:true', async () => {
       mockGetProviderConfig
-        .mockResolvedValueOnce('true')   // enabled
-        .mockResolvedValueOnce('09:30')  // sendTime
-        .mockResolvedValueOnce(JSON.stringify(['calendar', 'tasks']))  // sections
-        .mockResolvedValueOnce('2026-06-25T09:30:00.000Z');  // lastSentAt
+        .mockResolvedValueOnce('true') // enabled
+        .mockResolvedValueOnce('09:30') // sendTime
+        .mockResolvedValueOnce(JSON.stringify(['calendar', 'tasks'])) // sections
+        .mockResolvedValueOnce('2026-06-25T09:30:00.000Z'); // lastSentAt
 
       const config = await service.getConfig(APP_ID);
 

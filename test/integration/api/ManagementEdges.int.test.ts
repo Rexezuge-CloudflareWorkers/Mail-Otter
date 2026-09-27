@@ -37,20 +37,17 @@ async function seedFastmailApp(token: string = FASTMAIL_TOKEN): Promise<string> 
  */
 describe('Management edges API', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
   });
 
   describe('POST /api/webhooks/fastmail/:applicationId', () => {
     it('accepts a valid notification and enqueues an event', async () => {
       const applicationId = await seedFastmailApp();
-      const response: Response = await SELF.fetch(
-        `http://localhost/api/webhooks/fastmail/${applicationId}?token=${FASTMAIL_TOKEN}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emailId: 'fm-msg-1' }),
-        },
-      );
+      const response: Response = await SELF.fetch(`http://localhost/api/webhooks/fastmail/${applicationId}?token=${FASTMAIL_TOKEN}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: 'fm-msg-1' }),
+      });
       expect(response.status).toBe(200);
       const body: unknown = await response.json();
       expect(body).toEqual({ message: 'accepted' });
@@ -58,14 +55,11 @@ describe('Management edges API', () => {
 
     it('returns 400 when the token does not match the stored secret', async () => {
       const applicationId = await seedFastmailApp();
-      const response: Response = await SELF.fetch(
-        `http://localhost/api/webhooks/fastmail/${applicationId}?token=wrong-token`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emailId: 'fm-msg-1' }),
-        },
-      );
+      const response: Response = await SELF.fetch(`http://localhost/api/webhooks/fastmail/${applicationId}?token=wrong-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: 'fm-msg-1' }),
+      });
       expect(response.status).toBe(400);
     });
   });

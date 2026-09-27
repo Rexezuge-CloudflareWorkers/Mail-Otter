@@ -28,24 +28,20 @@ async function createIntegration(applicationId: string, name = 'Team webhook'): 
  */
 describe('Application integrations API', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
   });
 
   it('starts with no integrations then creates and lists one', async () => {
     const applicationId = await createApplicationViaApi('Integrations App');
 
-    const empty: Response = await SELF.fetch(
-      `http://localhost/user/application/integrations?applicationId=${applicationId}`,
-    );
+    const empty: Response = await SELF.fetch(`http://localhost/user/application/integrations?applicationId=${applicationId}`);
     expect(empty.status).toBe(200);
     const emptyBody = (await empty.json()) as { integrations: unknown[] };
     expect(emptyBody.integrations).toEqual([]);
 
     const integrationId = await createIntegration(applicationId);
 
-    const listed: Response = await SELF.fetch(
-      `http://localhost/user/application/integrations?applicationId=${applicationId}`,
-    );
+    const listed: Response = await SELF.fetch(`http://localhost/user/application/integrations?applicationId=${applicationId}`);
     expect(listed.status).toBe(200);
     const listedBody = (await listed.json()) as {
       integrations: Array<{ integrationId: string; name: string; enabled: boolean }>;
@@ -74,9 +70,7 @@ describe('Application integrations API', () => {
     const applicationId = await createApplicationViaApi('Integrations Deliveries App');
     const integrationId = await createIntegration(applicationId);
 
-    const response: Response = await SELF.fetch(
-      `http://localhost/user/application/integration/deliveries?integrationId=${integrationId}`,
-    );
+    const response: Response = await SELF.fetch(`http://localhost/user/application/integration/deliveries?integrationId=${integrationId}`);
     expect(response.status).toBe(200);
     const body = (await response.json()) as { logs: unknown[] };
     expect(body.logs).toEqual([]);
@@ -98,9 +92,7 @@ describe('Application integrations API', () => {
     });
     expect(deleted.status).toBe(200);
 
-    const reread: Response = await SELF.fetch(
-      `http://localhost/user/application/integrations?applicationId=${applicationId}`,
-    );
+    const reread: Response = await SELF.fetch(`http://localhost/user/application/integrations?applicationId=${applicationId}`);
     const rereadBody = (await reread.json()) as { integrations: unknown[] };
     expect(rereadBody.integrations).toEqual([]);
 
@@ -111,9 +103,7 @@ describe('Application integrations API', () => {
   });
 
   it('returns 404 for foreign applications and integrations', async () => {
-    const list: Response = await SELF.fetch(
-      `http://localhost/user/application/integrations?applicationId=${NONEXISTENT_UUID}`,
-    );
+    const list: Response = await SELF.fetch(`http://localhost/user/application/integrations?applicationId=${NONEXISTENT_UUID}`);
     expect(list.status).toBe(404);
 
     const update: Response = await SELF.fetch('http://localhost/user/application/integration', {

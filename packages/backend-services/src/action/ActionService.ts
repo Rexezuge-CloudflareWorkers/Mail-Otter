@@ -8,18 +8,9 @@ import { getConfirmationResponse, executeActionWithToken, executeActionForUser, 
 import { expirePendingActions, deleteOldActions } from './ActionMaintenanceService';
 import { snoozeAction, scheduleAction, executeScheduledActions } from './ActionSchedulingService';
 
-export type {
-  ActionCallbackEnv,
-  ActionExecutionEnv,
-  ActionHtmlResponse,
-  UserActionEnv,
-} from './ActionExecutionService';
+export type { ActionCallbackEnv, ActionExecutionEnv, ActionHtmlResponse, UserActionEnv } from './ActionExecutionService';
 
-export type {
-  ActionCreationEnv,
-  CreatedEmailAction,
-  CreateActionsForSummaryInput,
-} from './ActionCreationService';
+export type { ActionCreationEnv, CreatedEmailAction, CreateActionsForSummaryInput } from './ActionCreationService';
 
 export type { ActionMaintenanceEnv } from './ActionMaintenanceService';
 export type { ActionSchedulingEnv, ScheduledExecutionResult } from './ActionSchedulingService';
@@ -73,7 +64,11 @@ class ActionService {
     return new ActionService().listActionsForUser(userEmail, input, env);
   }
 
-  public static async listExecutionsForUser(actionId: string, userEmail: string, env: UserActionListEnv): Promise<EmailActionExecutionList> {
+  public static async listExecutionsForUser(
+    actionId: string,
+    userEmail: string,
+    env: UserActionListEnv,
+  ): Promise<EmailActionExecutionList> {
     return new ActionService().listExecutionsForUser(actionId, userEmail, env);
   }
 

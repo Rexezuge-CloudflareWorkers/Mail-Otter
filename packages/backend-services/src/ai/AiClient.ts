@@ -28,12 +28,7 @@ class AiClient {
     return embedding;
   }
 
-  public static async recordEmbeddingUsage(
-    db: D1Queryable,
-    model: string,
-    text: string,
-    logPrefix = '[AiClient]',
-  ): Promise<void> {
+  public static async recordEmbeddingUsage(db: D1Queryable, model: string, text: string, logPrefix = '[AiClient]'): Promise<void> {
     try {
       const estimate = AiUsageUtil.estimateEmbeddingUsage(model, text);
       await new AiDailyUsageDAO(db).incrementUsage({
@@ -73,9 +68,7 @@ class AiClient {
     const fallbackThreshold = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
     if (fallbackThreshold <= 0) return false;
     try {
-      const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(
-        AiUsageUtil.getCurrentUtcUsageDate(),
-      );
+      const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(AiUsageUtil.getCurrentUtcUsageDate());
       return estimatedNeurons >= fallbackThreshold;
     } catch (error: unknown) {
       console.warn(`${logPrefix} Failed to read daily usage:`, error);
@@ -83,10 +76,7 @@ class AiClient {
     }
   }
 
-  public static getStringMetadata(
-    metadata: Record<string, VectorizeVectorMetadata> | undefined,
-    key: string,
-  ): string | undefined {
+  public static getStringMetadata(metadata: Record<string, VectorizeVectorMetadata> | undefined, key: string): string | undefined {
     const value: VectorizeVectorMetadata | undefined = metadata?.[key];
     return typeof value === 'string' ? value : undefined;
   }

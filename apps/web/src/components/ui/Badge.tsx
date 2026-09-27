@@ -2,25 +2,26 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
-const badgeVariants = cva(
-  'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium shrink-0',
-  {
-    variants: {
-      variant: {
-        success: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
-        error:   'bg-[var(--color-error-bg)] text-[var(--color-error-text)]',
-        warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
-        info:    'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
-        neutral: 'bg-[var(--color-neutral-bg)] text-[var(--color-neutral-text)]',
-      },
+const badgeVariants = cva('inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium shrink-0', {
+  variants: {
+    variant: {
+      success: 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]',
+      error: 'bg-[var(--color-error-bg)] text-[var(--color-error-text)]',
+      warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]',
+      info: 'bg-[var(--color-info-bg)] text-[var(--color-info-text)]',
+      neutral: 'bg-[var(--color-neutral-bg)] text-[var(--color-neutral-text)]',
     },
-    defaultVariants: { variant: 'neutral' },
   },
-);
+  defaultVariants: { variant: 'neutral' },
+});
 
 export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>;
 
-export function Badge({ className, variant, children }: { className?: string; children: React.ReactNode } & VariantProps<typeof badgeVariants>) {
+export function Badge({
+  className,
+  variant,
+  children,
+}: { className?: string; children: React.ReactNode } & VariantProps<typeof badgeVariants>) {
   return <span className={cn(badgeVariants({ variant }), className)}>{children}</span>;
 }
 
@@ -74,7 +75,11 @@ export function WatchBadge({ status }: { status: WatchStatus }) {
 
 export function ContextIndexBadge({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation();
-  return <Badge variant={enabled ? 'success' : 'neutral'}>{enabled ? t('badges.indexed', 'Indexed') : t('badges.notIndexed', 'Not Indexed')}</Badge>;
+  return (
+    <Badge variant={enabled ? 'success' : 'neutral'}>
+      {enabled ? t('badges.indexed', 'Indexed') : t('badges.notIndexed', 'Not Indexed')}
+    </Badge>
+  );
 }
 
 export function DocStatusBadge({ status }: { status: ContextDocStatus }) {
@@ -97,37 +102,50 @@ type ProcessedMessageStatus = 'processing' | 'summarized' | 'skipped' | 'error';
 
 function taskRunVariant(status: TaskRunStatus): BadgeVariant {
   switch (status) {
-    case 'success': { return 'success';
+    case 'success': {
+      return 'success';
     }
-    case 'partial_success': { return 'warning';
+    case 'partial_success': {
+      return 'warning';
     }
-    case 'error': { return 'error';
+    case 'error': {
+      return 'error';
     }
-    case 'running': { return 'info';
+    case 'running': {
+      return 'info';
     }
-    case 'skipped': { return 'neutral';
+    case 'skipped': {
+      return 'neutral';
     }
-    default: { return 'neutral';
+    default: {
+      return 'neutral';
     }
   }
 }
 
 function useTaskRunLabel(status: TaskRunStatus): string {
   const { t } = useTranslation();
-  return status === 'partial_success' ? t('badges.partial', 'Partial') : t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
+  return status === 'partial_success'
+    ? t('badges.partial', 'Partial')
+    : t(`status.${status}`, status.charAt(0).toUpperCase() + status.slice(1));
 }
 
 function processedMsgVariant(status: ProcessedMessageStatus): BadgeVariant {
   switch (status) {
-    case 'summarized': { return 'success';
+    case 'summarized': {
+      return 'success';
     }
-    case 'error': { return 'error';
+    case 'error': {
+      return 'error';
     }
-    case 'processing': { return 'info';
+    case 'processing': {
+      return 'info';
     }
-    case 'skipped': { return 'neutral';
+    case 'skipped': {
+      return 'neutral';
     }
-    default: { return 'neutral';
+    default: {
+      return 'neutral';
     }
   }
 }
@@ -146,7 +164,11 @@ type DeliveryStatus = 'success' | 'failure';
 
 export function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
   const { t } = useTranslation();
-  return <Badge variant={status === 'success' ? 'success' : 'error'}>{status === 'success' ? t('badges.success', 'Success') : t('badges.failed', 'Failed')}</Badge>;
+  return (
+    <Badge variant={status === 'success' ? 'success' : 'error'}>
+      {status === 'success' ? t('badges.success', 'Success') : t('badges.failed', 'Failed')}
+    </Badge>
+  );
 }
 
 export function IntegrationHealthBadge({
@@ -158,5 +180,9 @@ export function IntegrationHealthBadge({
 }) {
   const { t } = useTranslation();
   if (status === 'success') return <Badge variant="success">{t('badges.ok', 'Ok')}</Badge>;
-  return status === 'failure' ? <Badge variant="error">{t('badges.failedWithCount', 'Failed ({{count}})', { count: consecutiveFailures })}</Badge> : <Badge variant="neutral">{t('badges.neverSent', 'Never Sent')}</Badge>;
+  return status === 'failure' ? (
+    <Badge variant="error">{t('badges.failedWithCount', 'Failed ({{count}})', { count: consecutiveFailures })}</Badge>
+  ) : (
+    <Badge variant="neutral">{t('badges.neverSent', 'Never Sent')}</Badge>
+  );
 }

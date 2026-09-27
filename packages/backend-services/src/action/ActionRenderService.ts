@@ -11,11 +11,7 @@ import {
 } from '@mail-otter/shared/constants';
 import { getBackendStrings } from '@mail-otter/shared/i18n';
 import { LocaleUtil, TimestampUtil } from '@mail-otter/shared/utils';
-import type {
-  EmailAction,
-  EmailActionPayload,
-  EmailActionResult,
-} from '@mail-otter/shared/model';
+import type { EmailAction, EmailActionPayload, EmailActionResult } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from './ActionCreationService';
 
 function escapeHtml(value: string): string {
@@ -108,7 +104,9 @@ function renderActionDetails(action: EmailAction, locale?: string | null): strin
       `<section><h2>${escapeHtml(strings.actionPage.packageTracking)}</h2>`,
       `<p><strong>${escapeHtml(strings.actionPage.trackingNumberLabel)}</strong> ${escapeHtml(p.trackingNumber)}</p>`,
       p.carrier ? `<p><strong>${escapeHtml(strings.actionPage.carrierLabel)}</strong> ${escapeHtml(p.carrier)}</p>` : '',
-      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackPackageLink)}</a></p>` : '',
+      p.trackingUrl
+        ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackPackageLink)}</a></p>`
+        : '',
       '</section>',
     ].join('\n');
   }
@@ -122,7 +120,9 @@ function renderActionDetails(action: EmailAction, locale?: string | null): strin
         ? `<p><strong>${escapeHtml(strings.actionPage.routeLabel)}</strong> ${escapeHtml(p.departureAirport || '?')} → ${escapeHtml(p.arrivalAirport || '?')}</p>`
         : '',
       p.departureTime ? `<p><strong>${escapeHtml(strings.actionPage.departureLabel)}</strong> ${escapeHtml(p.departureTime)}</p>` : '',
-      p.trackingUrl ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackFlightLink)}</a></p>` : '',
+      p.trackingUrl
+        ? `<p><a href="${escapeHtml(p.trackingUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.trackFlightLink)}</a></p>`
+        : '',
       '</section>',
     ].join('\n');
   }
@@ -131,10 +131,14 @@ function renderActionDetails(action: EmailAction, locale?: string | null): strin
     return [
       `<section><h2>${escapeHtml(strings.actionPage.billPayment)}</h2>`,
       p.payee ? `<p><strong>${escapeHtml(strings.actionPage.payeeLabel)}</strong> ${escapeHtml(p.payee)}</p>` : '',
-      p.amount ? `<p><strong>${escapeHtml(strings.actionPage.amountLabel)}</strong> ${escapeHtml(p.amount)}${p.currency ? ` ${escapeHtml(p.currency)}` : ''}</p>` : '',
+      p.amount
+        ? `<p><strong>${escapeHtml(strings.actionPage.amountLabel)}</strong> ${escapeHtml(p.amount)}${p.currency ? ` ${escapeHtml(p.currency)}` : ''}</p>`
+        : '',
       p.dueDate ? `<p><strong>${escapeHtml(strings.actionPage.dueLabel)}</strong> ${escapeHtml(p.dueDate)}</p>` : '',
       p.invoiceNumber ? `<p><strong>${escapeHtml(strings.actionPage.invoiceLabel)}</strong> ${escapeHtml(p.invoiceNumber)}</p>` : '',
-      p.paymentUrl ? `<p><a href="${escapeHtml(p.paymentUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.payNowLink)}</a></p>` : '',
+      p.paymentUrl
+        ? `<p><a href="${escapeHtml(p.paymentUrl)}" rel="noopener noreferrer">${escapeHtml(strings.actionPage.payNowLink)}</a></p>`
+        : '',
       '</section>',
     ].join('\n');
   }
@@ -146,7 +150,9 @@ function renderActionDetails(action: EmailAction, locale?: string | null): strin
       p.providerName ? `<p><strong>${escapeHtml(strings.actionPage.providerLabel)}</strong> ${escapeHtml(p.providerName)}</p>` : '',
       p.appointmentTime ? `<p><strong>${escapeHtml(strings.actionPage.whenLabel)}</strong> ${escapeHtml(p.appointmentTime)}</p>` : '',
       p.location ? `<p><strong>${escapeHtml(strings.actionPage.locationLabel)}</strong> ${escapeHtml(p.location)}</p>` : '',
-      p.confirmationNumber ? `<p><strong>${escapeHtml(strings.actionPage.confirmationLabel)}</strong> ${escapeHtml(p.confirmationNumber)}</p>` : '',
+      p.confirmationNumber
+        ? `<p><strong>${escapeHtml(strings.actionPage.confirmationLabel)}</strong> ${escapeHtml(p.confirmationNumber)}</p>`
+        : '',
       p.notes ? `<p><strong>${escapeHtml(strings.actionPage.notesLabel)}</strong> ${escapeHtml(p.notes)}</p>` : '',
       '</section>',
     ].join('\n');
@@ -157,7 +163,8 @@ function renderActionDetails(action: EmailAction, locale?: string | null): strin
 
 function renderConfirmationPage(action: EmailAction, token: string, locale?: string | null): string {
   const strings = getBackendStrings(locale);
-  const expired: boolean = action.expiresAt <= TimestampUtil.getCurrentUnixTimestampInSeconds() || action.status === EMAIL_ACTION_STATUS_EXPIRED;
+  const expired: boolean =
+    action.expiresAt <= TimestampUtil.getCurrentUnixTimestampInSeconds() || action.status === EMAIL_ACTION_STATUS_EXPIRED;
   const alreadyDone: boolean = action.status !== EMAIL_ACTION_STATUS_PENDING;
   const details: string = renderActionDetails(action, locale);
   return renderPage(

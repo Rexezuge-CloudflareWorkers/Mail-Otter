@@ -579,7 +579,9 @@ class ApplicationContextDAO extends BaseDAO {
 
   private static parseDocumentCursor(cursor: string | undefined): { updatedAt: number; createdAt: number } | undefined {
     const parsed = CursorUtil.decode<unknown[]>(cursor);
-    return Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === 'number' && typeof parsed[1] === 'number' ? { updatedAt: parsed[0], createdAt: parsed[1] } : undefined;
+    return Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === 'number' && typeof parsed[1] === 'number'
+      ? { updatedAt: parsed[0], createdAt: parsed[1] }
+      : undefined;
   }
 
   private static encodeDocumentCursor(updatedAt: number, createdAt: number): string {

@@ -46,11 +46,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
     const limitParam = this.getQueryParam(request, 'limit');
     const limit = limitParam ? Math.max(1, Number(limitParam) || 50) : 50;
 
-    return ActivityService.listActivity(
-      userEmail,
-      { applicationId, cursor, limit, types: types.length > 0 ? types : undefined },
-      env,
-    );
+    return ActivityService.listActivity(userEmail, { applicationId, cursor, limit, types: types.length > 0 ? types : undefined }, env);
   }
 }
 
@@ -69,32 +65,14 @@ function toCsv(entries: ActivityEntry[], locale?: string | null): string {
   const rows = entries.map((entry) => {
     const ts = new Date(entry.timestamp * 1000).toISOString();
     if (entry.eventType === 'email_processed') {
-      return [
-        'email_processed',
-        entry.applicationId,
-        ts,
-        entry.providerMessageId,
-        entry.status,
-        entry.errorMessage ?? '',
-        '',
-        '',
-        '',
-        '',
-      ].map(csvCell).join(',');
+      return ['email_processed', entry.applicationId, ts, entry.providerMessageId, entry.status, entry.errorMessage ?? '', '', '', '', '']
+        .map(csvCell)
+        .join(',');
     }
     if (entry.eventType === 'action_created') {
-      return [
-        'action_created',
-        entry.applicationId,
-        ts,
-        '',
-        '',
-        '',
-        entry.actionId,
-        entry.actionType,
-        entry.riskLevel,
-        '',
-      ].map(csvCell).join(',');
+      return ['action_created', entry.applicationId, ts, '', '', '', entry.actionId, entry.actionType, entry.riskLevel, '']
+        .map(csvCell)
+        .join(',');
     }
     return [
       'action_executed',
@@ -107,7 +85,9 @@ function toCsv(entries: ActivityEntry[], locale?: string | null): string {
       entry.actionType,
       '',
       entry.triggeredBy,
-    ].map(csvCell).join(',');
+    ]
+      .map(csvCell)
+      .join(',');
   });
 
   return [header, ...rows].join('\n');

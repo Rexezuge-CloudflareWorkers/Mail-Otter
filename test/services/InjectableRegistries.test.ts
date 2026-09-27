@@ -16,7 +16,7 @@ describe('InjectableActionHandlerRegistry', () => {
     const registry = InjectableActionHandlerRegistry.withDefaults(ActionHandlerRegistry.getHandlers()).constructor as never;
     void registry;
     const overridden = InjectableActionHandlerRegistry.withOverrides(ActionHandlerRegistry.getHandlers(), {
-      'manual-todo': stub as never,
+      'manual-todo': stub,
     });
     expect(overridden.get('manual-todo')).toBe(stub);
     expect(overridden.get('external-open-link')).toBe(ActionHandlerRegistry.get('external-open-link'));
@@ -39,7 +39,7 @@ describe('InjectableIntegrationObserverRegistry', () => {
 
   it('withOverrides() substitutes observers for hermetic tests', () => {
     const stub = { integrationType: 'slack', dispatch: async () => ({ status: 'success', httpStatus: 200, errorMessage: null }) } as never;
-    const registry = InjectableIntegrationObserverRegistry.withOverrides({ slack: stub as never });
+    const registry = InjectableIntegrationObserverRegistry.withOverrides({ slack: stub });
     expect(registry.get('slack')).toBe(stub);
     expect(registry.get('discord')).toBe(IntegrationObserverRegistry.get('discord'));
   });

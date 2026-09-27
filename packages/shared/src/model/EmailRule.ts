@@ -15,13 +15,7 @@ interface EmailRuleCondition {
 }
 
 type EmailRuleActionType =
-  | 'skip'
-  | 'skip_actions'
-  | 'prepend_instruction'
-  | 'apply_label'
-  | 'archive_message'
-  | 'mark_read'
-  | 'star_message';
+  'skip' | 'skip_actions' | 'prepend_instruction' | 'apply_label' | 'archive_message' | 'mark_read' | 'star_message';
 
 type EmailRuleAction =
   | { type: 'skip' }

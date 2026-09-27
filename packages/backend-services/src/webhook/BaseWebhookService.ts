@@ -16,10 +16,7 @@ class BaseWebhookService {
     return { dao, subscription };
   }
 
-  protected static async matchesSecret(
-    token: string | null | undefined,
-    hash: string | null | undefined,
-  ): Promise<boolean> {
+  protected static async matchesSecret(token: string | null | undefined, hash: string | null | undefined): Promise<boolean> {
     return WebhookSecurityUtil.matchesSecret(token, hash);
   }
 

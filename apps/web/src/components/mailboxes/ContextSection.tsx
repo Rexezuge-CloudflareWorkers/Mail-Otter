@@ -11,7 +11,16 @@ export function ContextSection({ application }: { application: ConnectedApplicat
   const { t, i18n } = useTranslation();
   const lng = i18n.resolvedLanguage;
   const user = useCurrentUserData();
-  const { busy, onUpdateContextIndexing, onUpdateRagRetrieval, onUpdateAttachmentVisionEnabled, onUpdateMaxContextDocuments, onOpenContextAudit, onDeleteContextDocuments, onDismissContextError } = useMailboxCallbacks();
+  const {
+    busy,
+    onUpdateContextIndexing,
+    onUpdateRagRetrieval,
+    onUpdateAttachmentVisionEnabled,
+    onUpdateMaxContextDocuments,
+    onOpenContextAudit,
+    onDeleteContextDocuments,
+    onDismissContextError,
+  } = useMailboxCallbacks();
 
   return (
     <CollapsibleSection title={t('context.title', 'RAG Context')}>

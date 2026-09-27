@@ -26,14 +26,8 @@ describe('GmailProviderUtil', () => {
         },
       };
 
-      const htmlSummary =
-        '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
-      await GmailProviderUtil.sendSummaryReply(
-        'test-access-token',
-        'sender@example.com',
-        originalMessage,
-        htmlSummary,
-      );
+      const htmlSummary = '<p>Summary &lt;tag&gt; &amp; text</p>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Next line</li>\n</ul>';
+      await GmailProviderUtil.sendSummaryReply('test-access-token', 'sender@example.com', originalMessage, htmlSummary);
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
 
@@ -107,7 +101,7 @@ function decodeBase64Url(value: string): string {
 }
 
 function extractMimeBoundary(rawMessage: string): string {
-  const match: RegExpMatchArray | null = rawMessage.match(/boundary="([^"]+)"/);
+  const match: RegExpExecArray | null = /boundary="([^"]+)"/.exec(rawMessage);
   expect(match).not.toBeNull();
   return match![1];
 }

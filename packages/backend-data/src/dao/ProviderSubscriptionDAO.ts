@@ -23,7 +23,6 @@ interface UpsertProviderSubscriptionInput {
 }
 
 class ProviderSubscriptionDAO extends BaseDAO {
-
   public async upsertActive(input: UpsertProviderSubscriptionInput): Promise<ProviderSubscription> {
     const existing: ProviderSubscription | undefined = await this.getByApplication(input.applicationId);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();

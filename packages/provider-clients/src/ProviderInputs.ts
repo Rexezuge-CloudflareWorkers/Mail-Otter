@@ -51,7 +51,7 @@ function filterImageAttachments(candidates: readonly ProviderImageAttachment[], 
   const selected: ProviderImageAttachment[] = [];
   for (const candidate of candidates) {
     if (selected.length >= filter.maxCount) break;
-    if (!isSupportedImageMimeType(candidate.mimeType) || (candidate.sizeBytes > filter.maxSizeBytes)) continue;
+    if (!isSupportedImageMimeType(candidate.mimeType) || candidate.sizeBytes > filter.maxSizeBytes) continue;
     selected.push(candidate);
   }
   return selected;

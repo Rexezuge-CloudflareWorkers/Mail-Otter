@@ -40,7 +40,7 @@ describe('Container', () => {
   it('resolves dependency graphs through the container', () => {
     const container = new Container();
     container.bindValue('base', 2);
-    container.bind('double', (c) => (c.get<number>('base') as number) * 2);
+    container.bind('double', (c) => c.get<number>('base') * 2);
     expect(container.get('double')).toBe(4);
   });
 

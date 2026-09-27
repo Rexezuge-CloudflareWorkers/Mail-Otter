@@ -49,7 +49,7 @@ describe('SyncedCalendarEventDAO', () => {
   describe('upsertEvents', () => {
     it('does nothing when events array is empty', async () => {
       await dao.upsertEvents('app-1', []);
-      expect((db.prepare as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
     });
 
     it('inserts a single event', async () => {
@@ -84,7 +84,7 @@ describe('SyncedCalendarEventDAO', () => {
 
       await dao.upsertEvents('app-1', [
         { providerEventId: 'evt-1', eventTitle: 'Meeting 1', startTime: mockNow, endTime: mockNow + 3600, timeZone: 'UTC' },
-        { providerEventId: 'evt-2', eventTitle: 'Meeting 2', startTime: mockNow + 7200, endTime: mockNow + 10800, timeZone: 'UTC' },
+        { providerEventId: 'evt-2', eventTitle: 'Meeting 2', startTime: mockNow + 7200, endTime: mockNow + 10_800, timeZone: 'UTC' },
       ]);
       expect(runFn).toHaveBeenCalledTimes(2);
     });
@@ -135,7 +135,7 @@ describe('SyncedCalendarEventDAO', () => {
 
   describe('listEventsForRange', () => {
     it('returns empty array when no events in range', async () => {
-      const events = await dao.listEventsForRange('app-1', mockNow, mockNow + 86400);
+      const events = await dao.listEventsForRange('app-1', mockNow, mockNow + 86_400);
       expect(events).toHaveLength(0);
     });
 
@@ -143,7 +143,7 @@ describe('SyncedCalendarEventDAO', () => {
       db = makeDb({ allResults: [makeEventRow()] });
       dao = new SyncedCalendarEventDAO(db);
 
-      const events = await dao.listEventsForRange('app-1', mockNow, mockNow + 86400);
+      const events = await dao.listEventsForRange('app-1', mockNow, mockNow + 86_400);
       expect(events).toHaveLength(1);
       expect(events[0].syncEventId).toBe(mockUUID);
       expect(events[0].eventTitle).toBe('Team Standup');
@@ -174,13 +174,11 @@ describe('SyncedCalendarEventDAO', () => {
       dao = new SyncedCalendarEventDAO(db);
 
       await dao.listForUser('user@example.com', { applicationId: 'app-1' });
-      expect((db.prepare as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+      expect(db.prepare as ReturnType<typeof vi.fn>).toHaveBeenCalled();
     });
 
     it('provides nextCursor when more rows than limit', async () => {
-      const rows = Array.from({ length: 26 }, (_, i) =>
-        makeEventRow({ sync_event_id: `evt-${i}`, synced_at: mockNow - i }),
-      );
+      const rows = Array.from({ length: 26 }, (_, i) => makeEventRow({ sync_event_id: `evt-${i}`, synced_at: mockNow - i }));
       db = makeDb({ allResults: rows });
       dao = new SyncedCalendarEventDAO(db);
 

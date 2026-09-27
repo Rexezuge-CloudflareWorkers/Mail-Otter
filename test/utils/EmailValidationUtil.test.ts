@@ -15,16 +15,16 @@ describe('EmailValidationUtil', () => {
     });
 
     it('throws UnauthorizedError when no JWT and no dev email', async () => {
-      await expect(
-        EmailValidationUtil.getAuthenticatedUserEmail(createRequest(), {}),
-      ).rejects.toThrow('No Cloudflare Access JWT token provided in request headers.');
+      await expect(EmailValidationUtil.getAuthenticatedUserEmail(createRequest(), {})).rejects.toThrow(
+        'No Cloudflare Access JWT token provided in request headers.',
+      );
     });
 
     it('throws when TEAM_DOMAIN is missing', async () => {
       const req = createRequest({ 'cf-access-jwt-assertion': 'token' });
-      await expect(
-        EmailValidationUtil.getAuthenticatedUserEmail(req, {}),
-      ).rejects.toThrow('Missing required JWT verification configuration (TEAM_DOMAIN or POLICY_AUD not set).');
+      await expect(EmailValidationUtil.getAuthenticatedUserEmail(req, {})).rejects.toThrow(
+        'Missing required JWT verification configuration (TEAM_DOMAIN or POLICY_AUD not set).',
+      );
     });
 
     it('throws when POLICY_AUD is missing', async () => {

@@ -76,9 +76,7 @@ class AiService {
     const fallbackThreshold = ConfigurationManager.getAiDailyNeuronFallbackThreshold(env);
     if (fallbackThreshold <= 0) return false;
     try {
-      const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(
-        AiUsageUtil.getCurrentUtcUsageDate(),
-      );
+      const estimatedNeurons = await new AiDailyUsageDAO(env.DB).getEstimatedNeuronsForDate(AiUsageUtil.getCurrentUtcUsageDate());
       return estimatedNeurons >= fallbackThreshold;
     } catch (error: unknown) {
       console.warn(`${logPrefix} Failed to read daily usage:`, error);
@@ -86,10 +84,7 @@ class AiService {
     }
   }
 
-  public getStringMetadata(
-    metadata: Record<string, VectorizeVectorMetadata> | undefined,
-    key: string,
-  ): string | undefined {
+  public getStringMetadata(metadata: Record<string, VectorizeVectorMetadata> | undefined, key: string): string | undefined {
     const value: VectorizeVectorMetadata | undefined = metadata?.[key];
     return typeof value === 'string' ? value : undefined;
   }

@@ -4,7 +4,6 @@ import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 
 class OAuth2AuthorizationSessionDAO extends BaseDAO {
-
   public async create(
     applicationId: string,
     stateHash: string,

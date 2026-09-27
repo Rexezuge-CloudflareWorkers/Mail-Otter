@@ -46,11 +46,7 @@ interface DriveChangesApiResponse {
   changes?: DriveChangeItem[];
 }
 
-function processChange(
-  change: DriveChangeItem,
-  files: DriveFile[],
-  removed: string[],
-): DriveFile | null {
+function processChange(change: DriveChangeItem, files: DriveFile[], removed: string[]): DriveFile | null {
   if (!change.fileId) return null;
   if (change.removed) {
     removed.push(change.fileId);
@@ -88,11 +84,7 @@ class GoogleDriveProviderUtil {
     return data.startPageToken;
   }
 
-  public static async listChanges(
-    accessToken: string,
-    pageToken: string,
-    maxFiles: number,
-  ): Promise<DriveChangesResult> {
+  public static async listChanges(accessToken: string, pageToken: string, maxFiles: number): Promise<DriveChangesResult> {
     const files: DriveFile[] = [];
     const removed: string[] = [];
     let currentToken = pageToken;
@@ -153,11 +145,7 @@ class GoogleDriveProviderUtil {
     return response.text();
   }
 
-  public static async downloadFile(
-    accessToken: string,
-    fileId: string,
-    maxBytes: number,
-  ): Promise<ArrayBuffer> {
+  public static async downloadFile(accessToken: string, fileId: string, maxBytes: number): Promise<ArrayBuffer> {
     const url = `${GOOGLE_DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },

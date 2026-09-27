@@ -31,9 +31,7 @@ class EmailApplicationResolver {
     const accessToken: string = isImapPasswordApplication(application)
       ? ''
       : await (this.tokenService ?? new OAuth2AccessTokenService(this.env)).getAccessToken(application.applicationId);
-    const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(
-      application.userEmail,
-    );
+    const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
     return { application, accessToken, enabledApplicationIds };
   }
 

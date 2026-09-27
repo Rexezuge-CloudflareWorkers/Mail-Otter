@@ -14,10 +14,7 @@ import {
   EMAIL_ACTION_TYPE_MANUAL_TODO,
   EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT,
 } from '@mail-otter/shared/constants';
-import type {
-  ConnectedApplicationMetadata,
-  SyncedCalendarEvent,
-} from '@mail-otter/shared/model';
+import type { ConnectedApplicationMetadata, SyncedCalendarEvent } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { DigestConfigService } from './DigestConfigService';
 import { DigestEmailBuilder } from './DigestEmailBuilder';
@@ -62,7 +59,7 @@ class DigestService {
     this.actionDAOFactory = actionDAO;
     this.calendarDAOFactory = calendarDAO;
     this.deps = {
-      configService: () => Promise.resolve(new DigestConfigService(new ConnectedApplicationDAO(env.DB, masterKey)),),
+      configService: () => Promise.resolve(new DigestConfigService(new ConnectedApplicationDAO(env.DB, masterKey))),
       providerRegistry: InjectableEmailProviderRegistry.withDefaults(),
       ...rest,
     };
@@ -117,12 +114,8 @@ class DigestService {
     now: Date,
     nowUnix: number,
   ): Promise<DigestSections> {
-    const actionDAO = this.actionDAOFactory
-      ? await this.actionDAOFactory()
-      : new EmailActionDAO(this.db, this.actionKey);
-    const calendarDAO = this.calendarDAOFactory
-      ? await this.calendarDAOFactory()
-      : new SyncedCalendarEventDAO(this.db);
+    const actionDAO = this.actionDAOFactory ? await this.actionDAOFactory() : new EmailActionDAO(this.db, this.actionKey);
+    const calendarDAO = this.calendarDAOFactory ? await this.calendarDAOFactory() : new SyncedCalendarEventDAO(this.db);
 
     const dayStartUnix = DigestSectionBuilder.getDayStartUnix(now, timeZone);
     const dayEndUnix = dayStartUnix + 86_400;

@@ -15,6 +15,7 @@ Scope: `apps/background/**`. Parent index: `../../AGENTS.md`.
 ## Background Task Visibility
 
 `ProcessingView` (`apps/web/src/components/views/`) exposes cron task run history, synced calendar events, and processed messages. Routes:
+
 - `GET /user/processing/task-runs` — `BackgroundTaskRunDAO`
 - `GET /user/processing/calendar-events` — `SyncedCalendarEventDAO`
 - `GET /user/processing/messages` — `ProcessedMessageDAO`

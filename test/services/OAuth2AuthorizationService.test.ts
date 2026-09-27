@@ -1,15 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockGetByIdForUser, mockGetById, mockCreateSession, mockGetActiveSession, mockConsumeSession, mockCompleteAuthorization } = vi.hoisted(
-  () => ({
+const { mockGetByIdForUser, mockGetById, mockCreateSession, mockGetActiveSession, mockConsumeSession, mockCompleteAuthorization } =
+  vi.hoisted(() => ({
     mockGetByIdForUser: vi.fn(),
     mockGetById: vi.fn(),
     mockCreateSession: vi.fn(),
     mockGetActiveSession: vi.fn(),
     mockConsumeSession: vi.fn(),
     mockCompleteAuthorization: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
   ConnectedApplicationDAO: vi.fn(function () {
@@ -142,9 +141,7 @@ describe('OAuth2AuthorizationService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await new OAuth2AuthorizationService(makeEnv()).completeCallback(
-        { applicationId: 'app-1', code: 'auth-code', state: 'state-token' },
-      );
+      await new OAuth2AuthorizationService(makeEnv()).completeCallback({ applicationId: 'app-1', code: 'auth-code', state: 'state-token' });
 
       expect(mockConsumeSession).toHaveBeenCalledWith('session-1');
     });
@@ -153,9 +150,7 @@ describe('OAuth2AuthorizationService', () => {
       mockGetActiveSession.mockResolvedValue(undefined);
 
       await expect(
-        new OAuth2AuthorizationService(makeEnv() as never).completeCallback(
-          { applicationId: 'app-1', code: 'code', state: 'state' },
-        ),
+        new OAuth2AuthorizationService(makeEnv() as never).completeCallback({ applicationId: 'app-1', code: 'code', state: 'state' }),
       ).rejects.toThrow('OAuth2 authorization session is invalid or expired.');
     });
   });

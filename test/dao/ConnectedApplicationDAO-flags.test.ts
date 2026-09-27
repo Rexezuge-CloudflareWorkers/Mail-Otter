@@ -26,7 +26,7 @@ function createMockDb(overrides?: { firstResult?: unknown; allResults?: unknown[
   return {
     prepare: vi.fn(() => ({ bind: bindFn })),
     __fns: { runFn, firstFn, allFn, bindFn },
-  } as unknown as D1Database;
+  };
 }
 
 function fns(db: D1Database) {
@@ -48,13 +48,7 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
       await dao.markImapConnected(mockAppId, 'user@example.com');
 
       expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('SET provider_email'));
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(
-        'user@example.com',
-        'connected',
-        mockNow,
-        mockAppId,
-        'imap-password',
-      );
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith('user@example.com', 'connected', mockNow, mockAppId, 'imap-password');
     });
   });
 
@@ -99,23 +93,11 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
   describe('updateAttachmentVisionEnabledForUser', () => {
     it('stores true/false strings via the provider-config row', async () => {
       await dao.updateAttachmentVisionEnabledForUser(mockAppId, 'user@example.com', true);
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(
-        mockAppId,
-        'attachment_vision_enabled',
-        'true',
-        mockNow,
-        mockNow,
-      );
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'attachment_vision_enabled', 'true', mockNow, mockNow);
 
       vi.clearAllMocks();
       await dao.updateAttachmentVisionEnabledForUser(mockAppId, 'user@example.com', false);
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(
-        mockAppId,
-        'attachment_vision_enabled',
-        'false',
-        mockNow,
-        mockNow,
-      );
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'attachment_vision_enabled', 'false', mockNow, mockNow);
     });
   });
 
@@ -136,17 +118,13 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
 
   describe('updateEmailProcessingRulesForUser', () => {
     it('stores rules as JSON when non-empty', async () => {
-      const rules = [{ ruleId: 'r-1', name: 'Skip', enabled: true, conditions: { operator: 'any', matchers: [] }, action: { type: 'skip' } }];
+      const rules = [
+        { ruleId: 'r-1', name: 'Skip', enabled: true, conditions: { operator: 'any', matchers: [] }, action: { type: 'skip' } },
+      ];
 
       await dao.updateEmailProcessingRulesForUser(mockAppId, 'user@example.com', rules as never);
 
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(
-        mockAppId,
-        'email_processing_rules',
-        JSON.stringify(rules),
-        mockNow,
-        mockNow,
-      );
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'email_processing_rules', JSON.stringify(rules), mockNow, mockNow);
     });
 
     it('deletes the row when rules are cleared', async () => {

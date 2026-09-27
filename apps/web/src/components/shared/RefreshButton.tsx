@@ -2,15 +2,7 @@ import { RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 
-export function RefreshButton({
-  onRefresh,
-  loading,
-  className,
-}: {
-  onRefresh: () => void;
-  loading?: boolean;
-  className?: string;
-}) {
+export function RefreshButton({ onRefresh, loading, className }: { onRefresh: () => void; loading?: boolean; className?: string }) {
   const { t } = useTranslation();
   return (
     <Button variant="secondary" size="sm" onClick={onRefresh} loading={loading} className={className}>

@@ -25,7 +25,7 @@ describe('IBaseRoute', () => {
   function makeC(path: string) {
     return {
       req: {
-        raw: new Request(`https://example.com${path}`, { method: 'GET' }),
+        raw: new Request(`https://example.com${path}`),
         json: vi.fn().mockResolvedValue({}),
       } as unknown,
       json: vi.fn().mockReturnValue(new Response()),
@@ -64,26 +64,18 @@ describe('IBaseRoute', () => {
     const c = makeC('/test');
     await route.handle(c as never);
 
-    expect(c.json).toHaveBeenCalledWith(
-      { Exception: { Type: 'BadRequest', Message: 'Invalid input' } },
-      400,
-    );
+    expect(c.json).toHaveBeenCalledWith({ Exception: { Type: 'BadRequest', Message: 'Invalid input' } }, 400);
   });
 
   it('handles DatabaseError in toErrorResponse', async () => {
     (validateRequestInput as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: {} });
 
-    vi.spyOn(route, 'handleRequest' as never).mockRejectedValue(
-      new DatabaseError('Database error occurred'),
-    );
+    vi.spyOn(route, 'handleRequest' as never).mockRejectedValue(new DatabaseError('Database error occurred'));
 
     const c = makeC('/test');
     await route.handle(c as never);
 
-    expect(c.json).toHaveBeenCalledWith(
-      { Exception: { Type: 'DatabaseError', Message: 'Database error occurred' } },
-      500,
-    );
+    expect(c.json).toHaveBeenCalledWith({ Exception: { Type: 'DatabaseError', Message: 'Database error occurred' } }, 500);
   });
 
   it('returns InternalServerError for unexpected errors', async () => {
@@ -95,7 +87,12 @@ describe('IBaseRoute', () => {
     await route.handle(c as never);
 
     expect(c.json).toHaveBeenCalledWith(
-      { Exception: { Type: 'InternalServerError', Message: 'The server encountered an internal error and was unable to complete your request.' } },
+      {
+        Exception: {
+          Type: 'InternalServerError',
+          Message: 'The server encountered an internal error and was unable to complete your request.',
+        },
+      },
       500,
     );
   });

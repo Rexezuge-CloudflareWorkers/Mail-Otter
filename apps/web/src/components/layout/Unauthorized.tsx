@@ -14,7 +14,9 @@ export default function Unauthorized() {
           <span className="text-[var(--color-accent)]">Mail</span>-Otter
         </div>
         <h1 className="text-lg font-medium mt-4 mb-1">{t('unauthorized.title', 'Access Required')}</h1>
-        <p className="text-[var(--color-text-secondary)] text-sm">{t('unauthorized.message', 'You Must Authenticate To Access This Application.')}</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">
+          {t('unauthorized.message', 'You Must Authenticate To Access This Application.')}
+        </p>
         <button
           type="button"
           onClick={authenticateWithZeroTrust}

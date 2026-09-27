@@ -137,7 +137,8 @@ const deStrings: BackendLocaleStrings = {
     appointmentNotedSuffix: ' Details vermerkt.',
   },
   csv: {
-    header: 'Ereignistyp,Anwendungs-ID,Zeitstempel ISO,Anbieter-Nachrichten-ID,Status / Ausführungsstatus,Fehlermeldung,Aktions-ID,Aktionstyp,Risikostufe,Ausgelöst von',
+    header:
+      'Ereignistyp,Anwendungs-ID,Zeitstempel ISO,Anbieter-Nachrichten-ID,Status / Ausführungsstatus,Fehlermeldung,Aktions-ID,Aktionstyp,Risikostufe,Ausgelöst von',
   },
 };
 

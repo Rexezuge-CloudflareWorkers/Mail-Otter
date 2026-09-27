@@ -31,9 +31,7 @@ describe('HtmlContentUtil', () => {
   });
 
   it('preserves http anchors', () => {
-    expect(sanitizeHtml('go <a href="http://example.com">here</a> now')).toBe(
-      'go <a href="http://example.com">here</a> now',
-    );
+    expect(sanitizeHtml('go <a href="https://example.com">here</a> now')).toBe('go <a href="https://example.com">here</a> now');
   });
 
   it('escapes anchors with non-http hrefs', () => {
@@ -51,9 +49,7 @@ describe('HtmlContentUtil', () => {
   });
 
   it('escapes href query-string ampersands in preserved anchors', () => {
-    expect(sanitizeHtml('<a href="https://example.com/?a=1&b=2">link</a>')).toBe(
-      '<a href="https://example.com/?a=1&amp;b=2">link</a>',
-    );
+    expect(sanitizeHtml('<a href="https://example.com/?a=1&b=2">link</a>')).toBe('<a href="https://example.com/?a=1&amp;b=2">link</a>');
   });
 });
 
@@ -154,7 +150,7 @@ describe('D1SessionUtil', () => {
   it('passes through a custom bookmark', () => {
     const withSession = vi.fn().mockReturnValue({ id: 's2' });
     const env = { DB: { withSession } as unknown as D1Database };
-    createD1SessionEnv(env, 'custom-bookmark' as never);
+    createD1SessionEnv(env, 'custom-bookmark');
     expect(withSession).toHaveBeenCalledWith('custom-bookmark');
   });
 });
@@ -204,9 +200,7 @@ describe('ConfigurationManager namespaces', () => {
 
   it('trims trailing slashes from base URLs', () => {
     expect(ConfigurationManager.getPublicBaseUrl({ PUBLIC_BASE_URL: 'https://x.example///' })).toBe('https://x.example');
-    expect(ConfigurationManager.getActionCallbackBaseUrl({ ACTION_CALLBACK_BASE_URL: 'https://y.example/' })).toBe(
-      'https://y.example',
-    );
+    expect(ConfigurationManager.getActionCallbackBaseUrl({ ACTION_CALLBACK_BASE_URL: 'https://y.example/' })).toBe('https://y.example');
     expect(ConfigurationManager.baseUrl.getPublicBaseUrl({})).toBe(ConfigurationManager.getPublicBaseUrl({}));
   });
 
@@ -215,22 +209,14 @@ describe('ConfigurationManager namespaces', () => {
     expect(ConfigurationManager.getDebugMode(env)).toBe(true);
     expect(ConfigurationManager.context.getMaxEmailBodyChars(env)).toBe(1234);
     expect(ConfigurationManager.ai.getSummaryModel({})).toBe(ConfigurationManager.getEmailSummaryModel({}));
-    expect(ConfigurationManager.ai.getSummaryFallbackModel({})).toBe(
-      ConfigurationManager.getEmailSummaryFallbackModel({}),
-    );
-    expect(ConfigurationManager.ai.getDailyNeuronFallbackThreshold({})).toBe(
-      ConfigurationManager.getAiDailyNeuronFallbackThreshold({}),
-    );
-    expect(ConfigurationManager.tracking.getPackageTrackingApiKey({})).toBe(
-      ConfigurationManager.digest.getPackageTrackingApiKey({}),
-    );
+    expect(ConfigurationManager.ai.getSummaryFallbackModel({})).toBe(ConfigurationManager.getEmailSummaryFallbackModel({}));
+    expect(ConfigurationManager.ai.getDailyNeuronFallbackThreshold({})).toBe(ConfigurationManager.getAiDailyNeuronFallbackThreshold({}));
+    expect(ConfigurationManager.tracking.getPackageTrackingApiKey({})).toBe(ConfigurationManager.digest.getPackageTrackingApiKey({}));
     expect(ConfigurationManager.attachment.getMaxSizeBytes({})).toBe(ConfigurationManager.getMaxAttachmentSizeBytes({}));
     expect(ConfigurationManager.drive.getMaxFilesPerSync({})).toBe(ConfigurationManager.getMaxDriveFilesPerSync({}));
     expect(ConfigurationManager.chat.getMaxResponseTokens({})).toBe(ConfigurationManager.getChatMaxResponseTokens({}));
     expect(ConfigurationManager.oauth2.getStateExpiryMinutes({})).toBe(ConfigurationManager.getOauth2StateExpiryMinutes({}));
-    expect(ConfigurationManager.subscription.getGmailRenewalWindowHours({})).toBe(
-      ConfigurationManager.getGmailWatchRenewalWindowHours({}),
-    );
+    expect(ConfigurationManager.subscription.getGmailRenewalWindowHours({})).toBe(ConfigurationManager.getGmailWatchRenewalWindowHours({}));
     expect(ConfigurationManager.action.getDefaultExpiryHours({})).toBe(ConfigurationManager.getActionDefaultExpiryHours({}));
     expect(ConfigurationManager.processing.getTaskRunRetentionDays({})).toBeGreaterThan(0);
     expect(ConfigurationManager.processing.getTaskRunRetentionDays({ BACKGROUND_TASK_RUN_RETENTION_DAYS: '7' })).toBe(7);

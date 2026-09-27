@@ -3,7 +3,6 @@ import { LocaleUtil } from '@mail-otter/shared/utils';
 
 const AVIATIONSTACK_API_BASE = 'https://api.aviationstack.com/v1/flights';
 
-
 interface FlightSyncStatus {
   flightNumber: string;
   airline?: string;
@@ -29,14 +28,30 @@ function formatFlightSummary(flightNumber: string, syncStatus: FlightSyncStatus,
 function statusLabelFor(status: string, locale?: string | null): string {
   const strings = getBackendStrings(locale);
   switch (status) {
-    case 'scheduled': { return strings.tracking.flightScheduled; }
-    case 'active': { return strings.tracking.flightActive; }
-    case 'landed': { return strings.tracking.flightLanded; }
-    case 'cancelled': { return strings.tracking.flightCancelled; }
-    case 'incident': { return strings.tracking.flightIncident; }
-    case 'diverted': { return strings.tracking.flightDiverted; }
-    case 'Unknown': { return strings.tracking.flightUnknown; }
-    default: { return STATUS_LABELS[status] ?? status; }
+    case 'scheduled': {
+      return strings.tracking.flightScheduled;
+    }
+    case 'active': {
+      return strings.tracking.flightActive;
+    }
+    case 'landed': {
+      return strings.tracking.flightLanded;
+    }
+    case 'cancelled': {
+      return strings.tracking.flightCancelled;
+    }
+    case 'incident': {
+      return strings.tracking.flightIncident;
+    }
+    case 'diverted': {
+      return strings.tracking.flightDiverted;
+    }
+    case 'Unknown': {
+      return strings.tracking.flightUnknown;
+    }
+    default: {
+      return STATUS_LABELS[status] ?? status;
+    }
   }
 }
 
@@ -51,7 +66,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatDepartureTime(iso: string, locale?: string | null): string | null {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString(LocaleUtil.normalize(locale), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC';
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.toLocaleTimeString(LocaleUtil.normalize(locale), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) +
+        ' UTC';
 }
 
 async function fetchFlightStatus(flightNumber: string, apiKey: string): Promise<FlightSyncStatus | null> {

@@ -51,19 +51,17 @@ class FakeProcessedMessageStatement {
   async first<T>(): Promise<T | null> {
     if (this.sql.includes('WHERE application_id = ? AND provider_message_id = ?')) {
       return (this.database.rows.find(
-        (row: ProcessedMessageInternal): boolean =>
-          row.application_id === this.bindings[0] && row.provider_message_id === this.bindings[1],
+        (row: ProcessedMessageInternal): boolean => row.application_id === this.bindings[0] && row.provider_message_id === this.bindings[1],
       ) || null) as T | null;
     }
-    if (this.sql.includes('WHERE application_id = ? AND provider_id = ? AND provider_stable_message_fingerprint = ?')) {
-      return (this.database.rows.find(
-        (row: ProcessedMessageInternal): boolean =>
-          row.application_id === this.bindings[0] &&
-          row.provider_id === this.bindings[1] &&
-          row.provider_stable_message_fingerprint === this.bindings[2],
-      ) || null) as T | null;
-    }
-    return null;
+    return this.sql.includes('WHERE application_id = ? AND provider_id = ? AND provider_stable_message_fingerprint = ?')
+      ? ((this.database.rows.find(
+          (row: ProcessedMessageInternal): boolean =>
+            row.application_id === this.bindings[0] &&
+            row.provider_id === this.bindings[1] &&
+            row.provider_stable_message_fingerprint === this.bindings[2],
+        ) || null) as T | null)
+      : null;
   }
 }
 
@@ -91,7 +89,9 @@ class FakeProcessedMessageD1Database {
 describe('ProcessedMessageDAO', () => {
   it('does not start a moved message when the stable provider message fingerprint already exists', async () => {
     const database = new FakeProcessedMessageD1Database();
-    database.rows.push(createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }));
+    database.rows.push(
+      createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }),
+    );
     const dao = new ProcessedMessageDAO(database);
 
     await expect(
@@ -105,7 +105,9 @@ describe('ProcessedMessageDAO', () => {
 
   it('starts a new message in the same thread when its stable provider message fingerprint is new', async () => {
     const database = new FakeProcessedMessageD1Database();
-    database.rows.push(createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }));
+    database.rows.push(
+      createProcessedMessageRow({ provider_message_id: 'old-provider-id', provider_stable_message_fingerprint: 'stable-1' }),
+    );
     const dao = new ProcessedMessageDAO(database);
 
     await expect(

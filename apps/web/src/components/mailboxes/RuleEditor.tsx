@@ -62,44 +62,48 @@ function draftToMatcher(m: MatcherDraft): EmailRuleConditionMatcher {
     return { field: 'always', op: 'match_all' };
   }
   if (m.field === 'has_attachment') {
-    return { field: 'has_attachment', op: 'is', value: (m.value === 'true' ? 'true' : 'false') };
+    return { field: 'has_attachment', op: 'is', value: m.value === 'true' ? 'true' : 'false' };
   }
   if (m.field === 'detected_action_type') {
-    return { field: 'detected_action_type', op: (m.op === 'not_includes' ? 'not_includes' : 'includes'), value: m.value };
+    return { field: 'detected_action_type', op: m.op === 'not_includes' ? 'not_includes' : 'includes', value: m.value };
   }
   if (m.field === 'from') {
     const fromOps = ['contains', 'not_contains', 'matches_sender'] as const;
-    const op = (fromOps.includes(m.op as typeof fromOps[number]) ? m.op : 'contains') as typeof fromOps[number];
+    const op = (fromOps.includes(m.op as (typeof fromOps)[number]) ? m.op : 'contains') as (typeof fromOps)[number];
     return { field: 'from', op, value: m.value };
   }
-  const op = (m.op === 'contains' || m.op === 'not_contains') ? m.op : 'contains';
+  const op = m.op === 'contains' || m.op === 'not_contains' ? m.op : 'contains';
   return { field: m.field, op, value: m.value };
 }
 
 function draftToAction(draft: RuleDraft): EmailRuleAction {
   switch (draft.actionType) {
-    case 'prepend_instruction': { return { type: 'prepend_instruction', instruction: draft.instruction.trim() };
+    case 'prepend_instruction': {
+      return { type: 'prepend_instruction', instruction: draft.instruction.trim() };
     }
-    case 'apply_label': { return { type: 'apply_label', labelName: draft.labelName.trim() };
+    case 'apply_label': {
+      return { type: 'apply_label', labelName: draft.labelName.trim() };
     }
-    case 'archive_message': { return { type: 'archive_message' };
+    case 'archive_message': {
+      return { type: 'archive_message' };
     }
-    case 'mark_read': { return { type: 'mark_read' };
+    case 'mark_read': {
+      return { type: 'mark_read' };
     }
-    case 'star_message': { return { type: 'star_message' };
+    case 'star_message': {
+      return { type: 'star_message' };
     }
-    case 'skip_actions': { return { type: 'skip_actions' };
+    case 'skip_actions': {
+      return { type: 'skip_actions' };
     }
-    default: { return { type: 'skip' };
+    default: {
+      return { type: 'skip' };
     }
   }
 }
 
 type LabelState =
-  | { phase: 'idle' }
-  | { phase: 'loading' }
-  | { phase: 'loaded'; labels: Array<{ id: string; name: string }> }
-  | { phase: 'error' };
+  { phase: 'idle' } | { phase: 'loading' } | { phase: 'loaded'; labels: Array<{ id: string; name: string }> } | { phase: 'error' };
 
 interface RuleFormProps {
   initialRule?: EmailProcessingRule;
@@ -108,12 +112,7 @@ interface RuleFormProps {
   onCancel: () => void;
 }
 
-function RuleForm({
-  initialRule,
-  applicationId,
-  onAdd,
-  onCancel,
-}: RuleFormProps) {
+function RuleForm({ initialRule, applicationId, onAdd, onCancel }: RuleFormProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<RuleDraft>(initialRule ? ruleToDraft(initialRule) : emptyDraft());
   const [labelState, setLabelState] = useState<LabelState>({ phase: 'idle' });
@@ -136,36 +135,36 @@ function RuleForm({
         const updated = { ...m, ...patch };
         if (patch.field) {
           switch (patch.field) {
-          case 'always': {
-            updated.op = 'match_all';
-            updated.value = '';
+            case 'always': {
+              updated.op = 'match_all';
+              updated.value = '';
 
-          break;
-          }
-          case 'has_attachment': {
-            updated.op = 'is';
-            updated.value = 'true';
-
-          break;
-          }
-          case 'detected_action_type': {
-            updated.op = 'includes';
-            updated.value ||= DETECTED_ACTION_TYPE_OPTIONS[0];
-
-          break;
-          }
-          case 'from': {
-            if (updated.op !== 'contains' && updated.op !== 'not_contains' && updated.op !== 'matches_sender') {
-              updated.op = 'contains';
+              break;
             }
+            case 'has_attachment': {
+              updated.op = 'is';
+              updated.value = 'true';
 
-          break;
-          }
-          default: {
-            if (updated.op !== 'contains' && updated.op !== 'not_contains') {
-              updated.op = 'contains';
+              break;
             }
-          }
+            case 'detected_action_type': {
+              updated.op = 'includes';
+              updated.value ||= DETECTED_ACTION_TYPE_OPTIONS[0];
+
+              break;
+            }
+            case 'from': {
+              if (updated.op !== 'contains' && updated.op !== 'not_contains' && updated.op !== 'matches_sender') {
+                updated.op = 'contains';
+              }
+
+              break;
+            }
+            default: {
+              if (updated.op !== 'contains' && updated.op !== 'not_contains') {
+                updated.op = 'contains';
+              }
+            }
           }
         }
         return updated;
@@ -178,7 +177,9 @@ function RuleForm({
   const setActionType = (actionType: EmailRuleActionType) => {
     setDraft((d) => {
       const newMatchers = d.matchers.map((m): MatcherDraft => {
-        return m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType) ? { ...m, field: 'subject', op: 'contains' } : m;
+        return m.field === 'detected_action_type' && PRE_PROCESSING_ACTION_TYPES.has(actionType)
+          ? { ...m, field: 'subject', op: 'contains' }
+          : m;
       });
       return { ...d, actionType, matchers: newMatchers };
     });
@@ -245,7 +246,9 @@ function RuleForm({
           className="text-xs border border-[var(--color-border)] rounded px-2 py-1 bg-[var(--color-surface-base)] text-[var(--color-text-primary)] flex-1"
         >
           {DETECTED_ACTION_TYPE_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>{t(`actionTypes.${opt}`, opt)}</option>
+            <option key={opt} value={opt}>
+              {t(`actionTypes.${opt}`, opt)}
+            </option>
           ))}
         </select>
       );
@@ -255,7 +258,9 @@ function RuleForm({
         type="text"
         value={m.value}
         onChange={(e) => setMatcher(i, { value: e.target.value })}
-        placeholder={m.op === 'matches_sender' ? t('rules.senderPlaceholder', '@domain.com or user@example.com') : t('rules.valuePlaceholder', 'value')}
+        placeholder={
+          m.op === 'matches_sender' ? t('rules.senderPlaceholder', '@domain.com or user@example.com') : t('rules.valuePlaceholder', 'value')
+        }
         className="text-sm flex-1 min-w-0"
         maxLength={200}
       />
@@ -377,8 +382,12 @@ function RuleForm({
         >
           <optgroup label={t('rules.preProcessing', 'Pre-Processing (First Match Wins)')}>
             <option value="skip">{t('rules.actionSkipDesc', "Skip — Don't Summarize This Email")}</option>
-            <option value="skip_actions">{t('rules.actionSkipActionsDesc', "Skip Actions — Summarize But Don't Create Action Proposals")}</option>
-            <option value="prepend_instruction">{t('rules.actionPrependInstructionDesc', 'Custom Instruction — Add Extra Instructions To The AI Prompt')}</option>
+            <option value="skip_actions">
+              {t('rules.actionSkipActionsDesc', "Skip Actions — Summarize But Don't Create Action Proposals")}
+            </option>
+            <option value="prepend_instruction">
+              {t('rules.actionPrependInstructionDesc', 'Custom Instruction — Add Extra Instructions To The AI Prompt')}
+            </option>
           </optgroup>
           <optgroup label={t('rules.postProcessing', 'Post-Processing (All Matches Execute)')}>
             <option value="apply_label">{t('rules.actionApplyLabelDesc', 'Apply Label — Add A Label Or Category')}</option>
@@ -429,8 +438,12 @@ function RuleForm({
       </div>
 
       <div className="flex gap-2 justify-end">
-        <Button variant="secondary" size="sm" onClick={onCancel}>{t('common.cancel', 'Cancel')}</Button>
-        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>{initialRule ? t('rules.saveRule', 'Save Rule') : t('rules.addRule', 'Add Rule')}</Button>
+        <Button variant="secondary" size="sm" onClick={onCancel}>
+          {t('common.cancel', 'Cancel')}
+        </Button>
+        <Button variant="primary" size="sm" onClick={handleAdd} disabled={!isValid()}>
+          {initialRule ? t('rules.saveRule', 'Save Rule') : t('rules.addRule', 'Add Rule')}
+        </Button>
       </div>
     </div>
   );
@@ -449,11 +462,7 @@ interface SuggestRuleFormProps {
   onCancel: () => void;
 }
 
-function SuggestRuleForm({
-  applicationId,
-  onAdd,
-  onCancel,
-}: SuggestRuleFormProps) {
+function SuggestRuleForm({ applicationId, onAdd, onCancel }: SuggestRuleFormProps) {
   const { t } = useTranslation();
   const [description, setDescription] = useState('');
   const [state, setState] = useState<SuggestState>({ phase: 'idle' });
@@ -479,7 +488,8 @@ function SuggestRuleForm({
       const { rule } = await apiSuggestRule(applicationId, desc);
       setState({ phase: 'preview', rule, description: desc });
     } catch (e) {
-      const message = e instanceof Error ? e.message : t('rules.suggestErrorFallback', 'Could Not Generate A Rule. Try Rephrasing Your Description.');
+      const message =
+        e instanceof Error ? e.message : t('rules.suggestErrorFallback', 'Could Not Generate A Rule. Try Rephrasing Your Description.');
       setState({ phase: 'error', message, description: desc });
     }
   };
@@ -516,22 +526,17 @@ function SuggestRuleForm({
             className="text-sm flex-1"
             maxLength={500}
             disabled={state.phase === 'loading'}
-            onKeyDown={(e) => { if (e.key === 'Enter' && description.trim() && state.phase !== 'loading') handleGenerate(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && description.trim() && state.phase !== 'loading') handleGenerate();
+            }}
           />
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleGenerate}
-            disabled={!description.trim() || state.phase === 'loading'}
-          >
+          <Button variant="primary" size="sm" onClick={handleGenerate} disabled={!description.trim() || state.phase === 'loading'}>
             {state.phase === 'loading' ? t('common.generating', 'Generating…') : t('common.generate', 'Generate')}
           </Button>
         </div>
       </div>
 
-      {state.phase === 'error' && (
-        <p className="text-xs text-red-500">{state.message}</p>
-      )}
+      {state.phase === 'error' && <p className="text-xs text-red-500">{state.message}</p>}
 
       {state.phase === 'preview' && (
         <div className="border border-[var(--color-border)] rounded-lg p-3 flex flex-col gap-1 bg-[var(--color-surface-base)]">
@@ -546,22 +551,40 @@ function SuggestRuleForm({
             <p className="text-xs text-[var(--color-text-secondary)] italic">"{state.rule.action.instruction}"</p>
           )}
           {state.rule.action.type === 'apply_label' && (
-            <p className="text-xs text-[var(--color-text-secondary)]">{t('rules.labelValue', 'Label: {{name}}', { name: state.rule.action.labelName })}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {t('rules.labelValue', 'Label: {{name}}', { name: state.rule.action.labelName })}
+            </p>
           )}
         </div>
       )}
 
       <div className="flex gap-2 justify-end">
-        <Button variant="secondary" size="sm" onClick={onCancel}>{t('common.cancel', 'Cancel')}</Button>
+        <Button variant="secondary" size="sm" onClick={onCancel}>
+          {t('common.cancel', 'Cancel')}
+        </Button>
         {state.phase === 'preview' && (
           <>
-            <Button variant="secondary" size="sm" onClick={handleRegenerate}>{t('common.regenerate', 'Regenerate')}</Button>
-            <Button variant="secondary" size="sm" onClick={() => setState({ phase: 'edit', rule: { ...state.rule, ruleId: crypto.randomUUID() }, description: state.description })}>{t('common.edit', 'Edit')}</Button>
-            <Button variant="primary" size="sm" onClick={handleAccept}>{t('rules.addRule', 'Add Rule')}</Button>
+            <Button variant="secondary" size="sm" onClick={handleRegenerate}>
+              {t('common.regenerate', 'Regenerate')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState({ phase: 'edit', rule: { ...state.rule, ruleId: crypto.randomUUID() }, description: state.description })
+              }
+            >
+              {t('common.edit', 'Edit')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleAccept}>
+              {t('rules.addRule', 'Add Rule')}
+            </Button>
           </>
         )}
         {state.phase === 'error' && (
-          <Button variant="secondary" size="sm" onClick={handleRegenerate}>{t('common.retry', 'Retry')}</Button>
+          <Button variant="secondary" size="sm" onClick={handleRegenerate}>
+            {t('common.retry', 'Retry')}
+          </Button>
         )}
       </div>
     </div>

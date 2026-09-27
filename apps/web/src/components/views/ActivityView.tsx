@@ -35,9 +35,18 @@ function ActivityRow({ entry, applications }: { entry: ActivityEntry; applicatio
   switch (entry.eventType) {
     case 'email_processed': {
       switch (entry.status) {
-        case 'summarized': { description = t('activity.emailSummarized', 'Email Summarized'); break; }
-        case 'skipped': { description = t('activity.emailSkipped', 'Email Skipped'); break; }
-        default: { description = t('activity.emailError', 'Email Processing Error'); break; }
+        case 'summarized': {
+          description = t('activity.emailSummarized', 'Email Summarized');
+          break;
+        }
+        case 'skipped': {
+          description = t('activity.emailSkipped', 'Email Skipped');
+          break;
+        }
+        default: {
+          description = t('activity.emailError', 'Email Processing Error');
+          break;
+        }
       }
       break;
     }
@@ -48,10 +57,22 @@ function ActivityRow({ entry, applications }: { entry: ActivityEntry; applicatio
     }
     default: {
       switch (entry.executionStatus) {
-        case 'succeeded': { description = t('activity.actionExecuted', 'Action Executed'); break; }
-        case 'failed': { description = t('activity.actionFailed', 'Action Execution Failed'); break; }
-        case 'expired': { description = t('activity.actionExpired', 'Action Expired'); break; }
-        default: { description = t('activity.actionExecuted', 'Action Executed'); break; }
+        case 'succeeded': {
+          description = t('activity.actionExecuted', 'Action Executed');
+          break;
+        }
+        case 'failed': {
+          description = t('activity.actionFailed', 'Action Execution Failed');
+          break;
+        }
+        case 'expired': {
+          description = t('activity.actionExpired', 'Action Expired');
+          break;
+        }
+        default: {
+          description = t('activity.actionExecuted', 'Action Executed');
+          break;
+        }
       }
       break;
     }
@@ -59,12 +80,8 @@ function ActivityRow({ entry, applications }: { entry: ActivityEntry; applicatio
   return (
     <div className="flex items-center gap-3 flex-wrap px-4 py-2.5 border-b border-[var(--color-border)] last:border-0">
       <Badge variant={eventBadgeVariant(entry)}>{badgeLabel}</Badge>
-      <span className="text-sm text-[var(--color-text-primary)] flex-1 min-w-0 truncate">
-        {description}
-      </span>
-      <span className="text-xs text-[var(--color-text-muted)] shrink-0">
-        {appName(entry.applicationId, applications)}
-      </span>
+      <span className="text-sm text-[var(--color-text-primary)] flex-1 min-w-0 truncate">{description}</span>
+      <span className="text-xs text-[var(--color-text-muted)] shrink-0">{appName(entry.applicationId, applications)}</span>
       <span className="text-xs text-[var(--color-text-muted)] shrink-0 ml-auto">
         {formatTimestamp(entry.timestamp, i18n.resolvedLanguage)}
       </span>
@@ -142,17 +159,19 @@ export function ActivityView({
           <CardTitle>{t('activity.title', 'Activity Feed')}</CardTitle>
         </CardHeader>
         {loading && entries.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('activity.loading', 'Loading…')}</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+            {t('activity.loading', 'Loading…')}
+          </div>
         ) : entries.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">{t('activity.empty', 'No Activity Found')}</div>
+          <div className="flex items-center justify-center py-10 text-[var(--color-text-muted)] text-sm">
+            {t('activity.empty', 'No Activity Found')}
+          </div>
         ) : (
           <>
             {entries.map((entry, i) => (
               <ActivityRow key={`${entry.eventType}-${entry.timestamp}-${i}`} entry={entry} applications={applications} />
             ))}
-            {cursor && (
-              <LoadMoreButton onLoadMore={onLoadMore} loading={loading} />
-            )}
+            {cursor && <LoadMoreButton onLoadMore={onLoadMore} loading={loading} />}
           </>
         )}
       </Card>

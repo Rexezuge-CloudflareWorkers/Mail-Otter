@@ -33,7 +33,9 @@ Plain `pnpm` is canonical (CI uses the `.github/actions/setup-env` composite: `p
 ```bash
 pnpm install
 pnpm -r typecheck && pnpm run lint && node scripts/check-god-files.mjs && pnpm run test:coverage && pnpm run test:integration
-pnpm run lint   # eslint --fix --quiet . (auto-fixes)
+pnpm run lint       # check-only lint of every workspace + test/ (CI gate)
+pnpm run lint:fix   # eslint --fix, same targets
+pnpm run format:check  # prettier --check (also enforced via lint)
 pnpm run build  # pnpm -r build; only @mail-otter/web has a build script
 pnpm --filter @mail-otter/web dev     # vite dev server
 pnpm run typegen   # after changing wrangler bindings (uses apps/api/wrangler.template.jsonc)
@@ -42,6 +44,8 @@ pnpm exec wrangler deploy --config ./apps/api/wrangler.template.jsonc
 ```
 
 Notes: `wrangler.template.jsonc` is the config template — copy to `wrangler.jsonc` per deployer, no committed `wrangler.jsonc` (see `docs/agents/runtime/AGENTS.md`). God-file guard (`scripts/check-god-files.mjs`, soft 300 / hard 400 LOC) is warn-only in CI (`continue-on-error`).
+
+Lint runs via `scripts/lint-workspaces.mjs`, which invokes ESLint once per workspace package plus `test/` and root configs. A single `eslint .` builds every tsconfig program at once and OOMs on small machines (~1 GB). `prettier/prettier` is set to `error` (not `warn`) because `lint` uses `--quiet`, which discards warnings — at `warn` the format gate was a silent no-op. `test/**` is deliberately **not** in the ESLint `ignores`; the test override block at the end of `eslint.config.mjs` relaxes only the rules that misfire on Vitest idioms. Prettier scope is controlled by `.prettierignore`, kept in sync with the ESLint `ignores` list.
 
 ## Import Direction
 

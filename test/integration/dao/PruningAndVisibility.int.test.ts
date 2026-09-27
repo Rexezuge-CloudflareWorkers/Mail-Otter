@@ -21,7 +21,7 @@ const TEST_EMAIL = 'test@example.com';
  */
 describe('Pruning and processing visibility', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
   });
 
   it('prunes old summarized messages while keeping fresh ones', async () => {
@@ -32,9 +32,7 @@ describe('Pruning and processing visibility', () => {
     const oldMessageId = `old-prune-${Date.now()}`;
     await dao.tryStart(applicationId, 'google-gmail', oldMessageId, 'thread-1');
     await dao.markSummarized(applicationId, oldMessageId);
-    await env.DB.prepare(
-      `UPDATE processed_messages SET updated_at = ? WHERE application_id = ? AND provider_message_id = ?`,
-    )
+    await env.DB.prepare(`UPDATE processed_messages SET updated_at = ? WHERE application_id = ? AND provider_message_id = ?`)
       .bind(now - 100 * 86_400, applicationId, oldMessageId)
       .run();
 
@@ -70,9 +68,7 @@ describe('Pruning and processing visibility', () => {
     const listed = await dao.listForUser(TEST_EMAIL, { applicationId });
     expect(listed.runs.map((run) => run.runId)).toContain(runId);
 
-    const response: Response = await SELF.fetch(
-      `http://localhost/user/processing/task-runs?applicationId=${applicationId}`,
-    );
+    const response: Response = await SELF.fetch(`http://localhost/user/processing/task-runs?applicationId=${applicationId}`);
     expect(response.status).toBe(200);
     const body = (await response.json()) as { runs: Array<{ runId: string; status: string }> };
     expect(body.runs.map((run) => run.runId)).toContain(runId);
@@ -120,9 +116,7 @@ describe('Pruning and processing visibility', () => {
       },
     ]);
 
-    const visible: Response = await SELF.fetch(
-      `http://localhost/user/processing/calendar-events?applicationId=${applicationId}`,
-    );
+    const visible: Response = await SELF.fetch(`http://localhost/user/processing/calendar-events?applicationId=${applicationId}`);
     expect(visible.status).toBe(200);
     const visibleBody = (await visible.json()) as { events: Array<{ eventTitle: string }> };
     expect(visibleBody.events.length).toBe(2);
@@ -140,9 +134,7 @@ describe('Pruning and processing visibility', () => {
     const dao = new ProcessedMessageDAO(env.DB);
     await dao.tryStart(applicationId, 'google-gmail', `visible-${Date.now()}`, 'thread-1');
 
-    const response: Response = await SELF.fetch(
-      `http://localhost/user/processing/messages?applicationId=${applicationId}`,
-    );
+    const response: Response = await SELF.fetch(`http://localhost/user/processing/messages?applicationId=${applicationId}`);
     expect(response.status).toBe(200);
     const body = (await response.json()) as { messages: Array<{ providerMessageId: string }> };
     expect(body.messages.length).toBeGreaterThan(0);

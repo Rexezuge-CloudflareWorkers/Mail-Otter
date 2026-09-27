@@ -36,18 +36,16 @@ class WorkersAiResponseUtil {
     if (chatCompletionText) return chatCompletionText;
 
     const toolCalls: unknown = result.tool_calls;
-    return Array.isArray(toolCalls) && this.isRecord(toolCalls[0]) && toolCalls[0].arguments ? this.stringifyTextResponse(toolCalls[0].arguments) : undefined;
+    return Array.isArray(toolCalls) && this.isRecord(toolCalls[0]) && toolCalls[0].arguments
+      ? this.stringifyTextResponse(toolCalls[0].arguments)
+      : undefined;
   }
 
   public static extractUsage(result: unknown): AiTextGenerationUsage | undefined {
     if (!this.isRecord(result) || !this.isRecord(result.usage)) return undefined;
 
-    const promptTokens: number | undefined = this.getOptionalNumber(
-      result.usage.prompt_tokens ?? result.usage.input_tokens,
-    );
-    const outputTokens: number | undefined = this.getOptionalNumber(
-      result.usage.completion_tokens ?? result.usage.output_tokens,
-    );
+    const promptTokens: number | undefined = this.getOptionalNumber(result.usage.prompt_tokens ?? result.usage.input_tokens);
+    const outputTokens: number | undefined = this.getOptionalNumber(result.usage.completion_tokens ?? result.usage.output_tokens);
     const totalTokens: number | undefined = this.getOptionalNumber(result.usage.total_tokens);
     const completionTokens: number | undefined = this.resolveBilledOutputTokens(promptTokens, outputTokens, totalTokens);
     if (promptTokens === undefined && completionTokens === undefined && totalTokens === undefined) return undefined;

@@ -90,21 +90,40 @@ class EmailSummaryOrchestrator {
       }
     }
     const rules = application.emailProcessingRules ?? [];
-    const matchedRule = rules.length > 0
-      ? EmailRulesUtil.evaluatePreProcessing(rules, { from, subject, body, hasAttachment })
-      : null;
+    const matchedRule = rules.length > 0 ? EmailRulesUtil.evaluatePreProcessing(rules, { from, subject, body, hasAttachment }) : null;
     if (matchedRule?.action.type === 'skip') {
       await this.processedDAO.markSkipped(application.applicationId, resolvedMessageId, `Matched rule: ${matchedRule.name}`);
       return null;
     }
     const suppressActions: boolean = matchedRule?.action.type === 'skip_actions';
-    const customInstruction: string | undefined = matchedRule?.action.type === 'prepend_instruction' ? matchedRule.action.instruction : undefined;
+    const customInstruction: string | undefined =
+      matchedRule?.action.type === 'prepend_instruction' ? matchedRule.action.instruction : undefined;
     const ragContext: string | undefined = await EmailContextUtil.prepareEmailRagContext({
-      env: this.env, application, enabledApplicationIds: this.enabledApplicationIds, subject, from, body,
-      sourceDocumentId: resolvedMessageId, sourceThreadId: threadId,
+      env: this.env,
+      application,
+      enabledApplicationIds: this.enabledApplicationIds,
+      subject,
+      from,
+      body,
+      sourceDocumentId: resolvedMessageId,
+      sourceThreadId: threadId,
     });
-    const summary: EmailProcessingSummary = await this.summarize(application, resolvedMessageId, subject, from, body, ragContext, customInstruction);
-    await this.auditLogger.logSummaryGenerated(application, resolvedMessageId, summary.summaryModel, summary.estimatedNeurons, options.retryAttempt);
+    const summary: EmailProcessingSummary = await this.summarize(
+      application,
+      resolvedMessageId,
+      subject,
+      from,
+      body,
+      ragContext,
+      customInstruction,
+    );
+    await this.auditLogger.logSummaryGenerated(
+      application,
+      resolvedMessageId,
+      summary.summaryModel,
+      summary.estimatedNeurons,
+      options.retryAttempt,
+    );
 
     let attachmentSummaries: string[] = [];
     let visionProposals: EmailActionProposal[] = [];
@@ -117,14 +136,23 @@ class EmailSummaryOrchestrator {
       try {
         const visionModel = ConfigurationManager.ai.getAttachmentVisionModel(this.env);
         const visionResult = await AttachmentAnalysisUtil.analyzeAttachments(
-          this.env.AI, visionModel, subject, from, attachmentImages, application.contentLanguage ?? null,
+          this.env.AI,
+          visionModel,
+          subject,
+          from,
+          attachmentImages,
+          application.contentLanguage ?? null,
         );
         attachmentSummaries = visionResult.attachmentSummaries;
         visionProposals = visionResult.actionProposals;
         const visionEstimate = await this.recordSummaryUsage(visionModel, visionResult.totalUsage, '', '');
         await this.auditLogger.logAttachmentAnalysis(
-          application, resolvedMessageId, visionModel,
-          attachmentImages.length, visionEstimate?.estimatedNeurons ?? 0, options.retryAttempt,
+          application,
+          resolvedMessageId,
+          visionModel,
+          attachmentImages.length,
+          visionEstimate?.estimatedNeurons ?? 0,
+          options.retryAttempt,
         );
       } catch (error) {
         console.warn('[EmailSummaryOrchestrator] Attachment vision analysis failed:', error);
@@ -133,12 +161,13 @@ class EmailSummaryOrchestrator {
 
     const mergedProposals: EmailActionProposal[] = [...summary.actionProposals, ...visionProposals];
     const processedMessage = await this.processedDAO.getByMessageId(application.applicationId, resolvedMessageId);
-    const actions: CreatedEmailAction[] = !suppressActions && processedMessage
-      ? await ActionService.createActionsForSummary(
-          { application, processedMessage, subject, from, body, proposals: mergedProposals, callbackBaseUrl: options.callbackBaseUrl },
-          this.env,
-        )
-      : [];
+    const actions: CreatedEmailAction[] =
+      !suppressActions && processedMessage
+        ? await ActionService.createActionsForSummary(
+            { application, processedMessage, subject, from, body, proposals: mergedProposals, callbackBaseUrl: options.callbackBaseUrl },
+            this.env,
+          )
+        : [];
     if (actions.length > 0) {
       await this.auditLogger.logActionsCreated(application, resolvedMessageId, actions, options.retryAttempt);
     }
@@ -148,23 +177,31 @@ class EmailSummaryOrchestrator {
     if (rules.length > 0 && this.env.OAUTH2_TOKEN_CACHE && this.env.OAUTH2_TOKEN_REFRESHERS) {
       const detectedActionTypes = summary.actionProposals.map((p) => p.type);
       const matchedPostRules = EmailRulesUtil.evaluatePostProcessing(rules, {
-        from, subject, body, hasAttachment, detectedActionTypes,
+        from,
+        subject,
+        body,
+        hasAttachment,
+        detectedActionTypes,
       });
       if (matchedPostRules.length > 0) {
         try {
-          await new ProviderOrganizationService(this.env as OrchestratorEnv & { OAUTH2_TOKEN_CACHE: KVNamespace; OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace }).executePostProcessingRules(
-            application, resolvedMessageId, matchedPostRules,
-          );
+          await new ProviderOrganizationService(
+            this.env as OrchestratorEnv & { OAUTH2_TOKEN_CACHE: KVNamespace; OAUTH2_TOKEN_REFRESHERS: DurableObjectNamespace },
+          ).executePostProcessingRules(application, resolvedMessageId, matchedPostRules);
         } catch (error: unknown) {
           console.error('[EmailSummaryOrchestrator] Post-processing rules failed:', error);
         }
       }
     }
     const locale: string | null = application.contentLanguage ?? null;
-    const summaryWithAttachments: string = attachmentSummaries.length > 0
-      ? `${summary.html}\n${this.renderAttachmentSection(attachmentSummaries, locale)}`
-      : summary.html;
-    return { summaryHtml: this.withActionSection(summaryWithAttachments, actions, locale), summaryModel: summary.summaryModel, actions, rawSummary: summary.rawSummary };
+    const summaryWithAttachments: string =
+      attachmentSummaries.length > 0 ? `${summary.html}\n${this.renderAttachmentSection(attachmentSummaries, locale)}` : summary.html;
+    return {
+      summaryHtml: this.withActionSection(summaryWithAttachments, actions, locale),
+      summaryModel: summary.summaryModel,
+      actions,
+      rawSummary: summary.rawSummary,
+    };
   }
 
   private async summarize(
@@ -181,11 +218,29 @@ class EmailSummaryOrchestrator {
     const input: string = EmailContentUtil.truncate(bodyText, maxChars);
     const timeZone: string | undefined = application.timeZone ?? undefined;
     const locale: string | null = application.contentLanguage ?? null;
-    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(subject, from, input, ragContext, timeZone, customInstruction, locale);
+    const promptText: string = EmailSummaryUtil.buildEmailSummaryPromptText(
+      subject,
+      from,
+      input,
+      ragContext,
+      timeZone,
+      customInstruction,
+      locale,
+    );
     let model: string = await this.resolveSummaryModel(promptText);
     let result: EmailSummaryResult;
     try {
-      result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction, locale);
+      result = await EmailSummaryUtil.summarizeEmailWithUsage(
+        this.env.AI,
+        model,
+        subject,
+        from,
+        input,
+        ragContext,
+        timeZone,
+        customInstruction,
+        locale,
+      );
     } catch (error: unknown) {
       if (!(error instanceof AiSummaryRetryableError)) throw error;
       await this.recordSummaryFailureUsage(model, error, promptText);
@@ -195,7 +250,17 @@ class EmailSummaryOrchestrator {
       await this.auditLogger.logModelFallback(application, sourceDocumentId, model, error);
       model = fallbackModel;
       try {
-        result = await EmailSummaryUtil.summarizeEmailWithUsage(this.env.AI, model, subject, from, input, ragContext, timeZone, customInstruction, locale);
+        result = await EmailSummaryUtil.summarizeEmailWithUsage(
+          this.env.AI,
+          model,
+          subject,
+          from,
+          input,
+          ragContext,
+          timeZone,
+          customInstruction,
+          locale,
+        );
       } catch (fallbackError: unknown) {
         if (fallbackError instanceof AiSummaryRetryableError) {
           await this.recordSummaryFailureUsage(model, fallbackError, promptText);
@@ -203,9 +268,21 @@ class EmailSummaryOrchestrator {
         throw fallbackError;
       }
     }
-    const usageEstimate: AiTextGenerationUsageEstimate | undefined = await this.recordSummaryUsage(model, result.usage, promptText, result.summary);
+    const usageEstimate: AiTextGenerationUsageEstimate | undefined = await this.recordSummaryUsage(
+      model,
+      result.usage,
+      promptText,
+      result.summary,
+    );
     const rawSummary = { gist: result.emailSummary?.gist ?? '', keyDetails: result.emailSummary?.keyDetails ?? [] };
-    if (!ConfigurationManager.getDebugMode(this.env)) return { html: result.summary, actionProposals: result.actionProposals ?? [], rawSummary, summaryModel: model, estimatedNeurons: usageEstimate?.estimatedNeurons ?? 0 };
+    if (!ConfigurationManager.getDebugMode(this.env))
+      return {
+        html: result.summary,
+        actionProposals: result.actionProposals ?? [],
+        rawSummary,
+        summaryModel: model,
+        estimatedNeurons: usageEstimate?.estimatedNeurons ?? 0,
+      };
 
     const applicationName: string = application.displayName || application.applicationId;
     return {
@@ -290,7 +367,7 @@ class EmailSummaryOrchestrator {
   private async recordSummaryFailureUsage(model: string, error: AiSummaryRetryableError, fallbackInputText: string): Promise<void> {
     await this.recordSummaryUsage(
       model,
-      error.aiUsage && typeof error.aiUsage === 'object' ? (error.aiUsage) : undefined,
+      error.aiUsage && typeof error.aiUsage === 'object' ? error.aiUsage : undefined,
       fallbackInputText,
       error.aiOutputText ?? '',
     );

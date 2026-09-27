@@ -249,7 +249,8 @@ Local-only: `DEV_AUTH_EMAIL` (no default) bypasses Cloudflare Access for local d
 
 ```bash
 pnpm install
-pnpm -r typecheck && pnpm run lint && pnpm run test:coverage && pnpm run test:integration
+pnpm -r typecheck && pnpm run format:check && pnpm run lint && pnpm run test:coverage && pnpm run test:integration
+pnpm run lint:fix   # autofix lint + formatting
 pnpm run typegen   # after changing wrangler bindings
 pnpm --filter @mail-otter/web dev     # vite dev server
 pnpm --filter @mail-otter/web build

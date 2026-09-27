@@ -112,11 +112,7 @@ describe('OutlookWebhookService', () => {
       (WebhookSecurityUtil.matchesSecret as ReturnType<typeof vi.fn>).mockResolvedValue(true);
 
       const env = makeEnv();
-      await OutlookWebhookService.handleNotifications(
-        'app-1',
-        [{ subscriptionId: 'ext-sub-1', clientState: 'state' }],
-        env,
-      );
+      await OutlookWebhookService.handleNotifications('app-1', [{ subscriptionId: 'ext-sub-1', clientState: 'state' }], env);
 
       expect(env.EMAIL_EVENTS_QUEUE.send).not.toHaveBeenCalled();
     });
@@ -142,11 +138,7 @@ describe('OutlookWebhookService', () => {
       (WebhookSecurityUtil.matchesSecret as ReturnType<typeof vi.fn>).mockResolvedValue(false);
 
       await expect(
-        OutlookWebhookService.handleNotifications(
-          'app-1',
-          [{ subscriptionId: 'ext-sub-1', clientState: 'bad-state' }],
-          makeEnv() as never,
-        ),
+        OutlookWebhookService.handleNotifications('app-1', [{ subscriptionId: 'ext-sub-1', clientState: 'bad-state' }], makeEnv() as never),
       ).rejects.toThrow('Invalid Outlook clientState.');
     });
 
@@ -184,11 +176,9 @@ describe('OutlookWebhookService', () => {
     it('marks error for missed lifecycle event', async () => {
       mockGetByExternalSubscriptionId.mockResolvedValue(makeSubscription());
 
-      await OutlookWebhookService.handleLifecycleNotifications(
-        'app-1',
-        [{ subscriptionId: 'ext-sub-1', lifecycleEvent: 'missed' }],
-        { DB: {} as D1Database },
-      );
+      await OutlookWebhookService.handleLifecycleNotifications('app-1', [{ subscriptionId: 'ext-sub-1', lifecycleEvent: 'missed' }], {
+        DB: {} as D1Database,
+      });
 
       expect(mockMarkError).toHaveBeenCalledWith('sub-1', 'Outlook lifecycle event: missed');
     });
@@ -209,11 +199,7 @@ describe('OutlookWebhookService', () => {
       mockGetByExternalSubscriptionId.mockResolvedValue(undefined);
 
       await expect(
-        OutlookWebhookService.handleLifecycleNotifications(
-          'app-1',
-          [{ subscriptionId: 'ext-sub-1' }],
-          { DB: {} as D1Database },
-        ),
+        OutlookWebhookService.handleLifecycleNotifications('app-1', [{ subscriptionId: 'ext-sub-1' }], { DB: {} as D1Database }),
       ).rejects.toThrow('Unknown Outlook subscription.');
     });
   });

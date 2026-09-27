@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatService } from '@mail-otter/backend-services/chat';
 
-const {
-  mockIncrementUsage,
-  mockGetEstimatedNeurons,
-} = vi.hoisted(() => ({
+const { mockIncrementUsage, mockGetEstimatedNeurons } = vi.hoisted(() => ({
   mockIncrementUsage: vi.fn(),
   mockGetEstimatedNeurons: vi.fn().mockResolvedValue(0),
 }));
@@ -40,18 +37,18 @@ function makeMatch(overrides?: Partial<VectorizeMatch>): VectorizeMatch {
     },
     values: [],
     ...overrides,
-  } as unknown as VectorizeMatch;
+  };
 }
 
 function makeEnv(overrides?: Partial<ChatTestEnv>): ChatTestEnv {
   return {
-    DB: {} as unknown as D1Database,
+    DB: {},
     AI: {
       run: vi.fn().mockResolvedValue({ response: 'Your package arrives Thursday.' }),
-    } as unknown as Ai,
+    },
     EMAIL_CONTEXT_INDEX: {
       query: vi.fn().mockResolvedValue({ matches: [makeMatch()] }),
-    } as unknown as Vectorize,
+    },
     AI_EMBEDDING_MODEL: '@cf/baai/bge-m3',
     AI_SUMMARY_MODEL: '@cf/openai/gpt-oss-20b',
     AI_DAILY_NEURON_FALLBACK_THRESHOLD: '10000',
@@ -118,18 +115,16 @@ describe('ChatService', () => {
   it('throws BadRequestError when EMAIL_CONTEXT_INDEX is not bound', async () => {
     const env = makeEnv({ EMAIL_CONTEXT_INDEX: undefined });
 
-    await expect(
-      ChatService.chat({ env, userEmail: 'user@example.com', query: 'test' }),
-    ).rejects.toThrow('Chat requires email context indexing');
+    await expect(ChatService.chat({ env, userEmail: 'user@example.com', query: 'test' })).rejects.toThrow(
+      'Chat requires email context indexing',
+    );
   });
 
   it('throws BadRequestError when daily quota is exceeded', async () => {
     const env = makeEnv({ AI_DAILY_NEURON_FALLBACK_THRESHOLD: '100' });
     mockGetEstimatedNeurons.mockResolvedValueOnce(200);
 
-    await expect(
-      ChatService.chat({ env, userEmail: 'user@example.com', query: 'test' }),
-    ).rejects.toThrow('Daily AI usage quota');
+    await expect(ChatService.chat({ env, userEmail: 'user@example.com', query: 'test' })).rejects.toThrow('Daily AI usage quota');
   });
 
   it('sets truncated:true when history exceeds max', async () => {

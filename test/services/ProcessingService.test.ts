@@ -99,10 +99,13 @@ describe('ProcessingService', () => {
         { DB: {} as D1Database },
       );
 
-      expect(mockListTaskRunsForUser).toHaveBeenCalledWith('user@example.com', expect.objectContaining({
-        taskType: 'calendar_sync',
-        applicationId: 'app-1',
-      }));
+      expect(mockListTaskRunsForUser).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.objectContaining({
+          taskType: 'calendar_sync',
+          applicationId: 'app-1',
+        }),
+      );
       expect(result.runs).toHaveLength(0);
     });
 
@@ -113,9 +116,12 @@ describe('ProcessingService', () => {
         { DB: {} as D1Database },
       );
 
-      expect(mockListTaskRunsForUser).toHaveBeenCalledWith('user@example.com', expect.objectContaining({
-        latestPerType: true,
-      }));
+      expect(mockListTaskRunsForUser).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.objectContaining({
+          latestPerType: true,
+        }),
+      );
     });
 
     it('sets latestPerType: false when taskType is specified', async () => {
@@ -125,9 +131,12 @@ describe('ProcessingService', () => {
         { DB: {} as D1Database },
       );
 
-      expect(mockListTaskRunsForUser).toHaveBeenCalledWith('user@example.com', expect.objectContaining({
-        latestPerType: false,
-      }));
+      expect(mockListTaskRunsForUser).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.objectContaining({
+          latestPerType: false,
+        }),
+      );
     });
   });
 
@@ -166,23 +175,23 @@ describe('ProcessingService', () => {
 
   describe('triggerTask', () => {
     it('throws BadRequestError for unsupported task type', async () => {
-      await expect(
-        ProcessingService.triggerTask('user@example.com', 'invalid_task', 'app-1', makeEnv() as any),
-      ).rejects.toThrow(BadRequestError);
+      await expect(ProcessingService.triggerTask('user@example.com', 'invalid_task', 'app-1', makeEnv() as any)).rejects.toThrow(
+        BadRequestError,
+      );
     });
 
     it('throws NotFoundError when application not found', async () => {
       mockGetByIdForUser.mockResolvedValue(null);
 
-      await expect(
-        ProcessingService.triggerTask('user@example.com', 'calendar_sync', 'app-1', makeEnv() as any),
-      ).rejects.toThrow(NotFoundError);
+      await expect(ProcessingService.triggerTask('user@example.com', 'calendar_sync', 'app-1', makeEnv() as any)).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it('triggers calendar_sync task successfully', async () => {
       mockGetByIdForUser.mockResolvedValue(makeApplication());
 
-      await ProcessingService.triggerTask('user@example.com', 'calendar_sync', 'app-1', makeEnv() as any);
+      await ProcessingService.triggerTask('user@example.com', 'calendar_sync', 'app-1', makeEnv());
 
       expect(mockGetAccessToken).toHaveBeenCalled();
       expect(mockSyncForApplication).toHaveBeenCalled();
@@ -191,7 +200,7 @@ describe('ProcessingService', () => {
     it('triggers action_status_sync with package and flight APIs', async () => {
       mockGetByIdForUser.mockResolvedValue(makeApplication());
 
-      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv() as any);
+      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv());
 
       expect(mockSyncPackageActions).toHaveBeenCalledWith('app-1', 'pkg-api-key');
       expect(mockSyncFlightActions).toHaveBeenCalledWith('app-1', 'flt-api-key');
@@ -202,7 +211,7 @@ describe('ProcessingService', () => {
       vi.mocked(ConfigurationManager.digest.getPackageTrackingApiKey).mockReturnValueOnce('');
       mockGetByIdForUser.mockResolvedValue(makeApplication());
 
-      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv() as any);
+      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv());
 
       expect(mockSyncPackageActions).not.toHaveBeenCalled();
     });
@@ -212,7 +221,7 @@ describe('ProcessingService', () => {
       vi.mocked(ConfigurationManager.digest.getFlightTrackingApiKey).mockReturnValueOnce('');
       mockGetByIdForUser.mockResolvedValue(makeApplication());
 
-      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv() as any);
+      await ProcessingService.triggerTask('user@example.com', 'action_status_sync', 'app-1', makeEnv());
 
       expect(mockSyncFlightActions).not.toHaveBeenCalled();
     });

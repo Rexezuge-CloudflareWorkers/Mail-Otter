@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ConnectedApplicationDAO,
-  OAuth2AccessTokenCacheDAO,
-  OAuth2AccessTokenRefreshStatusDAO,
-} from '@mail-otter/backend-data/dao';
+import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRefreshStatusDAO } from '@mail-otter/backend-data/dao';
 import { OAuth2TokenRefreshWorker } from '@mail-otter/background';
 
 function createEnv(): Env {
@@ -27,14 +23,12 @@ describe('OAuth2TokenRefreshWorker request handling', () => {
     const w = worker();
     const notFound = await w.fetch(new Request('https://x/nope', { method: 'POST' }));
     expect(notFound.status).toBe(404);
-    const wrongMethod = await w.fetch(new Request('https://x/refresh', { method: 'GET' }));
+    const wrongMethod = await w.fetch(new Request('https://x/refresh'));
     expect(wrongMethod.status).toBe(405);
   });
 
   it('returns 400 when required fields are missing', async () => {
-    const response = await worker().fetch(
-      new Request('https://x/refresh', { method: 'POST', body: JSON.stringify({}) }),
-    );
+    const response = await worker().fetch(new Request('https://x/refresh', { method: 'POST', body: JSON.stringify({}) }));
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining('applicationId') });
   });

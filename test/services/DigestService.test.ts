@@ -100,7 +100,7 @@ describe('DigestService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new DigestService(makeEnv() as any, 'master-key', 'action-key');
+    service = new DigestService(makeEnv(), 'master-key', 'action-key');
     mockListPendingActionsByTypes.mockResolvedValue([]);
     mockListEventsForRange.mockResolvedValue([]);
   });
@@ -179,8 +179,8 @@ describe('DigestService', () => {
     it('filters bills by due date within 7 days', async () => {
       mockGetConfig.mockResolvedValue(makeEnabledConfig());
       const now = Math.floor(Date.now() / 1000);
-      const soonDueDate = new Date((now + 3 * 86400) * 1000).toISOString().split('T')[0];
-      const lateDueDate = new Date((now + 30 * 86400) * 1000).toISOString().split('T')[0];
+      const soonDueDate = new Date((now + 3 * 86_400) * 1000).toISOString().split('T', 1)[0];
+      const lateDueDate = new Date((now + 30 * 86_400) * 1000).toISOString().split('T', 1)[0];
 
       const soonBill = {
         actionId: 'bill-1',
@@ -198,8 +198,7 @@ describe('DigestService', () => {
       };
 
       mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
-        if (types.includes('finance.pay_bill')) return Promise.resolve([soonBill, lateBill]);
-        return Promise.resolve([]);
+        return types.includes('finance.pay_bill') ? Promise.resolve([soonBill, lateBill]) : Promise.resolve([]);
       });
       mockListEventsForRange.mockResolvedValue([]);
 
@@ -222,8 +221,7 @@ describe('DigestService', () => {
       };
 
       mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
-        if (types.includes('finance.pay_bill')) return Promise.resolve([noDueDateBill]);
-        return Promise.resolve([]);
+        return types.includes('finance.pay_bill') ? Promise.resolve([noDueDateBill]) : Promise.resolve([]);
       });
       mockListEventsForRange.mockResolvedValue([]);
 
@@ -255,8 +253,7 @@ describe('DigestService', () => {
       };
 
       mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
-        if (types.includes('appointment.confirm')) return Promise.resolve([soonAppt, lateAppt]);
-        return Promise.resolve([]);
+        return types.includes('appointment.confirm') ? Promise.resolve([soonAppt, lateAppt]) : Promise.resolve([]);
       });
 
       await service.sendDigest(makeApplication() as any, 'access-token');
@@ -276,8 +273,7 @@ describe('DigestService', () => {
       };
 
       mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
-        if (types.includes('appointment.confirm')) return Promise.resolve([noTimAppt]);
-        return Promise.resolve([]);
+        return types.includes('appointment.confirm') ? Promise.resolve([noTimAppt]) : Promise.resolve([]);
       });
 
       await service.sendDigest(makeApplication() as any, 'access-token');
@@ -298,8 +294,7 @@ describe('DigestService', () => {
       };
 
       mockListPendingActionsByTypes.mockImplementation((appId: string, types: string[]) => {
-        if (types.includes('appointment.confirm')) return Promise.resolve([invalidAppt]);
-        return Promise.resolve([]);
+        return types.includes('appointment.confirm') ? Promise.resolve([invalidAppt]) : Promise.resolve([]);
       });
 
       await service.sendDigest(makeApplication() as any, 'access-token');

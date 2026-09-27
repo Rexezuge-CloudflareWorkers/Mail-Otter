@@ -1,4 +1,10 @@
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
 
 interface ProviderFolder {
@@ -78,13 +84,21 @@ interface IEmailProvider {
 
   renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, expiresAt: number | null): Promise<ProviderWatchResult>;
 
-  pollNewMessages(credentials: AnyProviderCredentials, cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }>;
+  pollNewMessages(
+    credentials: AnyProviderCredentials,
+    cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }>;
 
   getProviderUrl(document: ApplicationContextDocumentSource, application: ConnectedApplicationMetadata): string;
 
   createCalendarEvent(accessToken: string, payload: CalendarAddEventActionPayload): Promise<EmailActionResult>;
 
-  createDraftReply(accessToken: string, messageId: string, fromEmail: string, payload: EmailDraftReplyActionPayload): Promise<EmailActionResult>;
+  createDraftReply(
+    accessToken: string,
+    messageId: string,
+    fromEmail: string,
+    payload: EmailDraftReplyActionPayload,
+  ): Promise<EmailActionResult>;
 
   applyLabel?(accessToken: string, messageId: string, labelName: string): Promise<void>;
   archiveMessage?(accessToken: string, messageId: string): Promise<void>;

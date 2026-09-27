@@ -18,8 +18,8 @@ describe('SystemClock', () => {
   it('advances with the wall clock', () => {
     const clock = new SystemClock();
     const before = clock.nowMs();
-    vi.advanceTimersByTime(5_000);
-    expect(clock.nowMs()).toBe(before + 5_000);
+    vi.advanceTimersByTime(5000);
+    expect(clock.nowMs()).toBe(before + 5000);
   });
 });
 

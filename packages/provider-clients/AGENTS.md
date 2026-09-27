@@ -22,6 +22,7 @@ Do not reintroduce password signup or user-managed refresh-token paste flows.
 `$filter=internetMessageHeaders/any(...)` → 400. Workaround in `OutlookProviderUtil.findSummaryMessageInFolder`: embed a hex marker in the reply subject and filter on `startswith(subject, '[<marker>]')` (`$filter` on `subject` IS supported).
 
 Rules when modifying `sendSelfSummaryReply` / message-finding logic:
+
 - Marker = `deriveMessageMarker` (SHA-256 of message ID, first 8 bytes as hex).
 - Send subject: `[${marker}] Re: ${originalSubject}`; filter: `startswith(subject, '[${marker}]')`.
 - `X-Mail-Otter-Summary` header still set on outgoing messages for reads via `$select`, not for filtering.
@@ -39,6 +40,7 @@ Sequence: `createReply(sink addr)` → `send` → `copy to inbox` → `delete fr
 ## Attachment Fetching per Provider
 
 Attachment fetching lives in Layer 3 (`EmailProcessingUtil` in `backend-services`), calling into these clients:
+
 - Gmail: `GmailProviderUtil.getImageAttachments()` — walks `payload.parts`, fetches via Attachments API, base64url → base64.
 - Outlook: `OutlookProviderUtil.getImageAttachments()` — `GET .../messages/{id}/attachments?$select=...`.
 - Fastmail: `FastmailProviderUtil.downloadImageAttachments()` — JMAP `Email/get` attachments + download endpoint.

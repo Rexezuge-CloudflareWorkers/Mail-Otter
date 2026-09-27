@@ -30,19 +30,15 @@ describe('User rules API', () => {
     if (aesSecret) {
       await adminSecretsStore(aesSecret).create('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
     }
-    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`).bind(
-      TEST_EMAIL,
-      Math.floor(Date.now() / 1000),
-      Math.floor(Date.now() / 1000),
-    ).run();
+    await env.DB.prepare(`INSERT OR IGNORE INTO users (email, created_at, updated_at) VALUES (?, ?, ?)`)
+      .bind(TEST_EMAIL, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000))
+      .run();
   });
 
   it('starts with no rules then persists a rule round-trip', async () => {
     const applicationId = await createApplication();
 
-    const empty: Response = await SELF.fetch(
-      `http://localhost/user/application/rules?applicationId=${applicationId}`,
-    );
+    const empty: Response = await SELF.fetch(`http://localhost/user/application/rules?applicationId=${applicationId}`);
     expect(empty.status).toBe(200);
     const emptyBody = (await empty.json()) as { rules: unknown[] };
     expect(emptyBody.rules).toEqual([]);
@@ -61,9 +57,7 @@ describe('User rules API', () => {
     });
     expect(updated.status).toBe(200);
 
-    const reread: Response = await SELF.fetch(
-      `http://localhost/user/application/rules?applicationId=${applicationId}`,
-    );
+    const reread: Response = await SELF.fetch(`http://localhost/user/application/rules?applicationId=${applicationId}`);
     expect(reread.status).toBe(200);
     const rereadBody = (await reread.json()) as { rules: Array<{ ruleId: string; name: string }> };
     expect(rereadBody.rules).toHaveLength(1);

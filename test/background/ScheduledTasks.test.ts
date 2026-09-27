@@ -125,9 +125,11 @@ function baseEnv(extra: Record<string, unknown> = {}) {
 }
 
 async function run(task: { handleScheduledTask?: unknown }, env: never) {
-  const fn = (task as unknown as {
-    handleScheduledTask(event: unknown, env: never, ctx: unknown): Promise<unknown>;
-  }).handleScheduledTask.bind(task);
+  const fn = (
+    task as unknown as {
+      handleScheduledTask(event: unknown, env: never, ctx: unknown): Promise<unknown>;
+    }
+  ).handleScheduledTask.bind(task);
   return fn({}, env, {});
 }
 
@@ -158,18 +160,13 @@ describe('ImapPollingTask', () => {
   });
 
   it('polls via oauth2 credentials and enqueues new messages', async () => {
-    mockListActiveImapSubscriptions.mockResolvedValue([
-      { subscriptionId: 'sub-1', applicationId: 'app-1', imapCursor: '5' },
-    ]);
+    mockListActiveImapSubscriptions.mockResolvedValue([{ subscriptionId: 'sub-1', applicationId: 'app-1', imapCursor: '5' }]);
     mockGetById.mockResolvedValue(connectedApp());
     mockPollNewMessages.mockResolvedValue({ messages: [{ uid: 6 }, { uid: 7 }], newCursor: '7' });
     const env = baseEnv();
     const summary = (await run(new ImapPollingTask(), env)) as { itemsProcessed: number };
     expect(mockGetAccessToken).toHaveBeenCalledWith('app-1');
-    expect(mockPollNewMessages).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'oauth2', accessToken: 'token-123' }),
-      '5',
-    );
+    expect(mockPollNewMessages).toHaveBeenCalledWith(expect.objectContaining({ type: 'oauth2', accessToken: 'token-123' }), '5');
     expect(env.EMAIL_EVENTS_QUEUE.send).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'imap-notification', applicationId: 'app-1', messageUids: [6, 7] }),
     );
@@ -179,9 +176,7 @@ describe('ImapPollingTask', () => {
   });
 
   it('skips cursor update when no new messages arrive', async () => {
-    mockListActiveImapSubscriptions.mockResolvedValue([
-      { subscriptionId: 'sub-1', applicationId: 'app-1', imapCursor: null },
-    ]);
+    mockListActiveImapSubscriptions.mockResolvedValue([{ subscriptionId: 'sub-1', applicationId: 'app-1', imapCursor: null }]);
     mockGetById.mockResolvedValue(connectedApp());
     mockPollNewMessages.mockResolvedValue({ messages: [], newCursor: null });
     const env = baseEnv();
@@ -204,10 +199,7 @@ describe('ImapPollingTask', () => {
     mockPollNewMessages.mockResolvedValue({ messages: [], newCursor: null });
     await run(new ImapPollingTask(), baseEnv());
     expect(mockGetAccessToken).not.toHaveBeenCalled();
-    expect(mockPollNewMessages).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'imap-password', username: 'u' }),
-      null,
-    );
+    expect(mockPollNewMessages).toHaveBeenCalledWith(expect.objectContaining({ type: 'imap-password', username: 'u' }), null);
   });
 
   it('records failures for incomplete credentials and missing applications', async () => {
@@ -216,8 +208,7 @@ describe('ImapPollingTask', () => {
       { subscriptionId: 'gone', applicationId: 'app-gone' },
     ]);
     mockGetById.mockImplementation(async (id: string) => {
-      if (id === 'app-gone') return undefined;
-      return connectedApp({ applicationId: 'app-bad', connectionMethod: 'imap-password' });
+      return id === 'app-gone' ? undefined : connectedApp({ applicationId: 'app-bad', connectionMethod: 'imap-password' });
     });
     const summary = (await run(new ImapPollingTask(), baseEnv())) as {
       itemsProcessed: number;

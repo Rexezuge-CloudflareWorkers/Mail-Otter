@@ -36,7 +36,9 @@ class UpdateApplicationContextRoute extends IUserRoute<
       }
     }
     return {
-      application: await scope.get(Tokens.ContextService).updateContextSettings(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope
+        .get(Tokens.ContextService)
+        .updateContextSettings(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
     };
   }
 }

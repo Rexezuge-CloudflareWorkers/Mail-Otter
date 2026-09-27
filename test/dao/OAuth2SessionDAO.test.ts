@@ -4,7 +4,7 @@ const mockRun = vi.fn();
 const mockFirst = vi.fn();
 
 vi.mock('@mail-otter/shared/utils', async (importOriginal) => {
-  const actual = await importOriginal() as typeof import('@mail-otter/shared/utils');
+  const actual = await importOriginal();
   return {
     ...actual,
     UUIDUtil: {

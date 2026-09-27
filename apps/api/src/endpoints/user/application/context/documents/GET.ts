@@ -25,7 +25,11 @@ class ListApplicationContextDocumentsRoute extends IUserRoute<
     cxt: RouteContext<ListApplicationContextDocumentsEnv>,
   ): Promise<ListApplicationContextDocumentsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ContextService).listDocuments(this.getAuthenticatedUserEmailAddress(cxt), { applicationId: this.getQueryParam(request, 'applicationId'), status: this.getQueryParam(request, 'status') as ApplicationContextDocumentStatus | undefined, cursor: this.getQueryParam(request, 'cursor') });
+    return scope.get(Tokens.ContextService).listDocuments(this.getAuthenticatedUserEmailAddress(cxt), {
+      applicationId: this.getQueryParam(request, 'applicationId'),
+      status: this.getQueryParam(request, 'status') as ApplicationContextDocumentStatus | undefined,
+      cursor: this.getQueryParam(request, 'cursor'),
+    });
   }
 }
 

@@ -78,7 +78,7 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
     drive: { getMaxFilesPerSync: vi.fn(() => 20) },
     attachment: { getMaxSizeBytes: vi.fn(() => 2_097_152) },
     getAiEmbeddingModel: vi.fn(() => '@cf/baai/bge-base-en-v1.5'),
-    getMaxContextMemoryChars: vi.fn(() => 10000),
+    getMaxContextMemoryChars: vi.fn(() => 10_000),
   },
 }));
 
@@ -120,8 +120,8 @@ const MOCK_VECTORIZE = {
 function makeEnv(extra: Record<string, unknown> = {}) {
   return {
     DB: {} as D1Database,
-    AI: { run: vi.fn(async () => ({ data: [[0.1, 0.2, 0.3]] })) } as unknown as Ai,
-    EMAIL_CONTEXT_INDEX: MOCK_VECTORIZE as unknown as VectorizeIndex,
+    AI: { run: vi.fn(async () => ({ data: [[0.1, 0.2, 0.3]] })) },
+    EMAIL_CONTEXT_INDEX: MOCK_VECTORIZE,
     AES_ENCRYPTION_KEY_SECRET: { get: vi.fn(async () => 'master-key') },
     ...extra,
   } as ConstructorParameters<typeof OneDriveIngestionService>[0];
@@ -131,7 +131,12 @@ function service(extra: Record<string, unknown> = {}) {
   return new OneDriveIngestionService(makeEnv(extra));
 }
 
-const EMPTY_DELTA = { items: [], deletedIds: [], nextLink: null, deltaLink: 'https://graph.microsoft.com/v1.0/me/drive/root/delta?token=new' };
+const EMPTY_DELTA = {
+  items: [],
+  deletedIds: [],
+  nextLink: null,
+  deltaLink: 'https://graph.microsoft.com/v1.0/me/drive/root/delta?token=new',
+};
 
 describe('OneDriveIngestionService', () => {
   beforeEach(() => {
@@ -218,11 +223,7 @@ describe('OneDriveIngestionService', () => {
 
     await service().ingestForApplication(MOCK_APPLICATION, ACCESS_TOKEN);
 
-    expect(mockSetProviderConfig).toHaveBeenCalledWith(
-      MOCK_APPLICATION.applicationId,
-      'onedrive_delta_link',
-      EMPTY_DELTA.deltaLink,
-    );
+    expect(mockSetProviderConfig).toHaveBeenCalledWith(MOCK_APPLICATION.applicationId, 'onedrive_delta_link', EMPTY_DELTA.deltaLink);
   });
 
   it('indexes a plain text file from delta', async () => {

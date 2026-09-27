@@ -70,7 +70,10 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     setIsBusy(true);
     try {
       const data = await appSvc.saveApplication(applicationForm);
-      showNotice('success', applicationForm.applicationId ? t('toasts.mailboxUpdated', 'Mailbox Updated.') : t('toasts.mailboxCreated', 'Mailbox Created.'));
+      showNotice(
+        'success',
+        applicationForm.applicationId ? t('toasts.mailboxUpdated', 'Mailbox Updated.') : t('toasts.mailboxCreated', 'Mailbox Created.'),
+      );
       resetForm();
       await loadApplications();
       setSelectedApplicationId(data.application.applicationId);
@@ -140,7 +143,12 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     try {
       const data = await appSvc.updateContextIndexing(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? t('toasts.contextIndexingEnabled', 'Context Indexing Enabled.') : t('toasts.contextIndexingDisabled', 'Context Indexing Disabled.'));
+      showNotice(
+        'success',
+        enabled
+          ? t('toasts.contextIndexingEnabled', 'Context Indexing Enabled.')
+          : t('toasts.contextIndexingDisabled', 'Context Indexing Disabled.'),
+      );
       onContextChanged?.();
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.contextUpdateFailed', 'Unable To Update Context Setting.'));
@@ -154,9 +162,17 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     try {
       const data = await appSvc.updateRagRetrieval(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? t('toasts.contextRetrievalEnabled', 'Context Retrieval Enabled.') : t('toasts.contextRetrievalDisabled', 'Context Retrieval Disabled.'));
+      showNotice(
+        'success',
+        enabled
+          ? t('toasts.contextRetrievalEnabled', 'Context Retrieval Enabled.')
+          : t('toasts.contextRetrievalDisabled', 'Context Retrieval Disabled.'),
+      );
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : t('toasts.contextRetrievalFailed', 'Unable To Update Context Retrieval Setting.'));
+      showNotice(
+        'error',
+        e instanceof Error ? e.message : t('toasts.contextRetrievalFailed', 'Unable To Update Context Retrieval Setting.'),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -167,9 +183,17 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     try {
       const data = await appSvc.updateAttachmentVisionEnabled(applicationId, enabled);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', enabled ? t('toasts.attachmentVisionEnabled', 'Attachment Vision Enabled.') : t('toasts.attachmentVisionDisabled', 'Attachment Vision Disabled.'));
+      showNotice(
+        'success',
+        enabled
+          ? t('toasts.attachmentVisionEnabled', 'Attachment Vision Enabled.')
+          : t('toasts.attachmentVisionDisabled', 'Attachment Vision Disabled.'),
+      );
     } catch (e) {
-      showNotice('error', e instanceof Error ? e.message : t('toasts.attachmentVisionFailed', 'Unable To Update Attachment Vision Setting.'));
+      showNotice(
+        'error',
+        e instanceof Error ? e.message : t('toasts.attachmentVisionFailed', 'Unable To Update Attachment Vision Setting.'),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -180,7 +204,12 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     try {
       const data = await appSvc.updateMaxContextDocuments(applicationId, maxContextDocuments);
       setApplications((c) => c.map((a) => (a.applicationId === data.application.applicationId ? data.application : a)));
-      showNotice('success', maxContextDocuments == null ? t('toasts.documentLimitReset', 'Document Limit Reset.') : t('toasts.documentLimitSet', 'Document Limit Set To {{count}}.', { count: maxContextDocuments }));
+      showNotice(
+        'success',
+        maxContextDocuments == null
+          ? t('toasts.documentLimitReset', 'Document Limit Reset.')
+          : t('toasts.documentLimitSet', 'Document Limit Set To {{count}}.', { count: maxContextDocuments }),
+      );
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.documentLimitFailed', 'Unable To Update Document Limit.'));
     } finally {
@@ -277,7 +306,9 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
       onContextChanged?.();
       showNotice(
         data.deletionRun.status === 'accepted' ? 'success' : 'error',
-        data.deletionRun.status === 'accepted' ? t('toasts.contextDeletionAccepted', 'Context Documents Deletion Accepted.') : data.deletionRun.errorMessage || t('toasts.contextDeletionFailed', 'Context Deletion Failed.'),
+        data.deletionRun.status === 'accepted'
+          ? t('toasts.contextDeletionAccepted', 'Context Documents Deletion Accepted.')
+          : data.deletionRun.errorMessage || t('toasts.contextDeletionFailed', 'Context Deletion Failed.'),
       );
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.contextDeleteFailed', 'Unable To Delete Context Documents.'));
@@ -302,7 +333,9 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     setIsBusy(true);
     try {
       const data = await appSvc.updateRules(applicationId, rules);
-      setApplications((apps) => apps.map((a) => (a.applicationId === applicationId ? { ...a, emailProcessingRules: data.application.emailProcessingRules } : a)));
+      setApplications((apps) =>
+        apps.map((a) => (a.applicationId === applicationId ? { ...a, emailProcessingRules: data.application.emailProcessingRules } : a)),
+      );
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.rulesSaveFailed', 'Unable To Update Rules.'));
     } finally {

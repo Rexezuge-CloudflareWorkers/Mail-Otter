@@ -155,11 +155,7 @@ function makeEnv(extra: Record<string, unknown> = {}) {
 }
 
 function call(route: unknown, request: unknown, env: never, cxt: never) {
-  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(
-    request,
-    env,
-    cxt,
-  );
+  return (route as { handleRequest(request: unknown, env: never, cxt: never): Promise<unknown> }).handleRequest(request, env, cxt);
 }
 
 const SUMMARY = {
@@ -190,19 +186,14 @@ describe('user routes', () => {
   });
 
   it('PUT /user/me rejects missing preferredLanguage', async () => {
-    await expect(
-      call(new UpdateCurrentUserRoute(), { raw: new Request('https://x/user/me') }, makeEnv(), makeCxt()),
-    ).rejects.toThrow(BadRequestError);
+    await expect(call(new UpdateCurrentUserRoute(), { raw: new Request('https://x/user/me') }, makeEnv(), makeCxt())).rejects.toThrow(
+      BadRequestError,
+    );
   });
 
   it('PUT /user/me rejects unsupported languages', async () => {
     await expect(
-      call(
-        new UpdateCurrentUserRoute(),
-        { raw: new Request('https://x/user/me'), preferredLanguage: 'english' },
-        makeEnv(),
-        makeCxt(),
-      ),
+      call(new UpdateCurrentUserRoute(), { raw: new Request('https://x/user/me'), preferredLanguage: 'english' }, makeEnv(), makeCxt()),
     ).rejects.toThrow(BadRequestError);
   });
 
@@ -262,12 +253,7 @@ describe('user routes', () => {
       body: JSON.stringify({ snoozedUntil: '2026-09-20T10:00:00Z' }),
     });
     await call(new SnoozeEmailActionRoute(), { raw }, makeEnv(), makeCxt({ actionId: 'a-1' }));
-    expect(mockSnoozeAction).toHaveBeenCalledWith(
-      expect.anything(),
-      'a-1',
-      'user@example.com',
-      new Date('2026-09-20T10:00:00Z'),
-    );
+    expect(mockSnoozeAction).toHaveBeenCalledWith(expect.anything(), 'a-1', 'user@example.com', new Date('2026-09-20T10:00:00Z'));
   });
 
   it('POST /user/actions/:actionId/snooze requires actionId', async () => {
@@ -275,9 +261,7 @@ describe('user routes', () => {
       method: 'POST',
       body: JSON.stringify({ snoozedUntil: null }),
     });
-    await expect(call(new SnoozeEmailActionRoute(), { raw }, makeEnv(), makeCxt({ actionId: undefined }))).rejects.toThrow(
-      BadRequestError,
-    );
+    await expect(call(new SnoozeEmailActionRoute(), { raw }, makeEnv(), makeCxt({ actionId: undefined }))).rejects.toThrow(BadRequestError);
   });
 
   it('POST /user/actions/:actionId/schedule parses scheduledFor', async () => {
@@ -368,7 +352,13 @@ describe('user routes', () => {
     mockCreateIntegration.mockResolvedValue({ id: 'i-2' });
     const result = (await call(
       new CreateIntegrationRoute(),
-      { raw: new Request('https://x/user/application/integration'), applicationId: 'app-1', integrationType: 'webhook', name: 'Hook', webhookUrl: 'https://hook.example' },
+      {
+        raw: new Request('https://x/user/application/integration'),
+        applicationId: 'app-1',
+        integrationType: 'webhook',
+        name: 'Hook',
+        webhookUrl: 'https://hook.example',
+      },
       makeEnv(),
       makeCxt(),
     )) as { integration: unknown };
@@ -415,8 +405,23 @@ describe('user routes', () => {
     mockListActivity.mockResolvedValue({
       entries: [
         { eventType: 'email_processed', applicationId: 'app-1', timestamp: 1_700_000_000, providerMessageId: 'm-1', status: 'processed' },
-        { eventType: 'action_created', applicationId: 'app-1', timestamp: 1_700_000_001, actionId: 'a-1', actionType: 'calendar.add_event', riskLevel: 'low' },
-        { eventType: 'action_executed', applicationId: 'app-1', timestamp: 1_700_000_002, executionStatus: 'ok', actionId: 'a-1', actionType: 'calendar.add_event', triggeredBy: 'user' },
+        {
+          eventType: 'action_created',
+          applicationId: 'app-1',
+          timestamp: 1_700_000_001,
+          actionId: 'a-1',
+          actionType: 'calendar.add_event',
+          riskLevel: 'low',
+        },
+        {
+          eventType: 'action_executed',
+          applicationId: 'app-1',
+          timestamp: 1_700_000_002,
+          executionStatus: 'ok',
+          actionId: 'a-1',
+          actionType: 'calendar.add_event',
+          triggeredBy: 'user',
+        },
       ],
     });
     const result = (await call(
@@ -425,11 +430,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { rawBody: string; headers: Record<string, string> };
-    expect(mockListActivity).toHaveBeenCalledWith(
-      'user@example.com',
-      expect.objectContaining({ limit: 1000 }),
-      expect.anything(),
-    );
+    expect(mockListActivity).toHaveBeenCalledWith('user@example.com', expect.objectContaining({ limit: 1000 }), expect.anything());
     expect(result.headers['Content-Type']).toContain('text/csv');
     expect(result.rawBody).toContain('email_processed');
     expect(result.rawBody).toContain('action_created');
@@ -444,10 +445,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListTaskRuns).toHaveBeenCalledWith(
-      'user@example.com',
-      expect.objectContaining({ taskType: 'calendar_sync', status: 'ok' }),
-    );
+    expect(mockListTaskRuns).toHaveBeenCalledWith('user@example.com', expect.objectContaining({ taskType: 'calendar_sync', status: 'ok' }));
   });
 
   it('POST /user/processing/run-task triggers the task', async () => {

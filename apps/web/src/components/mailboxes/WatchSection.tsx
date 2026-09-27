@@ -28,7 +28,6 @@ export function WatchSection({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPendingIds(null);
     } else {
-       
       setPendingIds(application.watchedFolders?.map((wf) => wf.id) ?? null);
     }
   }, [availableFolders, application.applicationId]);
@@ -60,7 +59,10 @@ export function WatchSection({
                 const effectiveIds = pendingIds ?? application.watchedFolders?.map((wf) => wf.id) ?? [];
                 const checked = effectiveIds.includes(folder.id);
                 return (
-                  <label key={folder.id} className="inline-flex items-center gap-3 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                  <label
+                    key={folder.id}
+                    className="inline-flex items-center gap-3 text-sm text-[var(--color-text-secondary)] cursor-pointer"
+                  >
                     <input
                       type={isOutlook ? 'radio' : 'checkbox'}
                       name={isOutlook ? `watch-folder-${application.applicationId}` : undefined}
@@ -71,9 +73,7 @@ export function WatchSection({
                           next = checked ? [] : [folder.id];
                         } else {
                           const currentIds = pendingIds ?? [];
-                          next = checked
-                            ? currentIds.filter((id) => id !== folder.id)
-                            : [...currentIds, folder.id];
+                          next = checked ? currentIds.filter((id) => id !== folder.id) : [...currentIds, folder.id];
                         }
                         setPendingIds(next.length > 0 ? next : null);
                       }}
@@ -99,7 +99,9 @@ export function WatchSection({
         )
       ) : application.watchedFolders && application.watchedFolders.length > 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          {t('watch.watchingList', 'Watching: {{names}} — Click "Load Folders" To Change.', { names: application.watchedFolders.map((wf) => wf.name).join(', ') })}
+          {t('watch.watchingList', 'Watching: {{names}} — Click "Load Folders" To Change.', {
+            names: application.watchedFolders.map((wf) => wf.name).join(', '),
+          })}
         </p>
       ) : (
         <p className="text-sm text-[var(--color-text-secondary)]">

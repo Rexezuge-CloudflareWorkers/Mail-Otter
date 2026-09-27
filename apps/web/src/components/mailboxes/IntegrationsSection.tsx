@@ -47,10 +47,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         <p className="text-xs text-[var(--color-text-muted)] truncate">{integration.maskedWebhookUrl}</p>
       </div>
       <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <IntegrationHealthBadge
-          status={integration.lastDeliveryStatus}
-          consecutiveFailures={integration.consecutiveFailures}
-        />
+        <IntegrationHealthBadge status={integration.lastDeliveryStatus} consecutiveFailures={integration.consecutiveFailures} />
         {integration.lastDeliveryAt != null && (
           <span className="text-[10px] text-[var(--color-text-muted)]">
             {new Date(integration.lastDeliveryAt * 1000).toLocaleString(lng)}
@@ -67,7 +64,11 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
         className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
           integration.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
         } disabled:opacity-50`}
-        title={integration.enabled ? t('integrations.disableIntegration', 'Disable Integration') : t('integrations.enableIntegration', 'Enable Integration')}
+        title={
+          integration.enabled
+            ? t('integrations.disableIntegration', 'Disable Integration')
+            : t('integrations.enableIntegration', 'Enable Integration')
+        }
       >
         <span
           className={`inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transform transition-transform duration-200 ${
@@ -182,11 +183,11 @@ export function IntegrationsSection({ applicationId }: { applicationId: string }
           </Button>
         )}
         {atLimit && !showAddForm && (
-          <p className="text-xs text-[var(--color-text-muted)] mt-2">{t('integrations.maxReached', 'Maximum of 5 integrations reached.')}</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-2">
+            {t('integrations.maxReached', 'Maximum of 5 integrations reached.')}
+          </p>
         )}
-        {showAddForm && (
-          <AddIntegrationForm applicationId={applicationId} onCancel={() => setShowAddForm(false)} />
-        )}
+        {showAddForm && <AddIntegrationForm applicationId={applicationId} onCancel={() => setShowAddForm(false)} />}
       </div>
     </CollapsibleSection>
   );

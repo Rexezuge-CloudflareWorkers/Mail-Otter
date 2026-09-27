@@ -13,23 +13,22 @@ function stripHtml(value: string): string {
 }
 
 function normalizeText(value: string): string {
-  return value
-    .replaceAll('\r\n', '\n')
-    .replaceAll('\r', '\n')
-    // eslint-disable-next-line sonarjs/super-linear-regex
-    .replaceAll(/[ \t]+\n/g, '\n')
-    .replaceAll(/\n{3,}/g, '\n\n')
-    .trim();
+  return (
+    value
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      // eslint-disable-next-line sonarjs/super-linear-regex
+      .replaceAll(/[ \t]+\n/g, '\n')
+      .replaceAll(/\n{3,}/g, '\n\n')
+      .trim()
+  );
 }
 
 function truncate(value: string, maxChars: number): string {
   return value.length <= maxChars ? value : `${value.slice(0, maxChars)}\n\n[Message truncated before summarization.]`;
 }
 
-function isFromMailbox(
-  fromHeaderOrAddress: string | undefined | null,
-  mailboxAddress: string | undefined | null,
-): boolean {
+function isFromMailbox(fromHeaderOrAddress: string | undefined | null, mailboxAddress: string | undefined | null): boolean {
   const from = fromHeaderOrAddress?.toLowerCase();
   const mailbox = mailboxAddress?.toLowerCase();
   return from !== undefined && mailbox !== undefined && from.includes(mailbox);

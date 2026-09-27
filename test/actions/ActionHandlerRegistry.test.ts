@@ -93,10 +93,7 @@ describe('ActionHandlerRegistry', () => {
 
     it('acknowledges manual todos', async () => {
       const handler = ActionHandlerRegistry.get(EMAIL_ACTION_TYPE_MANUAL_TODO);
-      const result = await handler?.execute(
-        makeAction(EMAIL_ACTION_TYPE_MANUAL_TODO, { instructions: 'Do the thing' }),
-        makeContext(),
-      );
+      const result = await handler?.execute(makeAction(EMAIL_ACTION_TYPE_MANUAL_TODO, { instructions: 'Do the thing' }), makeContext());
 
       expect(result?.summary).toBe('Manual action acknowledged.');
     });
@@ -127,10 +124,7 @@ describe('ActionHandlerRegistry', () => {
 
     it('notes flight tracking without an API key or tracking URL', async () => {
       const handler = ActionHandlerRegistry.get(EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT);
-      const result = await handler?.execute(
-        makeAction(EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT, { flightNumber: 'LH400' }),
-        makeContext(),
-      );
+      const result = await handler?.execute(makeAction(EMAIL_ACTION_TYPE_TRAVEL_TRACK_FLIGHT, { flightNumber: 'LH400' }), makeContext());
 
       expect(result?.summary).toBe('Flight LH400 details noted.');
     });
@@ -162,10 +156,7 @@ describe('ActionHandlerRegistry', () => {
       );
       expect(withTime?.summary).toBe('Appointment on 2026-10-01T10:00:00Z details noted.');
 
-      const withoutTime = await handler?.execute(
-        makeAction(EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM, {}),
-        makeContext(),
-      );
+      const withoutTime = await handler?.execute(makeAction(EMAIL_ACTION_TYPE_APPOINTMENT_CONFIRM, {}), makeContext());
       expect(withoutTime?.summary).toBe('Appointment details noted.');
     });
   });

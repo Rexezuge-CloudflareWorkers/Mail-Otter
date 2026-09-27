@@ -16,13 +16,7 @@ class OutlookWebhookService extends BaseWebhookService {
       subscriptionDAO,
       env.EMAIL_EVENTS_QUEUE,
       (notification) =>
-        this.getAuthorizedSubscription(
-          applicationId,
-          notification.subscriptionId,
-          notification.clientState,
-          subscriptionDAO,
-          true,
-        ),
+        this.getAuthorizedSubscription(applicationId, notification.subscriptionId, notification.clientState, subscriptionDAO, true),
       (notification) => {
         const messageId: string | undefined = notification.resourceData?.id || this.extractMessageId(notification.resource);
         if (!messageId) return undefined;

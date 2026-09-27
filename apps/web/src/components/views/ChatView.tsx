@@ -80,9 +80,7 @@ function MessageBubble({
             </Suspense>
           )}
         </div>
-        {!isUser && sources && sources.length > 0 && (
-          <SourcesToggle sources={sources} applications={applications} />
-        )}
+        {!isUser && sources && sources.length > 0 && <SourcesToggle sources={sources} applications={applications} />}
       </div>
     </div>
   );
@@ -133,13 +131,7 @@ export function ChatView({
       <FilterBar>
         <MailboxSelect value={applicationId} onChange={setApplicationId} applications={applications} />
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          disabled={messages.length === 0}
-          className="ml-auto"
-        >
+        <Button variant="ghost" size="sm" onClick={onClear} disabled={messages.length === 0} className="ml-auto">
           <Trash2 className="h-3.5 w-3.5" />
           {t('chat.clear', 'Clear Chat')}
         </Button>
@@ -160,14 +152,7 @@ export function ChatView({
 
           {messages.map((msg, i) => {
             const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1;
-            return (
-              <MessageBubble
-                key={i}
-                message={msg}
-                sources={isLastAssistant ? sources : undefined}
-                applications={applications}
-              />
-            );
+            return <MessageBubble key={i} message={msg} sources={isLastAssistant ? sources : undefined} applications={applications} />;
           })}
 
           {loading && (
@@ -196,12 +181,7 @@ export function ChatView({
               'focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:opacity-50',
             )}
           />
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleSend}
-            disabled={!input.trim() || loading}
-          >
+          <Button variant="primary" size="md" onClick={handleSend} disabled={!input.trim() || loading}>
             <Send className="h-4 w-4" />
             {t('chat.ask', 'Ask')}
           </Button>

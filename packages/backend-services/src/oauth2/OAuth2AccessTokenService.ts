@@ -1,4 +1,7 @@
-import { DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_EXCHANGE_URL, DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_REFRESH_URL } from '@mail-otter/backend-runtime/constants';
+import {
+  DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_EXCHANGE_URL,
+  DURABLE_OBJECT_OAUTH2_TOKEN_REFRESHERS_REFRESH_URL,
+} from '@mail-otter/backend-runtime/constants';
 import { OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
 import { OAuth2TokenNonRetryableError, OAuth2TokenRetryableError } from '@mail-otter/backend-errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
@@ -40,7 +43,10 @@ class OAuth2AccessTokenService {
       if (cached) return cached.accessToken;
     }
 
-    const result: OAuth2AccessTokenResult = await this.refreshAccessToken(applicationId, { forceRefresh: options.forceRefresh, minValidSeconds });
+    const result: OAuth2AccessTokenResult = await this.refreshAccessToken(applicationId, {
+      forceRefresh: options.forceRefresh,
+      minValidSeconds,
+    });
     return result.accessToken;
   }
 
@@ -60,9 +66,7 @@ class OAuth2AccessTokenService {
   private async invokeTokenWorker(url: string, applicationId: string, body: unknown): Promise<OAuth2AccessTokenResult> {
     const id: DurableObjectId = this.env.OAUTH2_TOKEN_REFRESHERS.idFromName(applicationId);
     const stub = this.env.OAUTH2_TOKEN_REFRESHERS.get(id);
-    const response: Response = await stub.fetch(
-      new Request(url, { method: 'POST', body: JSON.stringify(body) }),
-    );
+    const response: Response = await stub.fetch(new Request(url, { method: 'POST', body: JSON.stringify(body) }));
     const text: string = await response.text();
     const data = text ? (JSON.parse(text) as Partial<OAuth2AccessTokenResult> & { error?: string }) : {};
     if (!response.ok || !data.accessToken || !data.expiresAt) {

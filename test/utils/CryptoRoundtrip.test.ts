@@ -56,9 +56,7 @@ describe('aes-gcm', () => {
     const result = await encryptDataWithSalt('explicit salted', masterKey, salt, iv);
     expect(result.salt).toBe(salt);
     expect(result.iv).toBe(iv);
-    await expect(decryptDataWithSalt(result.encrypted, result.iv, result.salt, masterKey)).resolves.toBe(
-      'explicit salted',
-    );
+    await expect(decryptDataWithSalt(result.encrypted, result.iv, result.salt, masterKey)).resolves.toBe('explicit salted');
   });
 
   it('fails salted decrypt with the wrong master key', async () => {

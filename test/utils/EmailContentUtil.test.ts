@@ -5,7 +5,10 @@ import type { GmailMessagePart } from '@mail-otter/provider-clients';
 describe('EmailContentUtil', () => {
   describe('getHeader', () => {
     it('finds header by case-insensitive name', () => {
-      const headers = [{ name: 'From', value: 'sender@example.com' }, { name: 'SUBJECT', value: 'Hello' }];
+      const headers = [
+        { name: 'From', value: 'sender@example.com' },
+        { name: 'SUBJECT', value: 'Hello' },
+      ];
       expect(EmailContentUtil.getHeader(headers, 'from')).toBe('sender@example.com');
       expect(EmailContentUtil.getHeader(headers, 'Subject')).toBe('Hello');
     });
@@ -36,9 +39,7 @@ describe('EmailContentUtil', () => {
     it('falls back to text/html when no text/plain', () => {
       const part: GmailMessagePart = {
         mimeType: 'multipart/alternative',
-        parts: [
-          { mimeType: 'text/html', body: { data: btoa('<p>HTML Content</p>') } },
-        ],
+        parts: [{ mimeType: 'text/html', body: { data: btoa('<p>HTML Content</p>') } }],
       };
       const result = EmailContentUtil.extractGmailText(part);
       expect(result.text).toContain('HTML Content');

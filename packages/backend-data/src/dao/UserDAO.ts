@@ -5,7 +5,6 @@ import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 
 class UserDAO extends BaseDAO {
-
   public async upsertByEmail(email: string): Promise<User> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     await executeD1WithRetry(

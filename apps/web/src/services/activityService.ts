@@ -17,10 +17,7 @@ export async function loadActivity(options: {
   });
 }
 
-export async function exportActivityCsv(options: {
-  applicationId?: string;
-  types?: ActivityEventType[];
-}): Promise<void> {
+export async function exportActivityCsv(options: { applicationId?: string; types?: ActivityEventType[] }): Promise<void> {
   const p = new URLSearchParams();
   p.set('format', 'csv');
   if (options.applicationId) p.set('applicationId', options.applicationId);

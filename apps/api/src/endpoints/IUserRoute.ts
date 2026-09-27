@@ -1,5 +1,5 @@
 import { IBaseRoute } from './IBaseRoute';
-import type { IEnv, IRequest, IResponse, RouteContext,  } from './IBaseRoute';
+import type { IEnv, IRequest, IResponse, RouteContext } from './IBaseRoute';
 
 abstract class IUserRoute<TRequest extends IRequest, TResponse extends IResponse, TEnv extends IUserEnv> extends IBaseRoute<
   TRequest,
@@ -20,6 +20,6 @@ interface IUserEnv extends IEnv {
 }
 
 export { IUserRoute };
-export type {  IUserEnv,    };
+export type { IUserEnv };
 
-export {type ExtendedResponse, type IRequest, type IResponse, type RouteContext} from './IBaseRoute';
+export { type ExtendedResponse, type IRequest, type IResponse, type RouteContext } from './IBaseRoute';

@@ -1,7 +1,13 @@
 import { PROVIDER_FASTMAIL_JMAP } from '@mail-otter/shared/constants';
 import { FastmailProviderUtil } from '@mail-otter/provider-clients/fastmail';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
-import type { ApplicationContextDocumentSource, CalendarAddEventActionPayload, ConnectedApplicationMetadata, EmailActionResult, EmailDraftReplyActionPayload } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentSource,
+  CalendarAddEventActionPayload,
+  ConnectedApplicationMetadata,
+  EmailActionResult,
+  EmailDraftReplyActionPayload,
+} from '@mail-otter/shared/model';
 import type {
   AnyProviderCredentials,
   ProviderFolder,
@@ -41,7 +47,11 @@ class FastmailEmailProvider extends AbstractOAuthEmailProvider {
     return result;
   }
 
-  public async renewWatch(credentials: AnyProviderCredentials, subscriptionId: string, _expiresAt: number | null): Promise<ProviderWatchResult> {
+  public async renewWatch(
+    credentials: AnyProviderCredentials,
+    subscriptionId: string,
+    _expiresAt: number | null,
+  ): Promise<ProviderWatchResult> {
     // Fastmail push subscriptions do not expire; re-create if needed.
     this.requireOAuth2Credentials(credentials, 'Fastmail');
     try {
@@ -52,7 +62,10 @@ class FastmailEmailProvider extends AbstractOAuthEmailProvider {
     return { type: 'webhook', externalSubscriptionId: subscriptionId };
   }
 
-  public async pollNewMessages(_credentials: AnyProviderCredentials, _cursor: string | null): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
+  public async pollNewMessages(
+    _credentials: AnyProviderCredentials,
+    _cursor: string | null,
+  ): Promise<{ messages: ProviderMessageSummary[]; newCursor: string }> {
     return this.throwPollNotSupported('Fastmail uses JMAP push and does not support polling.');
   }
 

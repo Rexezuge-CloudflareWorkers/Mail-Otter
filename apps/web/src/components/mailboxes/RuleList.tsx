@@ -15,17 +15,7 @@ interface RuleRowProps {
   onMoveDown: () => void;
 }
 
-function RuleRow({
-  rule,
-  index,
-  total,
-  busy,
-  onToggle,
-  onDelete,
-  onEdit,
-  onMoveUp,
-  onMoveDown,
-}: RuleRowProps) {
+function RuleRow({ rule, index, total, busy, onToggle, onDelete, onEdit, onMoveUp, onMoveDown }: RuleRowProps) {
   const { t } = useTranslation();
   return (
     <div className={`flex flex-col gap-1 py-3 border-b border-[var(--color-border)] last:border-0 ${rule.enabled ? '' : 'opacity-50'}`}>
@@ -87,7 +77,9 @@ function RuleRow({
         <p className="text-xs text-[var(--color-text-secondary)] italic">"{rule.action.instruction}"</p>
       )}
       {rule.action.type === 'apply_label' && (
-        <p className="text-xs text-[var(--color-text-secondary)]">{t('rules.labelValue', 'Label: {{name}}', { name: rule.action.labelName })}</p>
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {t('rules.labelValue', 'Label: {{name}}', { name: rule.action.labelName })}
+        </p>
       )}
     </div>
   );

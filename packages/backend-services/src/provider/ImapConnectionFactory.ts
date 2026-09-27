@@ -1,5 +1,12 @@
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
-import { PROVIDER_APPLE_ICLOUD, PROVIDER_CUSTOM_IMAP, PROVIDER_FASTMAIL_JMAP, PROVIDER_GOOGLE_GMAIL, PROVIDER_MICROSOFT_OUTLOOK, PROVIDER_YAHOO_MAIL } from '@mail-otter/shared/constants';
+import {
+  PROVIDER_APPLE_ICLOUD,
+  PROVIDER_CUSTOM_IMAP,
+  PROVIDER_FASTMAIL_JMAP,
+  PROVIDER_GOOGLE_GMAIL,
+  PROVIDER_MICROSOFT_OUTLOOK,
+  PROVIDER_YAHOO_MAIL,
+} from '@mail-otter/shared/constants';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 
 /**
@@ -32,7 +39,12 @@ function buildImapConnectOptions(
   const host = application.imapHost ?? defaults.host;
   const port = application.imapPort ?? defaults.port;
   const username = application.imapUsername ?? application.providerEmail ?? '';
-  return ({ host, port, username, auth: isImapPassword ? { method: 'PLAIN', password: application.imapPassword ?? '' } : { method: 'XOAUTH2', accessToken } });
+  return {
+    host,
+    port,
+    username,
+    auth: isImapPassword ? { method: 'PLAIN', password: application.imapPassword ?? '' } : { method: 'XOAUTH2', accessToken },
+  };
 }
 
 export { IMAP_PROVIDER_DEFAULTS, buildImapConnectOptions, getImapDefaults };

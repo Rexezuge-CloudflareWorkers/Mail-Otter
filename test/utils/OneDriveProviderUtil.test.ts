@@ -12,7 +12,12 @@ describe('OneDriveProviderUtil', () => {
     it('returns items and deltaLink when caught up (no nextLink)', async () => {
       const apiResponse = {
         value: [
-          { id: 'item1', name: 'doc.docx', size: 1024, file: { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' } },
+          {
+            id: 'item1',
+            name: 'doc.docx',
+            size: 1024,
+            file: { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+          },
         ],
         '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/me/drive/root/delta?token=abc',
       };
@@ -35,10 +40,7 @@ describe('OneDriveProviderUtil', () => {
         value: [{ id: 'i2', name: 'b.txt', size: 100, file: { mimeType: 'text/plain' } }],
         '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/me/drive/root/delta?token=final',
       };
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(Response.json(page1)).mockResolvedValueOnce(Response.json(page2)),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(page1)).mockResolvedValueOnce(Response.json(page2)));
 
       const result = await OneDriveProviderUtil.getDelta(ACCESS_TOKEN);
 
@@ -97,10 +99,7 @@ describe('OneDriveProviderUtil', () => {
   describe('downloadItem', () => {
     it('returns ArrayBuffer truncated to maxBytes', async () => {
       const data = new Uint8Array([10, 20, 30, 40, 50]);
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response(data.buffer, { status: 200 })),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(data.buffer, { status: 200 })));
       const result = await OneDriveProviderUtil.downloadItem('https://cdn.example.com/file', 3);
       expect(new Uint8Array(result)).toEqual(new Uint8Array([10, 20, 30]));
     });
@@ -109,9 +108,7 @@ describe('OneDriveProviderUtil', () => {
   describe('convertItemToPdf', () => {
     it('calls graph items convert endpoint and returns ArrayBuffer', async () => {
       const pdfData = new Uint8Array([1, 2, 3]);
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce(new Response(pdfData.buffer, { status: 200 }));
+      const fetchMock = vi.fn().mockResolvedValueOnce(new Response(pdfData.buffer, { status: 200 }));
       vi.stubGlobal('fetch', fetchMock);
 
       const result = await OneDriveProviderUtil.convertItemToPdf(ACCESS_TOKEN, 'item-abc', 1024 * 1024);
@@ -121,13 +118,8 @@ describe('OneDriveProviderUtil', () => {
     });
 
     it('throws on API error', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response('Unauthorized', { status: 401 })),
-      );
-      await expect(
-        OneDriveProviderUtil.convertItemToPdf(ACCESS_TOKEN, 'item-id', 1024),
-      ).rejects.toThrow('401');
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('Unauthorized', { status: 401 })));
+      await expect(OneDriveProviderUtil.convertItemToPdf(ACCESS_TOKEN, 'item-id', 1024)).rejects.toThrow('401');
     });
   });
 });

@@ -9,10 +9,7 @@ describe('public API surface', () => {
 
   describe('GET /api/oauth2/callback/:applicationId', () => {
     it('redirects to an error page when the provider reports an error', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/api/oauth2/callback/app-1?error=access_denied',
-        { redirect: 'manual' },
-      );
+      const response: Response = await SELF.fetch('http://localhost/api/oauth2/callback/app-1?error=access_denied', { redirect: 'manual' });
       expect([301, 302, 303, 307, 308]).toContain(response.status);
       expect(response.headers.get('Location')).toContain('oauth2=error');
     });
@@ -34,23 +31,18 @@ describe('public API surface', () => {
     });
 
     it('returns 404 for an application without a subscription', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/api/webhooks/fastmail/00000000-0000-0000-0000-000000000000?token=t',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emailId: 'e-1' }),
-        },
-      );
+      const response: Response = await SELF.fetch('http://localhost/api/webhooks/fastmail/00000000-0000-0000-0000-000000000000?token=t', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: 'e-1' }),
+      });
       expect(response.status).toBe(404);
     });
   });
 
   describe('GET /api/webhooks/outlook/:applicationId validation', () => {
     it('echoes the validation token for subscription handshake', async () => {
-      const response: Response = await SELF.fetch(
-        'http://localhost/api/webhooks/outlook/app-1?validationToken=hello-token',
-      );
+      const response: Response = await SELF.fetch('http://localhost/api/webhooks/outlook/app-1?validationToken=hello-token');
       expect(response.status).toBe(200);
       await expect(response.text()).resolves.toBe('hello-token');
     });

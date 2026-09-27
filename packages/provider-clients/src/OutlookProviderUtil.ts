@@ -174,7 +174,9 @@ class OutlookProviderUtil {
 
   public static getMessageText(message: OutlookMessage): string {
     const content: string = message.body?.content || '';
-    return message.body?.contentType?.toLowerCase() === 'html' ? EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(content)) : EmailContentUtil.normalizeText(content);
+    return message.body?.contentType?.toLowerCase() === 'html'
+      ? EmailContentUtil.normalizeText(EmailContentUtil.stripHtml(content))
+      : EmailContentUtil.normalizeText(content);
   }
 
   public static async createCalendarEvent(accessToken: string, input: OutlookCalendarEventInput): Promise<OutlookCalendarEventResult> {
@@ -250,39 +252,33 @@ class OutlookProviderUtil {
 
     // First attempt: send reply
     const atIndex: number = mailboxAddress.lastIndexOf('@');
-    const sinkAddress: string = atIndex === -1
-      ? mailboxAddress
-      : `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`;
+    const sinkAddress: string =
+      atIndex === -1 ? mailboxAddress : `${mailboxAddress.slice(0, atIndex)}+sink${mailboxAddress.slice(atIndex)}`;
     const originalSubject: string = originalMessage.subject || '';
-    const response: Response = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/reply`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: {
-            subject: `[${marker}] Re: ${originalSubject}`,
-            body: {
-              contentType: 'html',
-              content: summary,
-            },
-            toRecipients: [
-              {
-                emailAddress: {
-                  address: sinkAddress,
-                },
-              },
-            ],
-            internetMessageHeaders: [
-              { name: 'X-Mail-Otter-Summary', value: 'true' },
-            ],
-          },
-        }),
+    const response: Response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(originalMessage.id)}/reply`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-    );
+      body: JSON.stringify({
+        message: {
+          subject: `[${marker}] Re: ${originalSubject}`,
+          body: {
+            contentType: 'html',
+            content: summary,
+          },
+          toRecipients: [
+            {
+              emailAddress: {
+                address: sinkAddress,
+              },
+            },
+          ],
+          internetMessageHeaders: [{ name: 'X-Mail-Otter-Summary', value: 'true' }],
+        },
+      }),
+    });
     if (!response.ok) {
       throw createProviderApiError('Microsoft Graph', 'send summary reply', response, await response.text());
     }
@@ -293,12 +289,7 @@ class OutlookProviderUtil {
 
   private static async findSummaryMessageInFolder(accessToken: string, folderId: string, marker?: string): Promise<string | null> {
     const url: URL = new URL(`https://graph.microsoft.com/v1.0/me/mailFolders/${folderId}/messages`);
-    url.searchParams.set(
-      '$filter',
-      marker
-        ? `startswith(subject, '[${marker}]')`
-        : `startswith(subject, '[')`,
-    );
+    url.searchParams.set('$filter', marker ? `startswith(subject, '[${marker}]')` : `startswith(subject, '[')`);
     url.searchParams.set('$top', '1');
     url.searchParams.set('$select', 'id');
     const data = await fetchJsonWithBearer<{
@@ -443,7 +434,7 @@ class OutlookProviderUtil {
     const items = data.value ?? [];
     const results: ProviderImageAttachment[] = [];
     for (const item of items) {
-      if (!SUPPORTED_IMAGE_MIME_TYPES.has(item.contentType) || ((item.size ?? 0) > maxSizeBytes) || !item.contentBytes) continue;
+      if (!SUPPORTED_IMAGE_MIME_TYPES.has(item.contentType) || (item.size ?? 0) > maxSizeBytes || !item.contentBytes) continue;
       results.push({
         filename: item.name ?? 'attachment',
         mimeType: item.contentType,

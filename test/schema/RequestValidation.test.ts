@@ -18,7 +18,6 @@ describe('Request input schemas', () => {
   it('finds schema for context document provider-link routes', () => {
     const request = new Request(
       'https://mail.example.com/user/application/context/document/11111111-1111-4111-8111-111111111111/provider-link',
-      { method: 'GET' },
     );
 
     expect(getRequestInputSchema(request)).toBeDefined();
@@ -139,7 +138,9 @@ describe('Request input schemas', () => {
 
     it('accepts body with only contextIndexingEnabled', async () => {
       const request = new Request('https://mail.example.com/user/application/context', { method: 'PUT' });
-      await expect(validateRequestInput(request, { applicationId, contextIndexingEnabled: false })).resolves.toMatchObject({ success: true });
+      await expect(validateRequestInput(request, { applicationId, contextIndexingEnabled: false })).resolves.toMatchObject({
+        success: true,
+      });
     });
 
     it('accepts body with only ragRetrievalEnabled', async () => {
@@ -174,7 +175,10 @@ describe('Request input schemas', () => {
     });
 
     it('rejects matches_sender on non-from field', () => {
-      const invalid = { ...validRule, conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'matches_sender', value: '@domain.com' }] } };
+      const invalid = {
+        ...validRule,
+        conditions: { operator: 'any', matchers: [{ field: 'subject', op: 'matches_sender', value: '@domain.com' }] },
+      };
       expect(EmailProcessingRuleSchema.safeParse(invalid).success).toBe(false);
     });
 
@@ -194,7 +198,11 @@ describe('Request input schemas', () => {
     });
 
     it('accepts always matcher with match_all op on a post-processing rule', () => {
-      const valid = { ...validRule, action: { type: 'star_message' }, conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] } };
+      const valid = {
+        ...validRule,
+        action: { type: 'star_message' },
+        conditions: { operator: 'any', matchers: [{ field: 'always', op: 'match_all' }] },
+      };
       expect(EmailProcessingRuleSchema.safeParse(valid).success).toBe(true);
     });
 

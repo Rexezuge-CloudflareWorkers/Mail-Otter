@@ -59,7 +59,11 @@ class SubscriptionRenewalUtil {
     const application: ConnectedApplication | undefined = await applicationDAO.getById(subscription.applicationId);
     if (!application || !application.gmailPubsubTopicName) return;
     const accessToken: string = await new OAuth2AccessTokenService(this.env).getAccessToken(application.applicationId);
-    const watch = await GmailProviderUtil.watchInbox(accessToken, application.gmailPubsubTopicName, application.watchedFolders?.map((f) => f.id) ?? undefined);
+    const watch = await GmailProviderUtil.watchInbox(
+      accessToken,
+      application.gmailPubsubTopicName,
+      application.watchedFolders?.map((f) => f.id) ?? undefined,
+    );
     await subscriptionDAO.upsertActive({
       applicationId: application.applicationId,
       providerId: application.providerId,
@@ -120,7 +124,10 @@ class SubscriptionRenewalUtil {
       applicationId: application.applicationId,
       providerId: application.providerId,
       externalSubscriptionId: result.externalSubscriptionId ?? subscription.externalSubscriptionId,
-      clientStateHash: result.clientStateHash ?? subscription.clientStateHash ?? (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
+      clientStateHash:
+        result.clientStateHash ??
+        subscription.clientStateHash ??
+        (await WebhookSecurityUtil.hashSecret(WebhookSecurityUtil.generateSecret())),
       resource: result.resource ?? subscription.resource,
       expiresAt: result.expiresAt,
     });

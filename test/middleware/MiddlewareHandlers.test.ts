@@ -53,17 +53,12 @@ describe('MiddlewareHandlers', () => {
     } as unknown as Context;
     const next = vi.fn();
 
-    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new UnauthorizedError('Invalid token'),
-    );
+    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockRejectedValue(new UnauthorizedError('Invalid token'));
 
     const handler = MiddlewareHandlers.userAuthentication();
     await handler(c, next);
 
-    expect(jsonFn).toHaveBeenCalledWith(
-      { Exception: { Type: 'Unauthorized', Message: 'Invalid token' } },
-      401,
-    );
+    expect(jsonFn).toHaveBeenCalledWith({ Exception: { Type: 'Unauthorized', Message: 'Invalid token' } }, 401);
     expect(next).not.toHaveBeenCalled();
   });
 

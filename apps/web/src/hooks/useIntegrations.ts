@@ -24,12 +24,7 @@ export function useIntegrations({ setIsBusy, showNotice }: UseMailboxesOptions) 
     }
   };
 
-  const createIntegration = async (
-    applicationId: string,
-    integrationType: OutboundIntegrationType,
-    name: string,
-    webhookUrl: string,
-  ) => {
+  const createIntegration = async (applicationId: string, integrationType: OutboundIntegrationType, name: string, webhookUrl: string) => {
     setIsBusy(true);
     try {
       const data = await appSvc.createIntegration(applicationId, integrationType, name, webhookUrl);
@@ -45,10 +40,7 @@ export function useIntegrations({ setIsBusy, showNotice }: UseMailboxesOptions) 
     }
   };
 
-  const updateIntegration = async (
-    integrationId: string,
-    patch: { name?: string; enabled?: boolean; webhookUrl?: string },
-  ) => {
+  const updateIntegration = async (integrationId: string, patch: { name?: string; enabled?: boolean; webhookUrl?: string }) => {
     setIsBusy(true);
     try {
       const data = await appSvc.updateIntegration(integrationId, patch);

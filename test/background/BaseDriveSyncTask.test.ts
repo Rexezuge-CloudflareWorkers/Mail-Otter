@@ -79,14 +79,17 @@ describe('BaseDriveSyncTask', () => {
     mockListFeatureApps.mockResolvedValue(['a-1', 'a-2', 'a-3']);
     mockGetById.mockImplementation(async (id: string) => {
       if (id === 'a-1') return { applicationId: 'a-1', status: 'connected', providerId: 'google-gmail' };
-      if (id === 'a-2') return { applicationId: 'a-2', status: 'error', providerId: 'google-gmail' };
-      return { applicationId: 'a-3', status: 'connected', providerId: 'microsoft-outlook' };
+      return id === 'a-2'
+        ? { applicationId: 'a-2', status: 'error', providerId: 'google-gmail' }
+        : { applicationId: 'a-3', status: 'connected', providerId: 'microsoft-outlook' };
     });
     mockGetAccessToken.mockResolvedValue('tok');
     const task = new TestDriveSyncTask();
-    const result = (await (
-      task as unknown as { handleScheduledTask(e: never, env: never, c: never): Promise<{ itemsProcessed: number; itemsFailed: number; summary: string }> }
-    ).handleScheduledTask({}, makeEnv(), {} as never));
+    const result = await (
+      task as unknown as {
+        handleScheduledTask(e: never, env: never, c: never): Promise<{ itemsProcessed: number; itemsFailed: number; summary: string }>;
+      }
+    ).handleScheduledTask({}, makeEnv(), {} as never);
     expect(task.ingestCalls).toEqual(['a-1']);
     expect(result.itemsProcessed).toBe(1);
     expect(result.itemsFailed).toBe(0);
@@ -98,9 +101,9 @@ describe('BaseDriveSyncTask', () => {
     mockGetById.mockResolvedValue({ applicationId: 'a-1', status: 'connected', providerId: 'google-gmail' });
     mockGetAccessToken.mockRejectedValue(new Error('token expired'));
     const task = new TestDriveSyncTask();
-    const result = (await (
+    const result = await (
       task as unknown as { handleScheduledTask(e: never, env: never, c: never): Promise<{ itemsProcessed: number; itemsFailed: number }> }
-    ).handleScheduledTask({}, makeEnv(), {} as never));
+    ).handleScheduledTask({}, makeEnv(), {} as never);
     expect(result.itemsProcessed).toBe(0);
     expect(result.itemsFailed).toBe(1);
   });

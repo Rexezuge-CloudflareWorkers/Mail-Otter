@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockListPendingActionsByTypes,
-  mockUpdateSyncStatus,
-  mockFetchFlightStatus,
-} = vi.hoisted(() => ({
+const { mockListPendingActionsByTypes, mockUpdateSyncStatus, mockFetchFlightStatus } = vi.hoisted(() => ({
   mockListPendingActionsByTypes: vi.fn().mockResolvedValue([]),
   mockUpdateSyncStatus: vi.fn().mockResolvedValue(undefined),
   mockFetchFlightStatus: vi.fn(),
@@ -79,7 +75,7 @@ describe('ActionStatusSyncUtil', () => {
 
     it('fetches tracking and updates sync status on success', async () => {
       mockListPendingActionsByTypes.mockResolvedValue([makePackageAction()]);
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: vi.fn().mockResolvedValue(
           makeAftershipResponse([
@@ -107,7 +103,7 @@ describe('ActionStatusSyncUtil', () => {
 
     it('skips update when Aftership returns no trackings', async () => {
       mockListPendingActionsByTypes.mockResolvedValue([makePackageAction()]);
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: vi.fn().mockResolvedValue(makeAftershipResponse([])),
       });
@@ -119,7 +115,7 @@ describe('ActionStatusSyncUtil', () => {
 
     it('skips update when API returns non-OK status', async () => {
       mockListPendingActionsByTypes.mockResolvedValue([makePackageAction()]);
-      global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
 
       await util.syncPackageActions('app-1', 'api-key');
 
@@ -127,13 +123,11 @@ describe('ActionStatusSyncUtil', () => {
     });
 
     it('skips action when tracking number is missing', async () => {
-      mockListPendingActionsByTypes.mockResolvedValue([
-        makePackageAction({ payload: { carrier: 'FedEx' } }),
-      ]);
+      mockListPendingActionsByTypes.mockResolvedValue([makePackageAction({ payload: { carrier: 'FedEx' } })]);
 
       await util.syncPackageActions('app-1', 'api-key');
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
       expect(mockUpdateSyncStatus).not.toHaveBeenCalled();
     });
 
@@ -142,13 +136,12 @@ describe('ActionStatusSyncUtil', () => {
         makePackageAction({ actionId: 'action-fail', payload: { trackingNumber: 'BAD1' } }),
         makePackageAction({ actionId: 'action-ok', payload: { trackingNumber: 'GOOD2' } }),
       ]);
-      global.fetch = vi.fn()
+      globalThis.fetch = vi
+        .fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           ok: true,
-          text: vi.fn().mockResolvedValue(
-            makeAftershipResponse([{ tag: 'Delivered', checkpoints: [] }]),
-          ),
+          text: vi.fn().mockResolvedValue(makeAftershipResponse([{ tag: 'Delivered', checkpoints: [] }])),
         });
 
       await util.syncPackageActions('app-1', 'api-key');
@@ -159,7 +152,7 @@ describe('ActionStatusSyncUtil', () => {
 
     it('handles checkpoint with no city/state gracefully', async () => {
       mockListPendingActionsByTypes.mockResolvedValue([makePackageAction()]);
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: vi.fn().mockResolvedValue(
           makeAftershipResponse([
@@ -179,13 +172,9 @@ describe('ActionStatusSyncUtil', () => {
 
     it('handles expected_delivery absent gracefully', async () => {
       mockListPendingActionsByTypes.mockResolvedValue([makePackageAction()]);
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          makeAftershipResponse([
-            { tag: 'Pending', checkpoints: [] },
-          ]),
-        ),
+        text: vi.fn().mockResolvedValue(makeAftershipResponse([{ tag: 'Pending', checkpoints: [] }])),
       });
 
       await util.syncPackageActions('app-1', 'api-key');
@@ -227,9 +216,7 @@ describe('ActionStatusSyncUtil', () => {
     });
 
     it('skips action when flight number is missing', async () => {
-      mockListPendingActionsByTypes.mockResolvedValue([
-        makeFlightAction({ payload: {} }),
-      ]);
+      mockListPendingActionsByTypes.mockResolvedValue([makeFlightAction({ payload: {} })]);
 
       await util.syncFlightActions('app-1', 'api-key');
 
@@ -241,9 +228,7 @@ describe('ActionStatusSyncUtil', () => {
         makeFlightAction({ actionId: 'flt-1', payload: { flightNumber: 'BAD1' } }),
         makeFlightAction({ actionId: 'flt-2', payload: { flightNumber: 'GOOD2' } }),
       ]);
-      mockFetchFlightStatus
-        .mockRejectedValueOnce(new Error('API error'))
-        .mockResolvedValueOnce({ status: 'Delayed', departureDelay: 30 });
+      mockFetchFlightStatus.mockRejectedValueOnce(new Error('API error')).mockResolvedValueOnce({ status: 'Delayed', departureDelay: 30 });
 
       await util.syncFlightActions('app-1', 'api-key');
 

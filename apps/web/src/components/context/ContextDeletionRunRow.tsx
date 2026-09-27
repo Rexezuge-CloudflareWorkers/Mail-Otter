@@ -16,11 +16,12 @@ export function ContextDeletionRunRow({
     <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4 min-w-0 animate-fade-in-up">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-medium text-[var(--color-text-primary)] truncate">
-            {application?.displayName || run.applicationId}
-          </div>
+          <div className="font-medium text-[var(--color-text-primary)] truncate">{application?.displayName || run.applicationId}</div>
           <div className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-            {t('context.vectorsDeleted', '{{deleted}}/{{requested}} Vectors Deleted', { deleted: run.deletedVectorCount, requested: run.requestedVectorCount })}
+            {t('context.vectorsDeleted', '{{deleted}}/{{requested}} Vectors Deleted', {
+              deleted: run.deletedVectorCount,
+              requested: run.requestedVectorCount,
+            })}
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatTimestamp(run.createdAt, lng)}</div>
         </div>
@@ -31,9 +32,7 @@ export function ContextDeletionRunRow({
           {t('context.mutations', 'Mutations: {{ids}}', { ids: run.mutationIds.join(', ') })}
         </div>
       )}
-      {run.errorMessage && (
-        <div className="mt-2 text-sm text-[var(--color-error-text)] break-words">{run.errorMessage}</div>
-      )}
+      {run.errorMessage && <div className="mt-2 text-sm text-[var(--color-error-text)] break-words">{run.errorMessage}</div>}
     </article>
   );
 }

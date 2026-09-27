@@ -13,7 +13,7 @@ const NONEXISTENT_UUID = '00000000-0000-0000-0000-000000000000';
  */
 describe('Application context API', () => {
   beforeAll(async () => {
-    await setupActionIntegrationTest(env as unknown as Record<string, unknown> & { DB: D1Database }, TEST_EMAIL);
+    await setupActionIntegrationTest(env, TEST_EMAIL);
   });
 
   describe('PUT /user/application/context', () => {
@@ -53,9 +53,7 @@ describe('Application context API', () => {
   describe('GET /user/application/context/documents', () => {
     it('returns an empty document list for a fresh application', async () => {
       const applicationId = await createApplicationViaApi('Context Docs App');
-      const response: Response = await SELF.fetch(
-        `http://localhost/user/application/context/documents?applicationId=${applicationId}`,
-      );
+      const response: Response = await SELF.fetch(`http://localhost/user/application/context/documents?applicationId=${applicationId}`);
       expect(response.status).toBe(200);
       const body = (await response.json()) as { documents: unknown[] };
       expect(body.documents).toEqual([]);
@@ -65,9 +63,7 @@ describe('Application context API', () => {
   describe('GET /user/application/context/deletions', () => {
     it('returns an empty deletion-run list for a fresh application', async () => {
       const applicationId = await createApplicationViaApi('Context Deletions App');
-      const response: Response = await SELF.fetch(
-        `http://localhost/user/application/context/deletions?applicationId=${applicationId}`,
-      );
+      const response: Response = await SELF.fetch(`http://localhost/user/application/context/deletions?applicationId=${applicationId}`);
       expect(response.status).toBe(200);
       const body = (await response.json()) as { deletionRuns: unknown[] };
       expect(body.deletionRuns).toEqual([]);
@@ -100,14 +96,10 @@ describe('Application context API', () => {
 
   describe('document provider-link and audit logs', () => {
     it('returns 404 for an unknown context document', async () => {
-      const link: Response = await SELF.fetch(
-        `http://localhost/user/application/context/document/${NONEXISTENT_UUID}/provider-link`,
-      );
+      const link: Response = await SELF.fetch(`http://localhost/user/application/context/document/${NONEXISTENT_UUID}/provider-link`);
       expect(link.status).toBe(404);
 
-      const logs: Response = await SELF.fetch(
-        `http://localhost/user/application/context/document/${NONEXISTENT_UUID}/logs`,
-      );
+      const logs: Response = await SELF.fetch(`http://localhost/user/application/context/document/${NONEXISTENT_UUID}/logs`);
       expect(logs.status).toBe(404);
     });
   });

@@ -27,9 +27,9 @@ class WatchService {
     const db = env.DB;
     const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
     this.deps = {
-      subscriptionDAO: () => Promise.resolve(new ProviderSubscriptionDAO(db),),
+      subscriptionDAO: () => Promise.resolve(new ProviderSubscriptionDAO(db)),
       applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
-      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env),),
+      tokenService: () => Promise.resolve(new OAuth2AccessTokenService(env)),
       providerRegistry: EmailProviderRegistry,
       ...deps,
     };
@@ -101,9 +101,7 @@ class WatchService {
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
     const tokenService = await this.deps.tokenService();
     const accessToken: string =
-      application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD
-        ? ''
-        : await tokenService.getAccessToken(application.applicationId);
+      application.connectionMethod === CONNECTION_METHOD_IMAP_PASSWORD ? '' : await tokenService.getAccessToken(application.applicationId);
     try {
       await this.deps.providerRegistry
         .get(application.providerId, application.connectionMethod)

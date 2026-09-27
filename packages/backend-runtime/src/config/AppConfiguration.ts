@@ -112,7 +112,11 @@ class AppConfiguration {
   }
 
   public getAccessTokenRefreshWindowSeconds(): number {
-    return EnvParser.positiveInt(this.env, 'OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS', DEFAULT_OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS);
+    return EnvParser.positiveInt(
+      this.env,
+      'OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS',
+      DEFAULT_OAUTH2_ACCESS_TOKEN_REFRESH_WINDOW_SECONDS,
+    );
   }
 
   public getAccessTokenMinValidSeconds(): number {

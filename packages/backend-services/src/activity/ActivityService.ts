@@ -9,11 +9,7 @@ interface ListActivityInput {
 }
 
 const ActivityService = {
-  async listActivity(
-    userEmail: string,
-    input: ListActivityInput,
-    env: { DB: D1Database },
-  ): Promise<ActivityEntryList> {
+  async listActivity(userEmail: string, input: ListActivityInput, env: { DB: D1Database }): Promise<ActivityEntryList> {
     return new ActivityDAO(env.DB).listForUser(userEmail, {
       applicationId: input.applicationId,
       cursor: input.cursor,

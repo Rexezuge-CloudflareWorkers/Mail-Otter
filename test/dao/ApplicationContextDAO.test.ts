@@ -6,14 +6,14 @@ vi.mock('@mail-otter/shared/utils', () => ({
 }));
 
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
-import type { ApplicationContextDocumentInternal, ApplicationContextDeletionRunInternal, ContextAuditLogInternal } from '@mail-otter/shared/model';
+import type {
+  ApplicationContextDocumentInternal,
+  ApplicationContextDeletionRunInternal,
+  ContextAuditLogInternal,
+} from '@mail-otter/shared/model';
 import type { D1Result } from '@mail-otter/shared/constants';
 
-function makeDb(fns: {
-  run?: ReturnType<typeof vi.fn>;
-  first?: ReturnType<typeof vi.fn>;
-  all?: ReturnType<typeof vi.fn>;
-}): D1Database {
+function makeDb(fns: { run?: ReturnType<typeof vi.fn>; first?: ReturnType<typeof vi.fn>; all?: ReturnType<typeof vi.fn> }): D1Database {
   const runFn = fns.run ?? vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
   const firstFn = fns.first ?? vi.fn().mockResolvedValue(null);
   const allFn = fns.all ?? vi.fn().mockResolvedValue({ results: [] } as D1Result);
@@ -94,9 +94,7 @@ describe('ApplicationContextDAO', () => {
   describe('upsertEmailDocument', () => {
     it('inserts new document when no existing', async () => {
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
-      const firstFn = vi.fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(createDocRow());
+      const firstFn = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(createDocRow());
       const db = makeDb({ run: runFn, first: firstFn });
       dao = new ApplicationContextDAO(db);
 
@@ -118,9 +116,7 @@ describe('ApplicationContextDAO', () => {
       const existing = createDocRow();
       const updated = createDocRow({ indexed_text_chars: 200 });
       const runFn = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } } as D1Result);
-      const firstFn = vi.fn()
-        .mockResolvedValueOnce(existing)
-        .mockResolvedValueOnce(updated);
+      const firstFn = vi.fn().mockResolvedValueOnce(existing).mockResolvedValueOnce(updated);
       const db = makeDb({ run: runFn, first: firstFn });
       dao = new ApplicationContextDAO(db);
 
@@ -155,7 +151,8 @@ describe('ApplicationContextDAO', () => {
 
   describe('getSummaryByApplication', () => {
     it('returns summary with counts', async () => {
-      const firstFn = vi.fn()
+      const firstFn = vi
+        .fn()
         .mockResolvedValueOnce({ count: 5, last_indexed_at: 1_778_200_000 })
         .mockResolvedValueOnce({ last_delete_accepted_at: 1_778_100_000 });
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
@@ -168,9 +165,7 @@ describe('ApplicationContextDAO', () => {
     });
 
     it('handles null values', async () => {
-      const firstFn = vi.fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null);
+      const firstFn = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null);
       const allFn = vi.fn().mockResolvedValue({ results: [] } as D1Result);
       const db = makeDb({ first: firstFn, all: allFn });
       dao = new ApplicationContextDAO(db);
@@ -181,7 +176,8 @@ describe('ApplicationContextDAO', () => {
     });
 
     it('reports last error from documents', async () => {
-      const firstFn = vi.fn()
+      const firstFn = vi
+        .fn()
         .mockResolvedValueOnce({ count: 5, last_indexed_at: 1_778_200_000 })
         .mockResolvedValueOnce({ last_delete_accepted_at: null })
         .mockResolvedValueOnce({ last_error: 'doc error', updated_at: 1_778_200_000 })
@@ -240,7 +236,15 @@ describe('ApplicationContextDAO', () => {
 
   describe('getDocumentSourceForUser', () => {
     it('returns source info when found', async () => {
-      const row = { context_document_id: 'doc-1', application_id: 'app-1', user_email: 'user@example.com', source_provider_id: 'google-gmail', source_document_id: 'src-1', source_thread_id: null, status: 'active' };
+      const row = {
+        context_document_id: 'doc-1',
+        application_id: 'app-1',
+        user_email: 'user@example.com',
+        source_provider_id: 'google-gmail',
+        source_document_id: 'src-1',
+        source_thread_id: null,
+        status: 'active',
+      };
       const db = makeDb({ first: vi.fn().mockResolvedValue(row) });
       dao = new ApplicationContextDAO(db);
 
@@ -390,9 +394,7 @@ describe('ApplicationContextDAO', () => {
   describe('listApplicationsOverDocumentLimit', () => {
     it('returns over-limit applications', async () => {
       const allFn = vi.fn().mockResolvedValue({
-        results: [
-          { application_id: 'app-1', user_email: 'user@example.com', active_count: 50, effective_limit: 25 },
-        ],
+        results: [{ application_id: 'app-1', user_email: 'user@example.com', active_count: 50, effective_limit: 25 }],
       } as D1Result);
       const db = makeDb({ all: allFn });
       dao = new ApplicationContextDAO(db);
@@ -419,9 +421,7 @@ describe('ApplicationContextDAO', () => {
   describe('getDocumentSourcesByVectorIds', () => {
     it('returns document sources for vector IDs', async () => {
       const allFn = vi.fn().mockResolvedValue({
-        results: [
-          { context_document_id: 'doc-1', source_document_id: 'src-1' },
-        ],
+        results: [{ context_document_id: 'doc-1', source_document_id: 'src-1' }],
       } as D1Result);
       const db = makeDb({ all: allFn });
       dao = new ApplicationContextDAO(db);

@@ -85,16 +85,7 @@ class TestDriveService extends AbstractDriveIngestionService {
     contextDAO: ApplicationContextDAO,
     sourceType: string,
   ) {
-    return this.ingestTextDocument(
-      application,
-      sourceDocumentId,
-      title,
-      indexedText,
-      vectorNamespace,
-      contextDAO,
-      sourceType,
-      '[Test]',
-    );
+    return this.ingestTextDocument(application, sourceDocumentId, title, indexedText, vectorNamespace, contextDAO, sourceType, '[Test]');
   }
 
   deleteDocs(contextDAO: ApplicationContextDAO, application: ConnectedApplication, removedIds: string[]) {
@@ -105,12 +96,7 @@ class TestDriveService extends AbstractDriveIngestionService {
     return this.buildIndexedText(filename, appName, rawText);
   }
 
-  ingestError(
-    contextDAO: ApplicationContextDAO,
-    application: ConnectedApplication,
-    sourceDocumentId: string,
-    error: unknown,
-  ) {
+  ingestError(contextDAO: ApplicationContextDAO, application: ConnectedApplication, sourceDocumentId: string, error: unknown) {
     return this.markIngestError(contextDAO, application, sourceDocumentId, 'google_drive', error);
   }
 }
@@ -132,11 +118,11 @@ const VECTORIZE = {
 function makeEnv(extra: Record<string, unknown> = {}): DriveIngestionEnv {
   return {
     DB: {} as never,
-    AI: { run: vi.fn() } as unknown as Ai,
-    EMAIL_CONTEXT_INDEX: VECTORIZE as unknown as VectorizeIndex,
+    AI: { run: vi.fn() },
+    EMAIL_CONTEXT_INDEX: VECTORIZE,
     AES_ENCRYPTION_KEY_SECRET: { get: vi.fn().mockResolvedValue('secret') },
     ...extra,
-  } as unknown as DriveIngestionEnv;
+  };
 }
 
 function makeDao(): ApplicationContextDAO {
@@ -186,9 +172,7 @@ describe('AbstractDriveIngestionService branches', () => {
       indexedAt: 123,
     });
     const service = new TestDriveService(makeEnv());
-    await expect(service.ingest(makeApp(), 'doc-1', 'Title', 'text', 'ns-user', makeDao(), 'google_drive')).resolves.toBe(
-      'skipped',
-    );
+    await expect(service.ingest(makeApp(), 'doc-1', 'Title', 'text', 'ns-user', makeDao(), 'google_drive')).resolves.toBe('skipped');
     expect(VECTORIZE.upsert).not.toHaveBeenCalled();
     expect(mockMarkDocumentIndexed).not.toHaveBeenCalled();
   });
@@ -201,9 +185,7 @@ describe('AbstractDriveIngestionService branches', () => {
       indexedAt: null,
     });
     const service = new TestDriveService(makeEnv());
-    await expect(service.ingest(makeApp(), 'doc-2', 'Title', 'fresh text', 'ns-user', makeDao(), 'google_drive')).resolves.toBe(
-      'indexed',
-    );
+    await expect(service.ingest(makeApp(), 'doc-2', 'Title', 'fresh text', 'ns-user', makeDao(), 'google_drive')).resolves.toBe('indexed');
     expect(mockEmbed).toHaveBeenCalled();
     expect(VECTORIZE.upsert).toHaveBeenCalledOnce();
     expect(mockMarkDocumentIndexed).toHaveBeenCalledWith('ctx-2');

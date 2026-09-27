@@ -26,8 +26,11 @@ class CryptoUtility {
       binary += String.fromCodePoint(byte);
     });
     // btoa + URL-safe transform; Uint8Array#toBase64 is not guaranteed in all Workers runtimes
-     
-    return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/={0,2}$/, '');
+
+    return btoa(binary)
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replace(/={0,2}$/, '');
   }
 
   public static randomBase64Url(byteLength: number): string {

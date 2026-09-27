@@ -10,22 +10,14 @@ describe('GoogleDriveProviderUtil', () => {
 
   describe('getStartPageToken', () => {
     it('returns startPageToken on success', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(Response.json({ startPageToken: 'tok123' })),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json({ startPageToken: 'tok123' })));
       const token = await GoogleDriveProviderUtil.getStartPageToken(ACCESS_TOKEN);
       expect(token).toBe('tok123');
     });
 
     it('throws retryable error on 503', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response('Service unavailable', { status: 503 })),
-      );
-      await expect(GoogleDriveProviderUtil.getStartPageToken(ACCESS_TOKEN)).rejects.toThrow(
-        'Google Drive',
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('Service unavailable', { status: 503 })));
+      await expect(GoogleDriveProviderUtil.getStartPageToken(ACCESS_TOKEN)).rejects.toThrow('Google Drive');
     });
   });
 
@@ -53,20 +45,13 @@ describe('GoogleDriveProviderUtil', () => {
     it('returns nextPageToken when more pages exist', async () => {
       const page1 = {
         nextPageToken: 'next-tok',
-        changes: [
-          { fileId: 'f1', file: { id: 'f1', name: 'a.txt', mimeType: 'text/plain' } },
-        ],
+        changes: [{ fileId: 'f1', file: { id: 'f1', name: 'a.txt', mimeType: 'text/plain' } }],
       };
       const page2 = {
         newStartPageToken: 'final-tok',
-        changes: [
-          { fileId: 'f2', file: { id: 'f2', name: 'b.txt', mimeType: 'text/plain' } },
-        ],
+        changes: [{ fileId: 'f2', file: { id: 'f2', name: 'b.txt', mimeType: 'text/plain' } }],
       };
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValueOnce(Response.json(page1))
-        .mockResolvedValueOnce(Response.json(page2));
+      const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(page1)).mockResolvedValueOnce(Response.json(page2));
       vi.stubGlobal('fetch', fetchMock);
 
       const result = await GoogleDriveProviderUtil.listChanges(ACCESS_TOKEN, 'tok', 50);
@@ -114,9 +99,7 @@ describe('GoogleDriveProviderUtil', () => {
     it('ignores unsupported mime types', async () => {
       const apiResponse = {
         newStartPageToken: 'newTok',
-        changes: [
-          { fileId: 'img-id', file: { id: 'img-id', name: 'photo.jpg', mimeType: 'image/jpeg' } },
-        ],
+        changes: [{ fileId: 'img-id', file: { id: 'img-id', name: 'photo.jpg', mimeType: 'image/jpeg' } }],
       };
       vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(apiResponse)));
 
@@ -129,32 +112,21 @@ describe('GoogleDriveProviderUtil', () => {
 
   describe('exportDocument', () => {
     it('returns response text on success', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response('plain text content', { status: 200 })),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('plain text content', { status: 200 })));
       const text = await GoogleDriveProviderUtil.exportDocument(ACCESS_TOKEN, 'doc-id');
       expect(text).toBe('plain text content');
     });
 
     it('throws non-retryable error on 404', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response('Not found', { status: 404 })),
-      );
-      await expect(GoogleDriveProviderUtil.exportDocument(ACCESS_TOKEN, 'bad-id')).rejects.toThrow(
-        '404',
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('Not found', { status: 404 })));
+      await expect(GoogleDriveProviderUtil.exportDocument(ACCESS_TOKEN, 'bad-id')).rejects.toThrow('404');
     });
   });
 
   describe('downloadFile', () => {
     it('returns ArrayBuffer truncated to maxBytes', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5]);
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValueOnce(new Response(data.buffer, { status: 200 })),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(data.buffer, { status: 200 })));
       const result = await GoogleDriveProviderUtil.downloadFile(ACCESS_TOKEN, 'file-id', 3);
       expect(new Uint8Array(result)).toEqual(new Uint8Array([1, 2, 3]));
     });

@@ -1,19 +1,6 @@
 const DEFAULT_LOCALE = 'en';
 
-const SUPPORTED_LOCALES = [
-  'en',
-  'de',
-  'fr',
-  'es',
-  'it',
-  'nl',
-  'pt',
-  'pl',
-  'ja',
-  'zh-CN',
-  'zh-TW',
-  'ko',
-] as const;
+const SUPPORTED_LOCALES = ['en', 'de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'ja', 'zh-CN', 'zh-TW', 'ko'] as const;
 
 type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

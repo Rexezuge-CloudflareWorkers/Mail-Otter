@@ -232,10 +232,7 @@ class BackgroundTaskRunDAO extends BaseDAO {
     const pageRows = rows.slice(0, limit);
     return {
       runs: pageRows.map((r) => BackgroundTaskRunDAO.toRun(r)),
-      nextCursor:
-        rows.length > limit
-          ? BackgroundTaskRunDAO.encodeCursor(pageRows.at(-1)!.started_at, pageRows.at(-1)!.run_id)
-          : undefined,
+      nextCursor: rows.length > limit ? BackgroundTaskRunDAO.encodeCursor(pageRows.at(-1)!.started_at, pageRows.at(-1)!.run_id) : undefined,
     };
   }
 
@@ -264,7 +261,9 @@ class BackgroundTaskRunDAO extends BaseDAO {
 
   private static parseCursor(cursor: string | undefined): { startedAt: number; runId: string } | undefined {
     const parsed = CursorUtil.decode<{ startedAt?: unknown; runId?: unknown }>(cursor);
-    return !parsed || typeof parsed.startedAt !== 'number' || typeof parsed.runId !== 'string' ? undefined : { startedAt: parsed.startedAt, runId: parsed.runId };
+    return !parsed || typeof parsed.startedAt !== 'number' || typeof parsed.runId !== 'string'
+      ? undefined
+      : { startedAt: parsed.startedAt, runId: parsed.runId };
   }
 
   private static toRun(row: BackgroundTaskRunInternal): BackgroundTaskRun {

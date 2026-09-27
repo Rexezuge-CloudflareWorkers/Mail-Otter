@@ -1,20 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BACKEND_STRINGS, getBackendStrings } from '@mail-otter/shared/i18n';
 
-const ALL_LOCALES = [
-  'en',
-  'de',
-  'fr',
-  'es',
-  'it',
-  'nl',
-  'pt',
-  'pl',
-  'ja',
-  'zh-CN',
-  'zh-TW',
-  'ko',
-] as const;
+const ALL_LOCALES = ['en', 'de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'ja', 'zh-CN', 'zh-TW', 'ko'] as const;
 
 function collectLeafKeys(value: unknown, prefix: string, out: string[]): void {
   if (typeof value === 'string') {
@@ -77,7 +64,8 @@ describe('all locales', () => {
   });
 
   it('keeps placeholder variables in sync with English', () => {
-    const placeholderPattern = /\{[^}]+\}/g;
+    // `[^{}]*` is linear; `[^}]+` backtracks against the closing brace.
+    const placeholderPattern = /\{[^{}]*\}/g;
     const english = new Map(leafValues(getBackendStrings('en')).map((e) => [e.key, e.value]));
     for (const locale of ALL_LOCALES) {
       if (locale === 'en') continue;

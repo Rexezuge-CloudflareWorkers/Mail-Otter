@@ -2,10 +2,7 @@ const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'text/csv']);
 
 // PDF whitespace characters (spec §7.2.2) and delimiter characters (spec §7.2.3).
 const PDF_WS = new Set([' ', '\t', '\n', '\r', '\f', '\0']);
-const PDF_DELIMS = new Set([
-  ' ', '\t', '\n', '\r', '\f', '\0',
-  '(', ')', '[', ']', '{', '}', '/', '%',
-]);
+const PDF_DELIMS = new Set([' ', '\t', '\n', '\r', '\f', '\0', '(', ')', '[', ']', '{', '}', '/', '%']);
 
 function unescapePdfString(s: string): string {
   return s
@@ -26,8 +23,15 @@ function readPdfString(raw: string, i: number): [string, number] {
   let depth = 1;
   while (j < len) {
     const ch = raw[j];
-    if (ch === '\\') { j += 2; continue; }
-    if (ch === '(') { depth++; j++; continue; }
+    if (ch === '\\') {
+      j += 2;
+      continue;
+    }
+    if (ch === '(') {
+      depth++;
+      j++;
+      continue;
+    }
     if (ch === ')') {
       depth--;
       if (depth === 0) return [raw.slice(start, j), j + 1];

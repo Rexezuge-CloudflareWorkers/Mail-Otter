@@ -28,7 +28,7 @@ class IntegrationService {
     const masterKey = (): Promise<string> => env.AES_ENCRYPTION_KEY_SECRET.get();
     this.deps = {
       integrationDAO: async () => new ApplicationIntegrationDAO(db, await masterKey()),
-      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db),),
+      deliveryLogDAO: () => Promise.resolve(new IntegrationDeliveryLogDAO(db)),
       applicationDAO: async () => new ConnectedApplicationDAO(db, await masterKey()),
       ...deps,
     };
@@ -130,7 +130,9 @@ class IntegrationService {
     locale?: string | null,
   ): Promise<DispatchResult> {
     const observer = IntegrationObserverRegistry.get(integration.integrationType);
-    return observer ? observer.dispatch(webhookUrl, notification, locale) : { status: 'failure', httpStatus: null, errorMessage: `Unsupported integration type: ${integration.integrationType}` };
+    return observer
+      ? observer.dispatch(webhookUrl, notification, locale)
+      : { status: 'failure', httpStatus: null, errorMessage: `Unsupported integration type: ${integration.integrationType}` };
   }
 }
 

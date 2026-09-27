@@ -3,7 +3,6 @@ import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 
 class AiDailyUsageDAO extends BaseDAO {
-
   public async getByDate(usageDate: string): Promise<AiDailyUsage | undefined> {
     const row: AiDailyUsageInternal | null = await this.database
       .prepare(
@@ -39,11 +38,7 @@ class AiDailyUsageDAO extends BaseDAO {
 
   public async deleteOlderThanDate(olderThanDate: string): Promise<number> {
     const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('DELETE FROM ai_daily_usage WHERE usage_date < ?')
-          .bind(olderThanDate)
-          .run(),
+      (): Promise<D1Result> => this.database.prepare('DELETE FROM ai_daily_usage WHERE usage_date < ?').bind(olderThanDate).run(),
       'delete old AI daily usage',
     );
     return (result.meta as { changes?: number })?.changes ?? 0;

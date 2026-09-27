@@ -26,17 +26,12 @@ class FastmailWebhookService extends BaseWebhookService {
       throw new BadRequestError('Fastmail webhook: invalid token.');
     }
 
-    await this.enqueueAndTouch(
-      env.EMAIL_EVENTS_QUEUE,
-      subscriptionDAO,
-      subscription.subscriptionId,
-      {
-        type: 'jmap-notification',
-        applicationId: input.applicationId,
-        emailId: input.emailId,
-        callbackBaseUrl: input.callbackBaseUrl,
-      },
-    );
+    await this.enqueueAndTouch(env.EMAIL_EVENTS_QUEUE, subscriptionDAO, subscription.subscriptionId, {
+      type: 'jmap-notification',
+      applicationId: input.applicationId,
+      emailId: input.emailId,
+      callbackBaseUrl: input.callbackBaseUrl,
+    });
   }
 }
 

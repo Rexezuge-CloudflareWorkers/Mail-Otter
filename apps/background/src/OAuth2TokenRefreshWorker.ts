@@ -74,21 +74,38 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
     }
   }
 
-  private async runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+  /**
+   * Serialize token operations so two refreshes never race.
+   *
+   * The Durable Object runtime only holds its input gate across storage I/O.
+   * These operations spend nearly all their time awaiting an external OAuth2
+   * provider, during which the gate is released and another request is
+   * delivered. `blockConcurrencyWhile` does not help either: it only gates the
+   * constructor, not later requests.
+   *
+   * So exclusion is enforced here, and the claim has to be *synchronous*. The
+   * previous version read the tail, then `await`ed it, and only afterwards
+   * assigned the new tail. Two callers arriving during that await both read the
+   * same predecessor, both waited on it, and both then ran concurrently — two
+   * refresh-token requests with the same token. Google and Microsoft rotate
+   * refresh tokens, so the second response invalidates the first, the next
+   * refresh fails with `invalid_grant`, and the mailbox needs re-authorization.
+   *
+   * Chaining onto the tail without an intervening `await` makes the claim
+   * atomic with respect to the single-threaded event loop: every caller
+   * observes a distinct predecessor.
+   */
+  private runExclusive<T>(operation: () => Promise<T>): Promise<T> {
     const previousOperation: Promise<unknown> | undefined = this.currentOperation;
-    if (previousOperation) {
-      await previousOperation.catch((): void => undefined);
-    }
-
-    const currentOperation: Promise<T> = operation();
+    // Swallow a predecessor's rejection so one failure cannot poison the chain
+    // for every later caller.
+    const currentOperation: Promise<T> = previousOperation ? previousOperation.catch((): void => undefined).then(operation) : operation();
     this.currentOperation = currentOperation;
-    try {
-      return await currentOperation;
-    } finally {
+    return currentOperation.finally((): void => {
       if (this.currentOperation === currentOperation) {
         this.currentOperation = undefined;
       }
-    }
+    });
   }
 
   private async refreshAccessToken(payload: OAuth2TokenRefreshRequest): Promise<OAuth2TokenWorkerResponse> {
@@ -154,7 +171,18 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
         codeVerifier,
       });
       const providerEmail: string = await this.getProviderEmail(application, tokenResult.accessToken);
-      await applicationDAO.markOAuth2Connected(applicationId, tokenResult.refreshToken!, providerEmail);
+      // A provider is not obliged to return a refresh token on every exchange.
+      // Passing a possibly-undefined value through would spread it into
+      // `OAuth2Credentials`, where `JSON.stringify` silently drops the key, and
+      // the mailbox would be marked `connected` with no way to ever refresh.
+      // Prefer the freshly issued token, fall back to the stored one, and refuse
+      // to mark the application connected when neither exists.
+      const existingRefreshToken: string | undefined = (application.credentials as OAuth2Credentials).refreshToken;
+      const refreshToken: string | undefined = tokenResult.refreshToken ?? existingRefreshToken;
+      if (!refreshToken) {
+        throw new BadRequestError('Provider returned no refresh token and none was stored. Re-authorization is required.');
+      }
+      await applicationDAO.markOAuth2Connected(applicationId, refreshToken, providerEmail);
       const cacheDAO = new OAuth2AccessTokenCacheDAO(this.env.OAUTH2_TOKEN_CACHE, masterKey);
       return this.storeSuccessfulToken(application.applicationId, tokenResult, cacheDAO, statusDAO, providerEmail);
     } catch (error: unknown) {

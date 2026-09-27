@@ -170,8 +170,8 @@ describe('user routes', () => {
     mockGetCurrentUserSummary.mockResolvedValue(SUMMARY);
     mockUpdatePreferredLanguage.mockResolvedValue('de');
     mockGetUserByEmail.mockResolvedValue({ preferredLanguage: 'en' });
-    mockGetByIdForUser.mockResolvedValue({ applicationId: 'app-1' });
-    mockGetOwnedApplication.mockResolvedValue({ applicationId: 'app-1' });
+    mockGetByIdForUser.mockResolvedValue({ applicationId: '11111111-1111-4111-8111-111111111111' });
+    mockGetOwnedApplication.mockResolvedValue({ applicationId: '11111111-1111-4111-8111-111111111111' });
     mockGetPreferredLanguage.mockResolvedValue('en');
     mockGetConfig.mockResolvedValue({ enabled: true, sendTime: '08:00', sections: ['summary'] });
     mockTriggerTask.mockResolvedValue(undefined);
@@ -212,13 +212,17 @@ describe('user routes', () => {
     mockListActionsForUser.mockResolvedValue({ actions: [] });
     await call(
       new ListEmailActionsRoute(),
-      { raw: new Request('https://x/user/actions?showSnoozed=true&status=pending&applicationId=app-1&cursor=c') },
+      {
+        raw: new Request(
+          'https://x/user/actions?showSnoozed=true&status=pending&applicationId=11111111-1111-4111-8111-111111111111&cursor=c',
+        ),
+      },
       makeEnv(),
       makeCxt(),
     );
     expect(mockListActionsForUser).toHaveBeenCalledWith(
       'user@example.com',
-      { applicationId: 'app-1', status: 'pending', cursor: 'c', showSnoozed: true },
+      { applicationId: '11111111-1111-4111-8111-111111111111', status: 'pending', cursor: 'c', showSnoozed: true },
       expect.anything(),
     );
   });
@@ -278,7 +282,7 @@ describe('user routes', () => {
   });
 
   it('POST /user/application creates a mailbox', async () => {
-    mockCreateUserApplication.mockResolvedValue({ applicationId: 'app-9' });
+    mockCreateUserApplication.mockResolvedValue({ applicationId: '99999999-9999-4999-8999-999999999999' });
     const result = (await call(
       new CreateApplicationRoute(),
       { raw: new Request('https://x/user/application'), displayName: 'Work', providerId: 'google-gmail', connectionMethod: 'oauth2' },
@@ -286,30 +290,30 @@ describe('user routes', () => {
       makeCxt(),
     )) as { application: unknown };
     expect(mockCreateUserApplication).toHaveBeenCalled();
-    expect(result.application).toEqual({ applicationId: 'app-9' });
+    expect(result.application).toEqual({ applicationId: '99999999-9999-4999-8999-999999999999' });
   });
 
   it('PUT /user/application updates a mailbox', async () => {
-    mockUpdateUserApplication.mockResolvedValue({ applicationId: 'app-1' });
+    mockUpdateUserApplication.mockResolvedValue({ applicationId: '11111111-1111-4111-8111-111111111111' });
     const result = (await call(
       new UpdateApplicationRoute(),
-      { raw: new Request('https://x/user/application'), applicationId: 'app-1', displayName: 'Work' },
+      { raw: new Request('https://x/user/application'), applicationId: '11111111-1111-4111-8111-111111111111', displayName: 'Work' },
       makeEnv(),
       makeCxt(),
     )) as { application: unknown };
     expect(mockUpdateUserApplication).toHaveBeenCalled();
-    expect(result.application).toEqual({ applicationId: 'app-1' });
+    expect(result.application).toEqual({ applicationId: '11111111-1111-4111-8111-111111111111' });
   });
 
   it('GET /user/application/digest returns config', async () => {
-    mockGetOwnedApplication.mockResolvedValue({ applicationId: 'app-1' });
+    mockGetOwnedApplication.mockResolvedValue({ applicationId: '11111111-1111-4111-8111-111111111111' });
     const result = (await call(
       new GetDigestConfigRoute(),
-      { raw: new Request('https://x/user/application/digest'), applicationId: 'app-1' },
+      { raw: new Request('https://x/user/application/digest'), applicationId: '11111111-1111-4111-8111-111111111111' },
       makeEnv(),
       makeCxt(),
     )) as { digestConfig: unknown };
-    expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', 'app-1');
+    expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
     expect(result.digestConfig).toEqual({ enabled: true, sendTime: '08:00', sections: ['summary'] });
   });
 
@@ -329,32 +333,42 @@ describe('user routes', () => {
   it('PUT /user/application/digest saves and returns config', async () => {
     await call(
       new UpdateDigestConfigRoute(),
-      { raw: new Request('https://x/user/application/digest'), applicationId: 'app-1', enabled: false, sendTime: '09:00', sections: [] },
+      {
+        raw: new Request('https://x/user/application/digest'),
+        applicationId: '11111111-1111-4111-8111-111111111111',
+        enabled: false,
+        sendTime: '09:00',
+        sections: [],
+      },
       makeEnv(),
       makeCxt(),
     );
-    expect(mockSaveConfig).toHaveBeenCalledWith('app-1', { enabled: false, sendTime: '09:00', sections: [] });
+    expect(mockSaveConfig).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', {
+      enabled: false,
+      sendTime: '09:00',
+      sections: [],
+    });
   });
 
   it('GET /user/application/integrations lists integrations', async () => {
-    mockListIntegrations.mockResolvedValue([{ id: 'i-1' }]);
+    mockListIntegrations.mockResolvedValue([{ id: '22222222-2222-4222-8222-222222222222' }]);
     const result = (await call(
       new ListIntegrationsRoute(),
-      { raw: new Request('https://x/user/application/integrations?applicationId=app-1') },
+      { raw: new Request('https://x/user/application/integrations?applicationId=11111111-1111-4111-8111-111111111111') },
       makeEnv(),
       makeCxt(),
     )) as { integrations: unknown[] };
-    expect(mockListIntegrations).toHaveBeenCalledWith('user@example.com', 'app-1');
+    expect(mockListIntegrations).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
     expect(result.integrations).toHaveLength(1);
   });
 
   it('POST /user/application/integration creates an integration', async () => {
-    mockCreateIntegration.mockResolvedValue({ id: 'i-2' });
+    mockCreateIntegration.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333' });
     const result = (await call(
       new CreateIntegrationRoute(),
       {
         raw: new Request('https://x/user/application/integration'),
-        applicationId: 'app-1',
+        applicationId: '11111111-1111-4111-8111-111111111111',
         integrationType: 'webhook',
         name: 'Hook',
         webhookUrl: 'https://hook.example',
@@ -363,23 +377,23 @@ describe('user routes', () => {
       makeCxt(),
     )) as { integration: unknown };
     expect(mockCreateIntegration).toHaveBeenCalledWith('user@example.com', {
-      applicationId: 'app-1',
+      applicationId: '11111111-1111-4111-8111-111111111111',
       integrationType: 'webhook',
       name: 'Hook',
       webhookUrl: 'https://hook.example',
     });
-    expect(result.integration).toEqual({ id: 'i-2' });
+    expect(result.integration).toEqual({ id: '33333333-3333-4333-8333-333333333333' });
   });
 
   it('GET /user/analytics clamps the days window', async () => {
     mockGetAnalytics.mockResolvedValue({ aiUsage: {} });
     await call(
       new GetAnalyticsRoute(),
-      { raw: new Request('https://x/user/analytics?days=999&applicationId=app-1') },
+      { raw: new Request('https://x/user/analytics?days=999&applicationId=11111111-1111-4111-8111-111111111111') },
       makeEnv(),
       makeCxt(),
     );
-    expect(mockGetAnalytics).toHaveBeenCalledWith('user@example.com', { days: 365, applicationId: 'app-1' });
+    expect(mockGetAnalytics).toHaveBeenCalledWith('user@example.com', { days: 365, applicationId: '11111111-1111-4111-8111-111111111111' });
 
     await call(new GetAnalyticsRoute(), { raw: new Request('https://x/user/analytics') }, makeEnv(), makeCxt());
     expect(mockGetAnalytics).toHaveBeenCalledWith('user@example.com', { days: 30, applicationId: undefined });
@@ -404,10 +418,16 @@ describe('user routes', () => {
   it('GET /user/activity exports CSV when requested', async () => {
     mockListActivity.mockResolvedValue({
       entries: [
-        { eventType: 'email_processed', applicationId: 'app-1', timestamp: 1_700_000_000, providerMessageId: 'm-1', status: 'processed' },
+        {
+          eventType: 'email_processed',
+          applicationId: '11111111-1111-4111-8111-111111111111',
+          timestamp: 1_700_000_000,
+          providerMessageId: 'm-1',
+          status: 'processed',
+        },
         {
           eventType: 'action_created',
-          applicationId: 'app-1',
+          applicationId: '11111111-1111-4111-8111-111111111111',
           timestamp: 1_700_000_001,
           actionId: 'a-1',
           actionType: 'calendar.add_event',
@@ -415,7 +435,7 @@ describe('user routes', () => {
         },
         {
           eventType: 'action_executed',
-          applicationId: 'app-1',
+          applicationId: '11111111-1111-4111-8111-111111111111',
           timestamp: 1_700_000_002,
           executionStatus: 'ok',
           actionId: 'a-1',
@@ -451,11 +471,20 @@ describe('user routes', () => {
   it('POST /user/processing/run-task triggers the task', async () => {
     const result = (await call(
       new RunTaskNowRoute(),
-      { raw: new Request('https://x/user/processing/run-task'), taskType: 'calendar_sync', applicationId: 'app-1' },
+      {
+        raw: new Request('https://x/user/processing/run-task'),
+        taskType: 'calendar_sync',
+        applicationId: '11111111-1111-4111-8111-111111111111',
+      },
       makeEnv(),
       makeCxt(),
     )) as { triggered: boolean };
-    expect(mockTriggerTask).toHaveBeenCalledWith('user@example.com', 'calendar_sync', 'app-1', expect.anything());
+    expect(mockTriggerTask).toHaveBeenCalledWith(
+      'user@example.com',
+      'calendar_sync',
+      '11111111-1111-4111-8111-111111111111',
+      expect.anything(),
+    );
     expect(result.triggered).toBe(true);
   });
 });

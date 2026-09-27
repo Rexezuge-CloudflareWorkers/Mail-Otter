@@ -149,4 +149,66 @@ describe('OAuth2TokenRefreshWorker', () => {
       Math.floor(Date.now() / 1000) + 3600,
     );
   });
+
+  // Regression: the exchange passed `tokenResult.refreshToken!` straight into
+  // `markOAuth2Connected`, which spreads it into `OAuth2Credentials` where
+  // `JSON.stringify` silently drops an undefined value. A provider that omits
+  // the refresh token therefore produced an application marked `connected` with
+  // no way to ever refresh. The stored token is now the fallback.
+  it('keeps the stored refresh token when the exchange returns none', async () => {
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(createApplication());
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'markOAuth2Connected').mockResolvedValue();
+    vi.spyOn(OAuth2ProviderUtil, 'exchangeCode').mockResolvedValue({
+      accessToken: 'exchange-access-token',
+      expiresIn: 3600,
+    });
+    vi.spyOn(OutlookProviderUtil, 'getProfile').mockResolvedValue({ emailAddress: 'mailbox@example.com' });
+    const worker = new OAuth2TokenRefreshWorker(createDurableObjectState(), createEnv());
+
+    const response: Response = await worker.fetch(
+      new Request('https://oauth2-token-refreshers.invalid/exchange', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: 'app-1',
+          redirectUri: 'https://mail.example.com/api/oauth2/callback/app-1',
+          code: 'code',
+          codeVerifier: 'verifier',
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    // The pre-existing 'refresh-token' from createApplication() is retained.
+    expect(ConnectedApplicationDAO.prototype.markOAuth2Connected).toHaveBeenCalledWith('app-1', 'refresh-token', 'mailbox@example.com');
+  });
+
+  it('refuses to mark an application connected when no refresh token exists at all', async () => {
+    const application = createApplication();
+    // A first-time authorization has no stored refresh token yet.
+    (application.credentials as { refreshToken?: string }).refreshToken = undefined;
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(application);
+    vi.spyOn(ConnectedApplicationDAO.prototype, 'markOAuth2Connected').mockResolvedValue();
+    vi.spyOn(OAuth2ProviderUtil, 'exchangeCode').mockResolvedValue({
+      accessToken: 'exchange-access-token',
+      expiresIn: 3600,
+    });
+    vi.spyOn(OutlookProviderUtil, 'getProfile').mockResolvedValue({ emailAddress: 'mailbox@example.com' });
+    const worker = new OAuth2TokenRefreshWorker(createDurableObjectState(), createEnv());
+
+    const response: Response = await worker.fetch(
+      new Request('https://oauth2-token-refreshers.invalid/exchange', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: 'app-1',
+          redirectUri: 'https://mail.example.com/api/oauth2/callback/app-1',
+          code: 'code',
+          codeVerifier: 'verifier',
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    // Critically, the application is not marked connected with no credential.
+    expect(ConnectedApplicationDAO.prototype.markOAuth2Connected).not.toHaveBeenCalled();
+  });
 });

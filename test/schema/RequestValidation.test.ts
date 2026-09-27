@@ -251,6 +251,8 @@ describe('Request input schemas', () => {
       }),
     ).resolves.toEqual({
       success: true,
+      // `POST /user/application` declares no query schema, so this is empty.
+      query: {},
       data: {
         displayName: 'Gmail inbox',
         providerId: 'google-gmail',

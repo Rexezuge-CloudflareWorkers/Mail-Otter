@@ -2,6 +2,8 @@ import { UUIDUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import { executeD1WithRetry } from '../utils';
 import { CursorUtil } from '../utils';
 import type { SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEventList } from '@mail-otter/shared/model';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { BaseDAO } from './BaseDAO';
 
 class SyncedCalendarEventDAO extends BaseDAO {
@@ -55,10 +57,11 @@ class SyncedCalendarEventDAO extends BaseDAO {
     return rows.map((r) => SyncedCalendarEventDAO.toEvent(r));
   }
 
-  public async listForUser(userEmail: string, options: ListCalendarEventsOptions = {}): Promise<SyncedCalendarEventList> {
+  public async listForUser(scope: UserScope, options: ListCalendarEventsOptions = {}): Promise<SyncedCalendarEventList> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
-    const conditions: string[] = ['ca.user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
 
     if (options.applicationId) {
       conditions.push('sce.application_id = ?');

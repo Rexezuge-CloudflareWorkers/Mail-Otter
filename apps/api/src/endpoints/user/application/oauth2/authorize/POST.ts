@@ -25,7 +25,7 @@ class CreateOAuth2AuthorizationRoute extends IUserRoute<
     const scope = createRequestScope(env);
     return scope
       .get(Tokens.OAuth2AuthorizationService)
-      .createAuthorization(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.raw);
+      .createAuthorization(this.getAuthenticatedUser(cxt), request.applicationId, request.raw);
   }
 }
 

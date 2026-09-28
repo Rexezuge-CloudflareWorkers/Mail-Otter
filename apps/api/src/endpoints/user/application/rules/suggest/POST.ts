@@ -26,7 +26,7 @@ class SuggestApplicationRuleRoute extends IUserRoute<
     const scope = createRequestScope(env);
     const rule = await scope
       .get(Tokens.ApplicationService)
-      .suggestRule(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.description);
+      .suggestRule(this.getAuthenticatedUser(cxt), request.applicationId, request.description);
     return { rule };
   }
 }

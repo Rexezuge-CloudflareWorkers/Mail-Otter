@@ -25,9 +25,7 @@ class UpdateApplicationWatchSettingsRoute extends IUserRoute<
   ): Promise<UpdateApplicationWatchSettingsResponse> {
     const scope = createRequestScope(env);
     return {
-      application: await scope
-        .get(Tokens.ApplicationService)
-        .updateWatchedFolderIds(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ApplicationService).updateWatchedFolderIds(this.getAuthenticatedUser(cxt), request, request.raw),
     };
   }
 }

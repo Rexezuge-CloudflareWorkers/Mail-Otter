@@ -1,3 +1,8 @@
+/**
+User-scoped calls take the account identity: id for ownership, anchor for stored keys.
+*/
+const TEST_SCOPE = { id: 'usr_0123456789abcdef0123456789abcdef', anchorEmail: 'user@example.com' };
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -25,10 +30,15 @@ const {
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  scopeForAnchor: (anchorEmail: string) => ({ id: null, anchorEmail }),
+  userScopeSql: (scope: { id: string | null; anchorEmail: string }) =>
+    scope.id
+      ? { clause: '(user_id = ? OR (user_id IS NULL AND user_email = ?))', bindings: [scope.id, scope.anchorEmail] }
+      : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   ConnectedApplicationDAO: vi.fn(function () {
     return {
-      listMetadataByUserEmail: mockListMetadataByUserEmail,
-      countByUserEmail: mockCountByUserEmail,
+      listMetadataByUserScope: mockListMetadataByUserEmail,
+      countByUserScope: mockCountByUserEmail,
       create: mockCreate,
       getByIdForUser: mockGetByIdForUser,
       updateForUser: mockUpdateForUser,
@@ -79,7 +89,7 @@ describe('ApplicationService', () => {
     it('returns decorated applications', async () => {
       mockListMetadataByUserEmail.mockResolvedValue([{ applicationId: 'app-1', userEmail: 'user@example.com' }]);
 
-      const result = await new ApplicationService(makeEnv()).listUserApplications('user@example.com', new Request('https://example.com'));
+      const result = await new ApplicationService(makeEnv()).listUserApplications(TEST_SCOPE, new Request('https://example.com'));
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({ applicationId: 'app-1', decorated: true });

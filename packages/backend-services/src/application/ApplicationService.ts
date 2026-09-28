@@ -12,6 +12,7 @@ import { WatchService } from '../subscription/WatchService';
 import type { WatchServiceEnv } from '../subscription/WatchService';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import type { OAuth2AccessTokenServiceEnv } from '../oauth2/OAuth2AccessTokenService';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { ApplicationResponse } from './ApplicationResponseUtil';
 import { ApplicationCrudService } from './ApplicationCrudService';
 import { ApplicationRulesService } from './ApplicationRulesService';
@@ -61,72 +62,72 @@ class ApplicationService {
     this.integrations = new ApplicationIntegrationService(full);
   }
 
-  public listUserApplications(userEmail: string, raw: Request): Promise<ApplicationResponse[]> {
-    return this.crud.listUserApplications(userEmail, raw);
+  public listUserApplications(scope: UserScope, raw: Request): Promise<ApplicationResponse[]> {
+    return this.crud.listUserApplications(scope, raw);
   }
 
-  public createUserApplication(userEmail: string, input: CreateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
-    return this.crud.createUserApplication(userEmail, input, raw);
+  public createUserApplication(scope: UserScope, input: CreateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
+    return this.crud.createUserApplication(scope, input, raw);
   }
 
-  public updateUserApplication(userEmail: string, input: UpdateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
-    return this.crud.updateUserApplication(userEmail, input, raw);
+  public updateUserApplication(scope: UserScope, input: UpdateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
+    return this.crud.updateUserApplication(scope, input, raw);
   }
 
-  public updateWatchedFolderIds(userEmail: string, input: UpdateWatchedFolderIdsInput, raw: Request): Promise<ApplicationResponse> {
-    return this.crud.updateWatchedFolderIds(userEmail, input, raw);
+  public updateWatchedFolderIds(scope: UserScope, input: UpdateWatchedFolderIdsInput, raw: Request): Promise<ApplicationResponse> {
+    return this.crud.updateWatchedFolderIds(scope, input, raw);
   }
 
-  public deleteUserApplication(userEmail: string, applicationId: string): Promise<void> {
-    return this.crud.deleteUserApplication(userEmail, applicationId);
+  public deleteUserApplication(scope: UserScope, applicationId: string): Promise<void> {
+    return this.crud.deleteUserApplication(scope, applicationId);
   }
 
-  public getOwnedApplication(userEmail: string, applicationId: string) {
-    return this.crud.getOwnedApplication(userEmail, applicationId);
+  public getOwnedApplication(scope: UserScope, applicationId: string) {
+    return this.crud.getOwnedApplication(scope, applicationId);
   }
 
-  public acknowledgeApplicationError(userEmail: string, applicationId: string, errorType: 'processing' | 'context', raw: Request) {
-    return this.crud.acknowledgeApplicationError(userEmail, applicationId, errorType, raw);
+  public acknowledgeApplicationError(scope: UserScope, applicationId: string, errorType: 'processing' | 'context', raw: Request) {
+    return this.crud.acknowledgeApplicationError(scope, applicationId, errorType, raw);
   }
 
-  public listIntegrations(userEmail: string, applicationId: string): Promise<OutboundIntegration[]> {
-    return this.integrations.listIntegrations(userEmail, applicationId);
+  public listIntegrations(scope: UserScope, applicationId: string): Promise<OutboundIntegration[]> {
+    return this.integrations.listIntegrations(scope, applicationId);
   }
 
-  public createIntegration(userEmail: string, input: CreateIntegrationInput): Promise<OutboundIntegration> {
-    return this.integrations.createIntegration(userEmail, input);
+  public createIntegration(scope: UserScope, input: CreateIntegrationInput): Promise<OutboundIntegration> {
+    return this.integrations.createIntegration(scope, input);
   }
 
-  public updateIntegration(userEmail: string, input: UpdateIntegrationInput): Promise<OutboundIntegration> {
-    return this.integrations.updateIntegration(userEmail, input);
+  public updateIntegration(scope: UserScope, input: UpdateIntegrationInput): Promise<OutboundIntegration> {
+    return this.integrations.updateIntegration(scope, input);
   }
 
-  public deleteIntegration(userEmail: string, integrationId: string): Promise<void> {
-    return this.integrations.deleteIntegration(userEmail, integrationId);
+  public deleteIntegration(scope: UserScope, integrationId: string): Promise<void> {
+    return this.integrations.deleteIntegration(scope, integrationId);
   }
 
-  public testIntegration(userEmail: string, integrationId: string): Promise<void> {
-    return this.integrations.testIntegration(userEmail, integrationId);
+  public testIntegration(scope: UserScope, integrationId: string): Promise<void> {
+    return this.integrations.testIntegration(scope, integrationId);
   }
 
-  public listIntegrationDeliveries(userEmail: string, integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
-    return this.integrations.listIntegrationDeliveries(userEmail, integrationId, limit);
+  public listIntegrationDeliveries(scope: UserScope, integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
+    return this.integrations.listIntegrationDeliveries(scope, integrationId, limit);
   }
 
-  public listLabels(userEmail: string, applicationId: string): Promise<Array<{ id: string; name: string }>> {
-    return this.rules.listLabels(userEmail, applicationId);
+  public listLabels(scope: UserScope, applicationId: string): Promise<Array<{ id: string; name: string }>> {
+    return this.rules.listLabels(scope, applicationId);
   }
 
-  public getRules(userEmail: string, applicationId: string): Promise<EmailProcessingRule[]> {
-    return this.rules.getRules(userEmail, applicationId);
+  public getRules(scope: UserScope, applicationId: string): Promise<EmailProcessingRule[]> {
+    return this.rules.getRules(scope, applicationId);
   }
 
-  public updateRules(userEmail: string, applicationId: string, rules: EmailProcessingRule[]) {
-    return this.rules.updateRules(userEmail, applicationId, rules);
+  public updateRules(scope: UserScope, applicationId: string, rules: EmailProcessingRule[]) {
+    return this.rules.updateRules(scope, applicationId, rules);
   }
 
-  public suggestRule(userEmail: string, applicationId: string, description: string) {
-    return this.rules.suggestRule(userEmail, applicationId, description);
+  public suggestRule(scope: UserScope, applicationId: string, description: string) {
+    return this.rules.suggestRule(scope, applicationId, description);
   }
 }
 

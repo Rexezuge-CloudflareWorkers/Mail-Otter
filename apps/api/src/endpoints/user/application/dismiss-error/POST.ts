@@ -23,7 +23,7 @@ class DismissApplicationErrorRoute extends IUserRoute<DismissApplicationErrorReq
     return {
       application: await scope
         .get(Tokens.ApplicationService)
-        .acknowledgeApplicationError(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.errorType, request.raw),
+        .acknowledgeApplicationError(this.getAuthenticatedUser(cxt), request.applicationId, request.errorType, request.raw),
     };
   }
 }

@@ -1,4 +1,4 @@
-import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
+import { ConnectedApplicationDAO, scopeForAnchor } from '@mail-otter/backend-data/dao';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { CalendarEventSyncUtil } from '@mail-otter/backend-services/digest';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
@@ -63,7 +63,7 @@ class CalendarEventSyncTask extends IScheduledTask<CalendarEventSyncTaskEnv> {
         // Window is per mailbox: anchored to that mailbox's local midnight so it
         // matches the digest section it feeds. Shared with the manual trigger
         // path via `CalendarSyncWindow` so the two cannot drift.
-        const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, application.userEmail);
+        const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, scopeForAnchor(application.userEmail));
         const { startIso: windowStartIso, endIso: windowEndIso } = CalendarSyncWindow.build(now, metadata?.timeZone ?? null);
         await syncUtil.syncForApplication(application, accessToken, windowStartIso, windowEndIso);
         synced++;

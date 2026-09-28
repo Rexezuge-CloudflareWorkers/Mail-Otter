@@ -20,6 +20,8 @@ class GetCurrentUserRoute extends IUserRoute<GetCurrentUserRequest, GetCurrentUs
     cxt: RouteContext<GetCurrentUserEnv>,
   ): Promise<GetCurrentUserResponse> {
     const scope = createRequestScope(env);
+    // The current sign-in address, shown back to the user. `updatePreferredLanguage`
+    // resolves the account from it and writes via the frozen anchor.
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const summary = await scope.get(Tokens.UserService).getCurrentUserSummary(userEmail);
     return {

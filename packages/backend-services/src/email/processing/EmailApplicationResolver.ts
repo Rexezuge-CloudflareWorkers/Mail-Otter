@@ -1,4 +1,4 @@
-import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
+import { ConnectedApplicationDAO, ProviderSubscriptionDAO, scopeForAnchor } from '@mail-otter/backend-data/dao';
 import { PROVIDER_SUBSCRIPTION_STATUS_ACTIVE } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { isImapPasswordApplication, requiresProviderMailbox } from '@mail-otter/shared/model';
@@ -31,7 +31,9 @@ class EmailApplicationResolver {
     const accessToken: string = isImapPasswordApplication(application)
       ? ''
       : await (this.tokenService ?? new OAuth2AccessTokenService(this.env)).getAccessToken(application.applicationId);
-    const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserEmail(application.userEmail);
+    const enabledApplicationIds: string[] = await applicationDAO.listContextEnabledApplicationIdsByUserScope(
+      scopeForAnchor(application.userEmail),
+    );
     return { application, accessToken, enabledApplicationIds };
   }
 

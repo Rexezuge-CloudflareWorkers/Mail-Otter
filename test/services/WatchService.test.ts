@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+/**
+User-scoped calls take the account identity: id for ownership, anchor for stored keys.
+*/
+const TEST_SCOPE = { id: 'usr_0123456789abcdef0123456789abcdef', anchorEmail: 'user@example.com' };
+
 const { mockGetByIdForUser, mockGetByApplication, mockUpsertActive, mockMarkStopped } = vi.hoisted(() => ({
   mockGetByIdForUser: vi.fn(),
   mockGetByApplication: vi.fn(),
@@ -60,7 +65,7 @@ vi.mock('../../packages/backend-services/src/oauth2/OAuth2AccessTokenService', (
   }),
 }));
 
-import { WatchService } from '../../packages/backend-services/src/subscription/WatchService';
+import { WatchService, WatchServiceFactory } from '../../packages/backend-services/src/subscription/WatchService';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 
@@ -100,7 +105,7 @@ describe('WatchService', () => {
         expiresAt: 1_778_200_000 + 86_400 * 3,
       });
 
-      const result = await new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com');
+      const result = await new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com');
 
       expect(result.message).toContain('Gmail watch started');
       expect(result.webhookUrl).toContain('/api/webhooks/gmail/app-1');
@@ -124,7 +129,7 @@ describe('WatchService', () => {
         expiresAt: 1_778_200_000 + 86_400 * 6,
       });
 
-      const result = await new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com');
+      const result = await new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com');
 
       expect(result.message).toContain('Outlook subscription started');
       expect(result.webhookUrl).toContain('/api/webhooks/outlook/app-1');
@@ -146,7 +151,7 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+      await expect(new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com')).rejects.toThrow(
         'Complete authorization',
       );
     });
@@ -159,7 +164,7 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+      await expect(new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com')).rejects.toThrow(
         'missing provider mailbox metadata',
       );
     });
@@ -174,7 +179,7 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+      await expect(new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com')).rejects.toThrow(
         'Gmail Pub/Sub topic name is required',
       );
     });
@@ -188,7 +193,7 @@ describe('WatchService', () => {
         credentials: { clientId: 'cid' },
       });
 
-      await expect(new WatchService(makeEnv()).startApplicationWatch('user@example.com', 'app-1', 'https://example.com')).rejects.toThrow(
+      await expect(new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com')).rejects.toThrow(
         'Unsupported provider',
       );
     });
@@ -205,7 +210,7 @@ describe('WatchService', () => {
       });
       mockGetByApplication.mockResolvedValue(undefined);
 
-      await new WatchService(makeEnv()).stopApplicationWatch('user@example.com', 'app-1');
+      await new WatchService(makeEnv()).stopApplicationWatch(TEST_SCOPE, 'app-1');
       expect(mockMarkStopped).toHaveBeenCalledWith('app-1');
     });
 
@@ -219,9 +224,40 @@ describe('WatchService', () => {
       });
       mockGetByApplication.mockResolvedValue({ externalSubscriptionId: 'sub-1' });
 
-      await new WatchService(makeEnv()).stopApplicationWatch('user@example.com', 'app-1');
+      await new WatchService(makeEnv()).stopApplicationWatch(TEST_SCOPE, 'app-1');
       expect(OutlookProviderUtil.deleteSubscription).toHaveBeenCalled();
       expect(mockMarkStopped).toHaveBeenCalledWith('app-1');
+    });
+  });
+
+  describe('standalone construction', () => {
+    it('scopes ownership on the account id', async () => {
+      // Passing a bare address here used to "work" only because the fake DAO
+      // ignored its arguments, which is exactly the coupling the identity change
+      // removed. Assert the id actually reaches the ownership predicate.
+      mockGetByIdForUser.mockResolvedValue({
+        applicationId: 'app-1',
+        userEmail: 'user@example.com',
+        providerId: 'google-gmail',
+        providerEmail: 'user@gmail.com',
+        status: 'draft',
+        watchedFolders: null,
+        credentials: { clientId: 'cid' },
+      });
+
+      await expect(new WatchService(makeEnv()).startApplicationWatch(TEST_SCOPE, 'app-1', 'https://example.com')).rejects.toThrow(
+        'Complete authorization',
+      );
+      expect(mockGetByIdForUser).toHaveBeenCalledWith('app-1', TEST_SCOPE);
+    });
+
+    it('builds through the exported factory with only the env', async () => {
+      // The standalone path has to work: `UserService` and the ops tooling build
+      // services without a composition root, so the default DAO and token-service
+      // factories have to resolve against a bare env.
+      mockGetByIdForUser.mockResolvedValue(undefined);
+      const service = WatchServiceFactory.create(makeEnv());
+      await expect(service.stopApplicationWatch(TEST_SCOPE, 'missing')).rejects.toThrow('Connected application was not found');
     });
   });
 });

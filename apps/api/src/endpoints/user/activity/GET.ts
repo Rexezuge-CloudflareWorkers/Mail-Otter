@@ -19,6 +19,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
     env: ListActivityEnv,
     cxt: RouteContext<ListActivityEnv>,
   ): Promise<ListActivityResponse | ExtendedResponse<ListActivityResponse>> {
+    const user = this.getAuthenticatedUser(cxt);
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const format = this.getQueryParam(request, 'format');
     const types = this.getQueryParams(request, 'types');
@@ -28,7 +29,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
       // Paged to exhaustion rather than asking for one oversized page, which was
       // silently clamped to 100 rows and truncated the download.
       const { entries, truncated } = await ActivityService.exportActivity(
-        userEmail,
+        user,
         { applicationId, types: types.length > 0 ? types : undefined },
         env,
       );
@@ -48,7 +49,7 @@ class ListActivityRoute extends IUserRoute<ListActivityRequest, ListActivityResp
     const limitParam = this.getQueryParam(request, 'limit');
     const limit = limitParam ? Math.max(1, Number(limitParam) || 50) : 50;
 
-    return ActivityService.listActivity(userEmail, { applicationId, cursor, limit, types: types.length > 0 ? types : undefined }, env);
+    return ActivityService.listActivity(user, { applicationId, cursor, limit, types: types.length > 0 ? types : undefined }, env);
   }
 }
 

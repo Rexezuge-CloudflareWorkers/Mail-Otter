@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockNow = 1_778_200_000;
 const mockAppId = 'app-123';
+/**
+User-scoped methods take the account identity, not a bare address.
+*/
+const TEST_SCOPE = { id: 'usr_0123456789abcdef0123456789abcdef', anchorEmail: 'user@example.com' };
 const mockUUID = 'uuid-456';
 const mockEncryptedData = { encrypted: 'encrypted-val', iv: 'iv-val' };
 const mockDecryptedCredentials = JSON.stringify({ refreshToken: 'rt', accessToken: 'at' });
@@ -83,7 +87,7 @@ describe('ConnectedApplicationDAO', () => {
       dao = new ConnectedApplicationDAO(mockDb, 'key');
       (UUIDUtil.getRandomUUID as ReturnType<typeof vi.fn>).mockReturnValue('new-app-id');
 
-      const result = await dao.create('user@example.com', 'My App', 'google-gmail', 'oauth2', { refreshToken: 'rt' }, 'draft');
+      const result = await dao.create(TEST_SCOPE, 'My App', 'google-gmail', 'oauth2', { refreshToken: 'rt' }, 'draft');
 
       expect(result.applicationId).toBe(mockAppId);
       expect(encryptData).toHaveBeenCalledWith(JSON.stringify({ refreshToken: 'rt' }), 'key');
@@ -103,13 +107,13 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.create('user@example.com', 'My App', 'google-gmail', 'oauth2', {}, 'draft', 'projects/p/topics/t');
+      await dao.create(TEST_SCOPE, 'My App', 'google-gmail', 'oauth2', {}, 'draft', 'projects/p/topics/t');
 
       expect(setConfigSpy).toHaveBeenCalledWith('new-app-id', 'gmail_pubsub_topic_name', 'projects/p/topics/t', mockNow);
     });
   });
 
-  describe('listMetadataByUserEmail', () => {
+  describe('listMetadataByUserScope', () => {
     it('returns metadata list', async () => {
       const row = createSampleRow();
       mockDb = createMockDb({
@@ -123,7 +127,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.listMetadataByUserEmail('user@example.com');
+      const result = await dao.listMetadataByUserScope(TEST_SCOPE);
 
       expect(result).toHaveLength(1);
       expect(result[0].applicationId).toBe(mockAppId);
@@ -138,12 +142,12 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.listMetadataByUserEmail('user@example.com');
+      const result = await dao.listMetadataByUserScope(TEST_SCOPE);
       expect(result).toEqual([]);
     });
   });
 
-  describe('countByUserEmail', () => {
+  describe('countByUserScope', () => {
     it('returns count', async () => {
       const firstFn = vi.fn().mockResolvedValue({ count: 3 });
       mockDb.prepare = vi.fn(() => ({
@@ -151,7 +155,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.countByUserEmail('user@example.com');
+      const result = await dao.countByUserScope(TEST_SCOPE);
       expect(result).toBe(3);
     });
 
@@ -162,7 +166,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.countByUserEmail('user@example.com');
+      const result = await dao.countByUserScope(TEST_SCOPE);
       expect(result).toBe(0);
     });
   });
@@ -211,7 +215,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.getMetadataByIdForUser(mockAppId, 'user@example.com');
+      const result = await dao.getMetadataByIdForUser(mockAppId, TEST_SCOPE);
       expect(result?.status).toBe('draft');
     });
   });
@@ -288,7 +292,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.deleteForUser(mockAppId, 'user@example.com');
+      await dao.deleteForUser(mockAppId, TEST_SCOPE);
     });
   });
 
@@ -379,7 +383,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.updateContextIndexingForUser(mockAppId, 'user@example.com', true);
+      const result = await dao.updateContextIndexingForUser(mockAppId, TEST_SCOPE, true);
       expect(result?.applicationId).toBe(mockAppId);
     });
   });
@@ -395,12 +399,12 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.updateMaxContextDocumentsForUser(mockAppId, 'user@example.com', 50);
+      const result = await dao.updateMaxContextDocumentsForUser(mockAppId, TEST_SCOPE, 50);
       expect(result?.applicationId).toBe(mockAppId);
     });
   });
 
-  describe('listContextEnabledApplicationIdsByUserEmail', () => {
+  describe('listContextEnabledApplicationIdsByUserScope', () => {
     it('returns application IDs', async () => {
       const allFn = vi.fn().mockResolvedValue({
         results: [{ application_id: 'app-1' }, { application_id: 'app-2' }],
@@ -410,7 +414,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.listContextEnabledApplicationIdsByUserEmail('user@example.com');
+      const result = await dao.listContextEnabledApplicationIdsByUserScope(TEST_SCOPE);
       expect(result).toEqual(['app-1', 'app-2']);
     });
   });
@@ -425,7 +429,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', ['INBOX', 'LABEL_1'], { INBOX: 'Inbox', LABEL_1: 'Label 1' });
+      await dao.updateWatchedFolderIdsForUser(mockAppId, TEST_SCOPE, ['INBOX', 'LABEL_1'], { INBOX: 'Inbox', LABEL_1: 'Label 1' });
     });
 
     it('clears folders when null', async () => {
@@ -437,7 +441,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', null);
+      await dao.updateWatchedFolderIdsForUser(mockAppId, TEST_SCOPE, null);
     });
 
     it('clears folders when empty array', async () => {
@@ -449,7 +453,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      await dao.updateWatchedFolderIdsForUser(mockAppId, 'user@example.com', []);
+      await dao.updateWatchedFolderIdsForUser(mockAppId, TEST_SCOPE, []);
     });
   });
 
@@ -464,7 +468,7 @@ describe('ConnectedApplicationDAO', () => {
       }));
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
-      const result = await dao.updateForUser(mockAppId, 'user@example.com', 'New Name', {}, 'draft');
+      const result = await dao.updateForUser(mockAppId, TEST_SCOPE, 'New Name', {}, 'draft');
       expect(result?.applicationId).toBe(mockAppId);
     });
 
@@ -479,7 +483,7 @@ describe('ConnectedApplicationDAO', () => {
       dao = new ConnectedApplicationDAO(mockDb, 'key');
 
       const deleteSpy = vi.spyOn(dao as never, 'deleteProviderConfig' as never);
-      await dao.updateForUser(mockAppId, 'user@example.com', 'Name', {}, 'draft', null);
+      await dao.updateForUser(mockAppId, TEST_SCOPE, 'Name', {}, 'draft', null);
       expect(deleteSpy).toHaveBeenCalledWith(mockAppId, 'gmail_pubsub_topic_name');
     });
   });

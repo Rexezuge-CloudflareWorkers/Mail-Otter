@@ -1,3 +1,4 @@
+import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { BadRequestError } from '@mail-otter/backend-errors';
@@ -14,14 +15,14 @@ class ChatRoute extends IUserRoute<ChatRequest, ChatResponse, ChatEnv> {
   };
 
   protected async handleRequest(request: ChatRequest, env: ChatEnv, cxt: RouteContext<ChatEnv>): Promise<ChatResponse> {
-    const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
+    const user: AccountIdentity = this.getAuthenticatedUser(cxt);
     const query = (request.query ?? '').trim();
     if (!query) throw new BadRequestError('query is required');
 
     const scope = createRequestScope(env);
     return scope.get(Tokens.ChatService).chatForUser({
       env,
-      userEmail,
+      scope: user,
       query,
       applicationId: request.applicationId,
       history: request.history,

@@ -16,8 +16,11 @@ const D1_MAX_BOUND_PARAMETERS = 100;
 
 /**
 Columns bound per `context_audit_logs` row.
+
+Must stay in lockstep with the INSERT column lists below -- an undercount here
+overfills a chunk past the D1 parameter cap and the whole batch fails.
 */
-const AUDIT_LOG_COLUMN_COUNT = 10;
+const AUDIT_LOG_COLUMN_COUNT = 11;
 
 /**
  * Rows per INSERT statement, derived from the limit rather than guessed.
@@ -40,15 +43,18 @@ class ContextAuditLogDAO extends BaseDAO {
           .prepare(
             `
               INSERT INTO context_audit_logs
-                (id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
           )
           .bind(
             UUIDUtil.getRandomUUID(),
             input.contextDocumentId,
             input.applicationId,
+            // The frozen anchor, retained verbatim so an audit trail reads the
+            // same after an address change; `user_id` is the account it belongs to.
             input.userEmail,
+            input.userId ?? null,
             input.sourceDocumentId || null,
             input.eventType,
             input.eventLabel || null,
@@ -76,7 +82,9 @@ class ContextAuditLogDAO extends BaseDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (let offset = 0; offset < inputs.length; offset += AUDIT_LOG_INSERT_CHUNK_SIZE) {
       const chunk: InsertAuditLogInput[] = inputs.slice(offset, offset + AUDIT_LOG_INSERT_CHUNK_SIZE);
-      const placeholders: string = chunk.map((): string => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const placeholders: string = chunk
+        .map((): string => `(${Array.from({ length: AUDIT_LOG_COLUMN_COUNT }, (): string => '?').join(', ')})`)
+        .join(', ');
       const bindings: unknown[] = [];
       for (const input of chunk) {
         bindings.push(
@@ -84,6 +92,7 @@ class ContextAuditLogDAO extends BaseDAO {
           input.contextDocumentId,
           input.applicationId,
           input.userEmail,
+          input.userId ?? null,
           input.sourceDocumentId || null,
           input.eventType,
           input.eventLabel || null,
@@ -98,7 +107,7 @@ class ContextAuditLogDAO extends BaseDAO {
             .prepare(
               `
                 INSERT INTO context_audit_logs
-                  (id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at)
+                  (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at)
                 VALUES ${placeholders}
               `,
             )
@@ -213,7 +222,14 @@ class ContextAuditLogDAO extends BaseDAO {
 interface InsertAuditLogInput {
   contextDocumentId: string;
   applicationId: string;
+  /**
+  The actor's frozen anchor, stored verbatim for attribution.
+  */
   userEmail: string;
+  /**
+  The actor's account, when the caller resolved one.
+  */
+  userId?: string | null;
   sourceDocumentId?: string | null;
   eventType: ContextAuditEventType;
   eventLabel?: string | null;

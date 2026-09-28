@@ -30,6 +30,8 @@ import { BaseDAO } from './BaseDAO';
 import { ContextAuditLogDAO } from './ContextAuditLogDAO';
 import { ContextDeletionRunDAO } from './ContextDeletionRunDAO';
 import { ApplicationContextDocumentQueries } from './ApplicationContextDocumentQueries';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import type { ApplicationContextUserCounts, OverLimitApplication } from './ApplicationContextDocumentQueries';
 
 class ApplicationContextDAO extends BaseDAO {
@@ -66,7 +68,7 @@ class ApplicationContextDAO extends BaseDAO {
             .prepare(
               `
                 UPDATE application_context_documents
-                SET user_email = ?, source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
+                SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
                     source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
                     content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
                 WHERE context_document_id = ?
@@ -74,6 +76,7 @@ class ApplicationContextDAO extends BaseDAO {
             )
             .bind(
               input.userEmail,
+              input.userId ?? null,
               input.sourceProviderId,
               input.sourceThreadId || null,
               input.vectorNamespace,
@@ -103,16 +106,17 @@ class ApplicationContextDAO extends BaseDAO {
           .prepare(
             `
               INSERT INTO application_context_documents
-                (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
+                (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id,
                  vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
                  content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
             `,
           )
           .bind(
             contextDocumentId,
             input.applicationId,
             input.userEmail,
+            input.userId ?? null,
             SOURCE_TYPE_EMAIL,
             input.sourceProviderId,
             input.sourceDocumentId,
@@ -158,7 +162,7 @@ class ApplicationContextDAO extends BaseDAO {
             .prepare(
               `
                 UPDATE application_context_documents
-                SET user_email = ?, source_provider_id = ?, vector_namespace = ?,
+                SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, vector_namespace = ?,
                     source_document_fingerprint = ?, title_fingerprint = ?,
                     content_fingerprint = ?, indexed_text_chars = ?, status = ?,
                     source_thread_id = NULL, source_thread_fingerprint = NULL, sender_fingerprint = NULL,
@@ -168,6 +172,7 @@ class ApplicationContextDAO extends BaseDAO {
             )
             .bind(
               input.userEmail,
+              input.userId ?? null,
               input.sourceProviderId,
               input.vectorNamespace,
               input.sourceDocumentFingerprint,
@@ -194,16 +199,17 @@ class ApplicationContextDAO extends BaseDAO {
           .prepare(
             `
               INSERT INTO application_context_documents
-                (context_document_id, application_id, user_email, source_type, source_provider_id, source_document_id, source_thread_id,
+                (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id,
                  vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
                  content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, NULL, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, NULL, ?, ?, ?, NULL, NULL, NULL, ?, ?)
             `,
           )
           .bind(
             contextDocumentId,
             input.applicationId,
             input.userEmail,
+            input.userId ?? null,
             input.sourceType,
             input.sourceProviderId,
             input.sourceDocumentId,
@@ -359,10 +365,11 @@ class ApplicationContextDAO extends BaseDAO {
     };
   }
 
-  public async listDocumentsForUser(userEmail: string, input: ListContextDocumentsInput = {}): Promise<ApplicationContextDocumentList> {
+  public async listDocumentsForUser(scope: UserScope, input: ListContextDocumentsInput = {}): Promise<ApplicationContextDocumentList> {
     const limit: number = Math.min(Math.max(input.limit ?? 25, 1), 100);
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
     if (input.applicationId) {
       conditions.push('application_id = ?');
       bindings.push(input.applicationId);
@@ -399,14 +406,15 @@ class ApplicationContextDAO extends BaseDAO {
     };
   }
 
-  public async listDeletionRunsForUser(userEmail: string, input: ListDeletionRunsInput = {}): Promise<ApplicationContextDeletionRunList> {
-    return this.deletionRunsDAO().listDeletionRunsForUser(userEmail, input);
+  public async listDeletionRunsForUser(scope: UserScope, input: ListDeletionRunsInput = {}): Promise<ApplicationContextDeletionRunList> {
+    return this.deletionRunsDAO().listDeletionRunsForUser(scope, input);
   }
 
   public async getDocumentSourceForUser(
     contextDocumentId: string,
-    userEmail: string,
+    scope: UserScope,
   ): Promise<ApplicationContextDocumentSource | undefined> {
+    const where: UserScopeSql = userScopeSql(scope);
     const row: Pick<
       ApplicationContextDocumentInternal,
       'context_document_id' | 'application_id' | 'user_email' | 'source_provider_id' | 'source_document_id' | 'source_thread_id' | 'status'
@@ -415,11 +423,11 @@ class ApplicationContextDAO extends BaseDAO {
         `
           SELECT context_document_id, application_id, user_email, source_provider_id, source_document_id, source_thread_id, status
           FROM application_context_documents
-          WHERE context_document_id = ? AND user_email = ?
+          WHERE context_document_id = ? AND ${where.clause}
           LIMIT 1
         `,
       )
-      .bind(contextDocumentId, userEmail)
+      .bind(contextDocumentId, ...where.bindings)
       .first<
         Pick<
           ApplicationContextDocumentInternal,
@@ -444,8 +452,8 @@ class ApplicationContextDAO extends BaseDAO {
     };
   }
 
-  public async listActiveVectorIdsForApplication(applicationId: string, userEmail: string): Promise<string[]> {
-    return this.documentQueries().listActiveVectorIdsForApplication(applicationId, userEmail);
+  public async listActiveVectorIdsForApplication(applicationId: string, scope: UserScope): Promise<string[]> {
+    return this.documentQueries().listActiveVectorIdsForApplication(applicationId, scope);
   }
 
   public async recordDeletionRun(input: RecordDeletionRunInput): Promise<ApplicationContextDeletionRun> {
@@ -518,24 +526,24 @@ class ApplicationContextDAO extends BaseDAO {
     return this.documentQueries().listApplicationsOverDocumentLimit(globalMax);
   }
 
-  public async listOldestActiveVectorIdsForApplication(applicationId: string, userEmail: string, count: number): Promise<string[]> {
-    return this.documentQueries().listOldestActiveVectorIdsForApplication(applicationId, userEmail, count);
+  public async listOldestActiveVectorIdsForApplication(applicationId: string, scope: UserScope, count: number): Promise<string[]> {
+    return this.documentQueries().listOldestActiveVectorIdsForApplication(applicationId, scope, count);
   }
 
   public async getDocumentSourcesByVectorIds(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     vectorIds: string[],
   ): Promise<Array<{ contextDocumentId: string; sourceDocumentId: string | null }>> {
-    return this.documentQueries().getDocumentSourcesByVectorIds(applicationId, userEmail, vectorIds);
+    return this.documentQueries().getDocumentSourcesByVectorIds(applicationId, scope, vectorIds);
   }
 
-  public async markDocumentsDeletedByVectorIds(applicationId: string, userEmail: string, vectorIds: string[]): Promise<void> {
-    await this.documentQueries().markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
+  public async markDocumentsDeletedByVectorIds(applicationId: string, scope: UserScope, vectorIds: string[]): Promise<void> {
+    await this.documentQueries().markDocumentsDeletedByVectorIds(applicationId, scope, vectorIds);
   }
 
-  public async getCountsByUserEmail(userEmail: string, applicationId?: string): Promise<ApplicationContextUserCounts> {
-    return this.documentQueries().getCountsByUserEmail(userEmail, applicationId);
+  public async getCountsByUserScope(scope: UserScope, applicationId?: string): Promise<ApplicationContextUserCounts> {
+    return this.documentQueries().getCountsByUserScope(scope, applicationId);
   }
 
   private async getDocumentById(contextDocumentId: string): Promise<ApplicationContextDocument | undefined> {
@@ -615,7 +623,14 @@ class ApplicationContextDAO extends BaseDAO {
 
 interface UpsertEmailDocumentInput {
   applicationId: string;
+  /**
+  The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
+  */
   userEmail: string;
+  /**
+  Optional: omitted on the background ingestion path, which resolves the application by id.
+  */
+  userId?: string | null;
   sourceProviderId: ProviderId;
   sourceDocumentId: string;
   sourceThreadId?: string | null;
@@ -630,7 +645,14 @@ interface UpsertEmailDocumentInput {
 
 interface UpsertDriveDocumentInput {
   applicationId: string;
+  /**
+  The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
+  */
   userEmail: string;
+  /**
+  Optional: omitted on the background ingestion path, which resolves the application by id.
+  */
+  userId?: string | null;
   sourceProviderId: ProviderId;
   sourceType: string;
   sourceDocumentId: string;
@@ -657,6 +679,7 @@ interface ListDeletionRunsInput {
 interface RecordDeletionRunInput {
   applicationId: string;
   userEmail: string;
+  userId?: string | null;
   vectorNamespace: string;
   requestedVectorCount: number;
   deletedVectorCount: number;
@@ -669,6 +692,7 @@ interface InsertAuditLogInput {
   contextDocumentId: string;
   applicationId: string;
   userEmail: string;
+  userId?: string | null;
   sourceDocumentId?: string | null;
   eventType: ContextAuditEventType;
   eventLabel?: string | null;

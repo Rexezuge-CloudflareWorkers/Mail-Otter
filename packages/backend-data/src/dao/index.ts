@@ -8,7 +8,12 @@ export type {
   StartTaskRunInput,
   CompleteTaskRunInput,
 } from './BackgroundTaskRunDAO';
-export { UserDAO } from './UserDAO';
+export { UserDAO, loginEmailOf, newAnchor, newId } from './UserDAO';
+export type { UserRow } from './UserDAO';
+export { UserEmailDAO } from './UserEmailDAO';
+export type { UserEmailRow } from './UserEmailDAO';
+export { scopeForAnchor, userScopeSql, userScopeUpsertSql } from './userScope';
+export type { UserScope, UserScopeSql } from './userScope';
 export { AiDailyUsageDAO } from './AiDailyUsageDAO';
 export type { AiDailyUsage, IncrementAiDailyUsageInput } from './AiDailyUsageDAO';
 export { ApplicationContextDAO } from './ApplicationContextDAO';

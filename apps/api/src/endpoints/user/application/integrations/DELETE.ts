@@ -19,7 +19,7 @@ class DeleteIntegrationRoute extends IUserRoute<DeleteIntegrationRequest, Delete
     cxt: RouteContext<DeleteIntegrationEnv>,
   ): Promise<DeleteIntegrationResponse> {
     const scope = createRequestScope(env);
-    await scope.get(Tokens.ApplicationService).deleteIntegration(this.getAuthenticatedUserEmailAddress(cxt), request.integrationId);
+    await scope.get(Tokens.ApplicationService).deleteIntegration(this.getAuthenticatedUser(cxt), request.integrationId);
     return { success: true };
   }
 }

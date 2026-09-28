@@ -1,3 +1,11 @@
+const TEST_USER_EMAIL = 'user@example.com';
+const TEST_USER_ID = 'usr_0123456789abcdef0123456789abcdef';
+const TEST_USER_ANCHOR = 'user@example.com';
+/**
+What a route forwards to a service: the account, not a bare address.
+*/
+const TEST_IDENTITY = { id: TEST_USER_ID, email: TEST_USER_EMAIL, anchorEmail: TEST_USER_ANCHOR };
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -111,6 +119,11 @@ vi.mock('@mail-otter/backend-services/processing', () => ({
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  scopeForAnchor: (anchorEmail: string) => ({ id: null, anchorEmail }),
+  userScopeSql: (scope: { id: string | null; anchorEmail: string }) =>
+    scope.id
+      ? { clause: '(user_id = ? OR (user_id IS NULL AND user_email = ?))', bindings: [scope.id, scope.anchorEmail] }
+      : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   ConnectedApplicationDAO: vi.fn(function () {
     return { getByIdForUser: mockGetByIdForUser };
   }),
@@ -137,9 +150,20 @@ import { ListBackgroundTaskRunsRoute } from '../../apps/api/src/endpoints/user/p
 import { RunTaskNowRoute } from '../../apps/api/src/endpoints/user/processing/run-task/POST';
 import { BadRequestError } from '@mail-otter/backend-errors';
 
+function authenticatedContext(overrides: Partial<Record<string, string>> = {}) {
+  const values: Record<string, string> = {
+    AuthenticatedUserId: TEST_USER_ID,
+    AuthenticatedUserEmailAddress: TEST_USER_EMAIL,
+    AuthenticatedUserAnchorEmail: TEST_USER_ANCHOR,
+    ...overrides,
+  };
+  return values;
+}
+
 function makeCxt(params: Record<string, string | undefined> = {}) {
+  const values = authenticatedContext();
   return {
-    get: vi.fn().mockReturnValue('user@example.com'),
+    get: vi.fn((key: string) => values[key]),
     req: { param: vi.fn((name: string) => params[name]) },
   } as never;
 }
@@ -223,7 +247,7 @@ describe('user routes', () => {
       makeCxt(),
     );
     expect(mockListActionsForUser).toHaveBeenCalledWith(
-      'user@example.com',
+      TEST_IDENTITY,
       { applicationId: '11111111-1111-4111-8111-111111111111', status: 'pending', cursor: 'c', showSnoozed: true },
       expect.anything(),
     );
@@ -248,7 +272,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt({ actionId: 'a-1' }),
     )) as { action: unknown };
-    expect(mockExecuteActionForUser).toHaveBeenCalledWith('a-1', 'user@example.com', expect.any(Request), expect.anything());
+    expect(mockExecuteActionForUser).toHaveBeenCalledWith('a-1', TEST_IDENTITY, expect.any(Request), expect.anything());
     expect(result.action).toEqual({ actionId: 'a-1' });
   });
 
@@ -259,7 +283,7 @@ describe('user routes', () => {
       body: JSON.stringify({ snoozedUntil: '2026-09-20T10:00:00Z' }),
     });
     await call(new SnoozeEmailActionRoute(), { raw }, makeEnv(), makeCxt({ actionId: 'a-1' }));
-    expect(mockSnoozeAction).toHaveBeenCalledWith(expect.anything(), 'a-1', 'user@example.com', new Date('2026-09-20T10:00:00Z'));
+    expect(mockSnoozeAction).toHaveBeenCalledWith(expect.anything(), 'a-1', TEST_IDENTITY, new Date('2026-09-20T10:00:00Z'));
   });
 
   it('POST /user/actions/:actionId/snooze requires actionId', async () => {
@@ -279,7 +303,7 @@ describe('user routes', () => {
     const result = (await call(new ScheduleEmailActionRoute(), { raw }, makeEnv(), makeCxt({ actionId: 'a-2' }))) as {
       action: unknown;
     };
-    expect(mockScheduleAction).toHaveBeenCalledWith(expect.anything(), 'a-2', 'user@example.com', null);
+    expect(mockScheduleAction).toHaveBeenCalledWith(expect.anything(), 'a-2', TEST_IDENTITY, null);
     expect(result.action).toEqual({ actionId: 'a-2' });
   });
 
@@ -315,7 +339,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { digestConfig: unknown };
-    expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockGetOwnedApplication).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     expect(result.digestConfig).toEqual({ enabled: true, sendTime: '08:00', sections: ['summary'] });
   });
 
@@ -360,7 +384,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { integrations: unknown[] };
-    expect(mockListIntegrations).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockListIntegrations).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     expect(result.integrations).toHaveLength(1);
   });
 
@@ -378,7 +402,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { integration: unknown };
-    expect(mockCreateIntegration).toHaveBeenCalledWith('user@example.com', {
+    expect(mockCreateIntegration).toHaveBeenCalledWith(TEST_IDENTITY, {
       applicationId: '11111111-1111-4111-8111-111111111111',
       integrationType: 'webhook',
       name: 'Hook',
@@ -395,10 +419,10 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockGetAnalytics).toHaveBeenCalledWith('user@example.com', { days: 365, applicationId: '11111111-1111-4111-8111-111111111111' });
+    expect(mockGetAnalytics).toHaveBeenCalledWith(TEST_IDENTITY, { days: 365, applicationId: '11111111-1111-4111-8111-111111111111' });
 
     await call(new GetAnalyticsRoute(), { raw: new Request('https://x/user/analytics') }, makeEnv(), makeCxt());
-    expect(mockGetAnalytics).toHaveBeenCalledWith('user@example.com', { days: 30, applicationId: undefined });
+    expect(mockGetAnalytics).toHaveBeenCalledWith(TEST_IDENTITY, { days: 30, applicationId: undefined });
   });
 
   it('GET /user/activity returns JSON entries by default', async () => {
@@ -411,7 +435,7 @@ describe('user routes', () => {
       makeCxt(),
     )) as { entries: unknown[] };
     expect(mockListActivity).toHaveBeenCalledWith(
-      'user@example.com',
+      TEST_IDENTITY,
       expect.objectContaining({ limit: 10, types: ['email_processed'] }),
       expect.anything(),
     );
@@ -455,7 +479,7 @@ describe('user routes', () => {
       makeCxt(),
     )) as { rawBody: string; headers: Record<string, string> };
     // Paged to exhaustion instead of one clamped 1000-row request.
-    expect(mockExportActivity).toHaveBeenCalledWith('user@example.com', expect.anything(), expect.anything());
+    expect(mockExportActivity).toHaveBeenCalledWith(TEST_IDENTITY, expect.anything(), expect.anything());
     expect(mockListActivity).not.toHaveBeenCalledWith('user@example.com', expect.objectContaining({ limit: 1000 }), expect.anything());
     expect(result.headers['Content-Type']).toContain('text/csv');
     expect(result.rawBody).toContain('email_processed');
@@ -471,7 +495,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListTaskRuns).toHaveBeenCalledWith('user@example.com', expect.objectContaining({ taskType: 'calendar_sync', status: 'ok' }));
+    expect(mockListTaskRuns).toHaveBeenCalledWith(TEST_IDENTITY, expect.objectContaining({ taskType: 'calendar_sync', status: 'ok' }));
   });
 
   it('POST /user/processing/run-task triggers the task', async () => {
@@ -485,12 +509,7 @@ describe('user routes', () => {
       makeEnv(),
       makeCxt(),
     )) as { triggered: boolean };
-    expect(mockTriggerTask).toHaveBeenCalledWith(
-      'user@example.com',
-      'calendar_sync',
-      '11111111-1111-4111-8111-111111111111',
-      expect.anything(),
-    );
+    expect(mockTriggerTask).toHaveBeenCalledWith(TEST_IDENTITY, 'calendar_sync', '11111111-1111-4111-8111-111111111111', expect.anything());
     expect(result.triggered).toBe(true);
   });
 });

@@ -1,3 +1,11 @@
+const TEST_USER_EMAIL = 'user@example.com';
+const TEST_USER_ID = 'usr_0123456789abcdef0123456789abcdef';
+const TEST_USER_ANCHOR = 'user@example.com';
+/**
+What a route forwards to a service: the account, not a bare address.
+*/
+const TEST_IDENTITY = { id: TEST_USER_ID, email: TEST_USER_EMAIL, anchorEmail: TEST_USER_ANCHOR };
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -161,6 +169,11 @@ vi.mock('@mail-otter/backend-services/processing', () => ({
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  scopeForAnchor: (anchorEmail: string) => ({ id: null, anchorEmail }),
+  userScopeSql: (scope: { id: string | null; anchorEmail: string }) =>
+    scope.id
+      ? { clause: '(user_id = ? OR (user_id IS NULL AND user_email = ?))', bindings: [scope.id, scope.anchorEmail] }
+      : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   ConnectedApplicationDAO: vi.fn(function () {
     return { getByIdForUser: mockGetByIdForUser };
   }),
@@ -195,9 +208,20 @@ import { ListProcessedMessagesRoute } from '../../apps/api/src/endpoints/user/pr
 import { SendDigestNowRoute } from '../../apps/api/src/endpoints/user/application/digest/send/POST';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 
+function authenticatedContext(overrides: Partial<Record<string, string>> = {}) {
+  const values: Record<string, string> = {
+    AuthenticatedUserId: TEST_USER_ID,
+    AuthenticatedUserEmailAddress: TEST_USER_EMAIL,
+    AuthenticatedUserAnchorEmail: TEST_USER_ANCHOR,
+    ...overrides,
+  };
+  return values;
+}
+
 function makeCxt(params: Record<string, string | undefined> = {}) {
+  const values = authenticatedContext();
   return {
-    get: vi.fn().mockReturnValue('user@example.com'),
+    get: vi.fn((key: string) => values[key]),
     req: { param: vi.fn((name: string) => params[name]) },
   } as never;
 }
@@ -231,7 +255,7 @@ describe('remaining user routes', () => {
     await expect(call(new ListEmailActionExecutionsRoute(), req('https://x/e'), makeEnv(), makeCxt())).rejects.toThrow(BadRequestError);
     mockListExecutions.mockResolvedValue({ executions: [] });
     await call(new ListEmailActionExecutionsRoute(), req('https://x/e'), makeEnv(), makeCxt({ actionId: 'a-1' }));
-    expect(mockListExecutions).toHaveBeenCalledWith('a-1', 'user@example.com', expect.anything());
+    expect(mockListExecutions).toHaveBeenCalledWith('a-1', TEST_IDENTITY, expect.anything());
   });
 
   it('DELETE application delegates and returns success', async () => {
@@ -243,7 +267,7 @@ describe('remaining user routes', () => {
     )) as {
       success: boolean;
     };
-    expect(mockDeleteUserApplication).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockDeleteUserApplication).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     expect(result.success).toBe(true);
   });
 
@@ -269,7 +293,7 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockDeleteDocuments).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockDeleteDocuments).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
   });
 
   it('GET deletions/documents forward query params', async () => {
@@ -281,7 +305,7 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListDeletionRuns).toHaveBeenCalledWith('user@example.com', {
+    expect(mockListDeletionRuns).toHaveBeenCalledWith(TEST_IDENTITY, {
       applicationId: '11111111-1111-4111-8111-111111111111',
       cursor: 'c',
     });
@@ -302,9 +326,9 @@ describe('remaining user routes', () => {
     mockGetDocumentProviderLink.mockResolvedValue('https://provider/doc');
     mockListAuditLogs.mockResolvedValue({ logs: [] });
     await call(new GetApplicationContextDocumentProviderLinkRoute(), req('https://x/'), makeEnv(), makeCxt({ contextDocumentId: 'd-1' }));
-    expect(mockGetDocumentProviderLink).toHaveBeenCalledWith('user@example.com', 'd-1');
+    expect(mockGetDocumentProviderLink).toHaveBeenCalledWith(TEST_IDENTITY, 'd-1');
     await call(new ListContextDocumentAuditLogsRoute(), req('https://x/?cursor=c'), makeEnv(), makeCxt({ contextDocumentId: 'd-1' }));
-    expect(mockListAuditLogs).toHaveBeenCalledWith('user@example.com', 'd-1', 'c');
+    expect(mockListAuditLogs).toHaveBeenCalledWith(TEST_IDENTITY, 'd-1', 'c');
   });
 
   it('POST dismiss-error delegates', async () => {
@@ -328,11 +352,11 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListFolders).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockListFolders).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     await call(new GetApplicationLabelsRoute(), req('https://x/?applicationId=11111111-1111-4111-8111-111111111111'), makeEnv(), makeCxt());
-    expect(mockListLabels).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockListLabels).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     await call(new GetApplicationRulesRoute(), req('https://x/?applicationId=11111111-1111-4111-8111-111111111111'), makeEnv(), makeCxt());
-    expect(mockGetRules).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockGetRules).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
   });
 
   it('PUT rules and POST suggest delegate', async () => {
@@ -344,14 +368,14 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockUpdateRules).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111', []);
+    expect(mockUpdateRules).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111', []);
     await call(
       new SuggestApplicationRuleRoute(),
       req('https://x/', { applicationId: '11111111-1111-4111-8111-111111111111', description: 'vip' }),
       makeEnv(),
       makeCxt(),
     );
-    expect(mockSuggestRule).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111', 'vip');
+    expect(mockSuggestRule).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111', 'vip');
   });
 
   it('watch start/stop and watch-settings delegate', async () => {
@@ -371,7 +395,7 @@ describe('remaining user routes', () => {
     )) as {
       message: string;
     };
-    expect(mockStopWatch).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockStopWatch).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     expect(stopped.message).toContain('stopped');
     mockUpdateWatchedFolderIds.mockResolvedValue({ applicationId: '11111111-1111-4111-8111-111111111111' });
     await call(
@@ -413,7 +437,7 @@ describe('remaining user routes', () => {
     )) as {
       success: boolean;
     };
-    expect(mockDeleteIntegration).toHaveBeenCalledWith('user@example.com', '22222222-2222-4222-8222-222222222222');
+    expect(mockDeleteIntegration).toHaveBeenCalledWith(TEST_IDENTITY, '22222222-2222-4222-8222-222222222222');
     expect(deleted.success).toBe(true);
     await call(
       new ListIntegrationDeliveriesRoute(),
@@ -421,7 +445,7 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith('user@example.com', '22222222-2222-4222-8222-222222222222', 5);
+    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith(TEST_IDENTITY, '22222222-2222-4222-8222-222222222222', 5);
     const tested = (await call(
       new TestIntegrationRoute(),
       req('https://x/', { integrationId: '22222222-2222-4222-8222-222222222222' }),
@@ -430,7 +454,7 @@ describe('remaining user routes', () => {
     )) as {
       success: boolean;
     };
-    expect(mockTestIntegration).toHaveBeenCalledWith('user@example.com', '22222222-2222-4222-8222-222222222222');
+    expect(mockTestIntegration).toHaveBeenCalledWith(TEST_IDENTITY, '22222222-2222-4222-8222-222222222222');
     expect(tested.success).toBe(true);
   });
 
@@ -450,7 +474,7 @@ describe('remaining user routes', () => {
       makeCxt(),
     );
     expect(mockChat).toHaveBeenCalledWith(
-      expect.objectContaining({ userEmail: 'user@example.com', query: 'hello', applicationId: '11111111-1111-4111-8111-111111111111' }),
+      expect.objectContaining({ scope: TEST_IDENTITY, query: 'hello', applicationId: '11111111-1111-4111-8111-111111111111' }),
     );
   });
 
@@ -462,14 +486,14 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith('user@example.com', '22222222-2222-4222-8222-222222222222', 50);
+    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith(TEST_IDENTITY, '22222222-2222-4222-8222-222222222222', 50);
     await call(
       new ListIntegrationDeliveriesRoute(),
       req('https://x/?integrationId=22222222-2222-4222-8222-222222222222&limit=bogus'),
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith('user@example.com', '22222222-2222-4222-8222-222222222222', 20);
+    expect(mockListIntegrationDeliveries).toHaveBeenCalledWith(TEST_IDENTITY, '22222222-2222-4222-8222-222222222222', 20);
     await expect(
       call(new UpdateApplicationContextRoute(), req('https://x/', { maxContextDocuments: 99_999_999 }), makeEnv(), makeCxt()),
     ).rejects.toThrow(BadRequestError);
@@ -486,7 +510,7 @@ describe('remaining user routes', () => {
     )) as {
       sent: boolean;
     };
-    expect(mockGetOwnedApplication).toHaveBeenCalledWith('user@example.com', '11111111-1111-4111-8111-111111111111');
+    expect(mockGetOwnedApplication).toHaveBeenCalledWith(TEST_IDENTITY, '11111111-1111-4111-8111-111111111111');
     expect(mockGetAccessToken).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111');
     expect(mockSendDigestForced).toHaveBeenCalledWith({ applicationId: '11111111-1111-4111-8111-111111111111' }, 'tok');
     expect(result.sent).toBe(true);
@@ -505,7 +529,7 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListCalendarEvents).toHaveBeenCalledWith('user@example.com', {
+    expect(mockListCalendarEvents).toHaveBeenCalledWith(TEST_IDENTITY, {
       applicationId: '11111111-1111-4111-8111-111111111111',
       cursor: 'c',
     });
@@ -515,7 +539,7 @@ describe('remaining user routes', () => {
       makeEnv(),
       makeCxt(),
     );
-    expect(mockListProcessedMessages).toHaveBeenCalledWith('user@example.com', {
+    expect(mockListProcessedMessages).toHaveBeenCalledWith(TEST_IDENTITY, {
       applicationId: '11111111-1111-4111-8111-111111111111',
       status: 'processed',
       cursor: 'c',

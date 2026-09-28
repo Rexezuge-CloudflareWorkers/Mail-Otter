@@ -31,7 +31,7 @@ class SnoozeEmailActionRoute extends IUserRoute<SnoozeEmailActionRequest, Snooze
       rawValue = request.snoozedUntil;
     }
     const snoozedUntil: Date | null = rawValue ? new Date(rawValue) : null;
-    const action = await ActionService.snoozeAction(env, actionId, this.getAuthenticatedUserEmailAddress(cxt), snoozedUntil);
+    const action = await ActionService.snoozeAction(env, actionId, this.getAuthenticatedUser(cxt), snoozedUntil);
     return { action };
   }
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getById: vi.fn(),
-  listContextEnabledApplicationIdsByUserEmail: vi.fn().mockResolvedValue([]),
+  listContextEnabledApplicationIdsByUserScope: vi.fn().mockResolvedValue([]),
   getAccessToken: vi.fn().mockResolvedValue('token'),
   getByApplication: vi.fn(),
   listMessageIdsSince: vi.fn(),
@@ -10,9 +10,14 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  scopeForAnchor: (anchorEmail: string) => ({ id: null, anchorEmail }),
+  userScopeSql: (scope: { id: string | null; anchorEmail: string }) =>
+    scope.id
+      ? { clause: '(user_id = ? OR (user_id IS NULL AND user_email = ?))', bindings: [scope.id, scope.anchorEmail] }
+      : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   ConnectedApplicationDAO: class {
     getById = mocks.getById;
-    listContextEnabledApplicationIdsByUserEmail = mocks.listContextEnabledApplicationIdsByUserEmail;
+    listContextEnabledApplicationIdsByUserScope = mocks.listContextEnabledApplicationIdsByUserScope;
   },
   ProviderSubscriptionDAO: class {
     getByApplication = mocks.getByApplication;
@@ -42,7 +47,7 @@ function env() {
 describe('EmailApplicationResolver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.listContextEnabledApplicationIdsByUserEmail.mockResolvedValue([]);
+    mocks.listContextEnabledApplicationIdsByUserScope.mockResolvedValue([]);
     mocks.getAccessToken.mockResolvedValue('token');
   });
 

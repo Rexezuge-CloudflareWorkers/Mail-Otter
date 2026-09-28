@@ -1,4 +1,5 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { ConnectedApplicationDAO, UserDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { AppConfiguration } from '@mail-otter/backend-runtime/config';
@@ -47,14 +48,14 @@ class ChatService {
 
   public async chatForUser(input: Omit<ChatInput, 'env'> & { env?: ChatEnv }): Promise<ChatResult> {
     const env = input.env ?? this.env;
-    const { userEmail, query, applicationId, history } = input as ChatInput;
-    return ChatService.runChat(env, this.deps, userEmail, query, applicationId, history);
+    const { scope, query, applicationId, history } = input as ChatInput;
+    return ChatService.runChat(env, this.deps, scope, query, applicationId, history);
   }
 
   private static async runChat(
     env: ChatEnv,
     deps: Required<ChatServiceDeps>,
-    userEmail: string,
+    scope: UserScope,
     query: string,
     applicationId?: string,
     history?: ChatMessage[],
@@ -67,10 +68,13 @@ class ChatService {
       throw new BadRequestError('Daily AI usage quota has been reached. Please try again tomorrow.');
     }
 
-    const locale = await this.resolveLocaleWithDeps(env, deps, userEmail, applicationId);
+    const locale = await this.resolveLocaleWithDeps(env, deps, scope, applicationId);
     const strings = getBackendStrings(locale);
 
-    const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(userEmail);
+    // Anchored, not the account's current address: the namespace is persisted on
+    // every document row and stamped into every existing vector, so an address
+    // change must not move it or the user's own RAG context becomes unreachable.
+    const vectorNamespace = await EmailContextUtil.getUserVectorNamespace(scope.anchorEmail);
     const embeddingModel = deps.config.getEmbeddingModel();
     const embedding = await deps.aiService.embed(env.AI, embeddingModel, query);
     await deps.aiService.recordEmbeddingUsage(embeddingModel, query, '[ChatService]');
@@ -130,17 +134,19 @@ class ChatService {
   private static async resolveLocaleWithDeps(
     env: ChatEnv,
     deps: Required<ChatServiceDeps>,
-    userEmail: string,
+    scope: UserScope,
     applicationId?: string,
   ): Promise<string> {
     try {
       if (applicationId && env.AES_ENCRYPTION_KEY_SECRET) {
         const applicationDAO = await deps.applicationDAO();
-        const application = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+        const application = await applicationDAO.getMetadataByIdForUser(applicationId, scope);
         if (application?.contentLanguage) return LocaleUtil.normalize(application.contentLanguage);
       }
+      // The anchor is the PRIMARY KEY of `users`, so it identifies the account
+      // uniquely and is the right key for a per-account preference.
       const userDAO = await deps.userDAO();
-      const user = await userDAO.getByEmail(userEmail);
+      const user = await userDAO.getByEmail(scope.anchorEmail);
       if (user?.preferredLanguage) return LocaleUtil.normalize(user.preferredLanguage);
     } catch {
       // Fall through to default locale.
@@ -217,7 +223,10 @@ interface ChatSource {
 
 interface ChatInput {
   env: ChatEnv;
-  userEmail: string;
+  /**
+  The authenticated account: `id` for ownership, `anchorEmail` for stored keys.
+  */
+  scope: UserScope;
   query: string;
   applicationId?: string;
   history?: ChatMessage[];

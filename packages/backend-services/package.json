@@ -9,6 +9,7 @@
     "./action": "./src/action/index.ts",
     "./action/*": "./src/action/*.ts",
     "./auth": "./src/auth/index.ts",
+    "./identity": "./src/identity/index.ts",
     "./auth/*": "./src/auth/*.ts",
     "./application": "./src/application/index.ts",
     "./application/*": "./src/application/*.ts",

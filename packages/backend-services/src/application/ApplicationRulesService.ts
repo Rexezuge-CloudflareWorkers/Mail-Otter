@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
@@ -18,14 +19,14 @@ class ApplicationRulesService {
     private readonly deps: Required<Pick<ApplicationServiceDeps, 'applicationDAO' | 'usageDAO' | 'tokenService'>>,
   ) {}
 
-  public async listLabels(userEmail: string, applicationId: string): Promise<Array<{ id: string; name: string }>> {
-    await this.assertOwnership(userEmail, applicationId);
+  public async listLabels(scope: UserScope, applicationId: string): Promise<Array<{ id: string; name: string }>> {
+    await this.assertOwnership(scope, applicationId);
     if (!this.env.OAUTH2_TOKEN_CACHE || !this.env.OAUTH2_TOKEN_REFRESHERS) return [];
     try {
       const tokenService = await this.deps.tokenService();
       const accessToken = await tokenService.getAccessToken(applicationId);
       const dao: ConnectedApplicationDAO = await this.deps.applicationDAO();
-      const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+      const app = await dao.getMetadataByIdForUser(applicationId, scope);
       if (!app) return [];
       const provider = EmailProviderRegistry.get(app.providerId, app.connectionMethod);
       return (await provider.listLabels?.(accessToken)) ?? [];
@@ -35,24 +36,24 @@ class ApplicationRulesService {
     }
   }
 
-  public async getRules(userEmail: string, applicationId: string): Promise<EmailProcessingRule[]> {
-    await this.assertOwnership(userEmail, applicationId);
+  public async getRules(scope: UserScope, applicationId: string): Promise<EmailProcessingRule[]> {
+    await this.assertOwnership(scope, applicationId);
     const dao = await this.deps.applicationDAO();
-    const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+    const app = await dao.getMetadataByIdForUser(applicationId, scope);
     return app?.emailProcessingRules ?? [];
   }
 
-  public async updateRules(userEmail: string, applicationId: string, rules: EmailProcessingRule[]) {
-    await this.assertOwnership(userEmail, applicationId);
+  public async updateRules(scope: UserScope, applicationId: string, rules: EmailProcessingRule[]) {
+    await this.assertOwnership(scope, applicationId);
     const dao = await this.deps.applicationDAO();
-    const updated = await dao.updateEmailProcessingRulesForUser(applicationId, userEmail, rules);
+    const updated = await dao.updateEmailProcessingRulesForUser(applicationId, scope, rules);
     if (!updated) throw new NotFoundError('Connected application not found.');
     return updated;
   }
 
-  public async suggestRule(userEmail: string, applicationId: string, description: string): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
+  public async suggestRule(scope: UserScope, applicationId: string, description: string): Promise<Omit<EmailProcessingRule, 'ruleId'>> {
     if (!this.env.AI) throw new BadRequestError('AI is not configured.');
-    await this.assertOwnership(userEmail, applicationId);
+    await this.assertOwnership(scope, applicationId);
     const model = ConfigurationManager.getEmailSummaryModel(this.env);
     const { rule, usage } = await EmailRuleSuggestionUtil.suggestWithUsage(this.env.AI, model, description);
     await this.recordRuleSuggestionUsage(model, usage, description, rule);
@@ -79,9 +80,9 @@ class ApplicationRulesService {
     }
   }
 
-  private async assertOwnership(userEmail: string, applicationId: string): Promise<void> {
+  private async assertOwnership(scope: UserScope, applicationId: string): Promise<void> {
     const dao = await this.deps.applicationDAO();
-    const app = await dao.getMetadataByIdForUser(applicationId, userEmail);
+    const app = await dao.getMetadataByIdForUser(applicationId, scope);
     if (!app) throw new NotFoundError('Connected application not found.');
   }
 }

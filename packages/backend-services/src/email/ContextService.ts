@@ -5,6 +5,7 @@ import {
   CONTEXT_AUDIT_LOG_SEVERITY_INFO,
 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type {
@@ -50,53 +51,49 @@ class ContextService {
     };
   }
 
-  async updateContextSettings(userEmail: string, input: UpdateContextSettingsInput, raw: Request): Promise<ApplicationResponse> {
+  async updateContextSettings(scope: UserScope, input: UpdateContextSettingsInput, raw: Request): Promise<ApplicationResponse> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     let application: ConnectedApplicationMetadata | undefined;
 
     if (input.contextIndexingEnabled !== undefined) {
-      application = await applicationDAO.updateContextIndexingForUser(input.applicationId, userEmail, input.contextIndexingEnabled);
+      application = await applicationDAO.updateContextIndexingForUser(input.applicationId, scope, input.contextIndexingEnabled);
       if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (input.ragRetrievalEnabled !== undefined) {
-      application = await applicationDAO.updateRagRetrievalForUser(input.applicationId, userEmail, input.ragRetrievalEnabled);
+      application = await applicationDAO.updateRagRetrievalForUser(input.applicationId, scope, input.ragRetrievalEnabled);
       if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if ('maxContextDocuments' in input) {
-      application = await applicationDAO.updateMaxContextDocumentsForUser(
-        input.applicationId,
-        userEmail,
-        input.maxContextDocuments ?? null,
-      );
+      application = await applicationDAO.updateMaxContextDocumentsForUser(input.applicationId, scope, input.maxContextDocuments ?? null);
       if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (input.attachmentVisionEnabled !== undefined) {
-      application = await applicationDAO.updateAttachmentVisionEnabledForUser(
-        input.applicationId,
-        userEmail,
-        input.attachmentVisionEnabled,
-      );
+      application = await applicationDAO.updateAttachmentVisionEnabledForUser(input.applicationId, scope, input.attachmentVisionEnabled);
       if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     if (!application) {
-      application = await applicationDAO.getMetadataByIdForUser(input.applicationId, userEmail);
+      application = await applicationDAO.getMetadataByIdForUser(input.applicationId, scope);
       if (!application) throw new NotFoundError('Connected application was not found.');
     }
 
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
 
-  async pruneApplicationDocuments(applicationId: string, userEmail: string, activeCount: number, effectiveLimit: number): Promise<void> {
+  async pruneApplicationDocuments(applicationId: string, scope: UserScope, activeCount: number, effectiveLimit: number): Promise<void> {
     const excessCount: number = activeCount - effectiveLimit;
     if (excessCount <= 0 || !this.env.EMAIL_CONTEXT_INDEX) return;
 
     const contextDAO = await this.deps.contextDAO();
-    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);
-    const vectorIds: string[] = await contextDAO.listOldestActiveVectorIdsForApplication(applicationId, userEmail, excessCount);
+    // The namespace is derived from the FROZEN ANCHOR, never the account's current
+    // address: it is persisted on every document row and stamped into every
+    // existing vector, so an address change must not move it. See
+    // `migrations/0028_user_identity.sql`.
+    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(scope.anchorEmail);
+    const vectorIds: string[] = await contextDAO.listOldestActiveVectorIdsForApplication(applicationId, scope, excessCount);
     if (vectorIds.length === 0) return;
 
     const mutationIds: string[] = [];
@@ -108,11 +105,12 @@ class ContextService {
           mutationIds.push(mutation.mutationId);
         }
       }
-      await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
-      await this.logDocumentDeletions(contextDAO, applicationId, userEmail, vectorIds);
+      await contextDAO.markDocumentsDeletedByVectorIds(applicationId, scope, vectorIds);
+      await this.logDocumentDeletions(contextDAO, applicationId, scope, vectorIds);
       await contextDAO.recordDeletionRun({
         applicationId,
-        userEmail,
+        userEmail: scope.anchorEmail,
+        userId: scope.id,
         vectorNamespace,
         requestedVectorCount: vectorIds.length,
         deletedVectorCount: vectorIds.length,
@@ -122,7 +120,8 @@ class ContextService {
     } catch (error: unknown) {
       await contextDAO.recordDeletionRun({
         applicationId,
-        userEmail,
+        userEmail: scope.anchorEmail,
+        userId: scope.id,
         vectorNamespace,
         requestedVectorCount: vectorIds.length,
         deletedVectorCount: 0,
@@ -133,29 +132,30 @@ class ContextService {
     }
   }
 
-  async listDocuments(userEmail: string, input: ListContextDocumentsInput): Promise<ApplicationContextDocumentList> {
+  async listDocuments(scope: UserScope, input: ListContextDocumentsInput): Promise<ApplicationContextDocumentList> {
     const contextDAO = await this.deps.contextDAO();
-    return contextDAO.listDocumentsForUser(userEmail, input);
+    return contextDAO.listDocumentsForUser(scope, input);
   }
 
-  async listDeletionRuns(userEmail: string, input: ListDeletionRunsInput): Promise<ApplicationContextDeletionRunList> {
+  async listDeletionRuns(scope: UserScope, input: ListDeletionRunsInput): Promise<ApplicationContextDeletionRunList> {
     const contextDAO = await this.deps.contextDAO();
-    return contextDAO.listDeletionRunsForUser(userEmail, input);
+    return contextDAO.listDeletionRunsForUser(scope, input);
   }
 
-  async deleteDocuments(userEmail: string, applicationId: string): Promise<ApplicationContextDeletionRun> {
+  async deleteDocuments(scope: UserScope, applicationId: string): Promise<ApplicationContextDeletionRun> {
     if (!this.env.EMAIL_CONTEXT_INDEX) {
       throw new BadRequestError('Context index is not configured.');
     }
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, scope);
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
     }
 
     const contextDAO = await this.deps.contextDAO();
-    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(application.applicationId, userEmail);
-    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(userEmail);
+    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(application.applicationId, scope);
+    // Anchored, not the current address -- see the note in `pruneApplicationDocuments`.
+    const vectorNamespace: string = await EmailContextUtil.getUserVectorNamespace(scope.anchorEmail);
     const mutationIds: string[] = [];
     try {
       for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
@@ -165,11 +165,12 @@ class ContextService {
           mutationIds.push(mutation.mutationId);
         }
       }
-      await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, userEmail, vectorIds);
-      await this.logDocumentDeletions(contextDAO, application.applicationId, userEmail, vectorIds);
+      await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, scope, vectorIds);
+      await this.logDocumentDeletions(contextDAO, application.applicationId, scope, vectorIds);
       return contextDAO.recordDeletionRun({
         applicationId: application.applicationId,
-        userEmail,
+        userEmail: scope.anchorEmail,
+        userId: scope.id,
         vectorNamespace,
         requestedVectorCount: vectorIds.length,
         deletedVectorCount: vectorIds.length,
@@ -179,7 +180,8 @@ class ContextService {
     } catch (error: unknown) {
       return contextDAO.recordDeletionRun({
         applicationId: application.applicationId,
-        userEmail,
+        userEmail: scope.anchorEmail,
+        userId: scope.id,
         vectorNamespace,
         requestedVectorCount: vectorIds.length,
         deletedVectorCount: 0,
@@ -190,18 +192,18 @@ class ContextService {
     }
   }
 
-  async listAuditLogs(userEmail: string, contextDocumentId: string, cursor?: string): Promise<ContextAuditLogList> {
+  async listAuditLogs(scope: UserScope, contextDocumentId: string, cursor?: string): Promise<ContextAuditLogList> {
     const contextDAO = await this.deps.contextDAO();
-    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
+    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, scope);
     if (!document) {
       throw new NotFoundError('Context document was not found.');
     }
     return contextDAO.listAuditLogs(contextDocumentId, { cursor });
   }
 
-  async getDocumentProviderLink(userEmail: string, contextDocumentId: string): Promise<string> {
+  async getDocumentProviderLink(scope: UserScope, contextDocumentId: string): Promise<string> {
     const contextDAO = await this.deps.contextDAO();
-    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, userEmail);
+    const document: ApplicationContextDocumentSource | undefined = await contextDAO.getDocumentSourceForUser(contextDocumentId, scope);
     if (!document) {
       throw new NotFoundError('Context document was not found.');
     }
@@ -209,7 +211,7 @@ class ContextService {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(
       document.applicationId,
-      userEmail,
+      scope,
     );
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
@@ -220,12 +222,12 @@ class ContextService {
   private async logDocumentDeletions(
     contextDAO: ApplicationContextDAO,
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     vectorIds: string[],
   ): Promise<void> {
     const documents: Array<{ contextDocumentId: string; sourceDocumentId: string | null }> = await contextDAO.getDocumentSourcesByVectorIds(
       applicationId,
-      userEmail,
+      scope,
       vectorIds,
     );
     if (documents.length === 0) return;
@@ -233,7 +235,8 @@ class ContextService {
       documents.map((doc) => ({
         contextDocumentId: doc.contextDocumentId,
         applicationId,
-        userEmail,
+        userEmail: scope.anchorEmail,
+        userId: scope.id,
         sourceDocumentId: doc.sourceDocumentId,
         eventType: CONTEXT_AUDIT_EVENT_DOCUMENT_DELETED,
         eventLabel: 'Document Deleted From Context Index',

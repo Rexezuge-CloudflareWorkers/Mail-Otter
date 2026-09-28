@@ -5,6 +5,7 @@ import {
   EmailActionDAO,
   ProcessedMessageDAO,
 } from '@mail-otter/backend-data/dao';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { ApplicationContextUserCounts, EmailActionCounts, ProcessedMessageStatusCounts } from '@mail-otter/backend-data/dao';
 import { NotFoundError } from '@mail-otter/backend-errors';
 import { TimestampUtil } from '@mail-otter/shared/utils';
@@ -16,12 +17,12 @@ import { TimestampUtil } from '@mail-otter/shared/utils';
 class AnalyticsService {
   constructor(private readonly env: AnalyticsServiceEnv) {}
 
-  async getAnalytics(userEmail: string, input: { days: number; applicationId?: string }): Promise<AnalyticsResponse> {
+  async getAnalytics(scope: UserScope, input: { days: number; applicationId?: string }): Promise<AnalyticsResponse> {
     const { days, applicationId } = input;
     const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
 
     if (applicationId) {
-      const app = await new ConnectedApplicationDAO(this.env.DB, masterKey).getMetadataByIdForUser(applicationId, userEmail);
+      const app = await new ConnectedApplicationDAO(this.env.DB, masterKey).getMetadataByIdForUser(applicationId, scope);
       if (!app) throw new NotFoundError('Connected application was not found.');
     }
 
@@ -35,8 +36,8 @@ class AnalyticsService {
     const [aiRows, processingCounts, actionCounts, contextCounts] = await Promise.all([
       new AiDailyUsageDAO(this.env.DB).getByDateRange(startDate, endDate),
       new ProcessedMessageDAO(this.env.DB).getStatusCountsByDateRange(sinceUnixSeconds, now, applicationId),
-      new EmailActionDAO(this.env.DB, actionKey).getCountsByUserAndDateRange(userEmail, sinceUnixSeconds, now, applicationId),
-      new ApplicationContextDAO(this.env.DB).getCountsByUserEmail(userEmail, applicationId),
+      new EmailActionDAO(this.env.DB, actionKey).getCountsByUserAndDateRange(scope, sinceUnixSeconds, now, applicationId),
+      new ApplicationContextDAO(this.env.DB).getCountsByUserScope(scope, applicationId),
     ]);
 
     const aiTotal = aiRows.reduce(

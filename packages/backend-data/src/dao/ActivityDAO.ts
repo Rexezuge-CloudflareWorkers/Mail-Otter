@@ -7,6 +7,8 @@ import type {
   ActionExecutedEntry,
   EmailProcessedEntry,
 } from '@mail-otter/shared/model';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { BaseDAO } from './BaseDAO';
 
 interface ListActivityOptions {
@@ -37,7 +39,7 @@ interface ActivityCursor {
 }
 
 class ActivityDAO extends BaseDAO {
-  public async listForUser(userEmail: string, options: ListActivityOptions): Promise<ActivityEntryList> {
+  public async listForUser(scope: UserScope, options: ListActivityOptions): Promise<ActivityEntryList> {
     const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
     const fetchLimit = limit + 1;
     const cursor = ActivityDAO.parseCursor(options.cursor);
@@ -48,13 +50,13 @@ class ActivityDAO extends BaseDAO {
     const queries: Array<Promise<ActivityEntry[]>> = [];
 
     if (activeTypes.includes('email_processed')) {
-      queries.push(this.queryEmailProcessed(userEmail, options.applicationId, cursor, fetchLimit));
+      queries.push(this.queryEmailProcessed(scope, options.applicationId, cursor, fetchLimit));
     }
     if (activeTypes.includes('action_created')) {
-      queries.push(this.queryActionCreated(userEmail, options.applicationId, cursor, fetchLimit));
+      queries.push(this.queryActionCreated(scope, options.applicationId, cursor, fetchLimit));
     }
     if (activeTypes.includes('action_executed')) {
-      queries.push(this.queryActionExecuted(userEmail, options.applicationId, cursor, fetchLimit));
+      queries.push(this.queryActionExecuted(scope, options.applicationId, cursor, fetchLimit));
     }
 
     const results = await Promise.all(queries);
@@ -110,13 +112,14 @@ class ActivityDAO extends BaseDAO {
   }
 
   private async queryEmailProcessed(
-    userEmail: string,
+    scope: UserScope,
     applicationId: string | undefined,
     cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<EmailProcessedEntry[]> {
-    const conditions: string[] = ['ca.user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
 
     if (applicationId) {
       conditions.push('pm.application_id = ?');
@@ -156,13 +159,14 @@ class ActivityDAO extends BaseDAO {
   }
 
   private async queryActionCreated(
-    userEmail: string,
+    scope: UserScope,
     applicationId: string | undefined,
     cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<ActionCreatedEntry[]> {
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
 
     if (applicationId) {
       conditions.push('application_id = ?');
@@ -201,13 +205,14 @@ class ActivityDAO extends BaseDAO {
   }
 
   private async queryActionExecuted(
-    userEmail: string,
+    scope: UserScope,
     applicationId: string | undefined,
     cursor: ActivityCursor | undefined,
     fetchLimit: number,
   ): Promise<ActionExecutedEntry[]> {
-    const conditions: string[] = ['esa.user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope, 'esa');
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
 
     if (applicationId) {
       conditions.push('esa.application_id = ?');

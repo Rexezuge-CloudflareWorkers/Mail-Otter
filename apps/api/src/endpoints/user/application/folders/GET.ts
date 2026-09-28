@@ -21,7 +21,7 @@ class GetApplicationFoldersRoute extends IUserRoute<GetApplicationFoldersRequest
   ): Promise<GetApplicationFoldersResponse> {
     const scope = createRequestScope(env);
     const applicationId = this.getQueryParam(request, 'applicationId') ?? '';
-    const folders = await scope.get(Tokens.FolderService).listFolders(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
+    const folders = await scope.get(Tokens.FolderService).listFolders(this.getAuthenticatedUser(cxt), applicationId);
     return { folders };
   }
 }

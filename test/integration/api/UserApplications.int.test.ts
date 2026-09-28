@@ -3,14 +3,22 @@ import { env, SELF, adminSecretsStore } from 'cloudflare:test';
 import type { SecretsStoreSecret } from 'cloudflare:workers';
 import { applyMigrations } from '../helpers/migrations';
 
+/**
+ * Seed a connected application in the post-0028 shape.
+ *
+ * `user_email` stays the frozen anchor (the pre-existing foreign key and the
+ * Vectorize namespace both resolve against it) while `user_id` is the ownership
+ * key every `*ForUser` predicate now matches on.
+ */
 async function seedApplication(userEmail: string): Promise<string> {
   const applicationId = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
+  const owner = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = lower(?)').bind(userEmail).first<{ id: string }>();
   await env.DB.prepare(
-    `INSERT INTO connected_applications (application_id, user_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
-      `VALUES (?, ?, ?, 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
+    `INSERT INTO connected_applications (application_id, user_email, user_id, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, created_at, updated_at) ` +
+      `VALUES (?, ?, ?, 'Test Gmail', 'google-gmail', 'oauth2', 'enc', 'iv', 'draft', ?, ?)`,
   )
-    .bind(applicationId, userEmail, 'Test Gmail', now, now)
+    .bind(applicationId, userEmail, owner?.id ?? null, now, now)
     .run();
   return applicationId;
 }

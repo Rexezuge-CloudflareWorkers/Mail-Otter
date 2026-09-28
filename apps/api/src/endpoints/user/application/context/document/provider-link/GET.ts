@@ -1,3 +1,4 @@
+import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 import { BadRequestError } from '@mail-otter/backend-errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
@@ -29,9 +30,9 @@ class GetApplicationContextDocumentProviderLinkRoute extends IUserRoute<
       throw new BadRequestError('Context document id is required.');
     }
 
-    const userEmail: string = this.getAuthenticatedUserEmailAddress(cxt);
+    const user: AccountIdentity = this.getAuthenticatedUser(cxt);
     return {
-      url: await scope.get(Tokens.ContextService).getDocumentProviderLink(userEmail, contextDocumentId),
+      url: await scope.get(Tokens.ContextService).getDocumentProviderLink(user, contextDocumentId),
     };
   }
 }

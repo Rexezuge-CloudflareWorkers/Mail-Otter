@@ -21,7 +21,7 @@ class GetApplicationRulesRoute extends IUserRoute<GetApplicationRulesRequest, Ge
   ): Promise<GetApplicationRulesResponse> {
     const scope = createRequestScope(env);
     const applicationId = this.getQueryParam(request, 'applicationId') ?? '';
-    const rules = await scope.get(Tokens.ApplicationService).getRules(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
+    const rules = await scope.get(Tokens.ApplicationService).getRules(this.getAuthenticatedUser(cxt), applicationId);
     return { rules };
   }
 }

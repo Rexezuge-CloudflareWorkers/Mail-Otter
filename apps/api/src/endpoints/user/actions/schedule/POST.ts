@@ -31,7 +31,7 @@ class ScheduleEmailActionRoute extends IUserRoute<ScheduleEmailActionRequest, Sc
       rawValue = request.scheduledFor;
     }
     const scheduledFor: Date | null = rawValue ? new Date(rawValue) : null;
-    const action = await ActionService.scheduleAction(env, actionId, this.getAuthenticatedUserEmailAddress(cxt), scheduledFor);
+    const action = await ActionService.scheduleAction(env, actionId, this.getAuthenticatedUser(cxt), scheduledFor);
     return { action };
   }
 }

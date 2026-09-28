@@ -29,9 +29,7 @@ class ListIntegrationDeliveriesRoute extends IUserRoute<
     if (!integrationId) throw new BadRequestError('integrationId is required.');
     const rawLimit = Number(this.getQueryParam(request, 'limit') ?? '20');
     const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
-    const logs = await scope
-      .get(Tokens.ApplicationService)
-      .listIntegrationDeliveries(this.getAuthenticatedUserEmailAddress(cxt), integrationId, limit);
+    const logs = await scope.get(Tokens.ApplicationService).listIntegrationDeliveries(this.getAuthenticatedUser(cxt), integrationId, limit);
     return { logs };
   }
 }

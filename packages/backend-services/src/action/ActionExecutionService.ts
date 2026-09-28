@@ -1,3 +1,5 @@
+import { scopeForAnchor } from '@mail-otter/backend-data/dao';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import {
   EMAIL_ACTION_STATUS_EXPIRED,
   EMAIL_ACTION_STATUS_FAILED,
@@ -42,7 +44,7 @@ async function getActionForToken(actionId: string, token: string, env: ActionCal
 async function resolveActionLocale(action: EmailAction, env: ActionCallbackEnv): Promise<string> {
   try {
     const applicationDAO = new ConnectedApplicationDAO(env.DB, await env.AES_ENCRYPTION_KEY_SECRET.get());
-    const application = await applicationDAO.getMetadataByIdForUser(action.applicationId, action.userEmail);
+    const application = await applicationDAO.getMetadataByIdForUser(action.applicationId, scopeForAnchor(action.userEmail));
     return application?.contentLanguage ?? 'en';
   } catch {
     return 'en';
@@ -88,7 +90,9 @@ async function executeAction(
       status: EMAIL_ACTION_STATUS_EXPIRED,
       requestUserAgentHash: userAgentHash,
     });
-    return (await actionDAO.getForUser(action.actionId, action.userEmail)) ?? { ...action, status: EMAIL_ACTION_STATUS_EXPIRED };
+    return (
+      (await actionDAO.getForUser(action.actionId, scopeForAnchor(action.userEmail))) ?? { ...action, status: EMAIL_ACTION_STATUS_EXPIRED }
+    );
   }
 
   const claimed: boolean = await actionDAO.claimForExecution(action.actionId);
@@ -116,7 +120,7 @@ async function executeAction(
     });
   }
 
-  const refreshed: EmailAction | undefined = await actionDAO.getForUser(action.actionId, action.userEmail);
+  const refreshed: EmailAction | undefined = await actionDAO.getForUser(action.actionId, scopeForAnchor(action.userEmail));
   return refreshed ?? action;
 }
 
@@ -145,9 +149,9 @@ async function executeActionWithToken(
   return { statusCode: 200, html: renderResultPage(result, locale) };
 }
 
-async function executeActionForUser(actionId: string, userEmail: string, request: Request, env: UserActionEnv): Promise<EmailAction> {
+async function executeActionForUser(actionId: string, scope: UserScope, request: Request, env: UserActionEnv): Promise<EmailAction> {
   const actionDAO = await createActionDAO(env);
-  const action: EmailAction | undefined = await actionDAO.getForUser(actionId, userEmail);
+  const action: EmailAction | undefined = await actionDAO.getForUser(actionId, scope);
   if (!action) throw new NotFoundError('Email action was not found.');
   return executeAction(action, EMAIL_ACTION_TRIGGER_WEB_UI, request, env);
 }

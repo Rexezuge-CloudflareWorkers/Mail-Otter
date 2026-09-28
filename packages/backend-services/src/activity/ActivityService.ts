@@ -1,5 +1,6 @@
 import { ActivityDAO } from '@mail-otter/backend-data/dao';
 import type { ActivityEntry, ActivityEntryList, ActivityEventType } from '@mail-otter/shared/model';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { logTokenAdjacentError } from '@mail-otter/shared/utils';
 
 interface ListActivityInput {
@@ -30,8 +31,8 @@ const EXPORT_PAGE_SIZE = 100;
 const EXPORT_MAX_PAGES = 100;
 
 const ActivityService = {
-  async listActivity(userEmail: string, input: ListActivityInput, env: { DB: D1Database }): Promise<ActivityEntryList> {
-    return new ActivityDAO(env.DB).listForUser(userEmail, {
+  async listActivity(scope: UserScope, input: ListActivityInput, env: { DB: D1Database }): Promise<ActivityEntryList> {
+    return new ActivityDAO(env.DB).listForUser(scope, {
       applicationId: input.applicationId,
       cursor: input.cursor,
       limit: Math.min(input.limit ?? 50, 100),
@@ -51,7 +52,7 @@ const ActivityService = {
    * of passing off a partial file as complete.
    */
   async exportActivity(
-    userEmail: string,
+    scope: UserScope,
     input: ExportActivityInput,
     env: { DB: D1Database },
   ): Promise<{ entries: ActivityEntry[]; truncated: boolean }> {
@@ -61,7 +62,7 @@ const ActivityService = {
     let pages = 0;
 
     do {
-      const page: ActivityEntryList = await dao.listForUser(userEmail, {
+      const page: ActivityEntryList = await dao.listForUser(scope, {
         applicationId: input.applicationId,
         cursor,
         limit: EXPORT_PAGE_SIZE,
@@ -74,7 +75,7 @@ const ActivityService = {
 
     if (cursor) {
       logTokenAdjacentError('warn', 'Activity CSV export hit the page ceiling; the file is incomplete.', {
-        user: userEmail,
+        userId: scope.id ?? 'unresolved',
         pages: String(pages),
       });
     }

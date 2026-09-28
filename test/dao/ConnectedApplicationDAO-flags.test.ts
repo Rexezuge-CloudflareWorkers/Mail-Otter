@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockNow = 1_778_200_000;
 const mockAppId = 'app-123';
+const TEST_USER_ID = 'usr_0123456789abcdef0123456789abcdef';
+const TEST_ANCHOR = 'user@example.com';
+/**
+User-scoped methods take the account identity, not a bare address.
+*/
+const TEST_SCOPE = { id: TEST_USER_ID, anchorEmail: TEST_ANCHOR };
 
 vi.mock('@mail-otter/backend-data/crypto', () => ({
   encryptData: vi.fn(() => Promise.resolve({ encrypted: 'enc', iv: 'iv' })),
@@ -54,15 +60,15 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
 
   describe('updateRagRetrievalForUser', () => {
     it('enables retrieval with flag 1', async () => {
-      await dao.updateRagRetrievalForUser(mockAppId, 'user@example.com', true);
+      await dao.updateRagRetrievalForUser(mockAppId, TEST_SCOPE, true);
 
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(1, mockNow, mockAppId, 'user@example.com');
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(1, mockNow, mockAppId, TEST_USER_ID, TEST_ANCHOR);
     });
 
     it('disables retrieval with flag 0', async () => {
-      await dao.updateRagRetrievalForUser(mockAppId, 'user@example.com', false);
+      await dao.updateRagRetrievalForUser(mockAppId, TEST_SCOPE, false);
 
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(0, mockNow, mockAppId, 'user@example.com');
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(0, mockNow, mockAppId, TEST_USER_ID, TEST_ANCHOR);
     });
   });
 
@@ -92,24 +98,24 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
 
   describe('updateAttachmentVisionEnabledForUser', () => {
     it('stores true/false strings via the provider-config row', async () => {
-      await dao.updateAttachmentVisionEnabledForUser(mockAppId, 'user@example.com', true);
+      await dao.updateAttachmentVisionEnabledForUser(mockAppId, TEST_SCOPE, true);
       expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'attachment_vision_enabled', 'true', mockNow, mockNow);
 
       vi.clearAllMocks();
-      await dao.updateAttachmentVisionEnabledForUser(mockAppId, 'user@example.com', false);
+      await dao.updateAttachmentVisionEnabledForUser(mockAppId, TEST_SCOPE, false);
       expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'attachment_vision_enabled', 'false', mockNow, mockNow);
     });
   });
 
   describe('updateContentLanguageForUser', () => {
     it('normalizes and stores the language', async () => {
-      await dao.updateContentLanguageForUser(mockAppId, 'user@example.com', 'de');
+      await dao.updateContentLanguageForUser(mockAppId, TEST_SCOPE, 'de');
 
       expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'content_language', 'de', mockNow, mockNow);
     });
 
     it('deletes the row when the language is cleared', async () => {
-      await dao.updateContentLanguageForUser(mockAppId, 'user@example.com', null);
+      await dao.updateContentLanguageForUser(mockAppId, TEST_SCOPE, null);
 
       expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM provider_application_configs'));
       expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'content_language');
@@ -122,13 +128,13 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
         { ruleId: 'r-1', name: 'Skip', enabled: true, conditions: { operator: 'any', matchers: [] }, action: { type: 'skip' } },
       ];
 
-      await dao.updateEmailProcessingRulesForUser(mockAppId, 'user@example.com', rules as never);
+      await dao.updateEmailProcessingRulesForUser(mockAppId, TEST_SCOPE, rules as never);
 
       expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockAppId, 'email_processing_rules', JSON.stringify(rules), mockNow, mockNow);
     });
 
     it('deletes the row when rules are cleared', async () => {
-      await dao.updateEmailProcessingRulesForUser(mockAppId, 'user@example.com', []);
+      await dao.updateEmailProcessingRulesForUser(mockAppId, TEST_SCOPE, []);
 
       expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM provider_application_configs'));
     });
@@ -136,14 +142,14 @@ describe('ConnectedApplicationDAO flags and provider-config helpers', () => {
 
   describe('acknowledgeErrorForUser', () => {
     it('acknowledges processing errors via the processing column', async () => {
-      await dao.acknowledgeErrorForUser(mockAppId, 'user@example.com', 'processing');
+      await dao.acknowledgeErrorForUser(mockAppId, TEST_SCOPE, 'processing');
 
       expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('last_error_acknowledged_at'));
-      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockNow, mockNow, mockAppId, 'user@example.com');
+      expect(fns(mockDb).bindFn).toHaveBeenCalledWith(mockNow, mockNow, mockAppId, TEST_USER_ID, TEST_ANCHOR);
     });
 
     it('acknowledges context errors via the context column', async () => {
-      await dao.acknowledgeErrorForUser(mockAppId, 'user@example.com', 'context');
+      await dao.acknowledgeErrorForUser(mockAppId, TEST_SCOPE, 'context');
 
       expect(mockDb.prepare).toHaveBeenCalledWith(expect.stringContaining('context_last_error_acknowledged_at'));
     });

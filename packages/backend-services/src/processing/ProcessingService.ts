@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { BackgroundTaskRunDAO, ConnectedApplicationDAO, ProcessedMessageDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type {
   BackgroundTaskRunList,
@@ -77,41 +78,41 @@ class ProcessingService {
   // ─── Static facade (backward compatible) ───
 
   public static async listTaskRuns(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor' | 'latestPerType'>,
     env: ProcessingServiceEnv,
   ): Promise<BackgroundTaskRunList> {
-    return new ProcessingService(env).listTaskRuns(userEmail, options);
+    return new ProcessingService(env).listTaskRuns(scope, options);
   }
 
   public static async listCalendarEvents(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListCalendarEventsOptions, 'applicationId' | 'cursor'>,
     env: ProcessingServiceEnv,
   ): Promise<SyncedCalendarEventList> {
-    return new ProcessingService(env).listCalendarEvents(userEmail, options);
+    return new ProcessingService(env).listCalendarEvents(scope, options);
   }
 
   public static async listProcessedMessages(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListProcessedMessagesOptions, 'applicationId' | 'status' | 'cursor'>,
     env: ProcessingServiceEnv,
   ): Promise<ProcessedMessageList> {
-    return new ProcessingService(env).listProcessedMessages(userEmail, options);
+    return new ProcessingService(env).listProcessedMessages(scope, options);
   }
 
-  public static async triggerTask(userEmail: string, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
-    return new ProcessingService(env).triggerTask(userEmail, taskType, applicationId, env);
+  public static async triggerTask(scope: UserScope, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
+    return new ProcessingService(env).triggerTask(scope, taskType, applicationId, env);
   }
 
   // ─── Instance API (prefer in new code) ───
 
   public async listTaskRuns(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListTaskRunsOptions, 'taskType' | 'applicationId' | 'status' | 'cursor' | 'latestPerType'>,
   ): Promise<BackgroundTaskRunList> {
     const dao = await this.deps.taskRunDAO();
-    return dao.listForUser(userEmail, {
+    return dao.listForUser(scope, {
       taskType: options.taskType,
       applicationId: options.applicationId,
       status: options.status,
@@ -121,33 +122,33 @@ class ProcessingService {
   }
 
   public async listCalendarEvents(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListCalendarEventsOptions, 'applicationId' | 'cursor'>,
   ): Promise<SyncedCalendarEventList> {
     const dao = await this.deps.calendarEventDAO();
-    return dao.listForUser(userEmail, { applicationId: options.applicationId, cursor: options.cursor });
+    return dao.listForUser(scope, { applicationId: options.applicationId, cursor: options.cursor });
   }
 
   public async listProcessedMessages(
-    userEmail: string,
+    scope: UserScope,
     options: Pick<ListProcessedMessagesOptions, 'applicationId' | 'status' | 'cursor'>,
   ): Promise<ProcessedMessageList> {
     const dao = await this.deps.processedMessageDAO();
-    return dao.listForUser(userEmail, {
+    return dao.listForUser(scope, {
       applicationId: options.applicationId,
       status: options.status,
       cursor: options.cursor,
     });
   }
 
-  public async triggerTask(userEmail: string, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
+  public async triggerTask(scope: UserScope, taskType: string, applicationId: string, env: TriggerTaskEnv): Promise<void> {
     if (taskType !== BACKGROUND_TASK_TYPE_CALENDAR_SYNC && taskType !== BACKGROUND_TASK_TYPE_ACTION_STATUS_SYNC) {
       throw new BadRequestError(`Task type '${taskType}' cannot be triggered manually.`);
     }
 
     const masterKey: string = await env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = await this.deps.applicationDAO(masterKey);
-    const application = await applicationDAO.getByIdForUser(applicationId, userEmail);
+    const application = await applicationDAO.getByIdForUser(applicationId, scope);
     if (!application) throw new NotFoundError('Connected application not found.');
 
     if (taskType === BACKGROUND_TASK_TYPE_CALENDAR_SYNC) {
@@ -155,7 +156,7 @@ class ProcessingService {
       // with the cron's `DIGEST_CALENDAR_SYNC_DAYS` and so truncated the synced
       // range on every manual trigger. The window is anchored to the mailbox's
       // local midnight so it lines up with the digest's calendar section.
-      const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+      const metadata = await applicationDAO.getMetadataByIdForUser(applicationId, scope);
       const { startIso: windowStartIso, endIso: windowEndIso } = CalendarSyncWindow.build(new Date(), metadata?.timeZone ?? null);
       const accessToken = await this.deps.tokenService(env).getAccessToken(applicationId);
       const syncUtil = new CalendarEventSyncUtil(env.DB);

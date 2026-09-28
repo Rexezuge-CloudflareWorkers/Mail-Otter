@@ -16,11 +16,16 @@ const migrationsDir = resolve(fileURLToPath(new URL('../../migrations', import.m
 const migrationFiles = readdirSync(migrationsDir)
   .filter((f) => f.endsWith('.sql'))
   .sort();
-const migrationSql = migrationFiles.map((f) => readFileSync(resolve(migrationsDir, f), 'utf-8')).join('\n\n');
+const migrationFileList = migrationFiles.map((name) => ({ name, sql: readFileSync(resolve(migrationsDir, name), 'utf-8') }));
+const migrationSql = migrationFileList.map((f) => f.sql).join('\n\n');
 
 export default defineConfig({
   define: {
     __INTEGRATION_MIGRATION_SQL__: JSON.stringify(migrationSql),
+    // File boundaries have to survive into the test runtime: the identity-upgrade
+    // test applies a *range* of files, and D1 scopes PRAGMAs to the transaction, so
+    // a file that opens with one has to be applied in its own `db.batch()`.
+    __INTEGRATION_MIGRATION_FILES__: JSON.stringify(migrationFileList),
   },
   plugins: [
     cloudflareTest({

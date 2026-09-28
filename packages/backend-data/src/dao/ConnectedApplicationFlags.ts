@@ -1,6 +1,8 @@
 import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 
 // Provider-config / flag query concerns extracted from ConnectedApplicationDAO
 // god-file. ConnectedApplicationDAO delegates to this helper (composition) to
@@ -114,14 +116,15 @@ class ConnectedApplicationFlags extends BaseDAO {
     }
   }
 
-  public async acknowledgeError(applicationId: string, userEmail: string, errorType: 'processing' | 'context'): Promise<void> {
+  public async acknowledgeError(applicationId: string, scope: UserScope, errorType: 'processing' | 'context'): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const column: string = errorType === 'processing' ? 'last_error_acknowledged_at' : 'context_last_error_acknowledged_at';
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
-          .prepare(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND user_email = ?`)
-          .bind(now, now, applicationId, userEmail)
+          .prepare(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND ${where.clause}`)
+          .bind(now, now, applicationId, ...where.bindings)
           .run(),
       'acknowledge application error',
     );

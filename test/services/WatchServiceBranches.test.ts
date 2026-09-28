@@ -58,23 +58,23 @@ describe('WatchService branches', () => {
     const ctx = makeDeps();
     ctx.applicationDAO.getByIdForUser.mockResolvedValue(undefined);
     const svc = new WatchService(makeEnv(), ctx.deps);
-    await expect(svc.startApplicationWatch('u@x', 'missing', 'https://x')).rejects.toThrow(NotFoundError);
-    await expect(svc.stopApplicationWatch('u@x', 'missing')).rejects.toThrow(NotFoundError);
+    await expect(svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'missing', 'https://x')).rejects.toThrow(NotFoundError);
+    await expect(svc.stopApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'missing')).rejects.toThrow(NotFoundError);
   });
 
   it('requires connected status and mailbox metadata', async () => {
     const ctx = makeDeps();
     ctx.applicationDAO.getByIdForUser.mockResolvedValue(makeApp({ status: 'draft' }));
     const svc = new WatchService(makeEnv(), ctx.deps);
-    await expect(svc.startApplicationWatch('u@x', 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
+    await expect(svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
     ctx.applicationDAO.getByIdForUser.mockResolvedValue(makeApp({ providerEmail: null }));
-    await expect(svc.startApplicationWatch('u@x', 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
+    await expect(svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
   });
 
   it('starts webhook watches and substitutes the application id', async () => {
     const ctx = makeDeps();
     const svc = new WatchService(makeEnv(), ctx.deps);
-    const result = await svc.startApplicationWatch('u@x', 'app-1', 'https://x');
+    const result = await svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1', 'https://x');
     expect(ctx.provider.startWatch).toHaveBeenCalledWith(
       { type: 'oauth2', accessToken: 'tok' },
       expect.objectContaining({ baseUrl: 'https://x', applicationId: 'app-1' }),
@@ -97,7 +97,7 @@ describe('WatchService branches', () => {
     );
     ctx.provider.startWatch.mockResolvedValue({ type: 'imap-cursor', imapCursor: '5' });
     const svc = new WatchService(makeEnv(), ctx.deps);
-    const result = await svc.startApplicationWatch('u@x', 'app-1', 'https://x');
+    const result = await svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1', 'https://x');
     expect(ctx.provider.startWatch).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'imap-password' }),
       expect.objectContaining({ clientState: undefined }),
@@ -111,17 +111,17 @@ describe('WatchService branches', () => {
       makeApp({ connectionMethod: 'imap-password', imapUsername: null, imapPassword: null }),
     );
     const svc = new WatchService(makeEnv(), ctx.deps);
-    await expect(svc.startApplicationWatch('u@x', 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
+    await expect(svc.startApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1', 'https://x')).rejects.toThrow(BadRequestError);
   });
 
   it('stops watches and tolerates provider unsubscribe failures', async () => {
     const ctx = makeDeps();
     ctx.subscriptionDAO.getByApplication.mockResolvedValue({ externalSubscriptionId: 'sub-1' });
     const svc = new WatchService(makeEnv(), ctx.deps);
-    await svc.stopApplicationWatch('u@x', 'app-1');
+    await svc.stopApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1');
     expect(ctx.provider.stopWatch).toHaveBeenCalledWith('tok', 'sub-1');
     expect(ctx.subscriptionDAO.markStopped).toHaveBeenCalledWith('app-1');
     ctx.provider.stopWatch.mockRejectedValue(new Error('gone'));
-    await expect(svc.stopApplicationWatch('u@x', 'app-1')).resolves.toBeUndefined();
+    await expect(svc.stopApplicationWatch({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1')).resolves.toBeUndefined();
   });
 });

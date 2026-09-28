@@ -19,7 +19,7 @@ class DeleteApplicationRoute extends IUserRoute<DeleteApplicationRequest, Delete
     cxt: RouteContext<DeleteApplicationEnv>,
   ): Promise<DeleteApplicationResponse> {
     const scope = createRequestScope(env);
-    await scope.get(Tokens.ApplicationService).deleteUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId);
+    await scope.get(Tokens.ApplicationService).deleteUserApplication(this.getAuthenticatedUser(cxt), request.applicationId);
     return { success: true };
   }
 }

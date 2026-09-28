@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
@@ -13,10 +14,10 @@ import { OAuth2StateUtil } from './OAuth2StateUtil';
 class OAuth2AuthorizationService {
   constructor(private readonly env: OAuth2AuthorizationServiceEnv) {}
 
-  async createAuthorization(userEmail: string, applicationId: string, raw: Request): Promise<OAuth2AuthorizationResult> {
+  async createAuthorization(scope: UserScope, applicationId: string, raw: Request): Promise<OAuth2AuthorizationResult> {
     const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, scope);
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
     }

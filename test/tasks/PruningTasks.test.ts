@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const TEST_USER_ID = 'usr_0123456789abcdef0123456789abcdef';
+
 const mocks = vi.hoisted(() => ({
   mockDeleteOlderThan: vi.fn(),
   mockDeleteOlderThanDate: vi.fn(),
@@ -19,6 +21,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@mail-otter/backend-data/dao', () => ({
+  scopeForAnchor: (anchorEmail: string) => ({ id: null, anchorEmail }),
+  userScopeSql: (scope: { id: string | null; anchorEmail: string }) =>
+    scope.id
+      ? { clause: '(user_id = ? OR (user_id IS NULL AND user_email = ?))', bindings: [scope.id, scope.anchorEmail] }
+      : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   BackgroundTaskRunDAO: class {
     startRun = vi.fn().mockResolvedValue('run-id');
     succeedRun = vi.fn().mockResolvedValue(undefined);
@@ -213,12 +220,15 @@ describe('ContextDocumentPruningTask', () => {
   });
 
   it('calls pruneApplicationDocuments for over-limit apps', async () => {
+    // The cross-user query returns the owning account id alongside the frozen
+    // anchor, so the background pruning path scopes by id like every other
+    // user-scoped read.
     mocks.mockListApplicationsOverDocumentLimit.mockResolvedValue([
-      { applicationId: 'app-1', userEmail: 'user@test.com', activeCount: 150, effectiveLimit: 100 },
+      { applicationId: 'app-1', userEmail: 'user@test.com', userId: TEST_USER_ID, activeCount: 150, effectiveLimit: 100 },
     ]);
     mocks.mockPruneApplicationDocuments.mockResolvedValue(undefined);
     await new ContextDocumentPruningTask().handle(createScheduledController(), createMockEnv() as Env, createExecutionContext());
-    expect(mocks.mockPruneApplicationDocuments).toHaveBeenCalledWith('app-1', 'user@test.com', 150, 100);
+    expect(mocks.mockPruneApplicationDocuments).toHaveBeenCalledWith('app-1', { id: TEST_USER_ID, anchorEmail: 'user@test.com' }, 150, 100);
   });
 });
 

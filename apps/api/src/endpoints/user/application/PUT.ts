@@ -22,9 +22,7 @@ class UpdateApplicationRoute extends IUserRoute<UpdateApplicationRequest, Update
   ): Promise<UpdateApplicationResponse> {
     const scope = createRequestScope(env);
     return {
-      application: await scope
-        .get(Tokens.ApplicationService)
-        .updateUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ApplicationService).updateUserApplication(this.getAuthenticatedUser(cxt), request, request.raw),
     };
   }
 }

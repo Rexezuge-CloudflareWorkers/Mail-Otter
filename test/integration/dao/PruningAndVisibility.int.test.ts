@@ -10,6 +10,10 @@ import {
 import { setupActionIntegrationTest, createApplicationViaApi } from '../helpers/setup';
 
 const TEST_EMAIL = 'test@example.com';
+/**
+The account identity user-scoped reads now take.
+*/
+const TEST_SCOPE = { id: null, anchorEmail: TEST_EMAIL };
 
 /**
  * Retention pruning + processing visibility on real D1.
@@ -42,7 +46,7 @@ describe('Pruning and processing visibility', () => {
     const deleted = await dao.deleteOlderThan(now - 90 * 86_400, ['summarized'], 10);
     expect(deleted).toBeGreaterThanOrEqual(1);
 
-    const remaining = await dao.listForUser(TEST_EMAIL, { applicationId });
+    const remaining = await dao.listForUser(TEST_SCOPE, { applicationId });
     expect(remaining.messages.length).toBeGreaterThan(0);
     expect(remaining.messages.every((message) => message.providerMessageId.startsWith('fresh-keep-'))).toBe(true);
   });
@@ -65,7 +69,7 @@ describe('Pruning and processing visibility', () => {
     const runId = await dao.startRun({ taskType: 'email-processing', applicationId });
     await dao.succeedRun(runId, { itemsProcessed: 3, itemsFailed: 0, summary: 'ok' });
 
-    const listed = await dao.listForUser(TEST_EMAIL, { applicationId });
+    const listed = await dao.listForUser(TEST_SCOPE, { applicationId });
     expect(listed.runs.map((run) => run.runId)).toContain(runId);
 
     const response: Response = await SELF.fetch(`http://localhost/user/processing/task-runs?applicationId=${applicationId}`);
@@ -124,7 +128,7 @@ describe('Pruning and processing visibility', () => {
     const deleted = await dao.pruneOldEvents(now - 90 * 86_400, 10);
     expect(deleted).toBe(1);
 
-    const remaining = await dao.listForUser(TEST_EMAIL, { applicationId });
+    const remaining = await dao.listForUser(TEST_SCOPE, { applicationId });
     expect(remaining.events).toHaveLength(1);
     expect(remaining.events[0].eventTitle).toBe('Upcoming sync');
   });

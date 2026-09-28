@@ -8,14 +8,17 @@ import type {
 import type { ApplicationContextDeletionStatus } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 
 // Repository for application_context_deletion_runs aggregate.
 // Extracted from ApplicationContextDAO (1051 LOC god DAO) — Phase 4 phased split.
 class ContextDeletionRunDAO extends BaseDAO {
-  public async listDeletionRunsForUser(userEmail: string, input: ListDeletionRunsInput = {}): Promise<ApplicationContextDeletionRunList> {
+  public async listDeletionRunsForUser(scope: UserScope, input: ListDeletionRunsInput = {}): Promise<ApplicationContextDeletionRunList> {
     const limit: number = Math.min(Math.max(input.limit ?? 25, 1), 100);
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
     if (input.applicationId) {
       conditions.push('application_id = ?');
       bindings.push(input.applicationId);
@@ -63,15 +66,17 @@ class ContextDeletionRunDAO extends BaseDAO {
           .prepare(
             `
               INSERT INTO application_context_deletion_runs
-                (deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count,
+                (deletion_run_id, application_id, user_email, user_id, vector_namespace, requested_vector_count, deleted_vector_count,
                  mutation_ids, status, error_message, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
           )
           .bind(
             deletionRunId,
             input.applicationId,
+            // The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
             input.userEmail,
+            input.userId ?? null,
             input.vectorNamespace,
             input.requestedVectorCount,
             input.deletedVectorCount,
@@ -175,7 +180,11 @@ interface ListDeletionRunsInput {
 
 interface RecordDeletionRunInput {
   applicationId: string;
+  /**
+  The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
+  */
   userEmail: string;
+  userId?: string | null;
   vectorNamespace: string;
   requestedVectorCount: number;
   deletedVectorCount: number;

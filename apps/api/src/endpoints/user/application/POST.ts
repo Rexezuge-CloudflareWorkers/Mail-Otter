@@ -21,9 +21,7 @@ class CreateApplicationRoute extends IUserRoute<CreateApplicationRequest, Create
   ): Promise<CreateApplicationResponse> {
     const scope = createRequestScope(env);
     return {
-      application: await scope
-        .get(Tokens.ApplicationService)
-        .createUserApplication(this.getAuthenticatedUserEmailAddress(cxt), request, request.raw),
+      application: await scope.get(Tokens.ApplicationService).createUserApplication(this.getAuthenticatedUser(cxt), request, request.raw),
     };
   }
 }

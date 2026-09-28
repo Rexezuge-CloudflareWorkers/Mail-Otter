@@ -4,6 +4,10 @@ import { ActivityDAO, ContextAuditLogDAO } from '@mail-otter/backend-data/dao';
 import { setupActionIntegrationTest, createApplicationViaApi, seedConnectedApp } from '../helpers/setup';
 
 const TEST_EMAIL = 'test@example.com';
+/**
+The account identity user-scoped reads now take.
+*/
+const TEST_SCOPE = { id: null, anchorEmail: TEST_EMAIL };
 
 /**
  * Cursor pagination across tied timestamps.
@@ -139,7 +143,7 @@ describe('tied-timestamp cursor pagination', () => {
     let cursor: string | undefined;
     let pages = 0;
     do {
-      const page = await dao.listForUser(TEST_EMAIL, { applicationId, limit: 10, cursor });
+      const page = await dao.listForUser(TEST_SCOPE, { applicationId, limit: 10, cursor });
       for (const entry of page.entries) {
         if (entry.eventType === 'email_processed') seen.add(entry.providerMessageId);
       }
@@ -165,7 +169,7 @@ describe('tied-timestamp cursor pagination', () => {
 
     const { CursorUtil } = await import('@mail-otter/backend-data/utils');
     const dao = new ActivityDAO(env.DB);
-    const page = await dao.listForUser(TEST_EMAIL, {
+    const page = await dao.listForUser(TEST_SCOPE, {
       applicationId,
       limit: 10,
       cursor: CursorUtil.encode({ beforeTs: now + 1 }),

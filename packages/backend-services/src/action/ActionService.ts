@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { EmailActionExecutionList, EmailActionList } from '@mail-otter/shared/model';
 import type { EmailActionStatus } from '@mail-otter/shared/constants';
 import type { EmailActionDAO } from '@mail-otter/backend-data/dao';
@@ -60,26 +61,22 @@ class ActionService {
     };
   }
 
-  public static async listActionsForUser(userEmail: string, input: ListActionsInput, env: UserActionListEnv): Promise<EmailActionList> {
-    return new ActionService().listActionsForUser(userEmail, input, env);
+  public static async listActionsForUser(scope: UserScope, input: ListActionsInput, env: UserActionListEnv): Promise<EmailActionList> {
+    return new ActionService().listActionsForUser(scope, input, env);
   }
 
-  public static async listExecutionsForUser(
-    actionId: string,
-    userEmail: string,
-    env: UserActionListEnv,
-  ): Promise<EmailActionExecutionList> {
-    return new ActionService().listExecutionsForUser(actionId, userEmail, env);
+  public static async listExecutionsForUser(actionId: string, scope: UserScope, env: UserActionListEnv): Promise<EmailActionExecutionList> {
+    return new ActionService().listExecutionsForUser(actionId, scope, env);
   }
 
-  public async listActionsForUser(userEmail: string, input: ListActionsInput, env: UserActionListEnv): Promise<EmailActionList> {
+  public async listActionsForUser(scope: UserScope, input: ListActionsInput, env: UserActionListEnv): Promise<EmailActionList> {
     const dao = await this.deps.actionDAO(env);
-    return dao.listActionsForUser(userEmail, input);
+    return dao.listActionsForUser(scope, input);
   }
 
-  public async listExecutionsForUser(actionId: string, userEmail: string, env: UserActionListEnv): Promise<EmailActionExecutionList> {
+  public async listExecutionsForUser(actionId: string, scope: UserScope, env: UserActionListEnv): Promise<EmailActionExecutionList> {
     const dao = await this.deps.actionDAO(env);
-    return dao.listExecutionsForUser(actionId, userEmail);
+    return dao.listExecutionsForUser(actionId, scope);
   }
 }
 

@@ -20,7 +20,7 @@ class GetApplicationLabelsRoute extends IUserRoute<GetApplicationLabelsRequest, 
   ): Promise<GetApplicationLabelsResponse> {
     const scope = createRequestScope(env);
     const applicationId = this.getQueryParam(request, 'applicationId') ?? '';
-    const labels = await scope.get(Tokens.ApplicationService).listLabels(this.getAuthenticatedUserEmailAddress(cxt), applicationId);
+    const labels = await scope.get(Tokens.ApplicationService).listLabels(this.getAuthenticatedUser(cxt), applicationId);
     return { labels };
   }
 }

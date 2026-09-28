@@ -15,6 +15,7 @@ import type {
   OAuth2Credentials,
 } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { EmailContextUtil } from '../email/EmailContextUtil';
 import { WatchService } from '../subscription/WatchService';
 import { ApplicationResponseUtil } from './ApplicationResponseUtil';
@@ -37,9 +38,9 @@ class ApplicationCrudService {
     private readonly deps: Required<Pick<ApplicationServiceDeps, 'applicationDAO' | 'contextDAO' | 'tokenCacheDAO' | 'watchService'>>,
   ) {}
 
-  public async listUserApplications(userEmail: string, raw: Request): Promise<ApplicationResponse[]> {
+  public async listUserApplications(scope: UserScope, raw: Request): Promise<ApplicationResponse[]> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
-    const applications: ConnectedApplicationMetadata[] = await applicationDAO.listMetadataByUserEmail(userEmail);
+    const applications: ConnectedApplicationMetadata[] = await applicationDAO.listMetadataByUserScope(scope);
     return Promise.all(
       applications.map(async (application: ConnectedApplicationMetadata): Promise<ApplicationResponse> => {
         return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
@@ -47,10 +48,10 @@ class ApplicationCrudService {
     );
   }
 
-  public async createUserApplication(userEmail: string, input: CreateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
+  public async createUserApplication(scope: UserScope, input: CreateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const maxApplications: number = ConfigurationManager.getMaxApplicationsPerUser(this.env);
-    if ((await applicationDAO.countByUserEmail(userEmail)) >= maxApplications) {
+    if ((await applicationDAO.countByUserScope(scope)) >= maxApplications) {
       throw new BadRequestError(`Maximum ${maxApplications} connected applications allowed per user.`);
     }
 
@@ -70,7 +71,7 @@ class ApplicationCrudService {
           }
         : null;
     const application: ConnectedApplicationMetadata = await applicationDAO.create(
-      userEmail,
+      scope,
       input.displayName,
       input.providerId,
       input.connectionMethod ?? CONNECTION_METHOD_OAUTH2,
@@ -85,9 +86,9 @@ class ApplicationCrudService {
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
 
-  public async updateUserApplication(userEmail: string, input: UpdateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
+  public async updateUserApplication(scope: UserScope, input: UpdateUserApplicationInput, raw: Request): Promise<ApplicationResponse> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
-    const existing: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(input.applicationId, userEmail);
+    const existing: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(input.applicationId, scope);
     if (!existing) throw new NotFoundError('Connected application was not found.');
     if (existing.providerId !== input.providerId || existing.connectionMethod !== input.connectionMethod) {
       throw new BadRequestError('Provider and connection method cannot be changed after creation.');
@@ -122,7 +123,7 @@ class ApplicationCrudService {
         : null;
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateForUser(
       input.applicationId,
-      userEmail,
+      scope,
       input.displayName,
       credentials,
       newStatus,
@@ -138,11 +139,11 @@ class ApplicationCrudService {
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
 
-  public async updateWatchedFolderIds(userEmail: string, input: UpdateWatchedFolderIdsInput, raw: Request): Promise<ApplicationResponse> {
+  public async updateWatchedFolderIds(scope: UserScope, input: UpdateWatchedFolderIdsInput, raw: Request): Promise<ApplicationResponse> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.updateWatchedFolderIdsForUser(
       input.applicationId,
-      userEmail,
+      scope,
       input.folderIds,
       input.folderNames,
     );
@@ -150,10 +151,10 @@ class ApplicationCrudService {
     return ApplicationResponseUtil.decorateApplication(application, this.env, raw);
   }
 
-  public async deleteUserApplication(userEmail: string, applicationId: string): Promise<void> {
+  public async deleteUserApplication(scope: UserScope, applicationId: string): Promise<void> {
     try {
       const watchService: WatchService = await this.deps.watchService();
-      await watchService.stopApplicationWatch(userEmail, applicationId);
+      await watchService.stopApplicationWatch(scope, applicationId);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[ApplicationService] Stop watch failed during application deletion, proceeding: ${message}`);
@@ -161,29 +162,29 @@ class ApplicationCrudService {
 
     const applicationDAO = await this.deps.applicationDAO();
     const contextDAO: ApplicationContextDAO = await this.deps.contextDAO();
-    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(applicationId, userEmail);
+    const vectorIds: string[] = await contextDAO.listActiveVectorIdsForApplication(applicationId, scope);
     if (this.env.EMAIL_CONTEXT_INDEX) {
       for (const chunk of EmailContextUtil.chunk(vectorIds, 1000)) {
         if (chunk.length > 0) await this.env.EMAIL_CONTEXT_INDEX.deleteByIds(chunk);
       }
-      await contextDAO.markDocumentsDeletedByVectorIds(applicationId, userEmail, vectorIds);
+      await contextDAO.markDocumentsDeletedByVectorIds(applicationId, scope, vectorIds);
     }
     if (this.env.OAUTH2_TOKEN_CACHE) {
       const tokenCacheDAO: OAuth2AccessTokenCacheDAO = await this.deps.tokenCacheDAO();
       await tokenCacheDAO.deleteAccessToken(applicationId);
     }
-    await applicationDAO.deleteForUser(applicationId, userEmail);
+    await applicationDAO.deleteForUser(applicationId, scope);
   }
 
-  public async getOwnedApplication(userEmail: string, applicationId: string): Promise<ConnectedApplicationMetadata> {
+  public async getOwnedApplication(scope: UserScope, applicationId: string): Promise<ConnectedApplicationMetadata> {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
-    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplicationMetadata | undefined = await applicationDAO.getMetadataByIdForUser(applicationId, scope);
     if (!application) throw new NotFoundError('Connected application not found.');
     return application;
   }
 
   public async acknowledgeApplicationError(
-    userEmail: string,
+    scope: UserScope,
     applicationId: string,
     errorType: 'processing' | 'context',
     raw: Request,
@@ -191,7 +192,7 @@ class ApplicationCrudService {
     const applicationDAO: ConnectedApplicationDAO = await this.deps.applicationDAO();
     const application: ConnectedApplicationMetadata | undefined = await applicationDAO.acknowledgeErrorForUser(
       applicationId,
-      userEmail,
+      scope,
       errorType,
     );
     if (!application) throw new NotFoundError('Connected application was not found.');

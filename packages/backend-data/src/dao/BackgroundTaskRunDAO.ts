@@ -1,6 +1,8 @@
 import { UUIDUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import { executeD1WithRetry } from '../utils';
 import { CursorUtil } from '../utils';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { BaseDAO } from './BaseDAO';
 
 type BackgroundTaskRunStatus = 'running' | 'success' | 'partial_success' | 'error' | 'skipped';
@@ -156,10 +158,11 @@ class BackgroundTaskRunDAO extends BaseDAO {
     return row ? BackgroundTaskRunDAO.toRun(row) : undefined;
   }
 
-  public async listForUser(userEmail: string, options: ListTaskRunsOptions = {}): Promise<BackgroundTaskRunList> {
+  public async listForUser(scope: UserScope, options: ListTaskRunsOptions = {}): Promise<BackgroundTaskRunList> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
-    const conditions: string[] = ['ca.user_email = ?'];
-    const bindings: Array<string | number | null> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number | null> = [...where.bindings];
 
     if (options.taskType) {
       conditions.push('btr.task_type = ?');

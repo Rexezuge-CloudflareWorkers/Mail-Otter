@@ -24,7 +24,12 @@ class ContextDocumentPruningTask extends IScheduledTask<ContextDocumentPruningTa
       try {
         await scope
           .get<ContextService>(Tokens.ContextService)
-          .pruneApplicationDocuments(app.applicationId, app.userEmail, app.activeCount, app.effectiveLimit);
+          .pruneApplicationDocuments(
+            app.applicationId,
+            { id: app.userId, anchorEmail: app.userEmail },
+            app.activeCount,
+            app.effectiveLimit,
+          );
       } catch {
         logTokenAdjacentError('error', 'Context document pruning failed', { applicationId: app.applicationId });
       }

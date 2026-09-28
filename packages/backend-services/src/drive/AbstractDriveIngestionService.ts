@@ -1,4 +1,4 @@
-import { AiDailyUsageDAO, ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
+import { AiDailyUsageDAO, ApplicationContextDAO, ConnectedApplicationDAO, scopeForAnchor } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { CONTEXT_AUDIT_EVENT_CONTEXT_INDEXED, CONTEXT_AUDIT_LOG_SEVERITY_INFO } from '@mail-otter/shared/constants';
@@ -165,7 +165,7 @@ abstract class AbstractDriveIngestionService<TItem extends { id: string } = { id
         const info = await contextDAO.getDocumentSourceInfo(application.applicationId, fileId, sourceType);
         if (info) {
           await this.env.EMAIL_CONTEXT_INDEX!.deleteByIds([info.vectorId]);
-          await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, info.userEmail, [info.vectorId]);
+          await contextDAO.markDocumentsDeletedByVectorIds(application.applicationId, scopeForAnchor(info.userEmail), [info.vectorId]);
         }
       } catch (error: unknown) {
         logError('warn', `${logPrefix} Failed to delete removed file ${fileId}`, error);

@@ -22,7 +22,7 @@ class ListProcessingCalendarEventsRoute extends IUserRoute<
     cxt: RouteContext<ListProcessingCalendarEventsEnv>,
   ): Promise<ListProcessingCalendarEventsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ProcessingService).listCalendarEvents(this.getAuthenticatedUserEmailAddress(cxt), {
+    return scope.get(Tokens.ProcessingService).listCalendarEvents(this.getAuthenticatedUser(cxt), {
       applicationId: this.getQueryParam(request, 'applicationId'),
       cursor: this.getQueryParam(request, 'cursor'),
     });

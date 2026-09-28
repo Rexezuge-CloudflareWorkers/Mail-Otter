@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { NotFoundError } from '@mail-otter/backend-errors';
@@ -9,10 +10,10 @@ import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 class FolderService {
   constructor(private readonly env: FolderServiceEnv) {}
 
-  async listFolders(userEmail: string, applicationId: string): Promise<ProviderFolder[]> {
+  async listFolders(scope: UserScope, applicationId: string): Promise<ProviderFolder[]> {
     const masterKey: string = await this.env.AES_ENCRYPTION_KEY_SECRET.get();
     const applicationDAO = new ConnectedApplicationDAO(this.env.DB, masterKey);
-    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, scope);
     if (!application) {
       throw new NotFoundError('Connected application was not found.');
     }

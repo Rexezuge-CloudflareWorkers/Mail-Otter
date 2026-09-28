@@ -10,9 +10,21 @@ import { logError } from '@mail-otter/shared/utils';
 
 const D1_BOOKMARK_HEADER: string = 'x-d1-bookmark';
 
+/**
+ * Context variables set by the Cloudflare Access middleware.
+ *
+ * The id is the identity; the current address is what the user sees; the anchor is
+ * the frozen value legacy `*_email` columns and the Vectorize namespace hold.
+ */
+interface AuthenticatedUserVariables {
+  AuthenticatedUserId: string;
+  AuthenticatedUserEmailAddress: string;
+  AuthenticatedUserAnchorEmail: string;
+}
+
 type AppRouter = HonoOpenAPIRouterType<{
   Bindings: Env;
-  Variables: { AuthenticatedUserEmailAddress: string };
+  Variables: AuthenticatedUserVariables;
 }>;
 
 class MailOtterWorker extends AbstractEntrypointWorker {
@@ -23,10 +35,10 @@ class MailOtterWorker extends AbstractEntrypointWorker {
 
     const app: Hono<{
       Bindings: Env;
-      Variables: { AuthenticatedUserEmailAddress: string };
+      Variables: AuthenticatedUserVariables;
     }> = new Hono<{
       Bindings: Env;
-      Variables: { AuthenticatedUserEmailAddress: string };
+      Variables: AuthenticatedUserVariables;
     }>();
 
     app.get('/', (c) => c.redirect('/user/'));

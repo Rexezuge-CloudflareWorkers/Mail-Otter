@@ -19,7 +19,7 @@ class TestIntegrationRoute extends IUserRoute<TestIntegrationRequest, TestIntegr
     cxt: RouteContext<TestIntegrationEnv>,
   ): Promise<TestIntegrationResponse> {
     const scope = createRequestScope(env);
-    await scope.get(Tokens.ApplicationService).testIntegration(this.getAuthenticatedUserEmailAddress(cxt), request.integrationId);
+    await scope.get(Tokens.ApplicationService).testIntegration(this.getAuthenticatedUser(cxt), request.integrationId);
     return { success: true };
   }
 }

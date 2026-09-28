@@ -21,6 +21,8 @@ import { EncryptedDAO } from './BaseDAO';
 import { ConnectedApplicationFlags } from './ConnectedApplicationFlags';
 import { METADATA_CONFIG_KEYS, assembleMetadata, migrateLegacyExcludeRules } from './ConnectedApplicationMetadataMapper';
 import type { MetadataConfigMap, MetadataConfigWriter } from './ConnectedApplicationMetadataMapper';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 
 class ConnectedApplicationDAO extends EncryptedDAO {
   private flags(): ConnectedApplicationFlags {
@@ -28,7 +30,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   }
 
   public async create(
-    userEmail: string,
+    scope: UserScope,
     displayName: string,
     providerId: string,
     connectionMethod: string,
@@ -55,13 +57,17 @@ class ConnectedApplicationDAO extends EncryptedDAO {
           .prepare(
             `
               INSERT INTO connected_applications
-                (application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (application_id, user_email, user_id, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
           )
           .bind(
             applicationId,
-            userEmail,
+            // The frozen anchor stays in `user_email` so the pre-existing
+            // `FOREIGN KEY (user_email) REFERENCES users(email)` and the
+            // Vectorize namespace keep resolving. `user_id` is the ownership key.
+            scope.anchorEmail,
+            scope.id,
             null,
             displayName,
             providerId,
@@ -91,54 +97,57 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     if (imapConfig) {
       await this.saveImapConfig(applicationId, imapConfig, now);
     }
-    const application: ConnectedApplicationMetadata | undefined = await this.getMetadataByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplicationMetadata | undefined = await this.getMetadataByIdForUser(applicationId, scope);
     if (!application) {
       throw new DatabaseError('Failed to load connected application after create.');
     }
     return application;
   }
 
-  public async listMetadataByUserEmail(userEmail: string): Promise<ConnectedApplicationMetadata[]> {
+  public async listMetadataByUserScope(scope: UserScope): Promise<ConnectedApplicationMetadata[]> {
+    const where: UserScopeSql = userScopeSql(scope);
     const rows: ConnectedApplicationInternal[] = await this.database
       .prepare(
         `
           SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
           FROM connected_applications
-          WHERE user_email = ?
+          WHERE ${where.clause}
           ORDER BY updated_at DESC, created_at DESC
         `,
       )
-      .bind(userEmail)
+      .bind(...where.bindings)
       .all<ConnectedApplicationInternal>()
       .then((result: D1Result<ConnectedApplicationInternal>): ConnectedApplicationInternal[] => result.results || []);
     return Promise.all(rows.map((row: ConnectedApplicationInternal): Promise<ConnectedApplicationMetadata> => this.toMetadata(row)));
   }
 
-  public async countByUserEmail(userEmail: string): Promise<number> {
+  public async countByUserScope(scope: UserScope): Promise<number> {
+    const where: UserScopeSql = userScopeSql(scope);
     const row: { count: number } | null = await this.database
-      .prepare('SELECT COUNT(*) AS count FROM connected_applications WHERE user_email = ?')
-      .bind(userEmail)
+      .prepare(`SELECT COUNT(*) AS count FROM connected_applications WHERE ${where.clause}`)
+      .bind(...where.bindings)
       .first<{ count: number }>();
     return row?.count ?? 0;
   }
 
-  public async listContextEnabledApplicationIdsByUserEmail(userEmail: string): Promise<string[]> {
+  public async listContextEnabledApplicationIdsByUserScope(scope: UserScope): Promise<string[]> {
+    const where: UserScopeSql = userScopeSql(scope);
     const rows: Array<{ application_id: string }> = await this.database
       .prepare(
         `
           SELECT application_id
           FROM connected_applications
-          WHERE user_email = ? AND context_indexing_enabled = 1
+          WHERE ${where.clause} AND context_indexing_enabled = 1
         `,
       )
-      .bind(userEmail)
+      .bind(...where.bindings)
       .all<{ application_id: string }>()
       .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
     return rows.map((row: { application_id: string }): string => row.application_id);
   }
 
-  public async getMetadataByIdForUser(applicationId: string, userEmail: string): Promise<ConnectedApplicationMetadata | undefined> {
-    const row: ConnectedApplicationInternal | undefined = await this.getRowById(applicationId, userEmail);
+  public async getMetadataByIdForUser(applicationId: string, scope: UserScope): Promise<ConnectedApplicationMetadata | undefined> {
+    const row: ConnectedApplicationInternal | undefined = await this.getRowById(applicationId, scope);
     return row ? await this.toMetadata(row) : undefined;
   }
 
@@ -147,14 +156,14 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     return row ? await this.toApplication(row) : undefined;
   }
 
-  public async getByIdForUser(applicationId: string, userEmail: string): Promise<ConnectedApplication | undefined> {
-    const row: ConnectedApplicationInternal | undefined = await this.getRowById(applicationId, userEmail);
+  public async getByIdForUser(applicationId: string, scope: UserScope): Promise<ConnectedApplication | undefined> {
+    const row: ConnectedApplicationInternal | undefined = await this.getRowById(applicationId, scope);
     return row ? await this.toApplication(row) : undefined;
   }
 
   public async updateForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     displayName: string,
     credentials: ConnectedApplicationCredentials,
     status: string,
@@ -174,6 +183,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
@@ -181,10 +191,10 @@ class ConnectedApplicationDAO extends EncryptedDAO {
             `
               UPDATE connected_applications
               SET display_name = ?, encrypted_credentials = ?, credentials_iv = ?, status = ?, updated_at = ?
-              WHERE application_id = ? AND user_email = ?
+              WHERE application_id = ? AND ${where.clause}
             `,
           )
-          .bind(displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, userEmail)
+          .bind(displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, ...where.bindings)
           .run(),
       'update connected application',
     );
@@ -221,7 +231,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     } else if (autoExecuteActionTypes !== undefined) {
       await this.deleteProviderConfig(applicationId, 'auto_execute_action_types');
     }
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async markImapConnected(applicationId: string, providerEmail: string): Promise<void> {
@@ -306,10 +316,11 @@ class ConnectedApplicationDAO extends EncryptedDAO {
 
   public async updateContextIndexingForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     contextIndexingEnabled: boolean,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
@@ -317,22 +328,23 @@ class ConnectedApplicationDAO extends EncryptedDAO {
             `
               UPDATE connected_applications
               SET context_indexing_enabled = ?, updated_at = ?
-              WHERE application_id = ? AND user_email = ?
+              WHERE application_id = ? AND ${where.clause}
             `,
           )
-          .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, userEmail)
+          .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, ...where.bindings)
           .run(),
       'update context indexing setting',
     );
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async updateRagRetrievalForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     ragRetrievalEnabled: boolean,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
@@ -340,38 +352,39 @@ class ConnectedApplicationDAO extends EncryptedDAO {
             `
               UPDATE connected_applications
               SET rag_retrieval_enabled = ?, updated_at = ?
-              WHERE application_id = ? AND user_email = ?
+              WHERE application_id = ? AND ${where.clause}
             `,
           )
-          .bind(ragRetrievalEnabled ? 1 : 0, now, applicationId, userEmail)
+          .bind(ragRetrievalEnabled ? 1 : 0, now, applicationId, ...where.bindings)
           .run(),
       'update rag retrieval setting',
     );
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async updateWatchedFolderIdsForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     folderIds: string[] | null,
     folderNames?: Record<string, string>,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     // Verify ownership before touching the child watched-folders table so
     // unknown/foreign applications return undefined (→ 404) instead of
     // failing on the foreign-key constraint (→ 500).
-    const existing = await this.getMetadataByIdForUser(applicationId, userEmail);
+    const existing = await this.getMetadataByIdForUser(applicationId, scope);
     if (!existing) return undefined;
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     await this.flags().replaceWatchedFolders(applicationId, folderIds, folderNames, now);
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async updateMaxContextDocumentsForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     maxContextDocuments: number | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
@@ -379,14 +392,14 @@ class ConnectedApplicationDAO extends EncryptedDAO {
             `
               UPDATE connected_applications
               SET max_context_documents = ?, updated_at = ?
-              WHERE application_id = ? AND user_email = ?
+              WHERE application_id = ? AND ${where.clause}
             `,
           )
-          .bind(maxContextDocuments, now, applicationId, userEmail)
+          .bind(maxContextDocuments, now, applicationId, ...where.bindings)
           .run(),
       'update max context documents',
     );
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async listApplicationIdsWithFeatureEnabled(featureName: string): Promise<string[]> {
@@ -397,12 +410,13 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     return this.flags().listApplicationIdsWithProviderConfig(configKey, configValue);
   }
 
-  public async deleteForUser(applicationId: string, userEmail: string): Promise<void> {
+  public async deleteForUser(applicationId: string, scope: UserScope): Promise<void> {
+    const where: UserScopeSql = userScopeSql(scope);
     await executeD1WithRetry(
       (): Promise<D1Result> =>
         this.database
-          .prepare('DELETE FROM connected_applications WHERE application_id = ? AND user_email = ?')
-          .bind(applicationId, userEmail)
+          .prepare(`DELETE FROM connected_applications WHERE application_id = ? AND ${where.clause}`)
+          .bind(applicationId, ...where.bindings)
           .run(),
       'delete connected application',
     );
@@ -424,15 +438,23 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     return this.flags().getWatchedFolders(applicationId);
   }
 
-  private async getRowById(applicationId: string, userEmail?: string): Promise<ConnectedApplicationInternal | undefined> {
-    const whereUser: string = userEmail ? ' AND user_email = ?' : '';
-    const bindings: string[] = userEmail ? [applicationId, userEmail] : [applicationId];
+  /**
+   * The single ownership predicate for this table.
+   *
+   * Omitting `scope` is how `getById` performs an unscoped read (background
+   * workers and the OAuth2 callback, which resolve an application by id without
+   * an authenticated owner). Supplying it applies the id-first predicate, so a
+   * user who has changed address still matches their own mailboxes.
+   */
+  private async getRowById(applicationId: string, scope?: UserScope): Promise<ConnectedApplicationInternal | undefined> {
+    const where: UserScopeSql | null = scope ? userScopeSql(scope) : null;
+    const bindings: string[] = where ? [applicationId, ...where.bindings] : [applicationId];
     const row: ConnectedApplicationInternal | null = await this.database
       .prepare(
         `
           SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
           FROM connected_applications
-          WHERE application_id = ?${whereUser}
+          WHERE application_id = ?${where ? ` AND ${where.clause}` : ''}
           LIMIT 1
         `,
       )
@@ -474,16 +496,16 @@ class ConnectedApplicationDAO extends EncryptedDAO {
 
   public async updateAttachmentVisionEnabledForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     enabled: boolean,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     await this.setProviderConfig(applicationId, 'attachment_vision_enabled', enabled ? 'true' : 'false');
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async updateContentLanguageForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     contentLanguage: string | null,
   ): Promise<ConnectedApplicationMetadata | undefined> {
     if (contentLanguage) {
@@ -491,12 +513,12 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     } else {
       await this.deleteProviderConfig(applicationId, 'content_language');
     }
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async updateEmailProcessingRulesForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     rules: EmailProcessingRule[],
   ): Promise<ConnectedApplicationMetadata | undefined> {
     if (rules.length > 0) {
@@ -504,16 +526,18 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     } else {
       await this.deleteProviderConfig(applicationId, 'email_processing_rules');
     }
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 
   public async acknowledgeErrorForUser(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     errorType: 'processing' | 'context',
   ): Promise<ConnectedApplicationMetadata | undefined> {
-    await this.flags().acknowledgeError(applicationId, userEmail, errorType);
-    return this.getMetadataByIdForUser(applicationId, userEmail);
+    // The flag write and the ownership read use the same predicate, so a
+    // non-owner cannot clear the flag either.
+    await this.flags().acknowledgeError(applicationId, scope, errorType);
+    return this.getMetadataByIdForUser(applicationId, scope);
   }
 }
 

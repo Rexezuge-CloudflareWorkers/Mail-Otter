@@ -7,6 +7,7 @@ import {
   IntegrationDeliveryLogDAO,
   ProviderSubscriptionDAO,
   UserDAO,
+  UserEmailDAO,
 } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { Container } from '@mail-otter/backend-runtime/di';
@@ -40,6 +41,7 @@ import { ChatService } from '@mail-otter/backend-services/chat';
 import { ProcessingService } from '@mail-otter/backend-services/processing';
 import { AppConfiguration } from '@mail-otter/backend-runtime/config';
 import { WatchService } from '@mail-otter/backend-services/subscription';
+import { UserIdentityService } from '@mail-otter/backend-services/identity';
 import { UserService } from '@mail-otter/backend-services/user';
 import { Tokens } from './tokens';
 
@@ -228,6 +230,7 @@ function createRequestScope(env: RequestScopeEnv): Container {
   const usageDAO = memoize(() => Promise.resolve(new AiDailyUsageDAO(env.DB)));
   const subscriptionDAO = memoize(() => Promise.resolve(new ProviderSubscriptionDAO(env.DB)));
   const userDAO = memoize(() => Promise.resolve(new UserDAO(env.DB)));
+  const userEmailDAO = memoize(() => Promise.resolve(new UserEmailDAO(env.DB)));
   scope.bindValue(Tokens.ApplicationDAO, applicationDAO);
   scope.bindValue(Tokens.ApplicationContextDAO, contextDAO);
   scope.bindValue(Tokens.ApplicationIntegrationDAO, integrationDAO);
@@ -235,6 +238,14 @@ function createRequestScope(env: RequestScopeEnv): Container {
   scope.bindValue(Tokens.AiDailyUsageDAO, usageDAO);
   scope.bindValue(Tokens.ProviderSubscriptionDAO, subscriptionDAO);
   scope.bindValue(Tokens.UserDAO, userDAO);
+  scope.bindValue(Tokens.UserEmailDAO, userEmailDAO);
+
+  // One `UserIdentityService` per request scope, shared by every consumer below.
+  // That sharing is the point: its address -> account memo is per request, so a
+  // request that authorizes against several applications resolves the caller once
+  // instead of once per check.
+  scope.bind(Tokens.UserIdentityService, () => new UserIdentityService({ DB: env.DB }, { userDAO, userEmailDAO }));
+  const userIdentity = (): Promise<UserIdentityService> => Promise.resolve(scope.get(Tokens.UserIdentityService));
 
   scope.bind(
     Tokens.ApplicationService,
@@ -269,7 +280,7 @@ function createRequestScope(env: RequestScopeEnv): Container {
         applicationDAO,
       }),
   );
-  scope.bind(Tokens.UserService, () => new UserService(serviceEnv, { userDAO, usageDAO }));
+  scope.bind(Tokens.UserService, () => new UserService(serviceEnv, { userDAO, userEmailDAO, usageDAO, userIdentity }));
   scope.bind(Tokens.DigestConfigService, () => new DigestConfigService(applicationDAO));
   scope.bind(Tokens.FolderService, () => new FolderService(serviceEnv));
   scope.bind(Tokens.AnalyticsService, () => new AnalyticsService(serviceEnv));

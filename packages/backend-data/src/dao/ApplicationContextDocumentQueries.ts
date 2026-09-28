@@ -2,38 +2,42 @@ import { APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, APPLICATION_CONTEXT_DOCUMEN
 import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 
 // Vector/limit query concerns extracted from ApplicationContextDAO god-file.
 // ApplicationContextDAO delegates to this helper (composition) to keep public
 // signatures stable while reducing the facade size.
 class ApplicationContextDocumentQueries extends BaseDAO {
-  public async listActiveVectorIdsForApplication(applicationId: string, userEmail: string): Promise<string[]> {
+  public async listActiveVectorIdsForApplication(applicationId: string, scope: UserScope): Promise<string[]> {
+    const where: UserScopeSql = userScopeSql(scope);
     const rows: Array<{ vector_id: string }> = await this.database
       .prepare(
         `
           SELECT vector_id
           FROM application_context_documents
-          WHERE application_id = ? AND user_email = ? AND status = ?
+          WHERE application_id = ? AND ${where.clause} AND status = ?
         `,
       )
-      .bind(applicationId, userEmail, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE)
+      .bind(applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE)
       .all<{ vector_id: string }>()
       .then((result: D1Result<{ vector_id: string }>): Array<{ vector_id: string }> => result.results || []);
     return rows.map((row: { vector_id: string }): string => row.vector_id);
   }
 
-  public async listOldestActiveVectorIdsForApplication(applicationId: string, userEmail: string, count: number): Promise<string[]> {
+  public async listOldestActiveVectorIdsForApplication(applicationId: string, scope: UserScope, count: number): Promise<string[]> {
+    const where: UserScopeSql = userScopeSql(scope);
     const rows = await this.database
       .prepare(
         `
           SELECT vector_id
           FROM application_context_documents
-          WHERE application_id = ? AND user_email = ? AND status = ?
+          WHERE application_id = ? AND ${where.clause} AND status = ?
           ORDER BY created_at ASC
           LIMIT ?
         `,
       )
-      .bind(applicationId, userEmail, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count)
+      .bind(applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count)
       .all<{ vector_id: string }>()
       .then((r) => r.results || []);
     return rows.map((r) => r.vector_id);
@@ -41,10 +45,11 @@ class ApplicationContextDocumentQueries extends BaseDAO {
 
   public async getDocumentSourcesByVectorIds(
     applicationId: string,
-    userEmail: string,
+    scope: UserScope,
     vectorIds: string[],
   ): Promise<Array<{ contextDocumentId: string; sourceDocumentId: string | null }>> {
     if (vectorIds.length === 0) return [];
+    const where: UserScopeSql = userScopeSql(scope);
     const rows: Array<{ context_document_id: string; source_document_id: string | null }> = [];
     for (const chunk of ApplicationContextDocumentQueries.chunk(vectorIds, 100)) {
       const placeholders: string = chunk.map((): string => '?').join(', ');
@@ -53,10 +58,10 @@ class ApplicationContextDocumentQueries extends BaseDAO {
           `
             SELECT context_document_id, source_document_id
             FROM application_context_documents
-            WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
+            WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders})
           `,
         )
-        .bind(applicationId, userEmail, ...chunk)
+        .bind(applicationId, ...where.bindings, ...chunk)
         .all<{ context_document_id: string; source_document_id: string | null }>()
         .then((r) => r.results || []);
       rows.push(...result);
@@ -67,8 +72,9 @@ class ApplicationContextDocumentQueries extends BaseDAO {
     }));
   }
 
-  public async markDocumentsDeletedByVectorIds(applicationId: string, userEmail: string, vectorIds: string[]): Promise<void> {
+  public async markDocumentsDeletedByVectorIds(applicationId: string, scope: UserScope, vectorIds: string[]): Promise<void> {
     if (vectorIds.length === 0) return;
+    const where: UserScopeSql = userScopeSql(scope);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (const chunk of ApplicationContextDocumentQueries.chunk(vectorIds, 100)) {
       const placeholders: string = chunk.map((): string => '?').join(', ');
@@ -79,10 +85,10 @@ class ApplicationContextDocumentQueries extends BaseDAO {
               `
                 UPDATE application_context_documents
                 SET status = ?, deleted_at = ?, updated_at = ?
-                WHERE application_id = ? AND user_email = ? AND vector_id IN (${placeholders})
+                WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders})
               `,
             )
-            .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, userEmail, ...chunk)
+            .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, ...where.bindings, ...chunk)
             .run(),
         'mark context documents deleted',
       );
@@ -96,30 +102,34 @@ class ApplicationContextDocumentQueries extends BaseDAO {
           SELECT
             ca.application_id,
             ca.user_email,
+            ca.user_id,
             COUNT(acd.context_document_id) AS active_count,
             COALESCE(ca.max_context_documents, ?) AS effective_limit
           FROM connected_applications ca
           JOIN application_context_documents acd
             ON acd.application_id = ca.application_id
             AND acd.status = ?
-          GROUP BY ca.application_id, ca.user_email, ca.max_context_documents
+          GROUP BY ca.application_id, ca.user_email, ca.user_id, ca.max_context_documents
           HAVING COUNT(acd.context_document_id) > COALESCE(ca.max_context_documents, ?)
         `,
       )
       .bind(globalMax, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, globalMax)
-      .all<{ application_id: string; user_email: string; active_count: number; effective_limit: number }>()
+      .all<{ application_id: string; user_email: string; user_id: string | null; active_count: number; effective_limit: number }>()
       .then((r) => r.results || []);
     return rows.map((r) => ({
       applicationId: r.application_id,
+      // `user_email` is the frozen anchor, `userId` the account it belongs to.
       userEmail: r.user_email,
+      userId: r.user_id ?? null,
       activeCount: r.active_count,
       effectiveLimit: r.effective_limit,
     }));
   }
 
-  public async getCountsByUserEmail(userEmail: string, applicationId?: string): Promise<ApplicationContextUserCounts> {
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+  public async getCountsByUserScope(scope: UserScope, applicationId?: string): Promise<ApplicationContextUserCounts> {
+    const userWhere: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [userWhere.clause];
+    const bindings: Array<string | number> = [...userWhere.bindings];
     if (applicationId) {
       conditions.push('application_id = ?');
       bindings.push(applicationId);
@@ -159,7 +169,14 @@ class ApplicationContextDocumentQueries extends BaseDAO {
 
 interface OverLimitApplication {
   applicationId: string;
+  /**
+  The owner's frozen anchor.
+  */
   userEmail: string;
+  /**
+  The owning account, or null when the application predates the id backfill.
+  */
+  userId: string | null;
   activeCount: number;
   effectiveLimit: number;
 }

@@ -22,7 +22,7 @@ class ListBackgroundTaskRunsRoute extends IUserRoute<
     cxt: RouteContext<ListBackgroundTaskRunsEnv>,
   ): Promise<ListBackgroundTaskRunsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ProcessingService).listTaskRuns(this.getAuthenticatedUserEmailAddress(cxt), {
+    return scope.get(Tokens.ProcessingService).listTaskRuns(this.getAuthenticatedUser(cxt), {
       taskType: this.getQueryParam(request, 'taskType'),
       applicationId: this.getQueryParam(request, 'applicationId'),
       status: this.getQueryParam(request, 'status') as BackgroundTaskRunStatus | undefined,

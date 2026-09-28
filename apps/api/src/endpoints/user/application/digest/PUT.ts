@@ -1,3 +1,4 @@
+import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { DigestConfig } from '@mail-otter/shared/model';
@@ -20,9 +21,9 @@ class UpdateDigestConfigRoute extends IUserRoute<UpdateDigestConfigRequest, Upda
     cxt: RouteContext<UpdateDigestConfigEnv>,
   ): Promise<UpdateDigestConfigResponse> {
     const scope = createRequestScope(env);
-    const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
+    const user: AccountIdentity = this.getAuthenticatedUser(cxt);
 
-    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, request.applicationId);
+    await scope.get(Tokens.ApplicationService).getOwnedApplication(user, request.applicationId);
 
     const configSvc = scope.get(Tokens.DigestConfigService);
     await configSvc.saveConfig(request.applicationId, {

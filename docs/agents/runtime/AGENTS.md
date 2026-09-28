@@ -8,6 +8,29 @@ Scope: Wrangler bindings, build output, env vars. Parent index: `../../../AGENTS
 - The Worker serves the SPA only from its `/user/*` catch-all (`MailOtterWorker`: non-`/user/` paths return 404) so API routes aren't intercepted by the assets handler.
 - Worker bindings: D1 `DB`, KV `OAUTH2_TOKEN_CACHE`, Secrets Store `AES_ENCRYPTION_KEY_SECRET` / `ACTION_ENCRYPTION_KEY_SECRET` / `ACTION_SIGNING_SECRET`, AI `AI`, Vectorize `EMAIL_CONTEXT_INDEX`, Queue `EMAIL_EVENTS_QUEUE`, Workflow `EMAIL_PROCESSING_WORKFLOW`, DOs `CRON_TASKS` / `OAUTH2_TOKEN_REFRESHERS`, cron `*/10 * * * *`.
 
+## Migrations
+
+Files in `migrations/` apply in filename order. Each file must be written so **every intermediate state is a valid schema**, because an interrupted batch must not leave the schema half-migrated.
+
+**Deploy order:** apply the migration _before_ deploying the code that reads its new columns. Reads that select a new column fail with `no such column` on an un-migrated database. Rollback is a code rollback — migrations here only add columns and tables, and the pre-migration code ignores them.
+
+### The frozen anchor (`users.email`)
+
+Migration 0028 decoupled the email address from the user identifier. `users.email` became a **frozen anchor**: immutable, still the PRIMARY KEY, still the target of every legacy `FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE`, and still the input to the Vectorize namespace.
+
+Repointing those foreign keys at a new `users.id` is **not possible on D1**: it honours neither `PRAGMA foreign_keys = off` nor `PRAGMA legacy_alter_table = on`, `defer_foreign_keys` does not suppress `ON DELETE CASCADE`, and SQLite rewrites a child's FK clause when the parent is renamed. A referenced table can only be dropped without cascading if nothing points at it — which is exactly the thing being changed. So the migration is purely additive and nothing had to move.
+
+**Never `UPDATE users.email`.** Two independent reasons, either one sufficient:
+
+1. Three tables cascade out of it, so rewriting it deletes the user's connected applications, context documents and deletion history.
+2. `EmailContextUtil.getUserVectorNamespace` derives the Vectorize namespace as `u_` + `sha256(email)[0:62], and that value is persisted in `application_context_documents.vector_namespace` _and_ stamped into every existing vector. Moving it orphans the account's entire RAG corpus and AI chat history — silently, with no error, just empty results.
+
+Every `getUserVectorNamespace` call site must therefore be fed the **anchor** (`application.userEmail`, or `identity.anchorEmail`), never the account's current address. `test/integration/api/UserIdentityUpgrade.int.test.ts` is the load-bearing guard for the whole change: it applies 0021–0027, seeds a row in every table reachable by a cascade, applies 0028, and asserts zero row loss, `PRAGMA foreign_key_check` empty, the three pre-existing FKs intact, and correct backfills.
+
+### Ops
+
+`pnpm exec tsx scripts/change-email.ts --db <name> (--account <email> | --id <usr_id>) --to <new> [--remote] [--dry-run]` — moves an account's sign-in address (claim → move → revoke, in that order, so the user is never locked out). Defaults to the **local** D1; `--remote` is opt-in. `--dry-run` is the only confirmation gate, so take a D1 backup out of band before running against `--remote`.
+
 ## Required vars (no defaults)
 
 `POLICY_AUD`, `TEAM_DOMAIN` — Cloudflare Access JWT verification (`EmailValidationUtil`). No default; requests fail without them.

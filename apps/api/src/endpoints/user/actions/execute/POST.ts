@@ -25,7 +25,7 @@ class ExecuteUserEmailActionRoute extends IUserRoute<
     const actionId: string | undefined = cxt.req.param('actionId');
     if (!actionId) throw new BadRequestError('Action execution request is missing actionId.');
     return {
-      action: await ActionService.executeActionForUser(actionId, this.getAuthenticatedUserEmailAddress(cxt), request.raw, env),
+      action: await ActionService.executeActionForUser(actionId, this.getAuthenticatedUser(cxt), request.raw, env),
     };
   }
 }

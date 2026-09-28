@@ -34,6 +34,8 @@ class UpdateCurrentUserRoute extends IUserRoute<UpdateCurrentUserRequest, Update
     ) {
       throw new BadRequestError('Unsupported language.');
     }
+    // The current sign-in address, shown back to the user. `updatePreferredLanguage`
+    // resolves the account from it and writes via the frozen anchor.
     const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
     const normalized = await scope.get(Tokens.UserService).updatePreferredLanguage(userEmail, request.preferredLanguage);
     const summary = await scope.get(Tokens.UserService).getCurrentUserSummary(userEmail);

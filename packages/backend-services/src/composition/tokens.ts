@@ -6,6 +6,7 @@ import type {
   IntegrationDeliveryLogDAO,
   ProviderSubscriptionDAO,
   UserDAO,
+  UserEmailDAO,
 } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { Token } from '@mail-otter/backend-runtime/di';
@@ -20,6 +21,7 @@ import type { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenServic
 import type { OAuth2AuthorizationService } from '../oauth2/OAuth2AuthorizationService';
 import type { InjectableEmailProviderRegistry } from '../provider/InjectableEmailProviderRegistry';
 import type { WatchService } from '../subscription/WatchService';
+import type { UserIdentityService } from '../identity/UserIdentityService';
 import type { UserService } from '../user/UserService';
 import type { ActionService } from '../action/ActionService';
 import type { AiService } from '../ai/AiService';
@@ -58,11 +60,13 @@ const Tokens = {
   AiDailyUsageDAO: Symbol('AiDailyUsageDAO') as Token<() => Promise<AiDailyUsageDAO>>,
   ProviderSubscriptionDAO: Symbol('ProviderSubscriptionDAO') as Token<() => Promise<ProviderSubscriptionDAO>>,
   UserDAO: Symbol('UserDAO') as Token<() => Promise<UserDAO>>,
+  UserEmailDAO: Symbol('UserEmailDAO') as Token<() => Promise<UserEmailDAO>>,
   ApplicationService: Symbol('ApplicationService') as Token<ApplicationService>,
   ContextService: Symbol('ContextService') as Token<ContextService>,
   WatchService: Symbol('WatchService') as Token<WatchService>,
   IntegrationService: Symbol('IntegrationService') as Token<IntegrationService>,
   UserService: Symbol('UserService') as Token<UserService>,
+  UserIdentityService: Symbol('UserIdentityService') as Token<UserIdentityService>,
   DigestConfigService: Symbol('DigestConfigService') as Token<DigestConfigService>,
   FolderService: Symbol('FolderService') as Token<FolderService>,
   AnalyticsService: Symbol('AnalyticsService') as Token<AnalyticsService>,

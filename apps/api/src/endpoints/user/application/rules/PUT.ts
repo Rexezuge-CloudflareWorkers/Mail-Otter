@@ -26,7 +26,7 @@ class UpdateApplicationRulesRoute extends IUserRoute<
     const scope = createRequestScope(env);
     const application = await scope
       .get(Tokens.ApplicationService)
-      .updateRules(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, request.rules);
+      .updateRules(this.getAuthenticatedUser(cxt), request.applicationId, request.rules);
     return { application };
   }
 }

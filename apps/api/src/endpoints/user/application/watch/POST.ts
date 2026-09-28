@@ -22,7 +22,7 @@ class StartApplicationWatchRoute extends IUserRoute<StartApplicationWatchRequest
     const scope = createRequestScope(env);
     return scope
       .get(Tokens.WatchService)
-      .startApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
+      .startApplicationWatch(this.getAuthenticatedUser(cxt), request.applicationId, BaseUrlUtil.getBaseUrl(request.raw));
   }
 }
 

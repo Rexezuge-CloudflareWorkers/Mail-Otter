@@ -18,6 +18,8 @@ import type {
 } from '@mail-otter/shared/model';
 import type { EmailActionRiskLevel, EmailActionStatus, EmailActionType, ProviderId } from '@mail-otter/shared/constants';
 import { TimestampUtil } from '@mail-otter/shared/utils';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { EncryptedDAO } from './BaseDAO';
 import { EmailActionQueries } from './EmailActionQueries';
 import type { EmailActionCounts, RecordEmailActionExecutionInput } from './EmailActionQueries';
@@ -36,17 +38,19 @@ class EmailActionDAO extends EncryptedDAO {
           .prepare(
             `
               INSERT INTO email_summary_actions
-                (action_id, processed_message_id, application_id, user_email, provider_id, provider_message_id, provider_thread_id,
+                (action_id, processed_message_id, application_id, user_email, user_id, provider_id, provider_message_id, provider_thread_id,
                  action_type, status, risk_level, token_hash, encrypted_payload, payload_iv, payload_salt,
                  encrypted_result, result_iv, result_salt, error_message, expires_at, executed_at, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, NULL, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, NULL, ?, ?)
             `,
           )
           .bind(
             input.actionId,
             input.processedMessageId,
             input.applicationId,
+            // The frozen anchor, retained for attribution; `user_id` is the account.
             input.userEmail,
+            input.userId ?? null,
             input.providerId,
             input.providerMessageId,
             input.providerThreadId || null,
@@ -69,11 +73,12 @@ class EmailActionDAO extends EncryptedDAO {
     return action;
   }
 
-  public async listActionsForUser(userEmail: string, input: ListEmailActionsInput = {}): Promise<EmailActionList> {
+  public async listActionsForUser(scope: UserScope, input: ListEmailActionsInput = {}): Promise<EmailActionList> {
     const limit: number = Math.min(Math.max(input.limit ?? 25, 1), 100);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const conditions: string[] = ['user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
     if (input.applicationId) {
       conditions.push('application_id = ?');
       bindings.push(input.applicationId);
@@ -112,17 +117,18 @@ class EmailActionDAO extends EncryptedDAO {
     };
   }
 
-  public async getForUser(actionId: string, userEmail: string): Promise<EmailAction | undefined> {
+  public async getForUser(actionId: string, scope: UserScope): Promise<EmailAction | undefined> {
+    const where: UserScopeSql = userScopeSql(scope);
     const row: EmailActionInternal | null = await this.database
       .prepare(
         `
           SELECT ${EmailActionDAO.actionColumns}
           FROM email_summary_actions
-          WHERE action_id = ? AND user_email = ?
+          WHERE action_id = ? AND ${where.clause}
           LIMIT 1
         `,
       )
-      .bind(actionId, userEmail)
+      .bind(actionId, ...where.bindings)
       .first<EmailActionInternal>();
     return row ? this.toAction(row) : undefined;
   }
@@ -229,12 +235,12 @@ class EmailActionDAO extends EncryptedDAO {
   }
 
   public async getCountsByUserAndDateRange(
-    userEmail: string,
+    scope: UserScope,
     sinceUnixSeconds: number,
     untilUnixSeconds: number,
     applicationId?: string,
   ): Promise<EmailActionCounts> {
-    return this.queries().getCountsByUserAndDateRange(userEmail, sinceUnixSeconds, untilUnixSeconds, applicationId);
+    return this.queries().getCountsByUserAndDateRange(scope, sinceUnixSeconds, untilUnixSeconds, applicationId);
   }
 
   public async listPendingActionsByTypes(applicationId: string, actionTypes: string[], limit: number = 100): Promise<EmailAction[]> {
@@ -377,8 +383,8 @@ class EmailActionDAO extends EncryptedDAO {
     return this.queries().listExecutions(actionId);
   }
 
-  public async listExecutionsForUser(actionId: string, userEmail: string): Promise<EmailActionExecutionList> {
-    const action: EmailAction | undefined = await this.getForUser(actionId, userEmail);
+  public async listExecutionsForUser(actionId: string, scope: UserScope): Promise<EmailActionExecutionList> {
+    const action: EmailAction | undefined = await this.getForUser(actionId, scope);
     return action ? this.listExecutions(actionId) : { executions: [] };
   }
 
@@ -493,7 +499,14 @@ interface CreateEmailActionInput {
   actionId: string;
   processedMessageId: string;
   applicationId: string;
+  /**
+  The actor's frozen anchor, retained for attribution.
+  */
   userEmail: string;
+  /**
+  The actor's account, when the caller resolved one.
+  */
+  userId?: string | null;
   providerId: ProviderId;
   providerMessageId: string;
   providerThreadId?: string | null;

@@ -22,7 +22,7 @@ class ListIntegrationsRoute extends IUserRoute<ListIntegrationsRequest, ListInte
     const scope = createRequestScope(env);
     const integrations = await scope
       .get(Tokens.ApplicationService)
-      .listIntegrations(this.getAuthenticatedUserEmailAddress(cxt), this.getQueryParam(request, 'applicationId') ?? '');
+      .listIntegrations(this.getAuthenticatedUser(cxt), this.getQueryParam(request, 'applicationId') ?? '');
     return { integrations };
   }
 }

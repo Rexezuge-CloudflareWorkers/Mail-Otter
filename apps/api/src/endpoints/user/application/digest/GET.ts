@@ -1,3 +1,4 @@
+import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import type { DigestConfig } from '@mail-otter/shared/model';
@@ -20,14 +21,14 @@ class GetDigestConfigRoute extends IUserRoute<GetDigestConfigRequest, GetDigestC
     cxt: RouteContext<GetDigestConfigEnv>,
   ): Promise<GetDigestConfigResponse> {
     const scope = createRequestScope(env);
-    const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
+    const user: AccountIdentity = this.getAuthenticatedUser(cxt);
     // Query-param read with body fallback: GETs carry `?applicationId=`
     // (see `DigestConfigQuerySchema`); unit callers historically passed it in
     // the request object. Matches `GetApplicationRulesRoute` pattern.
     const applicationId = this.getQueryParam(request, 'applicationId') ?? request.applicationId ?? '';
 
     // Throws NotFoundError for foreign/missing applications (was silently ignored).
-    await scope.get(Tokens.ApplicationService).getOwnedApplication(userEmail, applicationId);
+    await scope.get(Tokens.ApplicationService).getOwnedApplication(user, applicationId);
 
     const config = await scope.get(Tokens.DigestConfigService).getConfig(applicationId);
     return { digestConfig: config };

@@ -24,7 +24,7 @@ class ListApplicationContextDeletionRunsRoute extends IUserRoute<
     cxt: RouteContext<ListApplicationContextDeletionRunsEnv>,
   ): Promise<ListApplicationContextDeletionRunsResponse> {
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ContextService).listDeletionRuns(this.getAuthenticatedUserEmailAddress(cxt), {
+    return scope.get(Tokens.ContextService).listDeletionRuns(this.getAuthenticatedUser(cxt), {
       applicationId: this.getQueryParam(request, 'applicationId'),
       cursor: this.getQueryParam(request, 'cursor'),
     });

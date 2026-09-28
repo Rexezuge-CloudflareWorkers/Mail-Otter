@@ -9,6 +9,7 @@ import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import type { AnyProviderCredentials } from '../provider/IEmailProvider';
+import type { UserScope } from '@mail-otter/backend-data/dao';
 
 interface WatchServiceDeps {
   subscriptionDAO?: () => Promise<ProviderSubscriptionDAO>;
@@ -35,8 +36,8 @@ class WatchService {
     };
   }
 
-  async startApplicationWatch(userEmail: string, applicationId: string, baseUrl: string): Promise<StartApplicationWatchResult> {
-    const application: ConnectedApplication = await this.getConnectedApplicationForUser(userEmail, applicationId);
+  async startApplicationWatch(scope: UserScope, applicationId: string, baseUrl: string): Promise<StartApplicationWatchResult> {
+    const application: ConnectedApplication = await this.getConnectedApplicationForUser(scope, applicationId);
     if (application.status !== CONNECTED_APPLICATION_STATUS_CONNECTED) {
       throw new BadRequestError('Complete authorization before starting provider notifications.');
     }
@@ -95,8 +96,8 @@ class WatchService {
     };
   }
 
-  async stopApplicationWatch(userEmail: string, applicationId: string): Promise<void> {
-    const application: ConnectedApplication = await this.getConnectedApplicationForUser(userEmail, applicationId);
+  async stopApplicationWatch(scope: UserScope, applicationId: string): Promise<void> {
+    const application: ConnectedApplication = await this.getConnectedApplicationForUser(scope, applicationId);
     const subscriptionDAO = await this.deps.subscriptionDAO();
     const subscription: ProviderSubscription | undefined = await subscriptionDAO.getByApplication(application.applicationId);
     const tokenService = await this.deps.tokenService();
@@ -113,9 +114,9 @@ class WatchService {
     await subscriptionDAO.markStopped(application.applicationId);
   }
 
-  private async getConnectedApplicationForUser(userEmail: string, applicationId: string): Promise<ConnectedApplication> {
+  private async getConnectedApplicationForUser(scope: UserScope, applicationId: string): Promise<ConnectedApplication> {
     const applicationDAO = await this.deps.applicationDAO();
-    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, userEmail);
+    const application: ConnectedApplication | undefined = await applicationDAO.getByIdForUser(applicationId, scope);
     if (!application) throw new NotFoundError('Connected application was not found.');
     return application;
   }

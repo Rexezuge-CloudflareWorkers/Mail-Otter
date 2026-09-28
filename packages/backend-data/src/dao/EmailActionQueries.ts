@@ -3,19 +3,22 @@ import type { EmailActionExecution, EmailActionExecutionInternal, EmailActionExe
 import type { EmailActionExecutionTrigger, EmailActionStatus } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 
 // Execution/count query concerns extracted from EmailActionDAO god-file.
 // EmailActionDAO delegates to this helper (composition) to keep public
 // signatures stable while reducing the facade size.
 class EmailActionQueries extends BaseDAO {
   public async getCountsByUserAndDateRange(
-    userEmail: string,
+    scope: UserScope,
     sinceUnixSeconds: number,
     untilUnixSeconds: number,
     applicationId?: string,
   ): Promise<EmailActionCounts> {
-    const conditions: string[] = ['user_email = ?', 'created_at >= ?', 'created_at <= ?'];
-    const bindings: Array<string | number> = [userEmail, sinceUnixSeconds, untilUnixSeconds];
+    const userWhere: UserScopeSql = userScopeSql(scope);
+    const conditions: string[] = [userWhere.clause, 'created_at >= ?', 'created_at <= ?'];
+    const bindings: Array<string | number> = [...userWhere.bindings, sinceUnixSeconds, untilUnixSeconds];
     if (applicationId) {
       conditions.push('application_id = ?');
       bindings.push(applicationId);

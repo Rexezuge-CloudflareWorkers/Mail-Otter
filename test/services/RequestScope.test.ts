@@ -49,9 +49,9 @@ describe('constructor injection without module mocks', () => {
   it('ApplicationService uses the injected DAO', async () => {
     const fakeDAO = { getMetadataByIdForUser: vi.fn().mockResolvedValue({ applicationId: 'app-1' }) };
     const svc = new ApplicationService({ DB: {} } as never, { applicationDAO: async () => fakeDAO as never });
-    const app = await svc.getOwnedApplication('u@x', 'app-1');
+    const app = await svc.getOwnedApplication({ id: 'usr_1', anchorEmail: 'u@x' }, 'app-1');
     expect(app).toEqual({ applicationId: 'app-1' });
-    expect(fakeDAO.getMetadataByIdForUser).toHaveBeenCalledWith('app-1', 'u@x');
+    expect(fakeDAO.getMetadataByIdForUser).toHaveBeenCalledWith('app-1', { id: 'usr_1', anchorEmail: 'u@x' });
   });
 
   it('ContextService uses the injected DAO', async () => {

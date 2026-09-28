@@ -9,6 +9,8 @@ import { CursorUtil } from '../utils';
 import type { ProcessedMessage, ProcessedMessageInternal, ProcessedMessageList } from '@mail-otter/shared/model';
 import type { ProcessedMessageStatus, ProviderId } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { BaseDAO } from './BaseDAO';
 
 /**
@@ -363,10 +365,11 @@ class ProcessedMessageDAO extends BaseDAO {
     };
   }
 
-  public async listForUser(userEmail: string, options: ListProcessedMessagesOptions = {}): Promise<ProcessedMessageList> {
+  public async listForUser(scope: UserScope, options: ListProcessedMessagesOptions = {}): Promise<ProcessedMessageList> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 50);
-    const conditions: string[] = ['ca.user_email = ?'];
-    const bindings: Array<string | number> = [userEmail];
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
+    const conditions: string[] = [where.clause];
+    const bindings: Array<string | number> = [...where.bindings];
 
     if (options.applicationId) {
       conditions.push('pm.application_id = ?');

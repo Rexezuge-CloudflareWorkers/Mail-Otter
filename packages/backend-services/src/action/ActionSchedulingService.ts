@@ -1,3 +1,4 @@
+import type { UserScope } from '@mail-otter/backend-data/dao';
 import {
   EMAIL_ACTION_STATUS_SUCCEEDED,
   EMAIL_ACTION_TYPE_CALENDAR_ADD_EVENT,
@@ -20,9 +21,9 @@ const AUTO_EXECUTABLE_ACTION_TYPES: ReadonlySet<string> = new Set([
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
 ]);
 
-async function snoozeAction(env: ActionExecutionEnv, actionId: string, userEmail: string, snoozedUntil: Date | null): Promise<EmailAction> {
+async function snoozeAction(env: ActionExecutionEnv, actionId: string, scope: UserScope, snoozedUntil: Date | null): Promise<EmailAction> {
   const dao = await createActionDAO(env);
-  const action = await dao.getForUser(actionId, userEmail);
+  const action = await dao.getForUser(actionId, scope);
   if (!action) throw new NotFoundError('Email action was not found.');
   if (action.status !== 'pending') throw new BadRequestError('Only pending actions can be snoozed.');
 
@@ -37,17 +38,17 @@ async function snoozeAction(env: ActionExecutionEnv, actionId: string, userEmail
     await dao.snoozeAction(actionId, snoozedUntilTs, newExpiresAt);
   }
 
-  return (await dao.getForUser(actionId, userEmail)) ?? action;
+  return (await dao.getForUser(actionId, scope)) ?? action;
 }
 
 async function scheduleAction(
   env: ActionExecutionEnv,
   actionId: string,
-  userEmail: string,
+  scope: UserScope,
   scheduledFor: Date | null,
 ): Promise<EmailAction> {
   const dao = await createActionDAO(env);
-  const action = await dao.getForUser(actionId, userEmail);
+  const action = await dao.getForUser(actionId, scope);
   if (!action) throw new NotFoundError('Email action was not found.');
   if (action.status !== 'pending') throw new BadRequestError('Only pending actions can be scheduled.');
 
@@ -65,7 +66,7 @@ async function scheduleAction(
     await dao.scheduleAction(actionId, scheduledForTs, newExpiresAt);
   }
 
-  return (await dao.getForUser(actionId, userEmail)) ?? action;
+  return (await dao.getForUser(actionId, scope)) ?? action;
 }
 
 interface ScheduledExecutionResult {

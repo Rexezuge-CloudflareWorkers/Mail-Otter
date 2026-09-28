@@ -19,7 +19,7 @@ class StopApplicationWatchRoute extends IUserRoute<StopApplicationWatchRequest, 
     cxt: RouteContext<StopApplicationWatchEnv>,
   ): Promise<StopApplicationWatchResponse> {
     const scope = createRequestScope(env);
-    await scope.get(Tokens.WatchService).stopApplicationWatch(this.getAuthenticatedUserEmailAddress(cxt), request.applicationId);
+    await scope.get(Tokens.WatchService).stopApplicationWatch(this.getAuthenticatedUser(cxt), request.applicationId);
     return { message: 'Provider notifications stopped.' };
   }
 }

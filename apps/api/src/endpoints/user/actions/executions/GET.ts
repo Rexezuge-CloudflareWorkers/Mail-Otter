@@ -25,7 +25,7 @@ class ListEmailActionExecutionsRoute extends IUserRoute<
     const actionId: string | undefined = cxt.req.param('actionId');
     if (!actionId) throw new BadRequestError('Action audit request is missing actionId.');
     const scope = createRequestScope(env);
-    return scope.get(Tokens.ActionService).listExecutionsForUser(actionId, this.getAuthenticatedUserEmailAddress(cxt), env);
+    return scope.get(Tokens.ActionService).listExecutionsForUser(actionId, this.getAuthenticatedUser(cxt), env);
   }
 }
 

@@ -1,3 +1,4 @@
+import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
@@ -18,9 +19,9 @@ class RunTaskNowRoute extends IUserRoute<RunTaskNowRequest, RunTaskNowResponse, 
     env: RunTaskNowEnv,
     cxt: RouteContext<RunTaskNowEnv>,
   ): Promise<RunTaskNowResponse> {
-    const userEmail = this.getAuthenticatedUserEmailAddress(cxt);
+    const user: AccountIdentity = this.getAuthenticatedUser(cxt);
     const scope = createRequestScope(env);
-    await scope.get(Tokens.ProcessingService).triggerTask(userEmail, request.taskType, request.applicationId, env);
+    await scope.get(Tokens.ProcessingService).triggerTask(user, request.taskType, request.applicationId, env);
     return { triggered: true };
   }
 }

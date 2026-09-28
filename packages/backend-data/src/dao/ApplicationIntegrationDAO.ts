@@ -3,6 +3,8 @@ import { executeD1WithRetry } from '../utils';
 import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
 import type { OutboundIntegration, OutboundIntegrationInternal, OutboundIntegrationType } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
+import { userScopeSql } from './userScope';
+import type { UserScope, UserScopeSql } from './userScope';
 import { EncryptedDAO } from './BaseDAO';
 
 const MAX_INTEGRATIONS_PER_APPLICATION = 5;
@@ -70,28 +72,30 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
     return rows.map((row) => this.toPublic(row));
   }
 
-  public async getByIdForUser(integrationId: string, userEmail: string): Promise<OutboundIntegration | null> {
+  public async getByIdForUser(integrationId: string, scope: UserScope): Promise<OutboundIntegration | null> {
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
     const row = await this.database
       .prepare(
         `SELECT ai.* FROM application_integrations ai
          JOIN connected_applications ca ON ca.application_id = ai.application_id
-         WHERE ai.integration_id = ? AND ca.user_email = ?
+         WHERE ai.integration_id = ? AND ${where.clause}
          LIMIT 1`,
       )
-      .bind(integrationId, userEmail)
+      .bind(integrationId, ...where.bindings)
       .first<OutboundIntegrationInternal>();
     return row ? this.toPublic(row) : null;
   }
 
-  public async getApplicationIdForUser(integrationId: string, userEmail: string): Promise<string | null> {
+  public async getApplicationIdForUser(integrationId: string, scope: UserScope): Promise<string | null> {
+    const where: UserScopeSql = userScopeSql(scope, 'ca');
     const row = await this.database
       .prepare(
         `SELECT ai.application_id FROM application_integrations ai
          JOIN connected_applications ca ON ca.application_id = ai.application_id
-         WHERE ai.integration_id = ? AND ca.user_email = ?
+         WHERE ai.integration_id = ? AND ${where.clause}
          LIMIT 1`,
       )
-      .bind(integrationId, userEmail)
+      .bind(integrationId, ...where.bindings)
       .first<{ application_id: string }>();
     return row?.application_id ?? null;
   }

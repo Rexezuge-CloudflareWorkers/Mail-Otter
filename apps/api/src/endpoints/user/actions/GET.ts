@@ -21,7 +21,7 @@ class ListEmailActionsRoute extends IUserRoute<ListEmailActionsRequest, ListEmai
     const showSnoozedRaw = this.getQueryParam(request, 'showSnoozed');
     const scope = createRequestScope(env);
     return scope.get(Tokens.ActionService).listActionsForUser(
-      this.getAuthenticatedUserEmailAddress(cxt),
+      this.getAuthenticatedUser(cxt),
       {
         applicationId: this.getQueryParam(request, 'applicationId'),
         status: this.getQueryParam(request, 'status') as EmailActionStatus | undefined,

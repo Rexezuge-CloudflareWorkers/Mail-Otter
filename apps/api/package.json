@@ -14,7 +14,7 @@
     "@mail-otter/background": "workspace:*",
     "@mail-otter/shared": "workspace:*",
     "chanfana": "3.4.0",
-    "hono": "4.13.9"
+    "hono": "4.13.13"
   },
   "devDependencies": {
     "@types/node": "26.6.3",

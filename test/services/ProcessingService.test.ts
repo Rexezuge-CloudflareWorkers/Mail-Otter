@@ -65,7 +65,7 @@ vi.mock('@mail-otter/backend-runtime/config', () => ({
 }));
 
 import { ProcessingService } from '@mail-otter/backend-services/processing';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 
 function makeEnv() {
   return {

@@ -52,7 +52,7 @@ vi.mock('@mail-otter/backend-data/dao', () => {
 
 import { MiddlewareHandlers } from '../../apps/api/src/middleware/MiddlewareHandlers';
 import { EmailValidationUtil } from '@mail-otter/backend-services/auth';
-import { UnauthorizedError } from '@mail-otter/backend-errors';
+import { UnauthorizedError } from '@rexezuge/errors';
 import type { Context } from 'hono';
 
 describe('MiddlewareHandlers', () => {

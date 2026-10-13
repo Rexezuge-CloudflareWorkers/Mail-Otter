@@ -130,7 +130,7 @@ vi.mock('../../packages/backend-services/src/email/ProviderOrganizationService',
 import { EmailSummaryOrchestrator } from '../../packages/backend-services/src/email/EmailSummaryOrchestrator';
 import { EmailProcessingAuditLogger } from '../../packages/backend-services/src/email/EmailProcessingAuditLogger';
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
-import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
+import { AiSummaryRetryableError } from '@mail-otter/backend-services/errors';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 
 function makeApp(overrides: Record<string, unknown> = {}): ConnectedApplication {
@@ -157,7 +157,7 @@ function makeEnv(extra: Record<string, unknown> = {}) {
 function makeOrchestrator(envExtra: Record<string, unknown> = {}) {
   const env = makeEnv(envExtra);
   const auditLogger = new EmailProcessingAuditLogger({} as never);
-  const processedDAO = new ProcessedMessageDAO({} as never);
+  const processedDAO = new ProcessedMessageDAO({});
   return new EmailSummaryOrchestrator(auditLogger, processedDAO, env, ['app-1']);
 }
 

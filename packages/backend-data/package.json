@@ -19,8 +19,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mail-otter/backend-errors": "workspace:*",
-    "@mail-otter/shared": "workspace:*"
+    "@mail-otter/shared": "workspace:*",
+    "@rexezuge/d1": "link:../../../SDK/packages/d1",
+    "@rexezuge/errors": "link:../../../SDK/packages/errors",
+    "@rexezuge/shared": "link:../../../SDK/packages/shared"
   },
   "devDependencies": {
     "@types/node": "26.6.4",

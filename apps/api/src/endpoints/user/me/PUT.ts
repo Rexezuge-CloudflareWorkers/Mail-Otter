@@ -1,6 +1,6 @@
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { UserServiceEnv } from '@mail-otter/backend-services/user';
 import { LocaleUtil } from '@mail-otter/shared/utils';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';

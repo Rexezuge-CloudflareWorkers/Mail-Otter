@@ -18,8 +18,6 @@
       "@mail-otter/background/*": ["./src/*"],
       "@mail-otter/backend-data": ["../../packages/backend-data/src"],
       "@mail-otter/backend-data/*": ["../../packages/backend-data/src/*"],
-      "@mail-otter/backend-errors": ["../../packages/backend-errors/src"],
-      "@mail-otter/backend-errors/*": ["../../packages/backend-errors/src/*"],
       "@mail-otter/backend-runtime": ["../../packages/backend-runtime/src"],
       "@mail-otter/backend-runtime/*": ["../../packages/backend-runtime/src/*"],
       "@mail-otter/backend-services": ["../../packages/backend-services/src"],

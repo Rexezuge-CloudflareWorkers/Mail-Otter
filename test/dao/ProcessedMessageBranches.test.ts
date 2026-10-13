@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
-import { CursorUtil } from '@mail-otter/backend-data/utils';
+import { CursorCodec } from '@rexezuge/shared';
 
 function makeDb(responses: { all?: unknown[]; first?: unknown }) {
   const calls: Array<{ sql: string; bindings: unknown[] }> = [];
@@ -50,7 +50,7 @@ describe('ProcessedMessageDAO analytics and listing', () => {
       all: [{ day: '2026-09-01', summarized: 3, skipped: 1, error: 1 }],
       first: { summarized: 3, skipped: 1, error: 1 },
     });
-    const result = await new ProcessedMessageDAO(db as never).getStatusCountsByDateRange(100, 200);
+    const result = await new ProcessedMessageDAO(db).getStatusCountsByDateRange(100, 200);
     expect(result.daily).toEqual([{ date: '2026-09-01', summarized: 3, skipped: 1, error: 1 }]);
     expect(result.total).toEqual({ summarized: 3, skipped: 1, error: 1, successRate: 0.6 });
     expect(calls[0].sql).not.toContain('application_id = ?');
@@ -58,14 +58,14 @@ describe('ProcessedMessageDAO analytics and listing', () => {
 
   it('scopes counts to an application and handles empty totals', async () => {
     const { db, calls } = makeDb({ all: [], first: null });
-    const result = await new ProcessedMessageDAO(db as never).getStatusCountsByDateRange(100, 200, 'app-1');
+    const result = await new ProcessedMessageDAO(db).getStatusCountsByDateRange(100, 200, 'app-1');
     expect(result.total).toEqual({ summarized: 0, skipped: 0, error: 0, successRate: 0 });
     expect(calls[0].bindings).toContain('app-1');
   });
 
   it('lists with filters, pagination cursor, and limit clamping', async () => {
     const { db, calls } = makeDb({ all: [row(300), row(200), row(100)] });
-    const result = await new ProcessedMessageDAO(db as never).listForUser('u@x', {
+    const result = await new ProcessedMessageDAO(db).listForUser('u@x', {
       applicationId: 'app-1',
       status: 'summarized',
       limit: 2,
@@ -75,19 +75,19 @@ describe('ProcessedMessageDAO analytics and listing', () => {
     expect(result.nextCursor).toBeDefined();
     expect(calls[0].bindings.at(-1)).toBe(3);
     const { db: db2, calls: calls2 } = makeDb({ all: [row(300)] });
-    await new ProcessedMessageDAO(db2 as never).listForUser('u@x', { limit: 500 });
+    await new ProcessedMessageDAO(db2).listForUser('u@x', { limit: 500 });
     expect(calls2[0].bindings.at(-1)).toBe(51);
   });
 
   it('resumes from a valid cursor and ignores corrupt ones', async () => {
-    const cursor = CursorUtil.encode({ createdAt: 250, processedMessageId: 'pm-250' });
+    const cursor = CursorCodec.encode({ createdAt: 250, processedMessageId: 'pm-250' });
     const { db, calls } = makeDb({ all: [row(200)] });
-    const resumed = await new ProcessedMessageDAO(db as never).listForUser('u@x', { cursor });
+    const resumed = await new ProcessedMessageDAO(db).listForUser('u@x', { cursor });
     expect(resumed.messages).toHaveLength(1);
     expect(resumed.nextCursor).toBeUndefined();
     expect(calls[0].bindings).toEqual(expect.arrayContaining([250, 250, 'pm-250']));
     const { db: db2 } = makeDb({ all: [row(200)] });
-    const fresh = await new ProcessedMessageDAO(db2 as never).listForUser('u@x', { cursor: 'bogus' });
+    const fresh = await new ProcessedMessageDAO(db2).listForUser('u@x', { cursor: 'bogus' });
     expect(fresh.messages).toHaveLength(1);
   });
 });

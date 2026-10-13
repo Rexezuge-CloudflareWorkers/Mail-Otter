@@ -6,7 +6,7 @@ import {
   OAUTH2_FEATURE_SCOPES,
 } from '@mail-otter/shared/constants';
 import type { ApplicationContextDAO, ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import { isImapPasswordApplication } from '@mail-otter/shared/model';
 import type {
   ConnectedApplication,

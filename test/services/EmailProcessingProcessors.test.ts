@@ -10,7 +10,8 @@ import { AiDailyUsageDAO, ConnectedApplicationDAO, ProcessedMessageDAO } from '@
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import type { OutlookMessage } from '@mail-otter/provider-clients/outlook';
-import { AiSummaryRetryableError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError, RetryableError } from '@rexezuge/errors';
+import { AiSummaryRetryableError } from '@mail-otter/backend-services/errors';
 
 describe('email processing processors', () => {
   beforeEach(() => {

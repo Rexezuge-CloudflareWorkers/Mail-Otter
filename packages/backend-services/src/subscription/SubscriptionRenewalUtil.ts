@@ -6,7 +6,7 @@ import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { ProviderApiNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, RetryableError } from '@rexezuge/errors';
 import { OAuth2AccessTokenService } from '../oauth2/OAuth2AccessTokenService';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import type { AnyProviderCredentials, ProviderWatchResult } from '../provider/IEmailProvider';

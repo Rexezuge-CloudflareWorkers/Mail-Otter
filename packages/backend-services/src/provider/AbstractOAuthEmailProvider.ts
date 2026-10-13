@@ -1,4 +1,4 @@
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type {
   ApplicationContextDocumentSource,
   CalendarAddEventActionPayload,

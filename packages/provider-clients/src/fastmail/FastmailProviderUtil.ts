@@ -1,4 +1,4 @@
-import { BadRequestError, InternalServerError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, InternalServerError, NotFoundError } from '@rexezuge/errors';
 import type { CalendarAddEventActionPayload } from '@mail-otter/shared/model';
 import { SUPPORTED_IMAGE_MIME_TYPES } from '../AttachmentTypes';
 import type { ProviderImageAttachment } from '../AttachmentTypes';

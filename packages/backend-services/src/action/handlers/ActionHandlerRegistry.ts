@@ -10,7 +10,7 @@ import {
 } from '@mail-otter/shared/constants';
 import type { EmailActionType } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type {
   AppointmentConfirmActionPayload,

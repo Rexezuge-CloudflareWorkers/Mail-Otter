@@ -1,4 +1,4 @@
-export { BaseDAO, EncryptedDAO } from './BaseDAO';
+export { assertSqlIdentifier, BaseDAO, deleteOlderThan, EncryptedDAO, findRowById } from './BaseDAO';
 export { BackgroundTaskRunDAO } from './BackgroundTaskRunDAO';
 export type {
   BackgroundTaskRun,

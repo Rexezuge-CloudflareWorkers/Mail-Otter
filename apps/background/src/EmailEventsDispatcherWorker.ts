@@ -3,13 +3,27 @@ import { CryptoUtil } from '@mail-otter/shared/utils';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { logTokenAdjacentError } from '@mail-otter/shared/utils';
 
-class EmailEventsDispatcherWorker extends AbstractQueueWorker {
-  protected async onQueue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
+class EmailEventsDispatcherWorker extends AbstractQueueWorker<MessageBatch<EmailQueueMessage>> {
+  /**
+   * Never log the caught value here.
+   *
+   * A queue message body *is* an email, and the failure path runs after the
+   * message has been decoded, so an interpolated error can carry headers, an
+   * `Authorization` value, or the message body itself. `logTokenAdjacentError`
+   * takes only a static message and the opaque ids the caller already knows are
+   * safe, which is what CodeQL's `js/clear-text-logging` wants and what the kit
+   * base's default (`console.error(message, error)`) would have quietly undone.
+   */
+  protected override reportUnhandled(message: string): void {
+    logTokenAdjacentError('error', message);
+  }
+
+  protected async onQueue(batch: MessageBatch<EmailQueueMessage>, env: Env, _ctx: ExecutionContext): Promise<void> {
     const workflowInputs: WorkflowInstanceCreateOptions<EmailQueueMessage>[] = await Promise.all(
-      batch.messages.map(async (message: Message<unknown>): Promise<WorkflowInstanceCreateOptions<EmailQueueMessage>> => {
+      batch.messages.map(async (message: Message<EmailQueueMessage>): Promise<WorkflowInstanceCreateOptions<EmailQueueMessage>> => {
         return {
           id: await EmailEventsDispatcherWorker.getWorkflowInstanceId(batch.queue, message.id),
-          params: message.body as EmailQueueMessage,
+          params: message.body,
         };
       }),
     );

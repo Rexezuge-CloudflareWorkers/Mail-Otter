@@ -1,7 +1,7 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import type { UserScope } from '@mail-otter/backend-data/dao';
 import { ConnectedApplicationDAO, UserDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import { AppConfiguration } from '@mail-otter/backend-runtime/config';
 import { AI_LANGUAGE_NAMES, formatBackendString, getBackendStrings } from '@mail-otter/shared/i18n';
 import { LocaleUtil } from '@mail-otter/shared/utils';

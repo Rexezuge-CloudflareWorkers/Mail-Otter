@@ -1,6 +1,5 @@
 import { encryptData, decryptData } from '../crypto';
-import { executeD1WithRetry } from '../utils';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import type { OutboundIntegration, OutboundIntegrationInternal, OutboundIntegrationType } from '@mail-otter/shared/model';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { userScopeSql } from './userScope';
@@ -25,17 +24,9 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
     const integrationId = UUIDUtil.getRandomUUID();
     const encrypted = await encryptData(webhookUrl, this.masterKey);
     const webhookUrlPrefix = ApplicationIntegrationDAO.maskUrl(webhookUrl);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `INSERT INTO application_integrations
-               (integration_id, application_id, integration_type, name, encrypted_webhook_url, webhook_url_iv, webhook_url_prefix, enabled, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-          )
-          .bind(integrationId, applicationId, integrationType, name, encrypted.encrypted, encrypted.iv, webhookUrlPrefix, now, now)
-          .run(),
-      'create application integration',
+    await this.run(
+      `INSERT INTO application_integrations (integration_id, application_id, integration_type, name, encrypted_webhook_url, webhook_url_iv, webhook_url_prefix, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      [integrationId, applicationId, integrationType, name, encrypted.encrypted, encrypted.iv, webhookUrlPrefix, now, now],
     );
     return this.toPublic({
       integration_id: integrationId,
@@ -55,56 +46,44 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
   }
 
   public async listByApplicationId(applicationId: string): Promise<OutboundIntegration[]> {
-    const rows = await this.database
-      .prepare('SELECT * FROM application_integrations WHERE application_id = ? ORDER BY created_at ASC')
-      .bind(applicationId)
-      .all<OutboundIntegrationInternal>()
-      .then((r) => r.results ?? []);
+    const rows = await this.all<OutboundIntegrationInternal>(
+      'SELECT * FROM application_integrations WHERE application_id = ? ORDER BY created_at ASC',
+      [applicationId],
+    );
     return rows.map((row) => this.toPublic(row));
   }
 
   public async listEnabled(applicationId: string): Promise<OutboundIntegration[]> {
-    const rows = await this.database
-      .prepare('SELECT * FROM application_integrations WHERE application_id = ? AND enabled = 1 ORDER BY created_at ASC')
-      .bind(applicationId)
-      .all<OutboundIntegrationInternal>()
-      .then((r) => r.results ?? []);
+    const rows = await this.all<OutboundIntegrationInternal>(
+      'SELECT * FROM application_integrations WHERE application_id = ? AND enabled = 1 ORDER BY created_at ASC',
+      [applicationId],
+    );
     return rows.map((row) => this.toPublic(row));
   }
 
   public async getByIdForUser(integrationId: string, scope: UserScope): Promise<OutboundIntegration | null> {
     const where: UserScopeSql = userScopeSql(scope, 'ca');
-    const row = await this.database
-      .prepare(
-        `SELECT ai.* FROM application_integrations ai
-         JOIN connected_applications ca ON ca.application_id = ai.application_id
-         WHERE ai.integration_id = ? AND ${where.clause}
-         LIMIT 1`,
-      )
-      .bind(integrationId, ...where.bindings)
-      .first<OutboundIntegrationInternal>();
+    const row = await this.first<OutboundIntegrationInternal>(
+      `SELECT ai.* FROM application_integrations ai JOIN connected_applications ca ON ca.application_id = ai.application_id WHERE ai.integration_id = ? AND ${where.clause} LIMIT 1`,
+      [integrationId, ...where.bindings],
+    );
     return row ? this.toPublic(row) : null;
   }
 
   public async getApplicationIdForUser(integrationId: string, scope: UserScope): Promise<string | null> {
     const where: UserScopeSql = userScopeSql(scope, 'ca');
-    const row = await this.database
-      .prepare(
-        `SELECT ai.application_id FROM application_integrations ai
-         JOIN connected_applications ca ON ca.application_id = ai.application_id
-         WHERE ai.integration_id = ? AND ${where.clause}
-         LIMIT 1`,
-      )
-      .bind(integrationId, ...where.bindings)
-      .first<{ application_id: string }>();
+    const row = await this.first<{ application_id: string }>(
+      `SELECT ai.application_id FROM application_integrations ai JOIN connected_applications ca ON ca.application_id = ai.application_id WHERE ai.integration_id = ? AND ${where.clause} LIMIT 1`,
+      [integrationId, ...where.bindings],
+    );
     return row?.application_id ?? null;
   }
 
   public async getDecryptedWebhookUrl(integrationId: string): Promise<string> {
-    const row = await this.database
-      .prepare('SELECT encrypted_webhook_url, webhook_url_iv FROM application_integrations WHERE integration_id = ? LIMIT 1')
-      .bind(integrationId)
-      .first<{ encrypted_webhook_url: string; webhook_url_iv: string }>();
+    const row = await this.first<{ encrypted_webhook_url: string; webhook_url_iv: string }>(
+      'SELECT encrypted_webhook_url, webhook_url_iv FROM application_integrations WHERE integration_id = ? LIMIT 1',
+      [integrationId],
+    );
     if (!row) throw new NotFoundError('Integration not found.');
     return decryptData(row.encrypted_webhook_url, row.webhook_url_iv, this.masterKey);
   }
@@ -132,35 +111,22 @@ class ApplicationIntegrationDAO extends EncryptedDAO {
     }
 
     bindings.push(integrationId);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(`UPDATE application_integrations SET ${fields.join(', ')} WHERE integration_id = ?`)
-          .bind(...bindings)
-          .run(),
-      'update application integration',
-    );
-    const row = await this.database
-      .prepare('SELECT * FROM application_integrations WHERE integration_id = ? LIMIT 1')
-      .bind(integrationId)
-      .first<OutboundIntegrationInternal>();
+    await this.run(`UPDATE application_integrations SET ${fields.join(', ')} WHERE integration_id = ?`, [...bindings]);
+    const row = await this.first<OutboundIntegrationInternal>('SELECT * FROM application_integrations WHERE integration_id = ? LIMIT 1', [
+      integrationId,
+    ]);
     if (!row) throw new NotFoundError('Integration not found after update.');
     return this.toPublic(row);
   }
 
   public async deleteById(integrationId: string): Promise<void> {
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database.prepare('DELETE FROM application_integrations WHERE integration_id = ?').bind(integrationId).run(),
-      'delete application integration',
-    );
+    await this.run('DELETE FROM application_integrations WHERE integration_id = ?', [integrationId]);
   }
 
   public async countByApplicationId(applicationId: string): Promise<number> {
-    const row = await this.database
-      .prepare('SELECT COUNT(*) AS cnt FROM application_integrations WHERE application_id = ?')
-      .bind(applicationId)
-      .first<{ cnt: number }>();
+    const row = await this.first<{ cnt: number }>('SELECT COUNT(*) AS cnt FROM application_integrations WHERE application_id = ?', [
+      applicationId,
+    ]);
     return row?.cnt ?? 0;
   }
 

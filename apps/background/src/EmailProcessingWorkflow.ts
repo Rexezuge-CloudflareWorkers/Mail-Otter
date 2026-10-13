@@ -1,6 +1,6 @@
 import { AbstractWorkflowWorker } from '@mail-otter/backend-runtime/base';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
-import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { DatabaseError, NonRetryableError, OAuth2TokenNonRetryableError, RetryableError } from '@rexezuge/errors';
 import {
   EmailApplicationResolver,
   GmailMessageProcessor,
@@ -336,6 +336,17 @@ class EmailProcessingWorkflow extends AbstractWorkflowWorker<EmailQueueMessage, 
       return new RetryableError(error.message);
     }
     return new RetryableError(error instanceof Error ? error.message : String(error));
+  }
+
+  /**
+   * Steps here parse and forward provider mail, so an unhandled rejection can
+   * carry an `Authorization` header or a message body. The static message the
+   * kit base supplies is the whole log line; the failure is persisted separately
+   * via `BackgroundTaskRunDAO.failRun`, which runs the value through
+   * `ErrorSanitizationUtil` first.
+   */
+  protected override reportUnhandled(message: string): void {
+    logTokenAdjacentError('error', message);
   }
 }
 

@@ -1,6 +1,6 @@
 import { PROVIDER_YAHOO_MAIL } from '@mail-otter/shared/constants';
 import { YahooProviderUtil } from '@mail-otter/provider-clients/yahoo';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
 import type { AnyProviderCredentials } from './IEmailProvider';
 import { ImapEmailProviderBase } from './ImapEmailProviderBase';

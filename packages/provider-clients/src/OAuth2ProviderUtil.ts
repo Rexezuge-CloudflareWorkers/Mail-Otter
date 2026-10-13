@@ -1,5 +1,5 @@
 import { OAUTH2_FEATURE_SCOPES } from '@mail-otter/shared/constants';
-import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
+import { BadRequestError, InternalServerError } from '@rexezuge/errors';
 import type { OAuth2Credentials } from '@mail-otter/shared/model';
 import { getOAuth2Strategy } from './OAuth2Strategy';
 import type { OAuth2Strategy } from './OAuth2Strategy';

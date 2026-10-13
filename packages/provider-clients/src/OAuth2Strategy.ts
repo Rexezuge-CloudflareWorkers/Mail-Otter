@@ -4,7 +4,7 @@ import {
   PROVIDER_MICROSOFT_OUTLOOK,
   PROVIDER_YAHOO_MAIL,
 } from '@mail-otter/shared/constants';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 
 interface OAuth2Strategy {
   authorizationEndpoint: string;

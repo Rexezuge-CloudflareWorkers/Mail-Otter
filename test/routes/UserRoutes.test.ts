@@ -148,7 +148,7 @@ import { GetAnalyticsRoute } from '../../apps/api/src/endpoints/user/analytics/G
 import { ListActivityRoute } from '../../apps/api/src/endpoints/user/activity/GET';
 import { ListBackgroundTaskRunsRoute } from '../../apps/api/src/endpoints/user/processing/task-runs/GET';
 import { RunTaskNowRoute } from '../../apps/api/src/endpoints/user/processing/run-task/POST';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 
 function authenticatedContext(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
@@ -344,7 +344,7 @@ describe('user routes', () => {
   });
 
   it('PUT /user/application/digest rejects unknown applications', async () => {
-    const { NotFoundError } = await import('@mail-otter/backend-errors');
+    const { NotFoundError } = await import('@rexezuge/errors');
     mockGetOwnedApplication.mockRejectedValue(new NotFoundError('Connected application not found.'));
     await expect(
       call(

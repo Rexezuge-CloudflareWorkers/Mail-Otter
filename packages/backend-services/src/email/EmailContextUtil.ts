@@ -1,6 +1,6 @@
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { NonRetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError } from '@rexezuge/errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import type { ApplicationContextDocument, ConnectedApplication } from '@mail-otter/shared/model';
 import {

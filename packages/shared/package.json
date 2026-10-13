@@ -7,6 +7,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rexezuge/i18n": "link:../../../SDK/packages/i18n",
+    "@rexezuge/shared": "link:../../../SDK/packages/shared",
     "zod": "4.6.5"
   },
   "devDependencies": {

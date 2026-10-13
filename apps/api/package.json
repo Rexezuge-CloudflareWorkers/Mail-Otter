@@ -8,11 +8,16 @@
   },
   "dependencies": {
     "@mail-otter/backend-data": "workspace:*",
-    "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/backend-runtime": "workspace:*",
     "@mail-otter/backend-services": "workspace:*",
     "@mail-otter/background": "workspace:*",
     "@mail-otter/shared": "workspace:*",
+    "@rexezuge/d1": "link:../../../SDK/packages/d1",
+    "@rexezuge/errors": "link:../../../SDK/packages/errors",
+    "@rexezuge/http": "link:../../../SDK/packages/http",
+    "@rexezuge/identity": "link:../../../SDK/packages/identity",
+    "@rexezuge/runtime": "link:../../../SDK/packages/runtime",
+    "@rexezuge/shared": "link:../../../SDK/packages/shared",
     "chanfana": "3.4.0",
     "hono": "4.13.13"
   },

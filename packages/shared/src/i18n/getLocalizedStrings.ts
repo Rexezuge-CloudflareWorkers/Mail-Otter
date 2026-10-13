@@ -1,4 +1,4 @@
-import { LocaleUtil } from '../utils/LocaleUtil';
+import { LocaleUtil } from '@rexezuge/shared';
 import type { BackendLocaleStrings } from './BackendStrings';
 import { getBackendStrings } from './index';
 

@@ -206,7 +206,7 @@ import { ChatRoute } from '../../apps/api/src/endpoints/user/chat/POST';
 import { ListProcessingCalendarEventsRoute } from '../../apps/api/src/endpoints/user/processing/calendar-events/GET';
 import { ListProcessedMessagesRoute } from '../../apps/api/src/endpoints/user/processing/messages/GET';
 import { SendDigestNowRoute } from '../../apps/api/src/endpoints/user/application/digest/send/POST';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 
 function authenticatedContext(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {

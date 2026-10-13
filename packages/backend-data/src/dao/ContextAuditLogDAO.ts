@@ -1,8 +1,9 @@
-import { CursorUtil } from '../utils';
+import { CursorCodec } from '@rexezuge/shared';
 import type { ContextAuditLog, ContextAuditLogInternal, ContextAuditLogList } from '@mail-otter/shared/model';
 import type { ContextAuditEventType, ContextAuditLogSeverity } from '@mail-otter/shared/constants';
 import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
+import type { D1Result } from '@rexezuge/d1';
 
 /**
  * D1's hard cap on bound parameters for a single query.
@@ -37,33 +38,22 @@ const AUDIT_LOG_INSERT_CHUNK_SIZE = Math.floor(D1_MAX_BOUND_PARAMETERS / AUDIT_L
 class ContextAuditLogDAO extends BaseDAO {
   public async insertAuditLog(input: InsertAuditLogInput): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await this.withRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO context_audit_logs
-                (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-          )
-          .bind(
-            UUIDUtil.getRandomUUID(),
-            input.contextDocumentId,
-            input.applicationId,
-            // The frozen anchor, retained verbatim so an audit trail reads the
-            // same after an address change; `user_id` is the account it belongs to.
-            input.userEmail,
-            input.userId ?? null,
-            input.sourceDocumentId || null,
-            input.eventType,
-            input.eventLabel || null,
-            input.eventData ? JSON.stringify(input.eventData) : null,
-            input.severity,
-            now,
-          )
-          .run(),
-      'insert context audit log',
+    await this.run(
+      ` INSERT INTO context_audit_logs (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) `,
+      [
+        UUIDUtil.getRandomUUID(),
+        input.contextDocumentId,
+        input.applicationId, // The frozen anchor, retained verbatim so an audit trail reads the
+        // same after an address change; `user_id` is the account it belongs to.
+        input.userEmail,
+        input.userId ?? null,
+        input.sourceDocumentId || null,
+        input.eventType,
+        input.eventLabel || null,
+        input.eventData ? JSON.stringify(input.eventData) : null,
+        input.severity,
+        now,
+      ],
     );
   }
 
@@ -101,19 +91,9 @@ class ContextAuditLogDAO extends BaseDAO {
           now,
         );
       }
-      await this.withRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                INSERT INTO context_audit_logs
-                  (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at)
-                VALUES ${placeholders}
-              `,
-            )
-            .bind(...bindings)
-            .run(),
-        'batch insert context audit logs',
+      await this.run(
+        ` INSERT INTO context_audit_logs (id, context_document_id, application_id, user_email, user_id, source_document_id, event_type, event_label, event_data, severity, created_at) VALUES ${placeholders} `,
+        [...bindings],
       );
     }
   }
@@ -137,19 +117,10 @@ class ContextAuditLogDAO extends BaseDAO {
         bindings.push(cursor.createdAt, cursor.createdAt, cursor.id);
       }
     }
-    const rows: ContextAuditLogInternal[] = await this.database
-      .prepare(
-        `
-          SELECT id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at
-          FROM context_audit_logs
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at DESC, id DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, limit + 1)
-      .all<ContextAuditLogInternal>()
-      .then((result: D1Result<ContextAuditLogInternal>): ContextAuditLogInternal[] => result.results || []);
+    const rows: ContextAuditLogInternal[] = await this.all<ContextAuditLogInternal>(
+      ` SELECT id, context_document_id, application_id, user_email, source_document_id, event_type, event_label, event_data, severity, created_at FROM context_audit_logs WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC, id DESC LIMIT ? `,
+      [...bindings, limit + 1],
+    );
     const pageRows: ContextAuditLogInternal[] = rows.slice(0, limit);
     return {
       logs: pageRows.map((row: ContextAuditLogInternal): ContextAuditLog => this.toAuditLog(row)),
@@ -158,22 +129,9 @@ class ContextAuditLogDAO extends BaseDAO {
   }
 
   public async deleteOldAuditLogs(olderThan: number, limit: number): Promise<number> {
-    const result: D1Result = await this.withRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM context_audit_logs
-              WHERE id IN (
-                SELECT id FROM context_audit_logs
-                WHERE created_at < ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(olderThan, limit)
-          .run(),
-      'delete old context audit logs',
+    const result: D1Result = await this.run(
+      ` DELETE FROM context_audit_logs WHERE id IN ( SELECT id FROM context_audit_logs WHERE created_at < ? LIMIT ? ) `,
+      [olderThan, limit],
     );
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
@@ -200,13 +158,13 @@ class ContextAuditLogDAO extends BaseDAO {
    * back to the timestamp filter, so an in-flight client scroll does not break.
    */
   private static parseCursor(cursor: string | undefined): { createdAt: number; id?: string } | undefined {
-    const parsed = CursorUtil.decode<unknown[]>(cursor);
+    const parsed = CursorCodec.decode<unknown[]>(cursor);
     if (!Array.isArray(parsed) || typeof parsed[0] !== 'number') return undefined;
     return typeof parsed[1] === 'string' ? { createdAt: parsed[0], id: parsed[1] } : { createdAt: parsed[0] };
   }
 
   private static encodeCursor(createdAt: number, id: string): string {
-    return CursorUtil.encode([createdAt, id]);
+    return CursorCodec.encode([createdAt, id]);
   }
 
   private static parseEventData(value: string | null): unknown {

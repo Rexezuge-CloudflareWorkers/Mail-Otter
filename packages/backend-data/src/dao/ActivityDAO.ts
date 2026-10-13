@@ -1,4 +1,4 @@
-import { CursorUtil } from '../utils';
+import { CursorCodec } from '@rexezuge/shared';
 import type {
   ActivityEntry,
   ActivityEntryList,
@@ -127,26 +127,16 @@ class ActivityDAO extends BaseDAO {
     }
     ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.emailProcessedId, 'pm.created_at', 'pm.provider_message_id');
 
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT pm.application_id, pm.provider_message_id, pm.status, pm.error_message, pm.created_at
-          FROM processed_messages pm
-          INNER JOIN connected_applications ca ON ca.application_id = pm.application_id
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY pm.created_at DESC, pm.provider_message_id DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, fetchLimit)
-      .all<{
-        application_id: string;
-        provider_message_id: string;
-        status: string;
-        error_message: string | null;
-        created_at: number;
-      }>()
-      .then((r) => r.results || []);
+    const rows = await this.all<{
+      application_id: string;
+      provider_message_id: string;
+      status: string;
+      error_message: string | null;
+      created_at: number;
+    }>(
+      ` SELECT pm.application_id, pm.provider_message_id, pm.status, pm.error_message, pm.created_at FROM processed_messages pm INNER JOIN connected_applications ca ON ca.application_id = pm.application_id WHERE ${conditions.join(' AND ')} ORDER BY pm.created_at DESC, pm.provider_message_id DESC LIMIT ? `,
+      [...bindings, fetchLimit],
+    );
 
     return rows.map((row): EmailProcessedEntry => ({
       eventType: 'email_processed',
@@ -174,25 +164,16 @@ class ActivityDAO extends BaseDAO {
     }
     ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.actionCreatedId, 'created_at', 'action_id');
 
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT action_id, application_id, action_type, risk_level, created_at
-          FROM email_summary_actions
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at DESC, action_id DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, fetchLimit)
-      .all<{
-        action_id: string;
-        application_id: string;
-        action_type: string;
-        risk_level: string;
-        created_at: number;
-      }>()
-      .then((r) => r.results || []);
+    const rows = await this.all<{
+      action_id: string;
+      application_id: string;
+      action_type: string;
+      risk_level: string;
+      created_at: number;
+    }>(
+      ` SELECT action_id, application_id, action_type, risk_level, created_at FROM email_summary_actions WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC, action_id DESC LIMIT ? `,
+      [...bindings, fetchLimit],
+    );
 
     return rows.map((row): ActionCreatedEntry => ({
       eventType: 'action_created',
@@ -220,29 +201,18 @@ class ActivityDAO extends BaseDAO {
     }
     ActivityDAO.pushTiebreak(conditions, bindings, cursor?.beforeTs, cursor?.actionExecutedId, 'eae.created_at', 'eae.execution_id');
 
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT eae.execution_id, esa.action_id, esa.application_id, esa.action_type,
-                 eae.status, eae.triggered_by, eae.created_at
-          FROM email_action_executions eae
-          INNER JOIN email_summary_actions esa ON esa.action_id = eae.action_id
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY eae.created_at DESC, eae.execution_id DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, fetchLimit)
-      .all<{
-        execution_id: string;
-        action_id: string;
-        application_id: string;
-        action_type: string;
-        status: string;
-        triggered_by: string;
-        created_at: number;
-      }>()
-      .then((r) => r.results || []);
+    const rows = await this.all<{
+      execution_id: string;
+      action_id: string;
+      application_id: string;
+      action_type: string;
+      status: string;
+      triggered_by: string;
+      created_at: number;
+    }>(
+      ` SELECT eae.execution_id, esa.action_id, esa.application_id, esa.action_type, eae.status, eae.triggered_by, eae.created_at FROM email_action_executions eae INNER JOIN email_summary_actions esa ON esa.action_id = eae.action_id WHERE ${conditions.join(' AND ')} ORDER BY eae.created_at DESC, eae.execution_id DESC LIMIT ? `,
+      [...bindings, fetchLimit],
+    );
 
     return rows.map((row): ActionExecutedEntry => ({
       eventType: 'action_executed',
@@ -277,7 +247,7 @@ class ActivityDAO extends BaseDAO {
     const isProcessed = (entry: ActivityEntry): boolean => entry.eventType === 'email_processed';
     const isCreated = (entry: ActivityEntry): boolean => entry.eventType === 'action_created';
     const isExecuted = (entry: ActivityEntry): boolean => entry.eventType === 'action_executed';
-    return CursorUtil.encode({
+    return CursorCodec.encode({
       beforeTs,
       emailProcessedId: lastId(isProcessed, (entry) => (entry as EmailProcessedEntry).providerMessageId),
       actionCreatedId: lastId(isCreated, (entry) => (entry as ActionCreatedEntry).actionId),
@@ -286,7 +256,7 @@ class ActivityDAO extends BaseDAO {
   }
 
   private static parseCursor(cursor: string | undefined): ActivityCursor | undefined {
-    const parsed = CursorUtil.decode<{
+    const parsed = CursorCodec.decode<{
       beforeTs?: unknown;
       emailProcessedId?: unknown;
       actionCreatedId?: unknown;

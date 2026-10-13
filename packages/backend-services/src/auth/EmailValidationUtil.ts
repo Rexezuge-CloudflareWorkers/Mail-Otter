@@ -1,5 +1,5 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { UnauthorizedError } from '@mail-otter/backend-errors';
+import { UnauthorizedError } from '@rexezuge/errors';
 
 interface EmailValidationEnv {
   DEV_AUTH_EMAIL?: string;

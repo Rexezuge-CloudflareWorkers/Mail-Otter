@@ -1,4 +1,4 @@
-import type { SupportedLocale } from '../utils/LocaleUtil';
+import type { SupportedLocale } from '@rexezuge/shared';
 
 interface DigestStrings {
   subjectPrefix: string;

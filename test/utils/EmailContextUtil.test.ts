@@ -1,5 +1,5 @@
 import { AiDailyUsageDAO } from '@mail-otter/backend-data/dao';
-import { NonRetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError } from '@rexezuge/errors';
 import { EmailContextUtil } from '@mail-otter/backend-services/email';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

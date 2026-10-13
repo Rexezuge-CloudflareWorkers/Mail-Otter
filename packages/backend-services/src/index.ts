@@ -4,6 +4,7 @@ export * from './processing';
 export * from './application';
 export * from './action';
 export * from './email';
+export * from './errors';
 export * from './integration';
 export * from './oauth2';
 export * from './subscription';

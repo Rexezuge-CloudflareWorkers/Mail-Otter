@@ -1,6 +1,6 @@
 // Shared base for IMAP-based providers (Yahoo, Custom IMAP, Apple iCloud).
 // Implements polling via cloudflare:sockets IMAP client.
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import { ImapClient } from '@mail-otter/provider-clients/imap';
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
 import type {

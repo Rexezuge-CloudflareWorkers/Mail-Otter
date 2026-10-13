@@ -7,7 +7,7 @@ import {
 } from '@mail-otter/backend-data/dao';
 import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { ApplicationContextUserCounts, EmailActionCounts, ProcessedMessageStatusCounts } from '@mail-otter/backend-data/dao';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 // NOTE: Migrate to Cloudflare Analytics Engine for time-series queries once historical D1 data

@@ -5,7 +5,7 @@ vi.mock('@mail-otter/shared/schema', () => ({
 }));
 
 import { IBaseRoute } from '../../apps/api/src/endpoints/IBaseRoute';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 
 describe('IBaseRoute typed errors', () => {
   class MissingRoute extends IBaseRoute<{ raw: Request }, { ok: boolean }, Record<string, unknown>> {

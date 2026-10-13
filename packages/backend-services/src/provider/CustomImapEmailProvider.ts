@@ -1,5 +1,5 @@
 import { PROVIDER_CUSTOM_IMAP } from '@mail-otter/shared/constants';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { ImapConnectOptions } from '@mail-otter/provider-clients/imap';
 import type { AnyProviderCredentials } from './IEmailProvider';
 import { ImapEmailProviderBase } from './ImapEmailProviderBase';

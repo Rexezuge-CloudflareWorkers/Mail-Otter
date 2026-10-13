@@ -21,8 +21,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mail-otter/backend-errors": "workspace:*",
     "@mail-otter/shared": "workspace:*",
+    "@rexezuge/errors": "link:../../../SDK/packages/errors",
+    "@rexezuge/shared": "link:../../../SDK/packages/shared",
     "html-to-text": "10.0.1"
   },
   "devDependencies": {

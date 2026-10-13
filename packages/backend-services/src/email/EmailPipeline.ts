@@ -1,5 +1,5 @@
 import { ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { BadRequestError, NonRetryableError, RetryableError } from '@rexezuge/errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { ProviderImageAttachment } from '@mail-otter/provider-clients';
 import type { ProviderId } from '@mail-otter/shared/constants';

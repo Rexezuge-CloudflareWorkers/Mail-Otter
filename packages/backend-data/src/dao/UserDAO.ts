@@ -1,5 +1,4 @@
-import { DatabaseError } from '@mail-otter/backend-errors';
-import { executeD1WithRetry } from '../utils';
+import { DatabaseError } from '@rexezuge/errors';
 import type { User, UserInternal } from '@mail-otter/shared/model';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
@@ -76,19 +75,9 @@ class UserDAO extends BaseDAO {
 
   public async upsertByEmail(email: string): Promise<User> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO users (email, created_at, updated_at)
-              VALUES (?, ?, ?)
-              ON CONFLICT(email) DO UPDATE SET updated_at = excluded.updated_at
-            `,
-          )
-          .bind(email, now, now)
-          .run(),
-      'upsert user',
+    await this.run(
+      ` INSERT INTO users (email, created_at, updated_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET updated_at = excluded.updated_at `,
+      [email, now, now],
     );
     const user: User | undefined = await this.getByEmail(email);
     if (!user) {
@@ -102,23 +91,16 @@ class UserDAO extends BaseDAO {
    * still the only way to resolve a frozen anchor.
    */
   public async getByEmail(email: string): Promise<User | undefined> {
-    const row: UserInternal | null = await this.database
-      .prepare('SELECT email, preferred_language, created_at, updated_at FROM users WHERE email = ? LIMIT 1')
-      .bind(email)
-      .first<UserInternal>();
+    const row: UserInternal | null = await this.first<UserInternal>(
+      'SELECT email, preferred_language, created_at, updated_at FROM users WHERE email = ? LIMIT 1',
+      [email],
+    );
     return row ? this.toUser(row) : undefined;
   }
 
   public async updatePreferredLanguage(email: string, preferredLanguage: string | null): Promise<User | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('UPDATE users SET preferred_language = ?, updated_at = ? WHERE email = ?')
-          .bind(preferredLanguage, now, email)
-          .run(),
-      'update user language',
-    );
+    await this.run('UPDATE users SET preferred_language = ?, updated_at = ? WHERE email = ?', [preferredLanguage, now, email]);
     return this.getByEmail(email);
   }
 
@@ -138,20 +120,9 @@ class UserDAO extends BaseDAO {
    */
   public async createUser(input: { id?: string | null; anchor: string; loginEmail: string; now: number }): Promise<void> {
     const id: string = input.id ?? newId();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `INSERT INTO users (id, email, current_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
-             ON CONFLICT(email) DO UPDATE SET
-               id = COALESCE(users.id, excluded.id),
-               current_email = COALESCE(users.current_email, excluded.current_email),
-               updated_at = excluded.updated_at
-             WHERE users.id IS NULL`,
-          )
-          .bind(id, input.anchor, input.loginEmail, input.now, input.now)
-          .run(),
-      'create user',
+    await this.run(
+      `INSERT INTO users (id, email, current_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET id = COALESCE(users.id, excluded.id), current_email = COALESCE(users.current_email, excluded.current_email), updated_at = excluded.updated_at WHERE users.id IS NULL`,
+      [id, input.anchor, input.loginEmail, input.now, input.now],
     );
   }
 
@@ -159,7 +130,7 @@ class UserDAO extends BaseDAO {
    * Anchor lookup, returning the full row including the identity columns.
    */
   public async getRowByEmail(email: string): Promise<UserRow | null> {
-    return this.database.prepare('SELECT * FROM users WHERE email = ? LIMIT 1').bind(email).first<UserRow>();
+    return this.first<UserRow>('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
   }
 
   /**
@@ -167,14 +138,14 @@ class UserDAO extends BaseDAO {
    * promise a normalized claim and the registry is keyed on the lowercased form.
    */
   public async getByCurrentEmail(email: string): Promise<UserRow | null> {
-    return this.database.prepare('SELECT * FROM users WHERE lower(current_email) = lower(?) LIMIT 1').bind(email).first<UserRow>();
+    return this.first<UserRow>('SELECT * FROM users WHERE lower(current_email) = lower(?) LIMIT 1', [email]);
   }
 
   /**
    * Stable account key lookup -- the direction every id-keyed check uses.
    */
   public async getById(id: string): Promise<UserRow | null> {
-    return this.database.prepare('SELECT * FROM users WHERE id = ? LIMIT 1').bind(id).first<UserRow>();
+    return this.first<UserRow>('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
   }
 
   /**
@@ -185,11 +156,7 @@ class UserDAO extends BaseDAO {
    * would cascade the account's rows out of the database.
    */
   public async setCurrentEmail(id: string, email: string, now: number): Promise<void> {
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database.prepare('UPDATE users SET current_email = ?, updated_at = ? WHERE id = ?').bind(email.toLowerCase(), now, id).run(),
-      'set current user email',
-    );
+    await this.run('UPDATE users SET current_email = ?, updated_at = ? WHERE id = ?', [email.toLowerCase(), now, id]);
   }
 
   private toUser(row: UserInternal): User {

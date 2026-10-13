@@ -12,7 +12,7 @@ import {
   SOURCE_TYPE_EMAIL,
 } from '@mail-otter/shared/constants';
 import { ApplicationContextDAO } from '@mail-otter/backend-data/dao';
-import { NonRetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError } from '@rexezuge/errors';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import type { CreatedEmailAction } from '../action';
 

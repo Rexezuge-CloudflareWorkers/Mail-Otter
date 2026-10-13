@@ -1,4 +1,4 @@
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import { IBaseRoute } from '@/endpoints/IBaseRoute';
 import type { IEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IBaseRoute';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';

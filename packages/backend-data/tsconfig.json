@@ -16,8 +16,6 @@
     "paths": {
       "@mail-otter/backend-data": ["./src"],
       "@mail-otter/backend-data/*": ["./src/*"],
-      "@mail-otter/backend-errors": ["../backend-errors/src"],
-      "@mail-otter/backend-errors/*": ["../backend-errors/src/*"],
       "@mail-otter/shared": ["../shared/src"],
       "@mail-otter/shared/*": ["../shared/src/*"]
     }

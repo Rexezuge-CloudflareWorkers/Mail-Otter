@@ -90,7 +90,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
 import { UserService, UserServiceFactory } from '@mail-otter/backend-services/user';
 import { AnalyticsService } from '@mail-otter/backend-services/analytics';
 import { ActivityService } from '@mail-otter/backend-services/activity';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 
 function userEnv(extra: Record<string, unknown> = {}) {
   return { DB: {} as D1Database, ...extra };

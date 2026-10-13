@@ -1,4 +1,4 @@
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { EmailProcessingRule, EmailRuleAction, EmailRuleCondition } from '@mail-otter/shared/model';
 import { PRE_PROCESSING_ACTION_TYPES } from '@mail-otter/shared/constants';
 import { EmailRuleActionSchema, EmailRuleConditionSchema } from '@mail-otter/shared/schema';

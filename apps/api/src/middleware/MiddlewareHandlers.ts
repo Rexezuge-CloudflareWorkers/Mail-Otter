@@ -1,6 +1,8 @@
-import { ServiceError } from '@mail-otter/backend-errors';
+import { ServiceError } from '@rexezuge/errors';
+import { errorBody } from '@rexezuge/http';
 import { EmailValidationUtil } from '@mail-otter/backend-services/auth';
 import { Context, Next } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';
 import type { AccountIdentity } from '@mail-otter/backend-services/identity';
 
@@ -31,8 +33,8 @@ class MiddlewareHandlers {
         c.set('AuthenticatedUserAnchorEmail', identity.anchorEmail);
         await next();
       } catch (error: unknown) {
-        if (error instanceof ServiceError && error.getErrorCode() < 500) {
-          return c.json({ Exception: { Type: error.getErrorType(), Message: error.getErrorMessage() } }, error.getErrorCode());
+        if (error instanceof ServiceError && error.status < 500) {
+          return c.json(errorBody(error), error.status as ContentfulStatusCode);
         }
         throw error;
       }

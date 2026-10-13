@@ -7,7 +7,7 @@ import {
 import { ApplicationContextDAO, ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunList,

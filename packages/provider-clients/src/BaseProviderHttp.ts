@@ -1,4 +1,4 @@
-import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@rexezuge/errors';
 import { FetchHttpClient, HttpFetchError, type IHttpClient } from './http/HttpClient';
 
 const defaultHttpClient: IHttpClient = new FetchHttpClient();

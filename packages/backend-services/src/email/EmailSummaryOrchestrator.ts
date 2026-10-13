@@ -1,6 +1,6 @@
 import { AiDailyUsageDAO, ProcessedMessageDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
+import { AiSummaryRetryableError } from '../errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import type { ConnectedApplication, EmailActionProposal } from '@mail-otter/shared/model';
 import { getBackendStrings } from '@mail-otter/shared/i18n';

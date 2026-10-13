@@ -16,8 +16,6 @@
     "paths": {
       "@mail-otter/backend-data": ["../backend-data/src"],
       "@mail-otter/backend-data/*": ["../backend-data/src/*"],
-      "@mail-otter/backend-errors": ["../backend-errors/src"],
-      "@mail-otter/backend-errors/*": ["../backend-errors/src/*"],
       "@mail-otter/backend-runtime": ["../backend-runtime/src"],
       "@mail-otter/backend-runtime/*": ["../backend-runtime/src/*"],
       "@mail-otter/backend-services": ["./src"],

@@ -1,4 +1,4 @@
-import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@rexezuge/errors';
 import { EmailContentUtil } from './EmailContentUtil';
 import { fetchJsonWithBearer, createProviderApiError } from './BaseProviderHttp';
 import { SUPPORTED_IMAGE_MIME_TYPES } from './AttachmentTypes';

@@ -10,7 +10,7 @@ import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/ba
 import { OAuth2AccessTokenService } from '@mail-otter/backend-services/oauth2';
 import { SubscriptionRenewalUtil } from '@mail-otter/backend-services/subscription';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
-import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@mail-otter/backend-errors';
+import { ProviderApiNonRetryableError, ProviderApiRetryableError } from '@rexezuge/errors';
 
 const makeSubscription = (overrides: Partial<ProviderSubscription> = {}): ProviderSubscription => ({
   subscriptionId: 'subscription-id',

@@ -1,6 +1,6 @@
 import { ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { UnauthorizedError } from '@mail-otter/backend-errors';
+import { UnauthorizedError } from '@rexezuge/errors';
 import type { EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 

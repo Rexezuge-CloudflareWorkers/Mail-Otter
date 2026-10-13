@@ -11,6 +11,27 @@ importers:
       '@cloudflare/vitest-pool-workers':
         specifier: 0.22.0
         version: 0.22.0(@vitest/runner@4.1.10)(@vitest/snapshot@4.1.10)(vitest@4.1.10)
+      '@rexezuge/d1':
+        specifier: link:../SDK/packages/d1
+        version: link:../SDK/packages/d1
+      '@rexezuge/errors':
+        specifier: link:../SDK/packages/errors
+        version: link:../SDK/packages/errors
+      '@rexezuge/http':
+        specifier: link:../SDK/packages/http
+        version: link:../SDK/packages/http
+      '@rexezuge/i18n':
+        specifier: link:../SDK/packages/i18n
+        version: link:../SDK/packages/i18n
+      '@rexezuge/identity':
+        specifier: link:../SDK/packages/identity
+        version: link:../SDK/packages/identity
+      '@rexezuge/runtime':
+        specifier: link:../SDK/packages/runtime
+        version: link:../SDK/packages/runtime
+      '@rexezuge/shared':
+        specifier: link:../SDK/packages/shared
+        version: link:../SDK/packages/shared
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -77,9 +98,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../../packages/backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
@@ -92,6 +110,24 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@rexezuge/d1':
+        specifier: link:../../../SDK/packages/d1
+        version: link:../../../SDK/packages/d1
+      '@rexezuge/errors':
+        specifier: link:../../../SDK/packages/errors
+        version: link:../../../SDK/packages/errors
+      '@rexezuge/http':
+        specifier: link:../../../SDK/packages/http
+        version: link:../../../SDK/packages/http
+      '@rexezuge/identity':
+        specifier: link:../../../SDK/packages/identity
+        version: link:../../../SDK/packages/identity
+      '@rexezuge/runtime':
+        specifier: link:../../../SDK/packages/runtime
+        version: link:../../../SDK/packages/runtime
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
       chanfana:
         specifier: 3.4.0
         version: 3.4.0
@@ -111,9 +147,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../../packages/backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
@@ -126,6 +159,21 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@rexezuge/d1':
+        specifier: link:../../../SDK/packages/d1
+        version: link:../../../SDK/packages/d1
+      '@rexezuge/errors':
+        specifier: link:../../../SDK/packages/errors
+        version: link:../../../SDK/packages/errors
+      '@rexezuge/identity':
+        specifier: link:../../../SDK/packages/identity
+        version: link:../../../SDK/packages/identity
+      '@rexezuge/runtime':
+        specifier: link:../../../SDK/packages/runtime
+        version: link:../../../SDK/packages/runtime
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -197,25 +245,18 @@ importers:
 
   packages/backend-data:
     dependencies:
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
-    devDependencies:
-      '@types/node':
-        specifier: 26.6.4
-        version: 26.6.4
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
-  packages/backend-errors:
-    dependencies:
-      hono:
-        specifier: 4.13.13
-        version: 4.13.13
+      '@rexezuge/d1':
+        specifier: link:../../../SDK/packages/d1
+        version: link:../../../SDK/packages/d1
+      '@rexezuge/errors':
+        specifier: link:../../../SDK/packages/errors
+        version: link:../../../SDK/packages/errors
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -229,6 +270,12 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/runtime':
+        specifier: link:../../../SDK/packages/runtime
+        version: link:../../../SDK/packages/runtime
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -242,9 +289,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../backend-runtime
@@ -254,6 +298,21 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/d1':
+        specifier: link:../../../SDK/packages/d1
+        version: link:../../../SDK/packages/d1
+      '@rexezuge/errors':
+        specifier: link:../../../SDK/packages/errors
+        version: link:../../../SDK/packages/errors
+      '@rexezuge/identity':
+        specifier: link:../../../SDK/packages/identity
+        version: link:../../../SDK/packages/identity
+      '@rexezuge/runtime':
+        specifier: link:../../../SDK/packages/runtime
+        version: link:../../../SDK/packages/runtime
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
       jose:
         specifier: 6.2.12
         version: 6.2.12
@@ -267,12 +326,15 @@ importers:
 
   packages/provider-clients:
     dependencies:
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/errors':
+        specifier: link:../../../SDK/packages/errors
+        version: link:../../../SDK/packages/errors
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
       html-to-text:
         specifier: 10.0.1
         version: 10.0.1
@@ -289,6 +351,12 @@ importers:
 
   packages/shared:
     dependencies:
+      '@rexezuge/i18n':
+        specifier: link:../../../SDK/packages/i18n
+        version: link:../../../SDK/packages/i18n
+      '@rexezuge/shared':
+        specifier: link:../../../SDK/packages/shared
+        version: link:../../../SDK/packages/shared
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -424,6 +492,7 @@ packages:
 
   '@cloudflare/vitest-pool-workers@0.22.0':
     resolution: {integrity: sha512-OJv/qikkOgxnKxJ5xrLS7zuOLZhc/6iziU+llqZm4tiQf2CJUYwlMuXN68VaWIQebORd1AUx4w6A0oy8XRbuaQ==}
+    deprecated: '@cloudflare/vitest-pool-workers has been renamed to @cloudflare/vitest-plugin. This package will not receive future updates.'
     peerDependencies:
       '@vitest/runner': ^4.1.0
       '@vitest/snapshot': ^4.1.0

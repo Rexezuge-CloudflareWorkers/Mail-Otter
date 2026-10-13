@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmailRuleSuggestionUtil } from '@mail-otter/backend-services/email';
 import type { EmailRuleSuggestionResult } from '@mail-otter/backend-services/email';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 

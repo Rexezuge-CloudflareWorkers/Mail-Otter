@@ -1,5 +1,5 @@
-import { DatabaseError } from '@mail-otter/backend-errors';
-import { CursorUtil } from '../utils';
+import { DatabaseError } from '@rexezuge/errors';
+import { CursorCodec } from '@rexezuge/shared';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunInternal,
@@ -10,6 +10,7 @@ import { TimestampUtil, UUIDUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 import { userScopeSql } from './userScope';
 import type { UserScope, UserScopeSql } from './userScope';
+import type { D1Result } from '@rexezuge/d1';
 
 // Repository for application_context_deletion_runs aggregate.
 // Extracted from ApplicationContextDAO (1051 LOC god DAO) — Phase 4 phased split.
@@ -35,20 +36,10 @@ class ContextDeletionRunDAO extends BaseDAO {
         bindings.push(cursor.createdAt, cursor.createdAt, cursor.id);
       }
     }
-    const rows: ApplicationContextDeletionRunInternal[] = await this.database
-      .prepare(
-        `
-          SELECT deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count,
-                 mutation_ids, status, error_message, created_at, updated_at
-          FROM application_context_deletion_runs
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY created_at DESC, deletion_run_id DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, limit + 1)
-      .all<ApplicationContextDeletionRunInternal>()
-      .then((result: D1Result<ApplicationContextDeletionRunInternal>): ApplicationContextDeletionRunInternal[] => result.results || []);
+    const rows: ApplicationContextDeletionRunInternal[] = await this.all<ApplicationContextDeletionRunInternal>(
+      ` SELECT deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count, mutation_ids, status, error_message, created_at, updated_at FROM application_context_deletion_runs WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC, deletion_run_id DESC LIMIT ? `,
+      [...bindings, limit + 1],
+    );
     const pageRows: ApplicationContextDeletionRunInternal[] = rows.slice(0, limit);
     return {
       deletionRuns: pageRows.map((row: ApplicationContextDeletionRunInternal): ApplicationContextDeletionRun => this.toDeletionRun(row)),
@@ -60,34 +51,22 @@ class ContextDeletionRunDAO extends BaseDAO {
   public async recordDeletionRun(input: RecordDeletionRunInput): Promise<ApplicationContextDeletionRun> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const deletionRunId: string = UUIDUtil.getRandomUUID();
-    await this.withRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO application_context_deletion_runs
-                (deletion_run_id, application_id, user_email, user_id, vector_namespace, requested_vector_count, deleted_vector_count,
-                 mutation_ids, status, error_message, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-          )
-          .bind(
-            deletionRunId,
-            input.applicationId,
-            // The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
-            input.userEmail,
-            input.userId ?? null,
-            input.vectorNamespace,
-            input.requestedVectorCount,
-            input.deletedVectorCount,
-            JSON.stringify(input.mutationIds),
-            input.status,
-            input.errorMessage ? input.errorMessage.slice(0, 1024) : null,
-            now,
-            now,
-          )
-          .run(),
-      'record context deletion run',
+    await this.run(
+      ` INSERT INTO application_context_deletion_runs (deletion_run_id, application_id, user_email, user_id, vector_namespace, requested_vector_count, deleted_vector_count, mutation_ids, status, error_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) `,
+      [
+        deletionRunId,
+        input.applicationId, // The frozen anchor, kept so the pre-0028 foreign key keeps resolving.
+        input.userEmail,
+        input.userId ?? null,
+        input.vectorNamespace,
+        input.requestedVectorCount,
+        input.deletedVectorCount,
+        JSON.stringify(input.mutationIds),
+        input.status,
+        input.errorMessage ? input.errorMessage.slice(0, 1024) : null,
+        now,
+        now,
+      ],
     );
     const run: ApplicationContextDeletionRun | undefined = await this.getDeletionRunById(deletionRunId);
     if (!run) throw new DatabaseError('Failed to load context deletion run after create.');
@@ -95,39 +74,18 @@ class ContextDeletionRunDAO extends BaseDAO {
   }
 
   public async deleteOldDeletionRuns(olderThan: number, limit: number): Promise<number> {
-    const result: D1Result = await this.withRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM application_context_deletion_runs
-              WHERE deletion_run_id IN (
-                SELECT deletion_run_id FROM application_context_deletion_runs
-                WHERE created_at < ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(olderThan, limit)
-          .run(),
-      'delete old context deletion runs',
+    const result: D1Result = await this.run(
+      ` DELETE FROM application_context_deletion_runs WHERE deletion_run_id IN ( SELECT deletion_run_id FROM application_context_deletion_runs WHERE created_at < ? LIMIT ? ) `,
+      [olderThan, limit],
     );
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   private async getDeletionRunById(deletionRunId: string): Promise<ApplicationContextDeletionRun | undefined> {
-    const row: ApplicationContextDeletionRunInternal | null = await this.database
-      .prepare(
-        `
-          SELECT deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count,
-                 mutation_ids, status, error_message, created_at, updated_at
-          FROM application_context_deletion_runs
-          WHERE deletion_run_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(deletionRunId)
-      .first<ApplicationContextDeletionRunInternal>();
+    const row: ApplicationContextDeletionRunInternal | null = await this.first<ApplicationContextDeletionRunInternal>(
+      ` SELECT deletion_run_id, application_id, user_email, vector_namespace, requested_vector_count, deleted_vector_count, mutation_ids, status, error_message, created_at, updated_at FROM application_context_deletion_runs WHERE deletion_run_id = ? LIMIT 1 `,
+      [deletionRunId],
+    );
     return row ? this.toDeletionRun(row) : undefined;
   }
 
@@ -152,13 +110,13 @@ class ContextDeletionRunDAO extends BaseDAO {
    * a cursor issued before the tiebreaker still resumes.
    */
   private static parseCursor(cursor: string | undefined): { createdAt: number; id?: string } | undefined {
-    const parsed = CursorUtil.decode<unknown[]>(cursor);
+    const parsed = CursorCodec.decode<unknown[]>(cursor);
     if (!Array.isArray(parsed) || typeof parsed[0] !== 'number') return undefined;
     return typeof parsed[1] === 'string' ? { createdAt: parsed[0], id: parsed[1] } : { createdAt: parsed[0] };
   }
 
   private static encodeCursor(createdAt: number, id: string): string {
-    return CursorUtil.encode([createdAt, id]);
+    return CursorCodec.encode([createdAt, id]);
   }
 
   private static parseMutationIds(value: string | null): string[] {

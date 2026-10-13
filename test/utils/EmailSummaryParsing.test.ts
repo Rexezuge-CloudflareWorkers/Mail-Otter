@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EmailSummaryUtil } from '@mail-otter/backend-services/email';
-import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
+import { AiSummaryRetryableError } from '@mail-otter/backend-services/errors';
 
 function aiWith(response: unknown) {
   return { run: vi.fn().mockResolvedValue(response) } as unknown as Ai;

@@ -22,6 +22,13 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@rexezuge/d1": "link:../SDK/packages/d1",
+    "@rexezuge/errors": "link:../SDK/packages/errors",
+    "@rexezuge/http": "link:../SDK/packages/http",
+    "@rexezuge/i18n": "link:../SDK/packages/i18n",
+    "@rexezuge/identity": "link:../SDK/packages/identity",
+    "@rexezuge/runtime": "link:../SDK/packages/runtime",
+    "@rexezuge/shared": "link:../SDK/packages/shared",
     "@types/node": "26.6.4",
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/coverage-v8": "4.1.10",

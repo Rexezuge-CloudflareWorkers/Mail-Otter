@@ -16,14 +16,12 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
     const logId = UUIDUtil.getRandomUUID();
     const createdAt = TimestampUtil.getCurrentUnixTimestampInSeconds();
 
-    await this.database.batch([
-      this.database
-        .prepare(
-          `INSERT INTO integration_delivery_logs
+    await this.batch([
+      this.statement(
+        `INSERT INTO integration_delivery_logs
              (log_id, integration_id, application_id, status, http_status, error_message, email_subject, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(
+        [
           logId,
           input.integrationId,
           input.applicationId,
@@ -32,16 +30,16 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
           input.errorMessage ?? null,
           input.emailSubject ?? null,
           createdAt,
-        ),
-      this.database
-        .prepare(
-          `UPDATE application_integrations
+        ],
+      ),
+      this.statement(
+        `UPDATE application_integrations
            SET last_delivery_at = ?,
                last_delivery_status = ?,
                consecutive_failures = CASE WHEN ? = 'success' THEN 0 ELSE consecutive_failures + 1 END
            WHERE integration_id = ?`,
-        )
-        .bind(createdAt, input.status, input.status, input.integrationId),
+        [createdAt, input.status, input.status, input.integrationId],
+      ),
     ]);
 
     return this.toPublic({
@@ -57,11 +55,10 @@ class IntegrationDeliveryLogDAO extends BaseDAO {
   }
 
   public async listByIntegrationId(integrationId: string, limit: number): Promise<IntegrationDeliveryLog[]> {
-    const rows = await this.database
-      .prepare('SELECT * FROM integration_delivery_logs WHERE integration_id = ? ORDER BY created_at DESC LIMIT ?')
-      .bind(integrationId, limit)
-      .all<IntegrationDeliveryLogInternal>()
-      .then((r) => r.results ?? []);
+    const rows = await this.all<IntegrationDeliveryLogInternal>(
+      'SELECT * FROM integration_delivery_logs WHERE integration_id = ? ORDER BY created_at DESC LIMIT ?',
+      [integrationId, limit],
+    );
     return rows.map((row) => this.toPublic(row));
   }
 

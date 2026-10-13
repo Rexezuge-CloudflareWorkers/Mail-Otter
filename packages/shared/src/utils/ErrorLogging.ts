@@ -1,4 +1,4 @@
-import { ErrorSanitizationUtil } from './ErrorSanitizationUtil';
+import { ErrorSanitizationUtil } from '@rexezuge/shared';
 
 /**
  * Redacted error logging.

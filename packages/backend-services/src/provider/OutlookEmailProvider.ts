@@ -1,7 +1,7 @@
 import { PROVIDER_MICROSOFT_OUTLOOK } from '@mail-otter/shared/constants';
 import { OutlookProviderUtil } from '@mail-otter/provider-clients/outlook';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type {
   ApplicationContextDocumentSource,
   CalendarAddEventActionPayload,

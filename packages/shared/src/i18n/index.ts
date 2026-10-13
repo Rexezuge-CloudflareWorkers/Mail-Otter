@@ -1,4 +1,4 @@
-import { LocaleUtil, type SupportedLocale } from '../utils/LocaleUtil';
+import { LocaleUtil, type SupportedLocale } from '@rexezuge/shared';
 import type { BackendLocaleStrings } from './BackendStrings';
 import { enStrings } from './locales/en';
 import { deStrings } from './locales/de';

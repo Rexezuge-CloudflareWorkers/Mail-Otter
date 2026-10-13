@@ -121,7 +121,7 @@ vi.mock('../../packages/backend-services/src/application/ApplicationResponseUtil
 }));
 
 import { ApplicationService } from '../../packages/backend-services/src/application/ApplicationService';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 
 function makeEnv(overrides: Record<string, unknown> = {}) {
   return {

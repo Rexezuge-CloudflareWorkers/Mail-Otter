@@ -1,4 +1,3 @@
-import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 import { userScopeSql } from './userScope';
@@ -9,86 +8,48 @@ import type { UserScope, UserScopeSql } from './userScope';
 // keep public signatures stable while reducing the facade size.
 class ConnectedApplicationFlags extends BaseDAO {
   public async listApplicationIdsWithFeatureEnabled(featureName: string): Promise<string[]> {
-    const rows: Array<{ application_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT pac.application_id
-          FROM provider_application_configs pac, json_each(pac.config_value) je
-          JOIN connected_applications ca ON ca.application_id = pac.application_id
-          WHERE pac.config_key = 'oauth2_enabled_features'
-            AND je.value = ?
-            AND ca.status = 'connected'
-        `,
-      )
-      .bind(featureName)
-      .all<{ application_id: string }>()
-      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
+    const rows: Array<{ application_id: string }> = await this.all<{ application_id: string }>(
+      ` SELECT pac.application_id FROM provider_application_configs pac, json_each(pac.config_value) je JOIN connected_applications ca ON ca.application_id = pac.application_id WHERE pac.config_key = 'oauth2_enabled_features' AND je.value = ? AND ca.status = 'connected' `,
+      [featureName],
+    );
     return rows.map((row) => row.application_id);
   }
 
   public async listApplicationIdsWithProviderConfig(configKey: string, configValue: string): Promise<string[]> {
-    const rows: Array<{ application_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT pac.application_id
-          FROM provider_application_configs pac
-          JOIN connected_applications ca ON ca.application_id = pac.application_id
-          WHERE pac.config_key = ? AND pac.config_value = ? AND ca.status = 'connected'
-        `,
-      )
-      .bind(configKey, configValue)
-      .all<{ application_id: string }>()
-      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
+    const rows: Array<{ application_id: string }> = await this.all<{ application_id: string }>(
+      ` SELECT pac.application_id FROM provider_application_configs pac JOIN connected_applications ca ON ca.application_id = pac.application_id WHERE pac.config_key = ? AND pac.config_value = ? AND ca.status = 'connected' `,
+      [configKey, configValue],
+    );
     return rows.map((row) => row.application_id);
   }
 
   public async getProviderConfig(applicationId: string, configKey: string): Promise<string | null> {
-    const row: { config_value: string } | null = await this.database
-      .prepare('SELECT config_value FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
-      .bind(applicationId, configKey)
-      .first<{ config_value: string }>();
+    const row: { config_value: string } | null = await this.first<{ config_value: string }>(
+      'SELECT config_value FROM provider_application_configs WHERE application_id = ? AND config_key = ?',
+      [applicationId, configKey],
+    );
     return row?.config_value ?? null;
   }
 
   public async setProviderConfig(applicationId: string, configKey: string, configValue: string, now?: number): Promise<void> {
     const timestamp: number = now ?? TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO provider_application_configs (application_id, config_key, config_value, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(application_id, config_key) DO UPDATE SET config_value = excluded.config_value, updated_at = excluded.updated_at
-            `,
-          )
-          .bind(applicationId, configKey, configValue, timestamp, timestamp)
-          .run(),
-      'set provider config',
+    await this.run(
+      ` INSERT INTO provider_application_configs (application_id, config_key, config_value, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(application_id, config_key) DO UPDATE SET config_value = excluded.config_value, updated_at = excluded.updated_at `,
+      [applicationId, configKey, configValue, timestamp, timestamp],
     );
   }
 
   public async deleteProviderConfig(applicationId: string, configKey: string): Promise<void> {
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('DELETE FROM provider_application_configs WHERE application_id = ? AND config_key = ?')
-          .bind(applicationId, configKey)
-          .run(),
-      'delete provider config',
-    );
+    await this.run('DELETE FROM provider_application_configs WHERE application_id = ? AND config_key = ?', [applicationId, configKey]);
   }
 
   public async getWatchedFolders(applicationId: string): Promise<Array<{ folderPath: string; folderName: string }>> {
-    const rows: Array<{ folder_path: string; folder_name: string | null }> = await this.database
-      .prepare('SELECT folder_path, folder_name FROM application_watched_folders WHERE application_id = ? ORDER BY folder_path ASC')
-      .bind(applicationId)
-      .all<{ folder_path: string; folder_name: string | null }>()
-      .then(
-        (
-          result: D1Result<{ folder_path: string; folder_name: string | null }>,
-        ): Array<{ folder_path: string; folder_name: string | null }> => result.results || [],
-      );
+    const rows: Array<{ folder_path: string; folder_name: string | null }> = await this.all<{
+      folder_path: string;
+      folder_name: string | null;
+    }>('SELECT folder_path, folder_name FROM application_watched_folders WHERE application_id = ? ORDER BY folder_path ASC', [
+      applicationId,
+    ]);
     return rows.map((row: { folder_path: string; folder_name: string | null }): { folderPath: string; folderName: string } => ({
       folderPath: row.folder_path,
       folderName: row.folder_name || row.folder_path,
@@ -120,14 +81,12 @@ class ConnectedApplicationFlags extends BaseDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const column: string = errorType === 'processing' ? 'last_error_acknowledged_at' : 'context_last_error_acknowledged_at';
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND ${where.clause}`)
-          .bind(now, now, applicationId, ...where.bindings)
-          .run(),
-      'acknowledge application error',
-    );
+    await this.run(`UPDATE connected_applications SET ${column} = ?, updated_at = ? WHERE application_id = ? AND ${where.clause}`, [
+      now,
+      now,
+      applicationId,
+      ...where.bindings,
+    ]);
   }
 
   public async replaceWatchedFolders(
@@ -137,27 +96,16 @@ class ConnectedApplicationFlags extends BaseDAO {
     now: number,
   ): Promise<void> {
     if (folderIds && folderIds.length > 0) {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database.prepare('DELETE FROM application_watched_folders WHERE application_id = ?').bind(applicationId).run(),
-        'clear watched folders',
-      );
+      await this.run('DELETE FROM application_watched_folders WHERE application_id = ?', [applicationId]);
       const stmt = this.database.prepare(
         'INSERT INTO application_watched_folders (application_id, folder_path, folder_name, created_at) VALUES (?, ?, ?, ?)',
       );
       for (const folderPath of folderIds) {
         const folderName: string = folderNames?.[folderPath] || folderPath;
-        await executeD1WithRetry(
-          (): Promise<D1Result> => stmt.bind(applicationId, folderPath, folderName, now).run(),
-          'insert watched folder',
-        );
+        await stmt.bind(applicationId, folderPath, folderName, now).run();
       }
     } else {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database.prepare('DELETE FROM application_watched_folders WHERE application_id = ?').bind(applicationId).run(),
-        'clear watched folders',
-      );
+      await this.run('DELETE FROM application_watched_folders WHERE application_id = ?', [applicationId]);
     }
   }
 }

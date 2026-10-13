@@ -1,6 +1,6 @@
 import type { UserScope } from '@mail-otter/backend-data/dao';
 import type { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import type { EmailProcessingRule } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { EmailRuleSuggestionUtil } from '../email/EmailRuleSuggestionUtil';

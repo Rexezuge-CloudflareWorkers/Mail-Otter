@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
 import { PROVIDER_GOOGLE_GMAIL } from '@mail-otter/shared/constants';
-import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
+import { BadRequestError, InternalServerError } from '@rexezuge/errors';
 
 function mockTokenResponse(status: number, body: unknown) {
   return {

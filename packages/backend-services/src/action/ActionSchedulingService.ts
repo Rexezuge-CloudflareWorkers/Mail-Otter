@@ -5,7 +5,7 @@ import {
   EMAIL_ACTION_TYPE_EMAIL_DRAFT_REPLY,
   EMAIL_ACTION_TRIGGER_SCHEDULED,
 } from '@mail-otter/shared/constants';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import { TimestampUtil, logError } from '@mail-otter/shared/utils';
 import type { EmailAction } from '@mail-otter/shared/model';
 import { createActionDAO } from './ActionServiceUtils';

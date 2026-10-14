@@ -61,12 +61,12 @@ describe('EmailActionQueries', () => {
         return [sql.includes('GROUP BY status') ? { status: 'pending', cnt: 2 } : { action_type: 'x', cnt: 2 }];
       },
     });
-    const queries = new EmailActionQueries(db as never);
+    const queries = new EmailActionQueries(db);
     const scoped = await queries.getCountsByUserAndDateRange('u@x', 1, 2, 'app-1');
     expect(scoped).toEqual({ byStatus: { pending: 2 }, byType: { x: 2 } });
     expect(seen[0]).toContain('application_id = ?');
     const { db: db2 } = makeDb({ all: () => [] });
-    const unscoped = await new EmailActionQueries(db2 as never).getCountsByUserAndDateRange('u@x', 1, 2);
+    const unscoped = await new EmailActionQueries(db2).getCountsByUserAndDateRange('u@x', 1, 2);
     expect(unscoped).toEqual({ byStatus: {}, byType: {} });
   });
 
@@ -75,7 +75,7 @@ describe('EmailActionQueries', () => {
       first: (sql) => (sql.includes('COUNT(*)') ? { count: 1 } : null),
       all: () => [execRow],
     });
-    const execution = await new EmailActionQueries(db as never).recordExecution({
+    const execution = await new EmailActionQueries(db).recordExecution({
       actionId: 'a-1',
       triggeredBy: 'user',
       status: 'succeeded',
@@ -97,7 +97,7 @@ describe('EmailActionQueries', () => {
         }),
       })),
     };
-    const execution = await new EmailActionQueries(db as never).recordExecution({
+    const execution = await new EmailActionQueries(db).recordExecution({
       actionId: 'a-1',
       triggeredBy: 'system',
       status: 'failed',
@@ -117,7 +117,7 @@ describe('EmailActionQueries', () => {
 
   it('lists executions mapped to the public shape', async () => {
     const { db } = makeDb({ all: () => [execRow] });
-    const list = await new EmailActionQueries(db as never).listExecutions('a-1');
+    const list = await new EmailActionQueries(db).listExecutions('a-1');
     expect(list.executions).toHaveLength(1);
     expect(list.executions[0]).toMatchObject({ executionId: 'e-1', triggeredBy: 'user' });
   });
@@ -125,7 +125,7 @@ describe('EmailActionQueries', () => {
   it('reads and writes sync status', async () => {
     const ran: string[] = [];
     const { db } = makeDb({ first: () => ({ sync_status: 'synced', sync_updated_at: 9 }) });
-    const queries = new EmailActionQueries(db as never);
+    const queries = new EmailActionQueries(db);
     await queries.updateSyncStatus('a-1', 'synced');
     await expect(queries.getSyncStatus('a-1')).resolves.toEqual({ syncStatus: 'synced', syncUpdatedAt: 9 });
     const { db: db2 } = makeDb({ first: () => null });
@@ -135,7 +135,7 @@ describe('EmailActionQueries', () => {
 
   it('deletes old terminal actions and returns change count', async () => {
     const { db } = makeDb({ run: () => ({ changes: 4 }) });
-    const deleted = await new EmailActionQueries(db as never).deleteOlderThan(100, 50, ['succeeded', 'failed']);
+    const deleted = await new EmailActionQueries(db).deleteOlderThan(100, 50, ['succeeded', 'failed']);
     expect(deleted).toBe(4);
   });
 });

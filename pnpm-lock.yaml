@@ -4,6 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@rexezuge/d1': 1.7.2
+  '@rexezuge/errors': 1.7.2
+  '@rexezuge/http': 1.7.2
+  '@rexezuge/i18n': 1.7.2
+  '@rexezuge/identity': 1.7.2
+  '@rexezuge/runtime': 1.7.2
+  '@rexezuge/shared': 1.7.2
+
 importers:
 
   .:
@@ -11,6 +20,27 @@ importers:
       '@cloudflare/vitest-pool-workers':
         specifier: 0.22.0
         version: 0.22.0(@vitest/runner@4.1.10)(@vitest/snapshot@4.1.10)(vitest@4.1.10)
+      '@rexezuge/d1':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/http':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/i18n':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/identity':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/runtime':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -77,9 +107,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../../packages/backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
@@ -92,6 +119,24 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@rexezuge/d1':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/http':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/identity':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/runtime':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
       chanfana:
         specifier: 3.4.0
         version: 3.4.0
@@ -111,9 +156,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../../packages/backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../../packages/backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../../packages/backend-runtime
@@ -126,6 +168,21 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@rexezuge/d1':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/identity':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/runtime':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -197,25 +254,18 @@ importers:
 
   packages/backend-data:
     dependencies:
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
-    devDependencies:
-      '@types/node':
-        specifier: 26.6.4
-        version: 26.6.4
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
-  packages/backend-errors:
-    dependencies:
-      hono:
-        specifier: 4.13.13
-        version: 4.13.13
+      '@rexezuge/d1':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -229,6 +279,12 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/runtime':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
     devDependencies:
       '@types/node':
         specifier: 26.6.4
@@ -242,9 +298,6 @@ importers:
       '@mail-otter/backend-data':
         specifier: workspace:*
         version: link:../backend-data
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/backend-runtime':
         specifier: workspace:*
         version: link:../backend-runtime
@@ -254,6 +307,21 @@ importers:
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/d1':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/identity':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/runtime':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
       jose:
         specifier: 6.2.12
         version: 6.2.12
@@ -267,12 +335,15 @@ importers:
 
   packages/provider-clients:
     dependencies:
-      '@mail-otter/backend-errors':
-        specifier: workspace:*
-        version: link:../backend-errors
       '@mail-otter/shared':
         specifier: workspace:*
         version: link:../shared
+      '@rexezuge/errors':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
       html-to-text:
         specifier: 10.0.1
         version: 10.0.1
@@ -289,6 +360,12 @@ importers:
 
   packages/shared:
     dependencies:
+      '@rexezuge/i18n':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@rexezuge/shared':
+        specifier: 1.7.2
+        version: 1.7.2
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -424,6 +501,7 @@ packages:
 
   '@cloudflare/vitest-pool-workers@0.22.0':
     resolution: {integrity: sha512-OJv/qikkOgxnKxJ5xrLS7zuOLZhc/6iziU+llqZm4tiQf2CJUYwlMuXN68VaWIQebORd1AUx4w6A0oy8XRbuaQ==}
+    deprecated: '@cloudflare/vitest-pool-workers has been renamed to @cloudflare/vitest-plugin. This package will not receive future updates.'
     peerDependencies:
       '@vitest/runner': ^4.1.0
       '@vitest/snapshot': ^4.1.0
@@ -1276,6 +1354,27 @@ packages:
 
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
+
+  '@rexezuge/d1@1.7.2':
+    resolution: {integrity: sha512-mYSnQHn6NHQXk/thlAhpNc8s2LvTZQBFUJsxS5ve/bg1D2xo3ri+Av2SMPVl/V6vTJaM0oM89NbtPSjxZEdJSg==}
+
+  '@rexezuge/errors@1.7.2':
+    resolution: {integrity: sha512-Y+IJqQkhK/qBHfmeU188SCFEjkwikcZSH9ZCcRlz47fOV6zAAgh2QLhgk/2Qj4DYuxN4SgGTgRuEYqla+d+N3Q==}
+
+  '@rexezuge/http@1.7.2':
+    resolution: {integrity: sha512-GX2DyA+f8cCup6NK7D/XJuEcppTmNdUYNSvz7YD87sb1ZjBuAJAdvIJuRlfpJagXP5Iwp3Eb072L6zD1jMcoBA==}
+
+  '@rexezuge/i18n@1.7.2':
+    resolution: {integrity: sha512-6x+1Cy59R/YxK1l8DgiTYzOvykjFcjPp9eLx/zOUUk1St8W9FIcYaVvBqcdx2CIjShlQBQvQwnyzubNiblbVTw==}
+
+  '@rexezuge/identity@1.7.2':
+    resolution: {integrity: sha512-vtMnVZ5seSlKzYVdsVgzuLd5ugE93p/J1PrDQWxjtDu6rhwJQUY8+V6bq0SPCuJv+o4KunbEX2eXHQWPtb1D/w==}
+
+  '@rexezuge/runtime@1.7.2':
+    resolution: {integrity: sha512-EgNu12IxhPymwYJSpdyCra60SyBSOtECMN53QVfwMMGFtkKyOOWSRU3a28AWNUcNq+LztIQkk4t3GxYrPdDYjw==}
+
+  '@rexezuge/shared@1.7.2':
+    resolution: {integrity: sha512-Wuy+3mkHCBckVbbrMohke+Iv3RQ8I7hAZvQNBQJzNpb3E7vXLHzIxEudXjf4H4AuJHfTi9xyVjdOb4LB/hvGyA==}
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     resolution: {integrity: sha512-dB/a1214qKfHMXCpgqR4OZT+jS4kTyEXbQGJPqzobt5EwH5rX080pxE37alt3RzvR1bf1Yz/yGqRfrYAxuPw0A==}
@@ -3897,6 +3996,33 @@ snapshots:
       supports-color: 10.2.2
 
   '@poppinss/exception@1.2.3': {}
+
+  '@rexezuge/d1@1.7.2':
+    dependencies:
+      '@rexezuge/errors': 1.7.2
+      '@rexezuge/shared': 1.7.2
+
+  '@rexezuge/errors@1.7.2': {}
+
+  '@rexezuge/http@1.7.2':
+    dependencies:
+      '@rexezuge/errors': 1.7.2
+      '@rexezuge/shared': 1.7.2
+      chanfana: 3.4.0
+      hono: 4.13.13
+      jose: 6.2.12
+
+  '@rexezuge/i18n@1.7.2': {}
+
+  '@rexezuge/identity@1.7.2':
+    dependencies:
+      '@rexezuge/d1': 1.7.2
+      '@rexezuge/errors': 1.7.2
+      '@rexezuge/shared': 1.7.2
+
+  '@rexezuge/runtime@1.7.2': {}
+
+  '@rexezuge/shared@1.7.2': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     optional: true

@@ -3,7 +3,7 @@ import { OneDriveProviderUtil } from '@mail-otter/provider-clients/onedrive';
 import type { OneDriveItem } from '@mail-otter/provider-clients/onedrive';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { CONTEXT_SOURCE_TYPE_ONEDRIVE } from '@mail-otter/shared/constants';
-import { UnauthorizedError } from '@mail-otter/backend-errors';
+import { UnauthorizedError } from '@rexezuge/errors';
 import { AbstractDriveIngestionService } from './AbstractDriveIngestionService';
 import type {
   DriveBootstrap,

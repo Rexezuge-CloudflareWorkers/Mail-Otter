@@ -7,6 +7,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rexezuge/i18n": "1.7.2",
+    "@rexezuge/shared": "1.7.2",
     "zod": "4.6.5"
   },
   "devDependencies": {

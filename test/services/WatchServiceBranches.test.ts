@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WatchService } from '@mail-otter/backend-services/subscription';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 
 function makeApp(overrides: Record<string, unknown> = {}) {
   return {

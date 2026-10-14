@@ -1,6 +1,5 @@
 import { UUIDUtil, TimestampUtil } from '@mail-otter/shared/utils';
-import { executeD1WithRetry } from '../utils';
-import { CursorUtil } from '../utils';
+import { CursorCodec } from '@rexezuge/shared';
 import type { SyncedCalendarEvent, SyncedCalendarEventInternal, SyncedCalendarEventList } from '@mail-otter/shared/model';
 import { userScopeSql } from './userScope';
 import type { UserScope, UserScopeSql } from './userScope';
@@ -10,50 +9,29 @@ class SyncedCalendarEventDAO extends BaseDAO {
   public async upsertEvents(applicationId: string, events: UpsertCalendarEventInput[]): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (const event of events) {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                INSERT INTO synced_calendar_events
-                  (sync_event_id, application_id, provider_event_id, event_title, start_time, end_time, time_zone, location, notes, synced_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(application_id, provider_event_id)
-                DO UPDATE SET event_title = excluded.event_title, start_time = excluded.start_time, end_time = excluded.end_time,
-                              time_zone = excluded.time_zone, location = excluded.location, notes = excluded.notes, synced_at = excluded.synced_at
-              `,
-            )
-            .bind(
-              UUIDUtil.getRandomUUID(),
-              applicationId,
-              event.providerEventId,
-              event.eventTitle,
-              event.startTime,
-              event.endTime,
-              event.timeZone,
-              event.location ?? null,
-              event.notes ?? null,
-              now,
-            )
-            .run(),
-        'upsert synced calendar event',
+      await this.run(
+        ` INSERT INTO synced_calendar_events (sync_event_id, application_id, provider_event_id, event_title, start_time, end_time, time_zone, location, notes, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(application_id, provider_event_id) DO UPDATE SET event_title = excluded.event_title, start_time = excluded.start_time, end_time = excluded.end_time, time_zone = excluded.time_zone, location = excluded.location, notes = excluded.notes, synced_at = excluded.synced_at `,
+        [
+          UUIDUtil.getRandomUUID(),
+          applicationId,
+          event.providerEventId,
+          event.eventTitle,
+          event.startTime,
+          event.endTime,
+          event.timeZone,
+          event.location ?? null,
+          event.notes ?? null,
+          now,
+        ],
       );
     }
   }
 
   public async listEventsForRange(applicationId: string, startUnix: number, endUnix: number): Promise<SyncedCalendarEvent[]> {
-    const rows: SyncedCalendarEventInternal[] = await this.database
-      .prepare(
-        `
-          SELECT sync_event_id, application_id, provider_event_id, event_title, start_time, end_time, time_zone, location, notes, synced_at
-          FROM synced_calendar_events
-          WHERE application_id = ? AND start_time >= ? AND start_time < ?
-          ORDER BY start_time ASC
-        `,
-      )
-      .bind(applicationId, startUnix, endUnix)
-      .all<SyncedCalendarEventInternal>()
-      .then((result: D1Result<SyncedCalendarEventInternal>): SyncedCalendarEventInternal[] => result.results || []);
+    const rows: SyncedCalendarEventInternal[] = await this.all<SyncedCalendarEventInternal>(
+      ` SELECT sync_event_id, application_id, provider_event_id, event_title, start_time, end_time, time_zone, location, notes, synced_at FROM synced_calendar_events WHERE application_id = ? AND start_time >= ? AND start_time < ? ORDER BY start_time ASC `,
+      [applicationId, startUnix, endUnix],
+    );
     return rows.map((r) => SyncedCalendarEventDAO.toEvent(r));
   }
 
@@ -74,19 +52,10 @@ class SyncedCalendarEventDAO extends BaseDAO {
       bindings.push(cursor.syncedAt, cursor.syncedAt, cursor.syncEventId);
     }
 
-    const rows: SyncedCalendarEventInternal[] = await this.database
-      .prepare(
-        `SELECT sce.sync_event_id, sce.application_id, sce.provider_event_id, sce.event_title,
-                sce.start_time, sce.end_time, sce.time_zone, sce.location, sce.notes, sce.synced_at
-         FROM synced_calendar_events sce
-         INNER JOIN connected_applications ca ON ca.application_id = sce.application_id
-         WHERE ${conditions.join(' AND ')}
-         ORDER BY sce.synced_at DESC, sce.sync_event_id DESC
-         LIMIT ?`,
-      )
-      .bind(...bindings, limit + 1)
-      .all<SyncedCalendarEventInternal>()
-      .then((result: D1Result<SyncedCalendarEventInternal>): SyncedCalendarEventInternal[] => result.results || []);
+    const rows: SyncedCalendarEventInternal[] = await this.all<SyncedCalendarEventInternal>(
+      `SELECT sce.sync_event_id, sce.application_id, sce.provider_event_id, sce.event_title, sce.start_time, sce.end_time, sce.time_zone, sce.location, sce.notes, sce.synced_at FROM synced_calendar_events sce INNER JOIN connected_applications ca ON ca.application_id = sce.application_id WHERE ${conditions.join(' AND ')} ORDER BY sce.synced_at DESC, sce.sync_event_id DESC LIMIT ?`,
+      [...bindings, limit + 1],
+    );
 
     const pageRows = rows.slice(0, limit);
     return {
@@ -101,11 +70,11 @@ class SyncedCalendarEventDAO extends BaseDAO {
   }
 
   private static encodeCursor(syncedAt: number, syncEventId: string): string {
-    return CursorUtil.encode({ syncedAt, syncEventId });
+    return CursorCodec.encode({ syncedAt, syncEventId });
   }
 
   private static parseCursor(cursor: string | undefined): { syncedAt: number; syncEventId: string } | undefined {
-    const parsed = CursorUtil.decode<{ syncedAt?: unknown; syncEventId?: unknown }>(cursor);
+    const parsed = CursorCodec.decode<{ syncedAt?: unknown; syncEventId?: unknown }>(cursor);
     return !parsed || typeof parsed.syncedAt !== 'number' || typeof parsed.syncEventId !== 'string'
       ? undefined
       : { syncedAt: parsed.syncedAt, syncEventId: parsed.syncEventId };

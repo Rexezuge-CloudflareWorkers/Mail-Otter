@@ -46,7 +46,7 @@ import {
   DEFAULT_CHAT_MAX_HISTORY_MESSAGES,
   DEFAULT_PUBLIC_BASE_URL,
 } from './ConfigurationDefaults';
-import { EnvParser } from './EnvParser';
+import { EnvParser } from '@rexezuge/runtime';
 
 class ConfigurationManager {
   // ─── Namespace groups ────────────────────────────────────────────────────────

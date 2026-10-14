@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import {
   EmailProviderRegistry,
   createEmailProviderRegistry,

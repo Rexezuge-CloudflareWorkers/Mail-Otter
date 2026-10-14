@@ -1,5 +1,5 @@
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError, UnauthorizedError } from '@mail-otter/backend-errors';
+import { BadRequestError, UnauthorizedError } from '@rexezuge/errors';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
 import { BaseWebhookService } from './BaseWebhookService';

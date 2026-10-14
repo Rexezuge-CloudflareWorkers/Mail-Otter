@@ -1,7 +1,7 @@
 import type { UserScope } from '@mail-otter/backend-data/dao';
 import { ConnectedApplicationDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 import { EmailProviderRegistry } from '../provider/EmailProviderRegistry';
 import type { ProviderFolder } from '../provider/IEmailProvider';

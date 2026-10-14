@@ -44,7 +44,7 @@ import { GmailWebhookRoute } from '../../apps/api/src/endpoints/api/webhooks/gma
 import { OutlookWebhookRoute } from '../../apps/api/src/endpoints/api/webhooks/outlook/POST';
 import { OutlookLifecycleWebhookRoute } from '../../apps/api/src/endpoints/api/webhooks/outlook/lifecycle/POST';
 import { FastmailWebhookRoute } from '../../apps/api/src/endpoints/api/webhooks/fastmail/POST';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 
 function makeCxt(params: Record<string, string | undefined> = {}) {
   return {

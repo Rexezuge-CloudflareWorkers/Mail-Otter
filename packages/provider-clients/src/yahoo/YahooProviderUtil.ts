@@ -1,4 +1,4 @@
-import { InternalServerError } from '@mail-otter/backend-errors';
+import { InternalServerError } from '@rexezuge/errors';
 
 class YahooProviderUtil {
   public static async getProfile(accessToken: string): Promise<{ email: string }> {

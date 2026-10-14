@@ -2,7 +2,7 @@
 // Supports IMAPS (port 993) and STARTTLS (port 143/587).
 // Only implements the commands needed by Mail-Otter: LOGIN, XOAUTH2, SELECT, UID SEARCH, UID FETCH.
 import { connect } from 'cloudflare:sockets';
-import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
+import { BadRequestError, InternalServerError } from '@rexezuge/errors';
 
 export interface ImapConnectOptions {
   host: string;

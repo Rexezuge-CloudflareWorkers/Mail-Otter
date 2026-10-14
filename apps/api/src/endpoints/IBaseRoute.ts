@@ -1,7 +1,8 @@
 import { OpenAPIRoute } from 'chanfana';
 import { Context } from 'hono';
-import type { StatusCode } from 'hono/utils/http-status';
-import { BadRequestError, DefaultInternalServerError, ServiceError } from '@mail-otter/backend-errors';
+import type { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
+import { BadRequestError, ServiceError } from '@rexezuge/errors';
+import { errorBody, toServiceError } from '@rexezuge/http';
 import { validateRequestInput } from '@mail-otter/shared/schema';
 import { logError } from '@mail-otter/shared/utils';
 
@@ -118,24 +119,15 @@ abstract class IBaseRoute<TRequest extends IRequest, TResponse extends IResponse
     // Typed service errors (including NotFoundError/DatabaseError and 5xx
     // domain errors) map to their own status/type/message with the original
     // cause preserved. Only untyped errors are masked as internal errors.
-    if (error instanceof ServiceError) {
-      if (error.getErrorCode() < 500) {
-        logError('warn', `Responding with ${error.getErrorType()}`, error);
-      } else {
-        logError('error', `Responding with ${error.getErrorType()}`, error);
-      }
-      return c.json({ Exception: { Type: error.getErrorType(), Message: error.getErrorMessage() } }, error.getErrorCode());
-    }
-    logError('error', 'Caught service error during execution', error);
-    return c.json(
-      {
-        Exception: {
-          Type: DefaultInternalServerError.getErrorType(),
-          Message: DefaultInternalServerError.getErrorMessage(),
-        },
-      },
-      DefaultInternalServerError.getErrorCode(),
-    );
+    //
+    // The kit's `errorBody` applies the taxonomy's `expose` rule: a 5xx message
+    // is for operators and is replaced before it reaches a client. The previous
+    // hand-rolled mapper shipped the raw message, so a `DatabaseError` carrying
+    // `Failed to <context>: <d1 message>` put D1 internals on the wire.
+    const serviceError: ServiceError = toServiceError(error);
+    const level: 'warn' | 'error' = serviceError.status < 500 ? 'warn' : 'error';
+    logError(level, `Responding with ${serviceError.type}`, error);
+    return c.json(errorBody(serviceError), serviceError.status as ContentfulStatusCode);
   }
 }
 

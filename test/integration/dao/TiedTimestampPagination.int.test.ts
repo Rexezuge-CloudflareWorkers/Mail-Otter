@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import { env } from 'cloudflare:test';
 import { ActivityDAO, ContextAuditLogDAO } from '@mail-otter/backend-data/dao';
+import { CursorCodec } from '@rexezuge/shared';
 import { setupActionIntegrationTest, createApplicationViaApi, seedConnectedApp } from '../helpers/setup';
 
 const TEST_EMAIL = 'test@example.com';
@@ -118,8 +119,7 @@ describe('tied-timestamp cursor pagination', () => {
     );
 
     // A cursor written by the previous `[createdAt]`-only shape.
-    const { CursorUtil } = await import('@mail-otter/backend-data/utils');
-    const legacyCursor = CursorUtil.encode([now + 1]);
+    const legacyCursor = CursorCodec.encode([now + 1]);
     const page = await dao.listAuditLogs(contextDocumentId, { limit: 50, cursor: legacyCursor });
     expect(page.logs).toHaveLength(3);
   });
@@ -167,12 +167,11 @@ describe('tied-timestamp cursor pagination', () => {
       .bind(crypto.randomUUID(), applicationId, `legacy-${crypto.randomUUID()}`, now, now)
       .run();
 
-    const { CursorUtil } = await import('@mail-otter/backend-data/utils');
     const dao = new ActivityDAO(env.DB);
     const page = await dao.listForUser(TEST_SCOPE, {
       applicationId,
       limit: 10,
-      cursor: CursorUtil.encode({ beforeTs: now + 1 }),
+      cursor: CursorCodec.encode({ beforeTs: now + 1 }),
     });
     expect(page.entries.length).toBeGreaterThan(0);
   });

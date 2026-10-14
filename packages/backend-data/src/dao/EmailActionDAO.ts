@@ -6,7 +6,7 @@ import {
   EMAIL_ACTION_STATUS_SUCCEEDED,
 } from '@mail-otter/shared/constants';
 import { decryptDataWithSalt, encryptDataWithSalt } from '../crypto';
-import { CursorUtil, executeD1WithRetry } from '../utils';
+import { CursorCodec } from '@rexezuge/shared';
 import type {
   EmailAction,
   EmailActionExecution,
@@ -23,6 +23,7 @@ import type { UserScope, UserScopeSql } from './userScope';
 import { EncryptedDAO } from './BaseDAO';
 import { EmailActionQueries } from './EmailActionQueries';
 import type { EmailActionCounts, RecordEmailActionExecutionInput } from './EmailActionQueries';
+import type { D1Result } from '@rexezuge/d1';
 
 class EmailActionDAO extends EncryptedDAO {
   private queries(): EmailActionQueries {
@@ -32,41 +33,28 @@ class EmailActionDAO extends EncryptedDAO {
   public async create(input: CreateEmailActionInput): Promise<EmailAction> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encryptedPayload = await encryptDataWithSalt(JSON.stringify(input.payload), this.masterKey);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO email_summary_actions
-                (action_id, processed_message_id, application_id, user_email, user_id, provider_id, provider_message_id, provider_thread_id,
-                 action_type, status, risk_level, token_hash, encrypted_payload, payload_iv, payload_salt,
-                 encrypted_result, result_iv, result_salt, error_message, expires_at, executed_at, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, NULL, ?, ?)
-            `,
-          )
-          .bind(
-            input.actionId,
-            input.processedMessageId,
-            input.applicationId,
-            // The frozen anchor, retained for attribution; `user_id` is the account.
-            input.userEmail,
-            input.userId ?? null,
-            input.providerId,
-            input.providerMessageId,
-            input.providerThreadId || null,
-            input.actionType,
-            EMAIL_ACTION_STATUS_PENDING,
-            input.riskLevel,
-            input.tokenHash,
-            encryptedPayload.encrypted,
-            encryptedPayload.iv,
-            encryptedPayload.salt,
-            input.expiresAt,
-            now,
-            now,
-          )
-          .run(),
-      'create email action',
+    await this.run(
+      ` INSERT INTO email_summary_actions (action_id, processed_message_id, application_id, user_email, user_id, provider_id, provider_message_id, provider_thread_id, action_type, status, risk_level, token_hash, encrypted_payload, payload_iv, payload_salt, encrypted_result, result_iv, result_salt, error_message, expires_at, executed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, NULL, ?, ?) `,
+      [
+        input.actionId,
+        input.processedMessageId,
+        input.applicationId, // The frozen anchor, retained for attribution; `user_id` is the account.
+        input.userEmail,
+        input.userId ?? null,
+        input.providerId,
+        input.providerMessageId,
+        input.providerThreadId || null,
+        input.actionType,
+        EMAIL_ACTION_STATUS_PENDING,
+        input.riskLevel,
+        input.tokenHash,
+        encryptedPayload.encrypted,
+        encryptedPayload.iv,
+        encryptedPayload.salt,
+        input.expiresAt,
+        now,
+        now,
+      ],
     );
     const action: EmailAction | undefined = await this.getById(input.actionId);
     if (!action) throw new Error('Failed to load email action after create.');
@@ -96,19 +84,10 @@ class EmailActionDAO extends EncryptedDAO {
       conditions.push('(updated_at < ? OR (updated_at = ? AND created_at < ?))');
       bindings.push(cursor.updatedAt, cursor.updatedAt, cursor.createdAt);
     }
-    const rows: EmailActionInternal[] = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY updated_at DESC, created_at DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, limit + 1)
-      .all<EmailActionInternal>()
-      .then((result: D1Result<EmailActionInternal>): EmailActionInternal[] => result.results || []);
+    const rows: EmailActionInternal[] = await this.all<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE ${conditions.join(' AND ')} ORDER BY updated_at DESC, created_at DESC LIMIT ? `,
+      [...bindings, limit + 1],
+    );
     const pageRows: EmailActionInternal[] = rows.slice(0, limit);
     const actions: EmailAction[] = await Promise.all(pageRows.map((row: EmailActionInternal): Promise<EmailAction> => this.toAction(row)));
     return {
@@ -119,50 +98,26 @@ class EmailActionDAO extends EncryptedDAO {
 
   public async getForUser(actionId: string, scope: UserScope): Promise<EmailAction | undefined> {
     const where: UserScopeSql = userScopeSql(scope);
-    const row: EmailActionInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE action_id = ? AND ${where.clause}
-          LIMIT 1
-        `,
-      )
-      .bind(actionId, ...where.bindings)
-      .first<EmailActionInternal>();
+    const row: EmailActionInternal | null = await this.first<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE action_id = ? AND ${where.clause} LIMIT 1 `,
+      [actionId, ...where.bindings],
+    );
     return row ? this.toAction(row) : undefined;
   }
 
   public async getByTokenHash(actionId: string, tokenHash: string): Promise<EmailAction | undefined> {
-    const row: EmailActionInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE action_id = ? AND token_hash = ?
-          LIMIT 1
-        `,
-      )
-      .bind(actionId, tokenHash)
-      .first<EmailActionInternal>();
+    const row: EmailActionInternal | null = await this.first<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE action_id = ? AND token_hash = ? LIMIT 1 `,
+      [actionId, tokenHash],
+    );
     return row ? this.toAction(row) : undefined;
   }
 
   public async claimForExecution(actionId: string): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET status = ?, updated_at = ?
-              WHERE action_id = ? AND status = ? AND expires_at > ?
-            `,
-          )
-          .bind(EMAIL_ACTION_STATUS_EXECUTING, now, actionId, EMAIL_ACTION_STATUS_PENDING, now)
-          .run(),
-      'claim email action for execution',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET status = ?, updated_at = ? WHERE action_id = ? AND status = ? AND expires_at > ? `,
+      [EMAIL_ACTION_STATUS_EXECUTING, now, actionId, EMAIL_ACTION_STATUS_PENDING, now],
     );
     return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
@@ -170,19 +125,9 @@ class EmailActionDAO extends EncryptedDAO {
   public async markSucceeded(actionId: string, result: EmailActionResult): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encryptedResult = await encryptDataWithSalt(JSON.stringify(result), this.masterKey);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET status = ?, encrypted_result = ?, result_iv = ?, result_salt = ?, error_message = NULL, executed_at = ?, updated_at = ?
-              WHERE action_id = ?
-            `,
-          )
-          .bind(EMAIL_ACTION_STATUS_SUCCEEDED, encryptedResult.encrypted, encryptedResult.iv, encryptedResult.salt, now, now, actionId)
-          .run(),
-      'mark email action succeeded',
+    await this.run(
+      ` UPDATE email_summary_actions SET status = ?, encrypted_result = ?, result_iv = ?, result_salt = ?, error_message = NULL, executed_at = ?, updated_at = ? WHERE action_id = ? `,
+      [EMAIL_ACTION_STATUS_SUCCEEDED, encryptedResult.encrypted, encryptedResult.iv, encryptedResult.salt, now, now, actionId],
     );
   }
 
@@ -195,42 +140,18 @@ class EmailActionDAO extends EncryptedDAO {
   }
 
   public async expirePendingActions(now: number, limit: number): Promise<number> {
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET status = ?, updated_at = ?
-              WHERE action_id IN (
-                SELECT action_id
-                FROM email_summary_actions
-                WHERE status = ? AND expires_at <= ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(EMAIL_ACTION_STATUS_EXPIRED, now, EMAIL_ACTION_STATUS_PENDING, now, limit)
-          .run(),
-      'expire pending email actions',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET status = ?, updated_at = ? WHERE action_id IN ( SELECT action_id FROM email_summary_actions WHERE status = ? AND expires_at <= ? LIMIT ? ) `,
+      [EMAIL_ACTION_STATUS_EXPIRED, now, EMAIL_ACTION_STATUS_PENDING, now, limit],
     );
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async deleteByProcessedMessageId(processedMessageId: string): Promise<number> {
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM email_summary_actions
-              WHERE processed_message_id = ? AND status = ?
-            `,
-          )
-          .bind(processedMessageId, EMAIL_ACTION_STATUS_PENDING)
-          .run(),
-      'delete pending email actions by processed message',
-    );
+    const result: D1Result = await this.run(` DELETE FROM email_summary_actions WHERE processed_message_id = ? AND status = ? `, [
+      processedMessageId,
+      EMAIL_ACTION_STATUS_PENDING,
+    ]);
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
@@ -246,115 +167,54 @@ class EmailActionDAO extends EncryptedDAO {
   public async listPendingActionsByTypes(applicationId: string, actionTypes: string[], limit: number = 100): Promise<EmailAction[]> {
     if (actionTypes.length === 0) return [];
     const placeholders: string = actionTypes.map(() => '?').join(', ');
-    const rows: EmailActionInternal[] = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE application_id = ? AND status = ? AND action_type IN (${placeholders})
-          ORDER BY created_at ASC
-          LIMIT ?
-        `,
-      )
-      .bind(applicationId, EMAIL_ACTION_STATUS_PENDING, ...actionTypes, limit)
-      .all<EmailActionInternal>()
-      .then((result: D1Result<EmailActionInternal>): EmailActionInternal[] => result.results || []);
+    const rows: EmailActionInternal[] = await this.all<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE application_id = ? AND status = ? AND action_type IN (${placeholders}) ORDER BY created_at ASC LIMIT ? `,
+      [applicationId, EMAIL_ACTION_STATUS_PENDING, ...actionTypes, limit],
+    );
     return Promise.all(rows.map((row: EmailActionInternal): Promise<EmailAction> => this.toAction(row)));
   }
 
   public async snoozeAction(actionId: string, snoozedUntil: number, newExpiresAt: number): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET snoozed_until = ?, expires_at = MAX(expires_at, ?), updated_at = ?
-              WHERE action_id = ? AND status = ?
-            `,
-          )
-          .bind(snoozedUntil, newExpiresAt, now, actionId, EMAIL_ACTION_STATUS_PENDING)
-          .run(),
-      'snooze email action',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET snoozed_until = ?, expires_at = MAX(expires_at, ?), updated_at = ? WHERE action_id = ? AND status = ? `,
+      [snoozedUntil, newExpiresAt, now, actionId, EMAIL_ACTION_STATUS_PENDING],
     );
     return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   public async cancelSnooze(actionId: string): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET snoozed_until = NULL, updated_at = ?
-              WHERE action_id = ? AND status = ?
-            `,
-          )
-          .bind(now, actionId, EMAIL_ACTION_STATUS_PENDING)
-          .run(),
-      'cancel email action snooze',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET snoozed_until = NULL, updated_at = ? WHERE action_id = ? AND status = ? `,
+      [now, actionId, EMAIL_ACTION_STATUS_PENDING],
     );
     return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   public async scheduleAction(actionId: string, scheduledFor: number, newExpiresAt: number): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET scheduled_for = ?, expires_at = MAX(expires_at, ?), updated_at = ?
-              WHERE action_id = ? AND status = ?
-            `,
-          )
-          .bind(scheduledFor, newExpiresAt, now, actionId, EMAIL_ACTION_STATUS_PENDING)
-          .run(),
-      'schedule email action',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET scheduled_for = ?, expires_at = MAX(expires_at, ?), updated_at = ? WHERE action_id = ? AND status = ? `,
+      [scheduledFor, newExpiresAt, now, actionId, EMAIL_ACTION_STATUS_PENDING],
     );
     return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   public async cancelSchedule(actionId: string): Promise<boolean> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET scheduled_for = NULL, updated_at = ?
-              WHERE action_id = ? AND status = ?
-            `,
-          )
-          .bind(now, actionId, EMAIL_ACTION_STATUS_PENDING)
-          .run(),
-      'cancel email action schedule',
+    const result: D1Result = await this.run(
+      ` UPDATE email_summary_actions SET scheduled_for = NULL, updated_at = ? WHERE action_id = ? AND status = ? `,
+      [now, actionId, EMAIL_ACTION_STATUS_PENDING],
     );
     return ((result.meta as { changes?: number })?.changes ?? 0) > 0;
   }
 
   public async listPendingScheduledActions(now: number, limit: number): Promise<EmailAction[]> {
-    const rows: EmailActionInternal[] = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE status = ?
-            AND scheduled_for IS NOT NULL
-            AND scheduled_for <= ?
-            AND (snoozed_until IS NULL OR snoozed_until <= ?)
-          ORDER BY scheduled_for ASC
-          LIMIT ?
-        `,
-      )
-      .bind(EMAIL_ACTION_STATUS_PENDING, now, now, limit)
-      .all<EmailActionInternal>()
-      .then((result: D1Result<EmailActionInternal>): EmailActionInternal[] => result.results || []);
+    const rows: EmailActionInternal[] = await this.all<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE status = ? AND scheduled_for IS NOT NULL AND scheduled_for <= ? AND (snoozed_until IS NULL OR snoozed_until <= ?) ORDER BY scheduled_for ASC LIMIT ? `,
+      [EMAIL_ACTION_STATUS_PENDING, now, now, limit],
+    );
     return Promise.all(rows.map((row: EmailActionInternal): Promise<EmailAction> => this.toAction(row)));
   }
 
@@ -389,35 +249,18 @@ class EmailActionDAO extends EncryptedDAO {
   }
 
   private async getById(actionId: string): Promise<EmailAction | undefined> {
-    const row: EmailActionInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${EmailActionDAO.actionColumns}
-          FROM email_summary_actions
-          WHERE action_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(actionId)
-      .first<EmailActionInternal>();
+    const row: EmailActionInternal | null = await this.first<EmailActionInternal>(
+      ` SELECT ${EmailActionDAO.actionColumns} FROM email_summary_actions WHERE action_id = ? LIMIT 1 `,
+      [actionId],
+    );
     return row ? this.toAction(row) : undefined;
   }
 
   private async updateStatus(actionId: string, status: EmailActionStatus, errorMessage: string | null, executed: boolean): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE email_summary_actions
-              SET status = ?, error_message = ?, executed_at = CASE WHEN ? THEN ? ELSE executed_at END, updated_at = ?
-              WHERE action_id = ?
-            `,
-          )
-          .bind(status, errorMessage ? errorMessage.slice(0, 1024) : null, executed ? 1 : 0, now, now, actionId)
-          .run(),
-      'update email action status',
+    await this.run(
+      ` UPDATE email_summary_actions SET status = ?, error_message = ?, executed_at = CASE WHEN ? THEN ? ELSE executed_at END, updated_at = ? WHERE action_id = ? `,
+      [status, errorMessage ? errorMessage.slice(0, 1024) : null, executed ? 1 : 0, now, now, actionId],
     );
   }
 
@@ -456,11 +299,11 @@ class EmailActionDAO extends EncryptedDAO {
   }
 
   private static encodeCursor(updatedAt: number, createdAt: number): string {
-    return CursorUtil.encode({ updatedAt, createdAt });
+    return CursorCodec.encode({ updatedAt, createdAt });
   }
 
   private static parseCursor(cursor: string | undefined): { updatedAt: number; createdAt: number } | undefined {
-    const parsed = CursorUtil.decode<{ updatedAt?: unknown; createdAt?: unknown }>(cursor);
+    const parsed = CursorCodec.decode<{ updatedAt?: unknown; createdAt?: unknown }>(cursor);
     return parsed && typeof parsed.updatedAt === 'number' && typeof parsed.createdAt === 'number'
       ? { updatedAt: parsed.updatedAt, createdAt: parsed.createdAt }
       : undefined;

@@ -5,7 +5,7 @@ const { mockConnect } = vi.hoisted(() => ({ mockConnect: vi.fn() }));
 vi.mock('cloudflare:sockets', () => ({ connect: (...args: unknown[]) => mockConnect(...args) }));
 
 import { ImapClient } from '@mail-otter/provider-clients/imap';
-import { BadRequestError, InternalServerError } from '@mail-otter/backend-errors';
+import { BadRequestError, InternalServerError } from '@rexezuge/errors';
 
 function makeSocket(lines: Array<string | { raw: string }>) {
   const queue = lines.map((l) => (typeof l === 'string' ? l : l.raw));

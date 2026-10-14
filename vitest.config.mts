@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 const apiSrcPath = fileURLToPath(new URL('apps/api/src', import.meta.url));
 const backgroundSrcPath = fileURLToPath(new URL('apps/background/src', import.meta.url));
 const backendDataSrcPath = fileURLToPath(new URL('packages/backend-data/src', import.meta.url));
-const backendErrorsSrcPath = fileURLToPath(new URL('packages/backend-errors/src', import.meta.url));
 const backendRuntimeSrcPath = fileURLToPath(new URL('packages/backend-runtime/src', import.meta.url));
 const providerClientsSrcPath = fileURLToPath(new URL('packages/provider-clients/src', import.meta.url));
 const sharedSrcPath = fileURLToPath(new URL('packages/shared/src', import.meta.url));
@@ -37,7 +36,6 @@ export default defineConfig({
     alias: [
       { find: '@mail-otter/background', replacement: backgroundSrcPath },
       { find: '@mail-otter/backend-data', replacement: backendDataSrcPath },
-      { find: '@mail-otter/backend-errors', replacement: backendErrorsSrcPath },
       { find: '@mail-otter/backend-runtime', replacement: backendRuntimeSrcPath },
       { find: '@mail-otter/backend-services', replacement: backendServicesSrcPath },
       { find: '@mail-otter/provider-clients', replacement: providerClientsSrcPath },
@@ -47,5 +45,22 @@ export default defineConfig({
       { find: 'cloudflare:workflows', replacement: cloudflareWorkflowsMockPath },
       { find: /^@\//, replacement: `${apiSrcPath}/` },
     ],
+    /**
+     * `@rexezuge/*` must stay inside Vite's pipeline rather than being
+     * externalized to Node.
+     *
+     * Two separate reasons, and the second only appeared once the kit was
+     * installed from the registry rather than linked. The kit ships ESM `dist/`
+     * with bundler-style extensionless imports that Node's resolver refuses; and
+     * `@rexezuge/runtime`'s worker bases `extend DurableObject` /
+     * `WorkflowEntrypoint` from `cloudflare:workers`, a specifier that only
+     * exists inside a worker. Externalized, Node sees the real `cloudflare:`
+     * protocol instead of the `cloudflare:workers` alias above and every suite
+     * that reaches the composition root dies with "Only URLs with a scheme in
+     * file, data, and node are supported".
+     *
+     * Same constant as `@rexezuge/tooling`'s `KIT_NO_EXTERNAL`.
+     */
+    noExternal: [/(^|[/\\])@rexezuge\//],
   },
 });

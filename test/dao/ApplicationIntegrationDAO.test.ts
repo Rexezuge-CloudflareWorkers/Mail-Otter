@@ -15,7 +15,7 @@ vi.mock('@mail-otter/shared/utils', () => ({
 }));
 
 import { ApplicationIntegrationDAO } from '@mail-otter/backend-data/dao';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 
 const WEBHOOK_URL = 'https://hooks.example.com/webhook/abcdefg-long-suffix';
 const MASKED_URL = WEBHOOK_URL.slice(0, 30);

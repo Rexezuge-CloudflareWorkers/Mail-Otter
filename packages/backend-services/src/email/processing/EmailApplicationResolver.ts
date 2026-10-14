@@ -2,7 +2,7 @@ import { ConnectedApplicationDAO, ProviderSubscriptionDAO, scopeForAnchor } from
 import { PROVIDER_SUBSCRIPTION_STATUS_ACTIVE } from '@mail-otter/shared/constants';
 import type { ConnectedApplication, EmailQueueMessage, ProviderSubscription } from '@mail-otter/shared/model';
 import { isImapPasswordApplication, requiresProviderMailbox } from '@mail-otter/shared/model';
-import { NonRetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError } from '@rexezuge/errors';
 import { OAuth2AccessTokenService } from '../../oauth2/OAuth2AccessTokenService';
 import type { EmailProcessingEnv, GmailMessageList, ResolvedApplication } from './EmailProcessingTypes';
 

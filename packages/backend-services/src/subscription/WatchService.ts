@@ -1,7 +1,7 @@
 import { CONNECTED_APPLICATION_STATUS_CONNECTED, CONNECTION_METHOD_IMAP_PASSWORD } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, ProviderSubscriptionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import type { ConnectedApplication, ProviderSubscription } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { TimestampUtil } from '@mail-otter/shared/utils';

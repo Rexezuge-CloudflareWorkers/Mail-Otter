@@ -1,4 +1,4 @@
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { IEmailProvider, ProviderMap } from './EmailProviderRegistry';
 import { createEmailProviderRegistry, getEmailProviderRegistryKey } from './EmailProviderRegistry';
 

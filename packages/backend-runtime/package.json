@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mail-otter/shared": "workspace:*"
+    "@mail-otter/shared": "workspace:*",
+    "@rexezuge/runtime": "1.7.2",
+    "@rexezuge/shared": "1.7.2"
   },
   "devDependencies": {
     "@types/node": "26.6.4",

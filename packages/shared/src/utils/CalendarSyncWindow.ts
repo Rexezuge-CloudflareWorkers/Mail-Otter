@@ -1,5 +1,5 @@
 import { DIGEST_CALENDAR_SYNC_DAYS } from '../constants';
-import { TimeZoneUtil } from './TimeZoneUtil';
+import { TimeZoneUtil } from '@rexezuge/shared';
 
 const MILLISECONDS_PER_DAY = 86_400_000;
 

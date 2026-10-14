@@ -56,7 +56,7 @@ import { GmailImapEmailProvider } from '../../packages/backend-services/src/prov
 import { OutlookImapEmailProvider } from '../../packages/backend-services/src/provider/OutlookImapEmailProvider';
 import { FastmailImapEmailProvider } from '../../packages/backend-services/src/provider/FastmailImapEmailProvider';
 import { AppleICloudEmailProvider } from '../../packages/backend-services/src/provider/AppleICloudEmailProvider';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 
 const oauth2 = { type: 'oauth2', accessToken: 'tok', imapUsername: 'user@yahoo.com' } as never;
 const imapPassword = {

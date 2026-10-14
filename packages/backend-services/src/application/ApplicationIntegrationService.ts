@@ -1,5 +1,5 @@
 import type { UserScope } from '@mail-otter/backend-data/dao';
-import { NotFoundError } from '@mail-otter/backend-errors';
+import { NotFoundError } from '@rexezuge/errors';
 import type { IntegrationDeliveryLog, OutboundIntegration } from '@mail-otter/shared/model';
 import type { ApplicationServiceDeps } from './ApplicationServiceTypes';
 

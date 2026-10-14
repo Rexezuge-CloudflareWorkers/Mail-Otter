@@ -6,7 +6,7 @@ vi.mock('@mail-otter/shared/schema', () => ({
 
 import { IBaseRoute } from '../../apps/api/src/endpoints/IBaseRoute';
 import { validateRequestInput } from '@mail-otter/shared/schema';
-import { DatabaseError } from '@mail-otter/backend-errors';
+import { DatabaseError } from '@rexezuge/errors';
 
 describe('IBaseRoute', () => {
   class TestRoute extends IBaseRoute<{ raw: Request }, { message: string }, Record<string, unknown>> {
@@ -67,7 +67,7 @@ describe('IBaseRoute', () => {
     expect(c.json).toHaveBeenCalledWith({ Exception: { Type: 'BadRequest', Message: 'Invalid input' } }, 400);
   });
 
-  it('handles DatabaseError in toErrorResponse', async () => {
+  it('masks the message of a 5xx DatabaseError', async () => {
     (validateRequestInput as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: {} });
 
     vi.spyOn(route, 'handleRequest' as never).mockRejectedValue(new DatabaseError('Database error occurred'));
@@ -75,10 +75,23 @@ describe('IBaseRoute', () => {
     const c = makeC('/test');
     await route.handle(c as never);
 
-    expect(c.json).toHaveBeenCalledWith({ Exception: { Type: 'DatabaseError', Message: 'Database error occurred' } }, 500);
+    // The taxonomy's `expose` rule: a 5xx message is for operators. This test
+    // previously asserted the opposite — that `Database error occurred` reached
+    // the client — which is the leak. A `DatabaseError` carries the failing D1
+    // context in its message, so shipping it verbatim put storage internals on
+    // the wire.
+    expect(c.json).toHaveBeenCalledWith(
+      {
+        Exception: {
+          Type: 'DatabaseError',
+          Message: 'The server encountered an internal error and was unable to complete your request.',
+        },
+      },
+      500,
+    );
   });
 
-  it('returns InternalServerError for unexpected errors', async () => {
+  it('returns InternalError for unexpected errors', async () => {
     (validateRequestInput as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: {} });
 
     vi.spyOn(route, 'handleRequest' as never).mockRejectedValue(new Error('Unexpected'));
@@ -86,10 +99,14 @@ describe('IBaseRoute', () => {
     const c = makeC('/test');
     await route.handle(c as never);
 
+    // `ServiceError.from` wraps an untyped throw as `InternalError`, rather than
+    // the old mapper substituting the `DefaultInternalServerError` *singleton*.
+    // The status and the masked message are unchanged; only the reported type
+    // differs, and it now names the wrap rather than the class it substitutes.
     expect(c.json).toHaveBeenCalledWith(
       {
         Exception: {
-          Type: 'InternalServerError',
+          Type: 'InternalError',
           Message: 'The server encountered an internal error and was unable to complete your request.',
         },
       },

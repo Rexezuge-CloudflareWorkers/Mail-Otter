@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { escapeHtml, sanitizeHtml } from '../../packages/provider-clients/src/email-content/HtmlContentUtil';
 import { isFromMailbox, normalizeText, stripHtml, truncate } from '../../packages/provider-clients/src/email-content/TextContentUtil';
-import { CursorUtil } from '@mail-otter/backend-data/utils';
+import { CursorCodec } from '@rexezuge/shared';
 import { isD1ErrorRetryable } from '@mail-otter/backend-data/utils';
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import { EnvParser } from '@mail-otter/backend-runtime/config';
@@ -84,20 +84,20 @@ describe('TextContentUtil', () => {
   });
 });
 
-describe('CursorUtil', () => {
+describe('CursorCodec', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('round-trips values through encode/decode', () => {
     const value = { offset: 12, filter: 'new' };
-    expect(CursorUtil.decode<typeof value>(CursorUtil.encode(value))).toEqual(value);
+    expect(CursorCodec.decode<typeof value>(CursorCodec.encode(value))).toEqual(value);
   });
 
   it('returns undefined for missing or invalid cursors', () => {
-    expect(CursorUtil.decode(undefined)).toBeUndefined();
-    expect(CursorUtil.decode('')).toBeUndefined();
-    expect(CursorUtil.decode('!!!not-base64!!!')).toBeUndefined();
+    expect(CursorCodec.decode(undefined)).toBeUndefined();
+    expect(CursorCodec.decode('')).toBeUndefined();
+    expect(CursorCodec.decode('!!!not-base64!!!')).toBeUndefined();
   });
 });
 
@@ -122,8 +122,22 @@ describe('D1ErrorClassifier', () => {
     expect(isD1ErrorRetryable('permission denied')).toBe(false);
   });
 
-  it('prefers non-retryable when both match', () => {
-    expect(isD1ErrorRetryable('permission denied: connection refused')).toBe(false);
+  it('prefers retryable when both match', () => {
+    // The order flipped in the convergence: the kit tests the retryable patterns
+    // first, the local copy tested non-retryable first. So a message carrying
+    // both reads as retryable — and for this pair that is the correct answer
+    // regardless of order. `connection refused` is a transport failure: retrying
+    // can succeed. Classifying it non-retryable because the string also
+    // contains `permission` meant a network blip on a query whose text mentioned
+    // permissions was treated as permanent, and the message was dropped.
+    expect(isD1ErrorRetryable('permission denied: connection refused')).toBe(true);
+  });
+
+  it('does not retry a genuine permission failure', () => {
+    // The case the ordering change must not have broken: a permission error with
+    // no transport signal in it stays non-retryable, because retrying it repeats
+    // the failure forever.
+    expect(isD1ErrorRetryable('permission denied: D1_ERROR: not authorized')).toBe(false);
   });
 
   it('returns false for empty or unknown messages', () => {

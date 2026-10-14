@@ -140,6 +140,19 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     const database = (env as { DB?: { withSession?: unknown } }).DB;
     return typeof database?.withSession === 'function';
   }
+
+  /**
+   * The request path is reached with whatever the caller sent, so the caught
+   * value is logged through `logError` rather than dropped: that is the
+   * redacting sink (Bearer/Basic headers, token query params, JWTs, `ya29.`
+   * tokens), and routing it through the kit base's default `console.error`
+   * instead would have bypassed all of that. The background workers override this
+   * with the stricter `logTokenAdjacentError`, because a queue body or a cron
+   * task's inputs are credential material by construction rather than by chance.
+   */
+  protected override reportUnhandled(message: string, error: unknown): void {
+    logError('error', message, error);
+  }
 }
 
 export { MailOtterWorker };

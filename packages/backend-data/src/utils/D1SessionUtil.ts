@@ -1,5 +1,16 @@
-type D1Queryable = Pick<D1Database, 'prepare' | 'batch'>;
-
+/**
+ * Swap a `DB` binding for a session-bound one.
+ *
+ * `D1Database.withSession` pins every subsequent query to one replica (or to the
+ * bookmark a previous request returned), which is what makes a request's reads
+ * and writes see one consistent snapshot. The API layer stamps that bookmark on
+ * the request and reads it back off the response; the background workers open a
+ * `first-primary` session instead.
+ *
+ * The session type is narrower than `D1Database` — it drops the session-only
+ * methods — so the env is retyped rather than cast, and a `DB` handed to this
+ * function is not usable as a session afterwards.
+ */
 type D1SessionEnv<TEnv extends { DB: D1Database }> = Omit<TEnv, 'DB'> & {
   DB: D1DatabaseSession;
 };
@@ -16,4 +27,4 @@ function createD1SessionEnv<TEnv extends { DB: D1Database }>(
 }
 
 export { createD1SessionEnv };
-export type { D1Queryable, D1SessionEnv };
+export type { D1SessionEnv };

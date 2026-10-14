@@ -1,6 +1,6 @@
 import { UserDAO, UserEmailDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError, DatabaseError } from '@mail-otter/backend-errors';
+import { BadRequestError, DatabaseError } from '@rexezuge/errors';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 
 interface UserIdentityEnv {

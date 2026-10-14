@@ -1,6 +1,6 @@
 import { ConnectedApplicationDAO, EmailActionDAO, SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import {
   DIGEST_SECTION_APPOINTMENTS,
   DIGEST_SECTION_BILLS,

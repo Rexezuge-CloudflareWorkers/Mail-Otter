@@ -9,7 +9,7 @@ import { ConnectedApplicationDAO, OAuth2AccessTokenCacheDAO, OAuth2AccessTokenRe
 import { createD1SessionEnv } from '@mail-otter/backend-data/utils';
 import type { ConnectedApplication, OAuth2Credentials } from '@mail-otter/shared/model';
 import { TimestampUtil, logTokenAdjacentError } from '@mail-otter/shared/utils';
-import { BadRequestError, NotFoundError, ProviderApiNonRetryableError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError, ProviderApiNonRetryableError } from '@rexezuge/errors';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { OAuth2ProviderUtil } from '@mail-otter/provider-clients/oauth2';
@@ -253,6 +253,16 @@ class OAuth2TokenRefreshWorker extends AbstractDurableObjectWorker {
   private readPositiveNumber(value: unknown, fallback: number): number {
     if (typeof value !== 'number') return fallback;
     return Number.isFinite(value) && value > 0 ? value : fallback;
+  }
+
+  /**
+   * This worker holds refresh tokens. Every failure on its paths can carry one,
+   * so the caught value is never interpolated — the static message the kit base
+   * supplies is the whole log line, and the refresh *status* row is where the
+   * diagnostic detail is persisted (`OAuth2AccessTokenRefreshStatusDAO`).
+   */
+  protected override reportUnhandled(message: string): void {
+    logTokenAdjacentError('error', message);
   }
 
   private formatError(error: unknown): string {

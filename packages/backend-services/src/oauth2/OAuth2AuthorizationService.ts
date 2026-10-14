@@ -2,7 +2,7 @@ import type { UserScope } from '@mail-otter/backend-data/dao';
 import { CONNECTION_METHOD_OAUTH2 } from '@mail-otter/shared/constants';
 import { ConnectedApplicationDAO, OAuth2AuthorizationSessionDAO } from '@mail-otter/backend-data/dao';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import type { ConnectedApplication, OAuth2AuthorizationSession, OAuth2Credentials } from '@mail-otter/shared/model';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { BaseUrlUtil, TimestampUtil } from '@mail-otter/shared/utils';

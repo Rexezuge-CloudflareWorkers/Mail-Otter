@@ -1,5 +1,4 @@
 import { APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED } from '@mail-otter/shared/constants';
-import { executeD1WithRetry } from '../utils';
 import { TimestampUtil } from '@mail-otter/shared/utils';
 import { BaseDAO } from './BaseDAO';
 import { userScopeSql } from './userScope';
@@ -11,35 +10,19 @@ import type { UserScope, UserScopeSql } from './userScope';
 class ApplicationContextDocumentQueries extends BaseDAO {
   public async listActiveVectorIdsForApplication(applicationId: string, scope: UserScope): Promise<string[]> {
     const where: UserScopeSql = userScopeSql(scope);
-    const rows: Array<{ vector_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT vector_id
-          FROM application_context_documents
-          WHERE application_id = ? AND ${where.clause} AND status = ?
-        `,
-      )
-      .bind(applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE)
-      .all<{ vector_id: string }>()
-      .then((result: D1Result<{ vector_id: string }>): Array<{ vector_id: string }> => result.results || []);
+    const rows: Array<{ vector_id: string }> = await this.all<{ vector_id: string }>(
+      ` SELECT vector_id FROM application_context_documents WHERE application_id = ? AND ${where.clause} AND status = ? `,
+      [applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE],
+    );
     return rows.map((row: { vector_id: string }): string => row.vector_id);
   }
 
   public async listOldestActiveVectorIdsForApplication(applicationId: string, scope: UserScope, count: number): Promise<string[]> {
     const where: UserScopeSql = userScopeSql(scope);
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT vector_id
-          FROM application_context_documents
-          WHERE application_id = ? AND ${where.clause} AND status = ?
-          ORDER BY created_at ASC
-          LIMIT ?
-        `,
-      )
-      .bind(applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count)
-      .all<{ vector_id: string }>()
-      .then((r) => r.results || []);
+    const rows = await this.all<{ vector_id: string }>(
+      ` SELECT vector_id FROM application_context_documents WHERE application_id = ? AND ${where.clause} AND status = ? ORDER BY created_at ASC LIMIT ? `,
+      [applicationId, ...where.bindings, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, count],
+    );
     return rows.map((r) => r.vector_id);
   }
 
@@ -53,17 +36,13 @@ class ApplicationContextDocumentQueries extends BaseDAO {
     const rows: Array<{ context_document_id: string; source_document_id: string | null }> = [];
     for (const chunk of ApplicationContextDocumentQueries.chunk(vectorIds, 100)) {
       const placeholders: string = chunk.map((): string => '?').join(', ');
-      const result: Array<{ context_document_id: string; source_document_id: string | null }> = await this.database
-        .prepare(
-          `
-            SELECT context_document_id, source_document_id
-            FROM application_context_documents
-            WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders})
-          `,
-        )
-        .bind(applicationId, ...where.bindings, ...chunk)
-        .all<{ context_document_id: string; source_document_id: string | null }>()
-        .then((r) => r.results || []);
+      const result: Array<{ context_document_id: string; source_document_id: string | null }> = await this.all<{
+        context_document_id: string;
+        source_document_id: string | null;
+      }>(
+        ` SELECT context_document_id, source_document_id FROM application_context_documents WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders}) `,
+        [applicationId, ...where.bindings, ...chunk],
+      );
       rows.push(...result);
     }
     return rows.map((row) => ({
@@ -78,44 +57,24 @@ class ApplicationContextDocumentQueries extends BaseDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     for (const chunk of ApplicationContextDocumentQueries.chunk(vectorIds, 100)) {
       const placeholders: string = chunk.map((): string => '?').join(', ');
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                UPDATE application_context_documents
-                SET status = ?, deleted_at = ?, updated_at = ?
-                WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders})
-              `,
-            )
-            .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, ...where.bindings, ...chunk)
-            .run(),
-        'mark context documents deleted',
+      await this.run(
+        ` UPDATE application_context_documents SET status = ?, deleted_at = ?, updated_at = ? WHERE application_id = ? AND ${where.clause} AND vector_id IN (${placeholders}) `,
+        [APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, now, now, applicationId, ...where.bindings, ...chunk],
       );
     }
   }
 
   public async listApplicationsOverDocumentLimit(globalMax: number): Promise<OverLimitApplication[]> {
-    const rows = await this.database
-      .prepare(
-        `
-          SELECT
-            ca.application_id,
-            ca.user_email,
-            ca.user_id,
-            COUNT(acd.context_document_id) AS active_count,
-            COALESCE(ca.max_context_documents, ?) AS effective_limit
-          FROM connected_applications ca
-          JOIN application_context_documents acd
-            ON acd.application_id = ca.application_id
-            AND acd.status = ?
-          GROUP BY ca.application_id, ca.user_email, ca.user_id, ca.max_context_documents
-          HAVING COUNT(acd.context_document_id) > COALESCE(ca.max_context_documents, ?)
-        `,
-      )
-      .bind(globalMax, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, globalMax)
-      .all<{ application_id: string; user_email: string; user_id: string | null; active_count: number; effective_limit: number }>()
-      .then((r) => r.results || []);
+    const rows = await this.all<{
+      application_id: string;
+      user_email: string;
+      user_id: string | null;
+      active_count: number;
+      effective_limit: number;
+    }>(
+      ` SELECT ca.application_id, ca.user_email, ca.user_id, COUNT(acd.context_document_id) AS active_count, COALESCE(ca.max_context_documents, ?) AS effective_limit FROM connected_applications ca JOIN application_context_documents acd ON acd.application_id = ca.application_id AND acd.status = ? GROUP BY ca.application_id, ca.user_email, ca.user_id, ca.max_context_documents HAVING COUNT(acd.context_document_id) > COALESCE(ca.max_context_documents, ?) `,
+      [globalMax, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, globalMax],
+    );
     return rows.map((r) => ({
       applicationId: r.application_id,
       // `user_email` is the frozen anchor, `userId` the account it belongs to.
@@ -136,19 +95,15 @@ class ApplicationContextDocumentQueries extends BaseDAO {
     }
     const where: string = conditions.join(' AND ');
 
-    const row: { active: number; deleted: number; error: number; total_chars: number } | null = await this.database
-      .prepare(
-        `
-          SELECT SUM(CASE WHEN status = 'active'  THEN 1 ELSE 0 END) AS active,
-                 SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted,
-                 SUM(CASE WHEN status = 'error'   THEN 1 ELSE 0 END) AS error,
-                 SUM(CASE WHEN status = 'active'  THEN indexed_text_chars ELSE 0 END) AS total_chars
-          FROM application_context_documents
-          WHERE ${where}
-        `,
-      )
-      .bind(...bindings)
-      .first<{ active: number; deleted: number; error: number; total_chars: number }>();
+    const row: { active: number; deleted: number; error: number; total_chars: number } | null = await this.first<{
+      active: number;
+      deleted: number;
+      error: number;
+      total_chars: number;
+    }>(
+      ` SELECT SUM(CASE WHEN status = 'active'  THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted, SUM(CASE WHEN status = 'error'   THEN 1 ELSE 0 END) AS error, SUM(CASE WHEN status = 'active'  THEN indexed_text_chars ELSE 0 END) AS total_chars FROM application_context_documents WHERE ${where} `,
+      [...bindings],
+    );
 
     return {
       active: row?.active ?? 0,

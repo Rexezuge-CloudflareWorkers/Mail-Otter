@@ -1,5 +1,5 @@
 import type { AccountIdentity } from '@mail-otter/backend-services/identity';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import { IUserRoute } from '@/endpoints/IUserRoute';
 import type { IUserEnv, IRequest, IResponse, RouteContext } from '@/endpoints/IUserRoute';
 import { Tokens, createRequestScope } from '@mail-otter/backend-services/composition';

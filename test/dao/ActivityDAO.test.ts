@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActivityDAO } from '@mail-otter/backend-data/dao';
-import { CursorUtil } from '@mail-otter/backend-data/utils';
+import { CursorCodec } from '@rexezuge/shared';
 
 function makeDb(queues: Record<string, unknown[]>) {
   const calls: Array<{ sql: string; bindings: unknown[] }> = [];
@@ -45,7 +45,7 @@ describe('ActivityDAO', () => {
 
   it('merges the three feeds sorted by timestamp descending', async () => {
     const { db } = makeDb({ processed: [processedRow], created: [createdRow], executed: [executedRow] });
-    const result = await new ActivityDAO(db as never).listForUser('user@example.com', {});
+    const result = await new ActivityDAO(db).listForUser('user@example.com', {});
     expect(result.entries.map((e) => e.timestamp)).toEqual([300, 200, 100]);
     expect(result.entries[0]).toMatchObject({ eventType: 'email_processed', providerMessageId: 'm-1' });
     expect(result.nextCursor).toBeUndefined();
@@ -54,16 +54,16 @@ describe('ActivityDAO', () => {
   it('paginates with limit and nextCursor', async () => {
     const rows = [500, 400, 300].map((ts) => ({ ...processedRow, created_at: ts }));
     const { db } = makeDb({ processed: rows, created: [], executed: [] });
-    const result = await new ActivityDAO(db as never).listForUser('user@example.com', { limit: 2 });
+    const result = await new ActivityDAO(db).listForUser('user@example.com', { limit: 2 });
     expect(result.entries).toHaveLength(2);
     expect(result.nextCursor).toBeDefined();
-    const decoded = CursorUtil.decode<{ beforeTs: number }>(result.nextCursor);
+    const decoded = CursorCodec.decode<{ beforeTs: number }>(result.nextCursor);
     expect(decoded?.beforeTs).toBe(400);
   });
 
   it('filters by type and application', async () => {
     const { db, calls } = makeDb({ processed: [], created: [createdRow], executed: [] });
-    const result = await new ActivityDAO(db as never).listForUser('user@example.com', {
+    const result = await new ActivityDAO(db).listForUser('user@example.com', {
       types: ['action_created'],
       applicationId: 'app-1',
     });
@@ -73,16 +73,16 @@ describe('ActivityDAO', () => {
   });
 
   it('applies cursor and clamps limits', async () => {
-    const cursor = CursorUtil.encode({ beforeTs: 250 });
+    const cursor = CursorCodec.encode({ beforeTs: 250 });
     const { db, calls } = makeDb({ processed: [processedRow], created: [], executed: [] });
-    await new ActivityDAO(db as never).listForUser('user@example.com', { cursor, limit: 500 });
+    await new ActivityDAO(db).listForUser('user@example.com', { cursor, limit: 500 });
     expect(calls[0].bindings).toContain(250);
     expect(calls[0].bindings.at(-1)).toBe(101);
   });
 
   it('ignores corrupt cursors', async () => {
     const { db } = makeDb({ processed: [processedRow], created: [], executed: [] });
-    const result = await new ActivityDAO(db as never).listForUser('user@example.com', { cursor: 'bogus' });
+    const result = await new ActivityDAO(db).listForUser('user@example.com', { cursor: 'bogus' });
     expect(result.entries).toHaveLength(1);
   });
 });

@@ -1,6 +1,6 @@
 import { SyncedCalendarEventDAO } from '@mail-otter/backend-data/dao';
 import type { UpsertCalendarEventInput } from '@mail-otter/backend-data/dao';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type { ConnectedApplicationMetadata } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { InjectableEmailProviderRegistry } from '../provider/InjectableEmailProviderRegistry';

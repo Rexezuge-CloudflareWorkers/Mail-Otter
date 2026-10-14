@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailProcessingAuditLogger } from '../../packages/backend-services/src/email/EmailProcessingAuditLogger';
-import { NonRetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError } from '@rexezuge/errors';
 import type { ConnectedApplication } from '@mail-otter/shared/model';
 
 function makeApp(): ConnectedApplication {

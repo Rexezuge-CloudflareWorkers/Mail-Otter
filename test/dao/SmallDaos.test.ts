@@ -48,13 +48,13 @@ describe('OAuth2AccessTokenRefreshStatusDAO', () => {
       created_at: 80,
       updated_at: 96,
     });
-    const status = await new OAuth2AccessTokenRefreshStatusDAO(db as never).getByApplication('app-1');
+    const status = await new OAuth2AccessTokenRefreshStatusDAO(db).getByApplication('app-1');
     expect(status).toMatchObject({ applicationId: 'app-1', accessTokenExpiresAt: 100, lastRefreshSucceededAt: 95 });
   });
 
   it('records start, success, and truncated failures', async () => {
     const { db, calls } = makeDb();
-    const dao = new OAuth2AccessTokenRefreshStatusDAO(db as never);
+    const dao = new OAuth2AccessTokenRefreshStatusDAO(db);
     await dao.recordRefreshStarted('app-1');
     await dao.recordRefreshSuccess('app-1', 200);
     await dao.recordRefreshFailure('app-1', 'x'.repeat(2000));
@@ -63,7 +63,7 @@ describe('OAuth2AccessTokenRefreshStatusDAO', () => {
 
   it('lists due application ids', async () => {
     const { db } = makeDb(null, [{ application_id: 'a1' }, { application_id: 'a2' }]);
-    const ids = await new OAuth2AccessTokenRefreshStatusDAO(db as never).listDueApplicationIds(100, 10);
+    const ids = await new OAuth2AccessTokenRefreshStatusDAO(db).listDueApplicationIds(100, 10);
     expect(ids).toEqual(['a1', 'a2']);
   });
 });
@@ -75,7 +75,7 @@ describe('AiDailyUsageDAO', () => {
 
   it('returns undefined for missing dates and zero neurons', async () => {
     const { db } = makeDb(null, []);
-    const dao = new AiDailyUsageDAO(db as never);
+    const dao = new AiDailyUsageDAO(db);
     await expect(dao.getByDate('2026-09-01')).resolves.toBeUndefined();
     await expect(dao.getByDateRange('2026-09-01', '2026-09-02')).resolves.toEqual([]);
     await expect(dao.getEstimatedNeuronsForDate('2026-09-01')).resolves.toBe(0);
@@ -85,7 +85,7 @@ describe('AiDailyUsageDAO', () => {
     const { db } = makeDb({ usage_date: '2026-09-01', estimated_neurons: 42, request_count: 3, prompt_tokens: 10, completion_tokens: 5 }, [
       { usage_date: '2026-09-01', estimated_neurons: 42, request_count: 3, prompt_tokens: 10, completion_tokens: 5 },
     ]);
-    const dao = new AiDailyUsageDAO(db as never);
+    const dao = new AiDailyUsageDAO(db);
     const day = await dao.getByDate('2026-09-01');
     expect(day).toMatchObject({ estimatedNeurons: 42 });
     await expect(dao.getByDateRange('2026-09-01', '2026-09-02')).resolves.toHaveLength(1);
@@ -95,7 +95,7 @@ describe('AiDailyUsageDAO', () => {
 
   it('increments usage', async () => {
     const { db, calls } = makeDb();
-    await new AiDailyUsageDAO(db as never).incrementUsage({
+    await new AiDailyUsageDAO(db).incrementUsage({
       usageDate: '2026-09-01',
       estimatedNeurons: 5,
       promptTokens: 1,

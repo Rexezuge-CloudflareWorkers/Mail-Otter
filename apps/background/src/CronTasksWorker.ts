@@ -67,6 +67,17 @@ class CronTasksWorker extends AbstractDurableObjectWorker {
     await Promise.all(tasksForPhase(1).map((task) => task.handle(event, this.env, ctx)));
     await Promise.all(tasksForPhase(2).map((task) => task.handle(event, this.env, ctx)));
   }
+
+  /**
+   * A cron task runs against sealed provider credentials, so an unhandled
+   * rejection here can carry a token. `logTokenAdjacentError` takes only the
+   * static message the kit base supplies and never interpolates the caught value
+   * — which is the whole point of overriding this, since the kit's default is
+   * `console.error(message, error)`.
+   */
+  protected override reportUnhandled(message: string): void {
+    logTokenAdjacentError('error', message);
+  }
 }
 
 export { CronTasksWorker };

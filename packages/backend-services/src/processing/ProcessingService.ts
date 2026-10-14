@@ -9,7 +9,7 @@ import type {
 import type { ProcessedMessageList, SyncedCalendarEventList } from '@mail-otter/shared/model';
 import type { D1Queryable } from '@mail-otter/backend-data/utils';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
-import { BadRequestError, NotFoundError } from '@mail-otter/backend-errors';
+import { BadRequestError, NotFoundError } from '@rexezuge/errors';
 import { CalendarSyncWindow } from '@mail-otter/shared/utils';
 import { ActionStatusSyncUtil, CalendarEventSyncUtil } from '../digest';
 import { OAuth2AccessTokenService } from '../oauth2';

@@ -1,7 +1,7 @@
 import { PROVIDER_GOOGLE_GMAIL } from '@mail-otter/shared/constants';
 import { GmailProviderUtil } from '@mail-otter/provider-clients/gmail';
 import { WebhookSecurityUtil } from '@mail-otter/provider-clients/webhook';
-import { BadRequestError } from '@mail-otter/backend-errors';
+import { BadRequestError } from '@rexezuge/errors';
 import type {
   ApplicationContextDocumentSource,
   CalendarAddEventActionPayload,

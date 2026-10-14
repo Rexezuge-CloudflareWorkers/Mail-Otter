@@ -5,8 +5,7 @@ import {
   CONNECTION_METHOD_OAUTH2,
 } from '@mail-otter/shared/constants';
 import { decryptData, encryptData } from '../crypto';
-import { DatabaseError } from '@mail-otter/backend-errors';
-import { executeD1WithRetry } from '../utils';
+import { DatabaseError } from '@rexezuge/errors';
 import type {
   ConnectedApplication,
   ConnectedApplicationCredentials,
@@ -51,36 +50,25 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const applicationId: string = UUIDUtil.getRandomUUID();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO connected_applications
-                (application_id, user_email, user_id, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-          )
-          .bind(
-            applicationId,
-            // The frozen anchor stays in `user_email` so the pre-existing
-            // `FOREIGN KEY (user_email) REFERENCES users(email)` and the
-            // Vectorize namespace keep resolving. `user_id` is the ownership key.
-            scope.anchorEmail,
-            scope.id,
-            null,
-            displayName,
-            providerId,
-            connectionMethod,
-            encrypted.encrypted,
-            encrypted.iv,
-            status,
-            1,
-            now,
-            now,
-          )
-          .run(),
-      'create connected application',
+    await this.run(
+      ` INSERT INTO connected_applications (application_id, user_email, user_id, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) `,
+      [
+        applicationId, // The frozen anchor stays in `user_email` so the pre-existing
+        // `FOREIGN KEY (user_email) REFERENCES users(email)` and the
+        // Vectorize namespace keep resolving. `user_id` is the ownership key.
+        scope.anchorEmail,
+        scope.id,
+        null,
+        displayName,
+        providerId,
+        connectionMethod,
+        encrypted.encrypted,
+        encrypted.iv,
+        status,
+        1,
+        now,
+        now,
+      ],
     );
     if (gmailPubsubTopicName) {
       await this.setProviderConfig(applicationId, 'gmail_pubsub_topic_name', gmailPubsubTopicName, now);
@@ -106,43 +94,28 @@ class ConnectedApplicationDAO extends EncryptedDAO {
 
   public async listMetadataByUserScope(scope: UserScope): Promise<ConnectedApplicationMetadata[]> {
     const where: UserScopeSql = userScopeSql(scope);
-    const rows: ConnectedApplicationInternal[] = await this.database
-      .prepare(
-        `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
-          FROM connected_applications
-          WHERE ${where.clause}
-          ORDER BY updated_at DESC, created_at DESC
-        `,
-      )
-      .bind(...where.bindings)
-      .all<ConnectedApplicationInternal>()
-      .then((result: D1Result<ConnectedApplicationInternal>): ConnectedApplicationInternal[] => result.results || []);
+    const rows: ConnectedApplicationInternal[] = await this.all<ConnectedApplicationInternal>(
+      ` SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at FROM connected_applications WHERE ${where.clause} ORDER BY updated_at DESC, created_at DESC `,
+      [...where.bindings],
+    );
     return Promise.all(rows.map((row: ConnectedApplicationInternal): Promise<ConnectedApplicationMetadata> => this.toMetadata(row)));
   }
 
   public async countByUserScope(scope: UserScope): Promise<number> {
     const where: UserScopeSql = userScopeSql(scope);
-    const row: { count: number } | null = await this.database
-      .prepare(`SELECT COUNT(*) AS count FROM connected_applications WHERE ${where.clause}`)
-      .bind(...where.bindings)
-      .first<{ count: number }>();
+    const row: { count: number } | null = await this.first<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM connected_applications WHERE ${where.clause}`,
+      [...where.bindings],
+    );
     return row?.count ?? 0;
   }
 
   public async listContextEnabledApplicationIdsByUserScope(scope: UserScope): Promise<string[]> {
     const where: UserScopeSql = userScopeSql(scope);
-    const rows: Array<{ application_id: string }> = await this.database
-      .prepare(
-        `
-          SELECT application_id
-          FROM connected_applications
-          WHERE ${where.clause} AND context_indexing_enabled = 1
-        `,
-      )
-      .bind(...where.bindings)
-      .all<{ application_id: string }>()
-      .then((result: D1Result<{ application_id: string }>): Array<{ application_id: string }> => result.results || []);
+    const rows: Array<{ application_id: string }> = await this.all<{ application_id: string }>(
+      ` SELECT application_id FROM connected_applications WHERE ${where.clause} AND context_indexing_enabled = 1 `,
+      [...where.bindings],
+    );
     return rows.map((row: { application_id: string }): string => row.application_id);
   }
 
@@ -184,19 +157,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE connected_applications
-              SET display_name = ?, encrypted_credentials = ?, credentials_iv = ?, status = ?, updated_at = ?
-              WHERE application_id = ? AND ${where.clause}
-            `,
-          )
-          .bind(displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, ...where.bindings)
-          .run(),
-      'update connected application',
+    await this.run(
+      ` UPDATE connected_applications SET display_name = ?, encrypted_credentials = ?, credentials_iv = ?, status = ?, updated_at = ? WHERE application_id = ? AND ${where.clause} `,
+      [displayName, encrypted.encrypted, encrypted.iv, status, now, applicationId, ...where.bindings],
     );
     if (gmailPubsubTopicName) {
       await this.setProviderConfig(applicationId, 'gmail_pubsub_topic_name', gmailPubsubTopicName, now);
@@ -236,15 +199,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
 
   public async markImapConnected(applicationId: string, providerEmail: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `UPDATE connected_applications SET provider_email = ?, status = ?, updated_at = ? WHERE application_id = ? AND connection_method = ?`,
-          )
-          .bind(providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId, CONNECTION_METHOD_IMAP_PASSWORD)
-          .run(),
-      'mark IMAP application connected',
+    await this.run(
+      `UPDATE connected_applications SET provider_email = ?, status = ?, updated_at = ? WHERE application_id = ? AND connection_method = ?`,
+      [providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId, CONNECTION_METHOD_IMAP_PASSWORD],
     );
   }
 
@@ -268,19 +225,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     };
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE connected_applications
-              SET encrypted_credentials = ?, credentials_iv = ?, provider_email = ?, status = ?, updated_at = ?
-              WHERE application_id = ?
-            `,
-          )
-          .bind(encrypted.encrypted, encrypted.iv, providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId)
-          .run(),
-      'mark OAuth2 application connected',
+    await this.run(
+      ` UPDATE connected_applications SET encrypted_credentials = ?, credentials_iv = ?, provider_email = ?, status = ?, updated_at = ? WHERE application_id = ? `,
+      [encrypted.encrypted, encrypted.iv, providerEmail, CONNECTED_APPLICATION_STATUS_CONNECTED, now, applicationId],
     );
   }
 
@@ -292,26 +239,20 @@ class ConnectedApplicationDAO extends EncryptedDAO {
       refreshToken,
     };
     const encrypted = await encryptData(JSON.stringify(credentials), this.masterKey);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('UPDATE connected_applications SET encrypted_credentials = ?, credentials_iv = ? WHERE application_id = ?')
-          .bind(encrypted.encrypted, encrypted.iv, applicationId)
-          .run(),
-      'update OAuth2 refresh token',
-    );
+    await this.run('UPDATE connected_applications SET encrypted_credentials = ?, credentials_iv = ? WHERE application_id = ?', [
+      encrypted.encrypted,
+      encrypted.iv,
+      applicationId,
+    ]);
   }
 
   public async markError(applicationId: string, _message: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare('UPDATE connected_applications SET status = ?, updated_at = ? WHERE application_id = ?')
-          .bind(CONNECTED_APPLICATION_STATUS_ERROR, now, applicationId)
-          .run(),
-      'mark connected application error',
-    );
+    await this.run('UPDATE connected_applications SET status = ?, updated_at = ? WHERE application_id = ?', [
+      CONNECTED_APPLICATION_STATUS_ERROR,
+      now,
+      applicationId,
+    ]);
   }
 
   public async updateContextIndexingForUser(
@@ -321,19 +262,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE connected_applications
-              SET context_indexing_enabled = ?, updated_at = ?
-              WHERE application_id = ? AND ${where.clause}
-            `,
-          )
-          .bind(contextIndexingEnabled ? 1 : 0, now, applicationId, ...where.bindings)
-          .run(),
-      'update context indexing setting',
+    await this.run(
+      ` UPDATE connected_applications SET context_indexing_enabled = ?, updated_at = ? WHERE application_id = ? AND ${where.clause} `,
+      [contextIndexingEnabled ? 1 : 0, now, applicationId, ...where.bindings],
     );
     return this.getMetadataByIdForUser(applicationId, scope);
   }
@@ -345,19 +276,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE connected_applications
-              SET rag_retrieval_enabled = ?, updated_at = ?
-              WHERE application_id = ? AND ${where.clause}
-            `,
-          )
-          .bind(ragRetrievalEnabled ? 1 : 0, now, applicationId, ...where.bindings)
-          .run(),
-      'update rag retrieval setting',
+    await this.run(
+      ` UPDATE connected_applications SET rag_retrieval_enabled = ?, updated_at = ? WHERE application_id = ? AND ${where.clause} `,
+      [ragRetrievalEnabled ? 1 : 0, now, applicationId, ...where.bindings],
     );
     return this.getMetadataByIdForUser(applicationId, scope);
   }
@@ -385,19 +306,9 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   ): Promise<ConnectedApplicationMetadata | undefined> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE connected_applications
-              SET max_context_documents = ?, updated_at = ?
-              WHERE application_id = ? AND ${where.clause}
-            `,
-          )
-          .bind(maxContextDocuments, now, applicationId, ...where.bindings)
-          .run(),
-      'update max context documents',
+    await this.run(
+      ` UPDATE connected_applications SET max_context_documents = ?, updated_at = ? WHERE application_id = ? AND ${where.clause} `,
+      [maxContextDocuments, now, applicationId, ...where.bindings],
     );
     return this.getMetadataByIdForUser(applicationId, scope);
   }
@@ -412,14 +323,7 @@ class ConnectedApplicationDAO extends EncryptedDAO {
 
   public async deleteForUser(applicationId: string, scope: UserScope): Promise<void> {
     const where: UserScopeSql = userScopeSql(scope);
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(`DELETE FROM connected_applications WHERE application_id = ? AND ${where.clause}`)
-          .bind(applicationId, ...where.bindings)
-          .run(),
-      'delete connected application',
-    );
+    await this.run(`DELETE FROM connected_applications WHERE application_id = ? AND ${where.clause}`, [applicationId, ...where.bindings]);
   }
 
   public async getProviderConfig(applicationId: string, configKey: string): Promise<string | null> {
@@ -449,17 +353,10 @@ class ConnectedApplicationDAO extends EncryptedDAO {
   private async getRowById(applicationId: string, scope?: UserScope): Promise<ConnectedApplicationInternal | undefined> {
     const where: UserScopeSql | null = scope ? userScopeSql(scope) : null;
     const bindings: string[] = where ? [applicationId, ...where.bindings] : [applicationId];
-    const row: ConnectedApplicationInternal | null = await this.database
-      .prepare(
-        `
-          SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at
-          FROM connected_applications
-          WHERE application_id = ?${where ? ` AND ${where.clause}` : ''}
-          LIMIT 1
-        `,
-      )
-      .bind(...bindings)
-      .first<ConnectedApplicationInternal>();
+    const row: ConnectedApplicationInternal | null = await this.first<ConnectedApplicationInternal>(
+      ` SELECT application_id, user_email, provider_email, display_name, provider_id, connection_method, encrypted_credentials, credentials_iv, status, context_indexing_enabled, rag_retrieval_enabled, max_context_documents, last_error_acknowledged_at, context_last_error_acknowledged_at, created_at, updated_at FROM connected_applications WHERE application_id = ?${where ? ` AND ${where.clause}` : ''} LIMIT 1 `,
+      [...bindings],
+    );
     return row ?? undefined;
   }
 

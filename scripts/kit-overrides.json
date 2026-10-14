@@ -1,0 +1,10 @@
+{
+  "subpathRules": {
+    "shared": {
+      "/i18n": null
+    }
+  },
+  "identityDaoSubpaths": {},
+  "symbolRenames": {},
+  "memberRenames": {}
+}

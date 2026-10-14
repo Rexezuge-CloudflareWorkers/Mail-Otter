@@ -1,4 +1,4 @@
-import { AiSummaryRetryableError } from '@mail-otter/backend-errors';
+import { AiSummaryRetryableError } from '../errors';
 import { EmailContentUtil } from '@mail-otter/provider-clients/email-content';
 import { AI_LANGUAGE_NAMES, formatBackendString, getBackendStrings } from '@mail-otter/shared/i18n';
 import { LocaleUtil, TimeZoneUtil } from '@mail-otter/shared/utils';

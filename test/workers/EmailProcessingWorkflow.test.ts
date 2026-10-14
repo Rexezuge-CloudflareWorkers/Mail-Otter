@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NonRetryableError, RetryableError } from '@mail-otter/backend-errors';
+import { NonRetryableError, RetryableError } from '@rexezuge/errors';
 import type { EmailQueueMessage } from '@mail-otter/shared/model';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig, WorkflowStepContext } from 'cloudflare:workers';
 import { NonRetryableError as WorkflowNonRetryableError } from 'cloudflare:workflows';

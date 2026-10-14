@@ -6,8 +6,8 @@ import {
   APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR,
   SOURCE_TYPE_EMAIL,
 } from '@mail-otter/shared/constants';
-import { DatabaseError } from '@mail-otter/backend-errors';
-import { CursorUtil, executeD1WithRetry } from '../utils';
+import { DatabaseError } from '@rexezuge/errors';
+import { CursorCodec } from '@rexezuge/shared';
 import type {
   ApplicationContextDeletionRun,
   ApplicationContextDeletionRunList,
@@ -33,6 +33,7 @@ import { ApplicationContextDocumentQueries } from './ApplicationContextDocumentQ
 import { userScopeSql } from './userScope';
 import type { UserScope, UserScopeSql } from './userScope';
 import type { ApplicationContextUserCounts, OverLimitApplication } from './ApplicationContextDocumentQueries';
+import type { D1Result } from '@rexezuge/d1';
 
 class ApplicationContextDAO extends BaseDAO {
   private auditLogsDAO(): ContextAuditLogDAO {
@@ -49,49 +50,30 @@ class ApplicationContextDAO extends BaseDAO {
 
   public async upsertEmailDocument(input: UpsertEmailDocumentInput): Promise<ApplicationContextDocument> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const existing: ApplicationContextDocumentInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${ApplicationContextDAO.documentColumns}
-          FROM application_context_documents
-          WHERE application_id = ? AND source_type = ? AND source_document_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(input.applicationId, SOURCE_TYPE_EMAIL, input.sourceDocumentId)
-      .first<ApplicationContextDocumentInternal>();
+    const existing: ApplicationContextDocumentInternal | null = await this.first<ApplicationContextDocumentInternal>(
+      ` SELECT ${ApplicationContextDAO.documentColumns} FROM application_context_documents WHERE application_id = ? AND source_type = ? AND source_document_id = ? LIMIT 1 `,
+      [input.applicationId, SOURCE_TYPE_EMAIL, input.sourceDocumentId],
+    );
 
     if (existing) {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                UPDATE application_context_documents
-                SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, source_thread_id = ?, vector_namespace = ?,
-                    source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?,
-                    content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ?
-                WHERE context_document_id = ?
-              `,
-            )
-            .bind(
-              input.userEmail,
-              input.userId ?? null,
-              input.sourceProviderId,
-              input.sourceThreadId || null,
-              input.vectorNamespace,
-              input.sourceDocumentFingerprint,
-              input.sourceThreadFingerprint || null,
-              input.titleFingerprint || null,
-              input.senderFingerprint || null,
-              input.contentFingerprint,
-              input.indexedTextChars,
-              APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-              now,
-              existing.context_document_id,
-            )
-            .run(),
-        'update application context document',
+      await this.run(
+        ` UPDATE application_context_documents SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, source_thread_id = ?, vector_namespace = ?, source_document_fingerprint = ?, source_thread_fingerprint = ?, title_fingerprint = ?, sender_fingerprint = ?, content_fingerprint = ?, indexed_text_chars = ?, status = ?, deleted_at = NULL, last_error = NULL, updated_at = ? WHERE context_document_id = ? `,
+        [
+          input.userEmail,
+          input.userId ?? null,
+          input.sourceProviderId,
+          input.sourceThreadId || null,
+          input.vectorNamespace,
+          input.sourceDocumentFingerprint,
+          input.sourceThreadFingerprint || null,
+          input.titleFingerprint || null,
+          input.senderFingerprint || null,
+          input.contentFingerprint,
+          input.indexedTextChars,
+          APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+          now,
+          existing.context_document_id,
+        ],
       );
       const updated: ApplicationContextDocument | undefined = await this.getDocumentById(existing.context_document_id);
       if (!updated) throw new DatabaseError('Failed to load application context document after update.');
@@ -100,41 +82,29 @@ class ApplicationContextDAO extends BaseDAO {
 
     const contextDocumentId: string = UUIDUtil.getRandomUUID();
     const vectorId: string = `cd_${contextDocumentId}`;
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO application_context_documents
-                (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id,
-                 vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
-                 content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
-            `,
-          )
-          .bind(
-            contextDocumentId,
-            input.applicationId,
-            input.userEmail,
-            input.userId ?? null,
-            SOURCE_TYPE_EMAIL,
-            input.sourceProviderId,
-            input.sourceDocumentId,
-            input.sourceThreadId || null,
-            input.vectorNamespace,
-            vectorId,
-            input.sourceDocumentFingerprint,
-            input.sourceThreadFingerprint || null,
-            input.titleFingerprint || null,
-            input.senderFingerprint || null,
-            input.contentFingerprint,
-            input.indexedTextChars,
-            APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-            now,
-            now,
-          )
-          .run(),
-      'create application context document',
+    await this.run(
+      ` INSERT INTO application_context_documents (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id, vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint, content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?) `,
+      [
+        contextDocumentId,
+        input.applicationId,
+        input.userEmail,
+        input.userId ?? null,
+        SOURCE_TYPE_EMAIL,
+        input.sourceProviderId,
+        input.sourceDocumentId,
+        input.sourceThreadId || null,
+        input.vectorNamespace,
+        vectorId,
+        input.sourceDocumentFingerprint,
+        input.sourceThreadFingerprint || null,
+        input.titleFingerprint || null,
+        input.senderFingerprint || null,
+        input.contentFingerprint,
+        input.indexedTextChars,
+        APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+        now,
+        now,
+      ],
     );
     const document: ApplicationContextDocument | undefined = await this.getDocumentById(contextDocumentId);
     if (!document) throw new DatabaseError('Failed to load application context document after create.');
@@ -143,48 +113,27 @@ class ApplicationContextDAO extends BaseDAO {
 
   public async upsertDriveDocument(input: UpsertDriveDocumentInput): Promise<ApplicationContextDocument> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    const existing: ApplicationContextDocumentInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${ApplicationContextDAO.documentColumns}
-          FROM application_context_documents
-          WHERE application_id = ? AND source_type = ? AND source_document_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(input.applicationId, input.sourceType, input.sourceDocumentId)
-      .first<ApplicationContextDocumentInternal>();
+    const existing: ApplicationContextDocumentInternal | null = await this.first<ApplicationContextDocumentInternal>(
+      ` SELECT ${ApplicationContextDAO.documentColumns} FROM application_context_documents WHERE application_id = ? AND source_type = ? AND source_document_id = ? LIMIT 1 `,
+      [input.applicationId, input.sourceType, input.sourceDocumentId],
+    );
 
     if (existing) {
-      await executeD1WithRetry(
-        (): Promise<D1Result> =>
-          this.database
-            .prepare(
-              `
-                UPDATE application_context_documents
-                SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, vector_namespace = ?,
-                    source_document_fingerprint = ?, title_fingerprint = ?,
-                    content_fingerprint = ?, indexed_text_chars = ?, status = ?,
-                    source_thread_id = NULL, source_thread_fingerprint = NULL, sender_fingerprint = NULL,
-                    deleted_at = NULL, last_error = NULL, updated_at = ?
-                WHERE context_document_id = ?
-              `,
-            )
-            .bind(
-              input.userEmail,
-              input.userId ?? null,
-              input.sourceProviderId,
-              input.vectorNamespace,
-              input.sourceDocumentFingerprint,
-              input.titleFingerprint,
-              input.contentFingerprint,
-              input.indexedTextChars,
-              APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-              now,
-              existing.context_document_id,
-            )
-            .run(),
-        'update drive context document',
+      await this.run(
+        ` UPDATE application_context_documents SET user_email = ?, user_id = COALESCE(?, user_id), source_provider_id = ?, vector_namespace = ?, source_document_fingerprint = ?, title_fingerprint = ?, content_fingerprint = ?, indexed_text_chars = ?, status = ?, source_thread_id = NULL, source_thread_fingerprint = NULL, sender_fingerprint = NULL, deleted_at = NULL, last_error = NULL, updated_at = ? WHERE context_document_id = ? `,
+        [
+          input.userEmail,
+          input.userId ?? null,
+          input.sourceProviderId,
+          input.vectorNamespace,
+          input.sourceDocumentFingerprint,
+          input.titleFingerprint,
+          input.contentFingerprint,
+          input.indexedTextChars,
+          APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+          now,
+          existing.context_document_id,
+        ],
       );
       const updated: ApplicationContextDocument | undefined = await this.getDocumentById(existing.context_document_id);
       if (!updated) throw new DatabaseError('Failed to load application context document after update.');
@@ -193,38 +142,26 @@ class ApplicationContextDAO extends BaseDAO {
 
     const contextDocumentId: string = UUIDUtil.getRandomUUID();
     const vectorId: string = `cd_${contextDocumentId}`;
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              INSERT INTO application_context_documents
-                (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id,
-                 vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint,
-                 content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, NULL, ?, ?, ?, NULL, NULL, NULL, ?, ?)
-            `,
-          )
-          .bind(
-            contextDocumentId,
-            input.applicationId,
-            input.userEmail,
-            input.userId ?? null,
-            input.sourceType,
-            input.sourceProviderId,
-            input.sourceDocumentId,
-            input.vectorNamespace,
-            vectorId,
-            input.sourceDocumentFingerprint,
-            input.titleFingerprint,
-            input.contentFingerprint,
-            input.indexedTextChars,
-            APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
-            now,
-            now,
-          )
-          .run(),
-      'create drive context document',
+    await this.run(
+      ` INSERT INTO application_context_documents (context_document_id, application_id, user_email, user_id, source_type, source_provider_id, source_document_id, source_thread_id, vector_namespace, vector_id, source_document_fingerprint, source_thread_fingerprint, title_fingerprint, sender_fingerprint, content_fingerprint, indexed_text_chars, status, indexed_at, deleted_at, last_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, NULL, ?, ?, ?, NULL, NULL, NULL, ?, ?) `,
+      [
+        contextDocumentId,
+        input.applicationId,
+        input.userEmail,
+        input.userId ?? null,
+        input.sourceType,
+        input.sourceProviderId,
+        input.sourceDocumentId,
+        input.vectorNamespace,
+        vectorId,
+        input.sourceDocumentFingerprint,
+        input.titleFingerprint,
+        input.contentFingerprint,
+        input.indexedTextChars,
+        APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE,
+        now,
+        now,
+      ],
     );
     const document: ApplicationContextDocument | undefined = await this.getDocumentById(contextDocumentId);
     if (!document) throw new DatabaseError('Failed to load application context document after create.');
@@ -236,17 +173,14 @@ class ApplicationContextDAO extends BaseDAO {
     sourceDocumentId: string,
     sourceType: string,
   ): Promise<{ contextDocumentId: string; vectorId: string; userEmail: string } | undefined> {
-    const row: { context_document_id: string; vector_id: string; user_email: string } | null = await this.database
-      .prepare(
-        `
-            SELECT context_document_id, vector_id, user_email
-            FROM application_context_documents
-            WHERE application_id = ? AND source_type = ? AND source_document_id = ?
-            LIMIT 1
-          `,
-      )
-      .bind(applicationId, sourceType, sourceDocumentId)
-      .first<{ context_document_id: string; vector_id: string; user_email: string }>();
+    const row: { context_document_id: string; vector_id: string; user_email: string } | null = await this.first<{
+      context_document_id: string;
+      vector_id: string;
+      user_email: string;
+    }>(
+      ` SELECT context_document_id, vector_id, user_email FROM application_context_documents WHERE application_id = ? AND source_type = ? AND source_document_id = ? LIMIT 1 `,
+      [applicationId, sourceType, sourceDocumentId],
+    );
     if (!row) return undefined;
     return {
       contextDocumentId: row.context_document_id,
@@ -260,101 +194,57 @@ class ApplicationContextDAO extends BaseDAO {
     sourceDocumentId: string,
     sourceType: string,
   ): Promise<string | undefined> {
-    const row: { context_document_id: string } | null = await this.database
-      .prepare(
-        `
-          SELECT context_document_id
-          FROM application_context_documents
-          WHERE application_id = ? AND source_type = ? AND source_document_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(applicationId, sourceType, sourceDocumentId)
-      .first<{ context_document_id: string }>();
+    const row: { context_document_id: string } | null = await this.first<{ context_document_id: string }>(
+      ` SELECT context_document_id FROM application_context_documents WHERE application_id = ? AND source_type = ? AND source_document_id = ? LIMIT 1 `,
+      [applicationId, sourceType, sourceDocumentId],
+    );
     return row?.context_document_id;
   }
 
   public async markDocumentIndexed(contextDocumentId: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE application_context_documents
-              SET status = ?, indexed_at = ?, last_error = NULL, updated_at = ?
-              WHERE context_document_id = ?
-            `,
-          )
-          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, now, now, contextDocumentId)
-          .run(),
-      'mark application context document indexed',
+    await this.run(
+      ` UPDATE application_context_documents SET status = ?, indexed_at = ?, last_error = NULL, updated_at = ? WHERE context_document_id = ? `,
+      [APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE, now, now, contextDocumentId],
     );
   }
 
   public async markDocumentError(contextDocumentId: string, errorMessage: string): Promise<void> {
     const now: number = TimestampUtil.getCurrentUnixTimestampInSeconds();
-    await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              UPDATE application_context_documents
-              SET status = ?, last_error = ?, updated_at = ?
-              WHERE context_document_id = ?
-            `,
-          )
-          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorMessage.slice(0, 1024), now, contextDocumentId)
-          .run(),
-      'mark application context document error',
-    );
+    await this.run(` UPDATE application_context_documents SET status = ?, last_error = ?, updated_at = ? WHERE context_document_id = ? `, [
+      APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR,
+      errorMessage.slice(0, 1024),
+      now,
+      contextDocumentId,
+    ]);
   }
 
   public async getSummaryByApplication(applicationId: string): Promise<ApplicationContextSummary> {
-    const countRow: { count: number; last_indexed_at: number | null } | null = await this.database
-      .prepare(
-        `
-          SELECT COUNT(*) AS count, MAX(indexed_at) AS last_indexed_at
-          FROM application_context_documents
-          WHERE application_id = ? AND status = ?
-        `,
-      )
-      .bind(applicationId, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE)
-      .first<{ count: number; last_indexed_at: number | null }>();
-    const deletionRow: { last_delete_accepted_at: number | null } | null = await this.database
-      .prepare(
-        `
-          SELECT MAX(created_at) AS last_delete_accepted_at
-          FROM application_context_deletion_runs
-          WHERE application_id = ? AND status = ?
-        `,
-      )
-      .bind(applicationId, APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED)
-      .first<{ last_delete_accepted_at: number | null }>();
-    const documentError: { last_error: string | null; updated_at: number } | null = await this.database
-      .prepare(
-        `
-          SELECT last_error, updated_at
-          FROM application_context_documents
-          WHERE application_id = ? AND last_error IS NOT NULL
-          ORDER BY updated_at DESC
-          LIMIT 1
-        `,
-      )
-      .bind(applicationId)
-      .first<{ last_error: string | null; updated_at: number }>();
-    const deletionError: { error_message: string | null; updated_at: number } | null = await this.database
-      .prepare(
-        `
-          SELECT error_message, updated_at
-          FROM application_context_deletion_runs
-          WHERE application_id = ? AND status = ? AND error_message IS NOT NULL
-          ORDER BY updated_at DESC
-          LIMIT 1
-        `,
-      )
-      .bind(applicationId, APPLICATION_CONTEXT_DELETION_STATUS_ERROR)
-      .first<{ error_message: string | null; updated_at: number }>();
+    const countRow: { count: number; last_indexed_at: number | null } | null = await this.first<{
+      count: number;
+      last_indexed_at: number | null;
+    }>(
+      ` SELECT COUNT(*) AS count, MAX(indexed_at) AS last_indexed_at FROM application_context_documents WHERE application_id = ? AND status = ? `,
+      [applicationId, APPLICATION_CONTEXT_DOCUMENT_STATUS_ACTIVE],
+    );
+    const deletionRow: { last_delete_accepted_at: number | null } | null = await this.first<{ last_delete_accepted_at: number | null }>(
+      ` SELECT MAX(created_at) AS last_delete_accepted_at FROM application_context_deletion_runs WHERE application_id = ? AND status = ? `,
+      [applicationId, APPLICATION_CONTEXT_DELETION_STATUS_ACCEPTED],
+    );
+    const documentError: { last_error: string | null; updated_at: number } | null = await this.first<{
+      last_error: string | null;
+      updated_at: number;
+    }>(
+      ` SELECT last_error, updated_at FROM application_context_documents WHERE application_id = ? AND last_error IS NOT NULL ORDER BY updated_at DESC LIMIT 1 `,
+      [applicationId],
+    );
+    const deletionError: { error_message: string | null; updated_at: number } | null = await this.first<{
+      error_message: string | null;
+      updated_at: number;
+    }>(
+      ` SELECT error_message, updated_at FROM application_context_deletion_runs WHERE application_id = ? AND status = ? AND error_message IS NOT NULL ORDER BY updated_at DESC LIMIT 1 `,
+      [applicationId, APPLICATION_CONTEXT_DELETION_STATUS_ERROR],
+    );
     return {
       applicationId,
       documentCount: countRow?.count ?? 0,
@@ -383,19 +273,10 @@ class ApplicationContextDAO extends BaseDAO {
       conditions.push('(updated_at < ? OR (updated_at = ? AND created_at < ?))');
       bindings.push(cursor.updatedAt, cursor.updatedAt, cursor.createdAt);
     }
-    const rows: ApplicationContextDocumentInternal[] = await this.database
-      .prepare(
-        `
-          SELECT ${ApplicationContextDAO.documentColumns}
-          FROM application_context_documents
-          WHERE ${conditions.join(' AND ')}
-          ORDER BY updated_at DESC, created_at DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...bindings, limit + 1)
-      .all<ApplicationContextDocumentInternal>()
-      .then((result: D1Result<ApplicationContextDocumentInternal>): ApplicationContextDocumentInternal[] => result.results || []);
+    const rows: ApplicationContextDocumentInternal[] = await this.all<ApplicationContextDocumentInternal>(
+      ` SELECT ${ApplicationContextDAO.documentColumns} FROM application_context_documents WHERE ${conditions.join(' AND ')} ORDER BY updated_at DESC, created_at DESC LIMIT ? `,
+      [...bindings, limit + 1],
+    );
     const pageRows: ApplicationContextDocumentInternal[] = rows.slice(0, limit);
     return {
       documents: pageRows.map((row: ApplicationContextDocumentInternal): ApplicationContextDocument => this.toDocument(row)),
@@ -461,43 +342,17 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   public async deleteStaleDeletedDocuments(deletedBefore: number, limit: number): Promise<number> {
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM application_context_documents
-              WHERE context_document_id IN (
-                SELECT context_document_id FROM application_context_documents
-                WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit)
-          .run(),
-      'delete stale deleted context documents',
+    const result: D1Result = await this.run(
+      ` DELETE FROM application_context_documents WHERE context_document_id IN ( SELECT context_document_id FROM application_context_documents WHERE status = ? AND deleted_at IS NOT NULL AND deleted_at < ? LIMIT ? ) `,
+      [APPLICATION_CONTEXT_DOCUMENT_STATUS_DELETED, deletedBefore, limit],
     );
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
 
   public async deleteStaleErrorDocuments(errorBefore: number, limit: number): Promise<number> {
-    const result: D1Result = await executeD1WithRetry(
-      (): Promise<D1Result> =>
-        this.database
-          .prepare(
-            `
-              DELETE FROM application_context_documents
-              WHERE context_document_id IN (
-                SELECT context_document_id FROM application_context_documents
-                WHERE status = ? AND updated_at < ?
-                LIMIT ?
-              )
-            `,
-          )
-          .bind(APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit)
-          .run(),
-      'delete stale error context documents',
+    const result: D1Result = await this.run(
+      ` DELETE FROM application_context_documents WHERE context_document_id IN ( SELECT context_document_id FROM application_context_documents WHERE status = ? AND updated_at < ? LIMIT ? ) `,
+      [APPLICATION_CONTEXT_DOCUMENT_STATUS_ERROR, errorBefore, limit],
     );
     return (result.meta as { changes?: number })?.changes ?? 0;
   }
@@ -547,17 +402,10 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   private async getDocumentById(contextDocumentId: string): Promise<ApplicationContextDocument | undefined> {
-    const row: ApplicationContextDocumentInternal | null = await this.database
-      .prepare(
-        `
-          SELECT ${ApplicationContextDAO.documentColumns}
-          FROM application_context_documents
-          WHERE context_document_id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(contextDocumentId)
-      .first<ApplicationContextDocumentInternal>();
+    const row: ApplicationContextDocumentInternal | null = await this.first<ApplicationContextDocumentInternal>(
+      ` SELECT ${ApplicationContextDAO.documentColumns} FROM application_context_documents WHERE context_document_id = ? LIMIT 1 `,
+      [contextDocumentId],
+    );
     return row ? this.toDocument(row) : undefined;
   }
 
@@ -586,14 +434,14 @@ class ApplicationContextDAO extends BaseDAO {
   }
 
   private static parseDocumentCursor(cursor: string | undefined): { updatedAt: number; createdAt: number } | undefined {
-    const parsed = CursorUtil.decode<unknown[]>(cursor);
+    const parsed = CursorCodec.decode<unknown[]>(cursor);
     return Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === 'number' && typeof parsed[1] === 'number'
       ? { updatedAt: parsed[0], createdAt: parsed[1] }
       : undefined;
   }
 
   private static encodeDocumentCursor(updatedAt: number, createdAt: number): string {
-    return CursorUtil.encode([updatedAt, createdAt]);
+    return CursorCodec.encode([updatedAt, createdAt]);
   }
 
   private static readonly documentColumns: string = [

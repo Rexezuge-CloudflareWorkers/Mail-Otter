@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const TEST_USER_ID = 'usr_0123456789abcdef0123456789abcdef';
 
 const {
-  mockUpsertByEmail,
   mockGetByEmail,
   mockGetById,
   mockGetRowByEmail,
@@ -25,7 +24,6 @@ const {
   mockGetCountsByUserEmail,
   mockListForUser,
 } = vi.hoisted(() => ({
-  mockUpsertByEmail: vi.fn().mockResolvedValue(undefined),
   mockGetByEmail: vi.fn(),
   mockGetById: vi.fn(),
   mockGetRowByEmail: vi.fn(),
@@ -51,18 +49,22 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
       : { clause: 'user_email = ?', bindings: [scope.anchorEmail] },
   UserDAO: Object.assign(
     vi.fn(function () {
+      // Three distinct readers now exist and each has its own mock:
+      // - `getUser`        this repo's camelCased reader, returns `User`
+      // - `getRowByEmail`  this repo's full row, the one that models
+      //                    `preferred_language`, which `loadUserRow` reads
+      // - `getByEmail`     the kit's row shape, which `accountLookup` resolves
+      //                    against and which does not model the preference
       return {
-        upsertByEmail: mockUpsertByEmail,
-        getByEmail: mockGetByEmail,
-        getById: mockGetById,
+        getUser: mockGetByEmail,
         getRowByEmail: mockGetRowByEmail,
+        getByEmail: mockGetRowByEmail,
+        getById: mockGetById,
         getByCurrentEmail: mockGetByCurrentEmail,
         createUser: mockCreateUser,
         updatePreferredLanguage: mockUpdatePreferredLanguage,
       };
     }),
-    // Statics: `registerAccount` mints the id and the opaque anchor through these.
-    { newId: () => TEST_USER_ID, newAnchor: () => 'anchor-0123456789abcdef0123456789abcdef@users.invalid' },
   ),
   UserEmailDAO: vi.fn(function () {
     return { get: mockRegistryGet, register: mockRegistryRegister };
@@ -127,7 +129,9 @@ describe('UserService', () => {
       current_email: 'user@example.com',
     });
     const account = await new UserService(userEnv()).upsertUser('user@example.com');
-    expect(account).toEqual({ id: TEST_USER_ID, email: 'user@example.com', anchorEmail: 'user@example.com' });
+    // `upsertUser` answers the kit's `ResolvedAccount`, which carries `username`
+    // alongside the three fields this repo narrows it to.
+    expect(account).toEqual({ id: TEST_USER_ID, email: 'user@example.com', anchorEmail: 'user@example.com', username: null });
     expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
@@ -153,6 +157,7 @@ describe('UserService', () => {
     const account = await new UserService(userEnv()).upsertUser('user@example.com');
     expect(mockCreateUser).toHaveBeenCalledOnce();
     expect(account.id).toBe(TEST_USER_ID);
+    expect(account.username).toBeNull();
   });
 
   it('resolves the account id for a write path that has to stamp user_id', async () => {
@@ -160,7 +165,7 @@ describe('UserService', () => {
     // changes address. With a shared resolver injected it must go through that
     // instance, so one request resolves a caller once.
     const sharedResolveUserId = vi.fn().mockResolvedValue(TEST_USER_ID);
-    const service = new UserService(userEnv(), { userIdentity: async () => ({ resolveUserId: sharedResolveUserId }) as never });
+    const service = new UserService(userEnv(), { userIdentity: async () => ({ resolveAccountId: sharedResolveUserId }) as never });
     expect(await service.resolveUserId('user@example.com')).toBe(TEST_USER_ID);
     expect(sharedResolveUserId).toHaveBeenCalledWith('user@example.com');
   });

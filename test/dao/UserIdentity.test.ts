@@ -15,13 +15,32 @@ const mockRun = vi.fn();
 const mockFirst = vi.fn();
 const mockAll = vi.fn();
 
-import { UserDAO, UserEmailDAO, loginEmailOf, scopeForAnchor, userScopeSql, userScopeUpsertSql } from '@mail-otter/backend-data/dao';
+import {
+  UserDAO,
+  UserEmailDAO,
+  loginEmailOf,
+  newAnchor,
+  newId,
+  scopeForAnchor,
+  userScopeSql,
+  userScopeUpsertSql,
+} from '@mail-otter/backend-data/dao';
 
 /**
 The SQL text handed to `db.prepare`, for the most recent call.
 */
 function preparedSql(): string {
   return (createMockDbPrepareMock().mock.calls.at(-1)?.[0] ?? '') as string;
+}
+
+/**
+Every SQL text handed to `db.prepare`, in order.
+
+`createUser` writes and then reads back, so "the most recent statement" is the
+read. These assertions are about the write.
+*/
+function preparedSqlAll(): string[] {
+  return createMockDbPrepareMock().mock.calls.map((call: unknown[]) => String(call[0]));
 }
 
 let prepareSpy: ReturnType<typeof vi.fn>;
@@ -45,17 +64,16 @@ function db(): Record<string, ReturnType<typeof vi.fn>> {
 describe('UserDAO identity columns', () => {
   describe('newId / newAnchor', () => {
     it('mints an opaque, prefixed account id', () => {
-      const id = UserDAO.newId();
+      const id = newId();
       expect(id).toMatch(/^usr_[0-9a-f]{32}$/);
-      expect(UserDAO.newId()).not.toBe(id);
+      expect(newId()).not.toBe(id);
     });
 
     it('mints an anchor in a reserved domain that can never be a real address', () => {
       // The anchor is the primary key every legacy `*_email` foreign key resolves
       // against, so a real address used here could never be re-registered by a
       // different person after the original account moved off it.
-      const anchor = UserDAO.newAnchor();
-      expect(anchor).toMatch(/^anchor-[0-9a-f]{32}@users\.invalid$/);
+      expect(newAnchor()).toMatch(/^anchor-[0-9a-f]{32}@users\.invalid$/);
     });
   });
 
@@ -75,8 +93,9 @@ describe('UserDAO identity columns', () => {
 
   describe('createUser', () => {
     it('stamps the identity columns on insert', async () => {
+      mockFirst.mockResolvedValue({ id: 'usr_1', email: 'a@x.test', current_email: 'a@x.test' });
       await new UserDAO(db()).createUser({ id: 'usr_1', anchor: 'a@x.test', loginEmail: 'a@x.test', now: 10 });
-      const sql = preparedSql();
+      const sql = preparedSqlAll().at(-2) ?? '';
       expect(sql).toContain('INSERT INTO users (id, email, current_email, created_at, updated_at)');
       expect(sql).toContain('ON CONFLICT(email) DO UPDATE');
     });
@@ -85,8 +104,34 @@ describe('UserDAO identity columns', () => {
       // The `WHERE users.id IS NULL` guard is the whole safety property: a conflict
       // against a row that already has an account must be a no-op, or an address
       // change would leave two identities behind the same address.
+      mockFirst.mockResolvedValue({ id: 'usr_1', email: 'a@x.test', current_email: 'a@x.test' });
       await new UserDAO(db()).createUser({ anchor: 'a@x.test', loginEmail: 'a@x.test', now: 10 });
-      expect(preparedSql()).toContain('WHERE users.id IS NULL');
+      expect(preparedSqlAll().at(-2) ?? '').toContain('WHERE users.id IS NULL');
+    });
+
+    it('returns the id it wrote, so a fresh account reads as created', async () => {
+      mockFirst.mockResolvedValue({ id: 'usr_1', email: 'a@x.test', current_email: 'a@x.test' });
+      await expect(new UserDAO(db()).createUser({ id: 'usr_1', anchor: 'a@x.test', loginEmail: 'a@x.test', now: 10 })).resolves.toBe(
+        'usr_1',
+      );
+    });
+
+    it('returns null when the anchor is held by a real account', async () => {
+      // The read-back is what makes a taken anchor detectable, and `null` is the
+      // signal `registerAccount` retries on. Trusting the generated id instead
+      // would point the address registry at a phantom account that resolves to
+      // nothing, and the address would be stranded permanently.
+      mockFirst.mockResolvedValue({ id: 'usr_someoneelse', email: 'a@x.test', current_email: 'a@x.test' });
+      await expect(new UserDAO(db()).createUser({ id: 'usr_1', anchor: 'a@x.test', loginEmail: 'a@x.test', now: 10 })).resolves.toBeNull();
+    });
+
+    it('adopts a legacy id-less row and reports it as created', async () => {
+      // The row now carries the id we just supplied, so this is a success rather
+      // than a collision — the pre-0028 case that must not fork a second account.
+      mockFirst.mockResolvedValue({ id: 'usr_1', email: 'a@x.test', current_email: 'a@x.test' });
+      await expect(new UserDAO(db()).createUser({ id: 'usr_1', anchor: 'a@x.test', loginEmail: 'a@x.test', now: 10 })).resolves.toBe(
+        'usr_1',
+      );
     });
   });
 

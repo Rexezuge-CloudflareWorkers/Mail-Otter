@@ -29,6 +29,7 @@ const { mockUserDAO, mockUserEmailDAO, users, registry } = vi.hoisted(() => {
       getRowByEmail: vi.fn(),
       setCurrentEmail: vi.fn(),
       createUser: vi.fn(),
+      getByUsernameCi: vi.fn(),
     },
     mockUserEmailDAO: {
       get: vi.fn(),
@@ -56,7 +57,7 @@ vi.mock('@mail-otter/backend-data/dao', async (importOriginal) => {
   };
 });
 
-import { UserIdentityService } from '@mail-otter/backend-services/identity';
+import { toAccountIdentity, UserIdentityService } from '@mail-otter/backend-services/identity';
 
 const ALICE_ID = 'usr_11111111111111111111111111111111';
 const ALICE_ANCHOR = 'alice@legacy.test';
@@ -130,12 +131,14 @@ describe('UserIdentityService', () => {
   });
 
   it('resolves an address to the account id, the current address, and the frozen anchor', async () => {
-    const account = await service().resolveAccount(ALICE_ANCHOR);
+    const svc = service();
+    const account = toAccountIdentity(await svc.resolveAccount(ALICE_ANCHOR));
     expect(account).toEqual({ id: ALICE_ID, email: ALICE_ANCHOR, anchorEmail: ALICE_ANCHOR });
   });
 
   it('normalizes the address before resolving', async () => {
-    const account = await service().resolveAccount('  ALICE@Legacy.Test  ');
+    const svc = service();
+    const account = toAccountIdentity(await svc.resolveAccount('  ALICE@Legacy.Test  '));
     expect(account?.id).toBe(ALICE_ID);
   });
 
@@ -144,11 +147,13 @@ describe('UserIdentityService', () => {
     // falling through to a `users` lookup here would be an account takeover.
     const row = registry.get(ALICE_ANCHOR);
     if (row) row.is_verified = 0;
-    expect(await service().resolveAccount(ALICE_ANCHOR)).toBeNull();
+    const svc = service();
+    expect(toAccountIdentity(await svc.resolveAccount(ALICE_ANCHOR))).toBeNull();
   });
 
   it('returns null for an unknown address', async () => {
-    expect(await service().resolveAccount('nobody@legacy.test')).toBeNull();
+    const svc = service();
+    expect(toAccountIdentity(await svc.resolveAccount('nobody@legacy.test'))).toBeNull();
   });
 
   it('keeps resolving the same address after the account changes it', async () => {
@@ -156,7 +161,7 @@ describe('UserIdentityService', () => {
     const identity = service();
     await identity.setPrimaryEmail(ALICE_ID, ALICE_NEW);
 
-    const after = await identity.resolveAccount(ALICE_NEW);
+    const after = toAccountIdentity(await identity.resolveAccount(ALICE_NEW));
     expect(after).toEqual({ id: ALICE_ID, email: ALICE_NEW, anchorEmail: ALICE_ANCHOR });
     // The anchor never moves: rewriting it is what would cascade the account's
     // rows away and orphan its Vectorize namespace.
@@ -187,7 +192,8 @@ describe('UserIdentityService', () => {
   });
 
   it('is a no-op when the address is already current', async () => {
-    const account = await service().setPrimaryEmail(ALICE_ID, ALICE_ANCHOR);
+    const svc = service();
+    const account = toAccountIdentity(await svc.setPrimaryEmail(ALICE_ID, ALICE_ANCHOR));
     expect(account).toEqual({ id: ALICE_ID, email: ALICE_ANCHOR, anchorEmail: ALICE_ANCHOR });
   });
 
@@ -203,7 +209,7 @@ describe('UserIdentityService', () => {
   it('resolves an account by its id, in the direction a stored key needs', async () => {
     const identity = service();
     await identity.setPrimaryEmail(ALICE_ID, ALICE_NEW);
-    const byId = await identity.resolveUserById(ALICE_ID);
+    const byId = toAccountIdentity(await identity.resolveAccountById(ALICE_ID));
     expect(byId).toEqual({ id: ALICE_ID, email: ALICE_NEW, anchorEmail: ALICE_ANCHOR });
   });
 
@@ -235,7 +241,8 @@ describe('UserIdentityService', () => {
       // resolve it without a composition root. Driving a full resolution also
       // proves the default DAO factories are wired, not merely constructible.
       const standalone = new UserIdentityService({ DB: {} as D1Database });
-      expect(await standalone.resolveAccount(ALICE_ANCHOR)).toEqual({
+      const resolved = await standalone.resolveAccount(ALICE_ANCHOR);
+      expect(toAccountIdentity(resolved)).toEqual({
         id: ALICE_ID,
         email: ALICE_ANCHOR,
         anchorEmail: ALICE_ANCHOR,
@@ -258,15 +265,22 @@ describe('UserIdentityService', () => {
     });
 
     it('returns null for an id that resolves to no account', async () => {
-      expect(await service().resolveUserById('usr_missing')).toBeNull();
+      const svc = service();
+      expect(toAccountIdentity(await svc.resolveAccountById('usr_missing'))).toBeNull();
     });
 
-    it('wraps a DAO failure as a DatabaseError rather than leaking it', async () => {
+    it('surfaces a DAO failure rather than disguising it as absence', async () => {
+      // This is the security-relevant change. The previous implementation caught
+      // `catch {}` around every read, so a D1 blip was indistinguishable from "no
+      // such row" and resolution fell through to the anchor — which can resolve
+      // a *revoked* address against the account that previously held it. A
+      // failure must now propagate; only `isMissingSchemaError` is absorbed, and
+      // only for the pre-migration case.
       mockUserDAO.getById.mockRejectedValue(new Error('socket hang up'));
-      await expect(service().resolveUserById(ALICE_ID)).rejects.toThrow(/Failed to resolve account/u);
+      await expect(service().resolveAccountById(ALICE_ID)).rejects.toThrow(/socket hang up/u);
     });
 
-    it('wraps a failure to build the DAOs', async () => {
+    it('surfaces a failure to build the DAOs', async () => {
       const broken = new UserIdentityService(
         { DB: {} as D1Database },
         {
@@ -274,7 +288,7 @@ describe('UserIdentityService', () => {
           userEmailDAO: async () => mockUserEmailDAO as never,
         },
       );
-      await expect(broken.resolveAccount(ALICE_ANCHOR)).rejects.toThrow(/Failed to load identity/u);
+      await expect(broken.resolveAccount(ALICE_ANCHOR)).rejects.toThrow(/no db/u);
     });
   });
 
@@ -282,7 +296,8 @@ describe('UserIdentityService', () => {
     // Pre-0028 the address *is* the anchor and there is no registry at all.
     registry.clear();
     mockUserEmailDAO.get.mockRejectedValue(new Error('no such table: user_emails'));
-    const account = await service().resolveAccount(ALICE_ANCHOR);
+    const svc = service();
+    const account = toAccountIdentity(await svc.resolveAccount(ALICE_ANCHOR));
     expect(account?.id).toBe(ALICE_ID);
   });
 });

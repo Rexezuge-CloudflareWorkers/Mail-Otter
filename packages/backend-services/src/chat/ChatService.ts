@@ -146,7 +146,7 @@ class ChatService {
       // The anchor is the PRIMARY KEY of `users`, so it identifies the account
       // uniquely and is the right key for a per-account preference.
       const userDAO = await deps.userDAO();
-      const user = await userDAO.getByEmail(scope.anchorEmail);
+      const user = await userDAO.getUser(scope.anchorEmail);
       if (user?.preferredLanguage) return LocaleUtil.normalize(user.preferredLanguage);
     } catch {
       // Fall through to default locale.

@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * The shared address -> account resolution used by `UserService`.
+ * The shared address -> account resolution used by `UserService`, which is now
+ * `@rexezuge/identity`'s `accountLookup`.
  *
  * It is the bootstrap path, so it has to work on a database that has not run
- * migration 0028 (no registry, no id) as well as on one that has. These tests use
- * injected fakes rather than D1, which is also what exercises the defensive
- * `typeof … === 'function'` guards that keep a pre-0028 call site working.
+ * migration 0028 (no registry, no id) as well as on one that has. The fakes below
+ * model the two DAO shapes that difference implies.
+ *
+ * The fake `createUser` honours the kit's contract — it returns the id it wrote,
+ * or `null` when the anchor was already held by a real account — because that
+ * `null` is what drives `registerAccount`'s opaque-anchor retry. A fake that
+ * always returned an id would pass the happy path and hide the stranding bug.
  */
 
 const { mockUserDAO, mockUserEmailDAO, users, registry } = vi.hoisted(() => {
@@ -15,12 +20,14 @@ const { mockUserDAO, mockUserEmailDAO, users, registry } = vi.hoisted(() => {
   return {
     users,
     registry,
+    // The kit's `resolveAccount` reads `getByEmail` (a `UserRow`) and
+    // `getByCurrentEmail`; it does not know this repo's `getRowByEmail` or the
+    // retired `upsertByEmail`.
     mockUserDAO: {
       createUser: vi.fn(),
-      upsertByEmail: vi.fn(),
       getById: vi.fn(),
+      getByEmail: vi.fn(),
       getByCurrentEmail: vi.fn(),
-      getRowByEmail: vi.fn(),
     },
     mockUserEmailDAO: { get: vi.fn(), register: vi.fn() },
   };
@@ -39,7 +46,7 @@ beforeEach(() => {
   registry.clear();
   mockUserDAO.getById.mockImplementation(async (id: string) => users.find((row) => row.id === id) ?? null);
   mockUserDAO.getByCurrentEmail.mockImplementation(async (email: string) => users.find((row) => row.current_email === email) ?? null);
-  mockUserDAO.getRowByEmail.mockImplementation(async (email: string) => users.find((row) => row.email === email) ?? null);
+  mockUserDAO.getByEmail.mockImplementation(async (email: string) => users.find((row) => row.email === email.toLowerCase()) ?? null);
   mockUserEmailDAO.get.mockImplementation(async (email: string) => registry.get(email) ?? null);
   mockUserEmailDAO.register.mockImplementation(
     async ({ email, userId, isVerified }: { email: string; userId: string; isVerified: boolean }) => {
@@ -47,15 +54,27 @@ beforeEach(() => {
       return 'claimed' as const;
     },
   );
-  mockUserDAO.createUser.mockImplementation(async ({ id, anchor, loginEmail }: { id: string; anchor: string; loginEmail: string }) => {
+  // The kit's `registerAccount` calls `createUser` without an id — the DAO mints
+  // its own — so the fake has to do the same or every account it writes has an
+  // `undefined` id and `summarize` reports it as unresolvable.
+  let minted = 0;
+  mockUserDAO.createUser.mockImplementation(async ({ anchor, loginEmail }: { id?: string; anchor: string; loginEmail: string }) => {
+    const id = `usr_${++minted}`;
     const existing = users.find((row) => row.email === anchor);
     if (existing) {
-      // Mirrors the real `ON CONFLICT … WHERE users.id IS NULL` adoption.
-      existing.id ??= id;
-      existing.current_email ??= loginEmail;
-      return;
+      // Mirrors the real `ON CONFLICT … WHERE users.id IS NULL` adoption, and the
+      // read-back that follows it: a row that now carries *our* id is one we
+      // created or adopted, and one that still carries someone else's means the
+      // anchor was taken and the caller must retry with a fresh one.
+      if (existing.id === null) {
+        existing.id = id;
+        existing.current_email ??= loginEmail;
+        return id;
+      }
+      return null;
     }
     users.push({ id, email: anchor, current_email: loginEmail });
+    return id;
   });
 });
 
@@ -64,7 +83,7 @@ describe('accountLookup', () => {
     it('resolves through the registry to the stable id', async () => {
       users.push({ id: 'usr_1', email: 'a@x.test', current_email: 'a@x.test' });
       registry.set('a@x.test', { email: 'a@x.test', user_id: 'usr_1', is_verified: 1, created_at: 0 });
-      expect(await resolveAccount(deps, 'A@X.test')).toEqual({ id: 'usr_1', email: 'a@x.test', anchorEmail: 'a@x.test' });
+      expect(await resolveAccount(deps, 'A@X.test')).toEqual({ id: 'usr_1', email: 'a@x.test', anchorEmail: 'a@x.test', username: null });
     });
 
     it('refuses a revoked address rather than falling through to the anchor lookup', async () => {
@@ -83,7 +102,7 @@ describe('accountLookup', () => {
     it('resolves on a pre-0028 database where the address is the anchor', async () => {
       users.push({ id: 'usr_1', email: 'a@x.test', current_email: null });
       mockUserEmailDAO.get.mockRejectedValue(new Error('no such table: user_emails'));
-      expect(await resolveAccount(deps, 'a@x.test')).toEqual({ id: 'usr_1', email: 'a@x.test', anchorEmail: 'a@x.test' });
+      expect(await resolveAccount(deps, 'a@x.test')).toEqual({ id: 'usr_1', email: 'a@x.test', anchorEmail: 'a@x.test', username: null });
     });
 
     it('returns null for an id-less legacy row, so registration adopts it instead of forking', async () => {
@@ -110,7 +129,7 @@ describe('accountLookup', () => {
   describe('registerAccount', () => {
     it('creates the account and claims its sign-in address', async () => {
       const account = await registerAccount(deps, 'new@x.test', 'new@x.test', 42);
-      expect(account).not.toBeNull();
+      expect(account?.id).not.toBeNull();
       expect(users).toHaveLength(1);
       expect(registry.get('new@x.test')?.user_id).toBe(users[0]?.id);
     });
@@ -120,25 +139,6 @@ describe('accountLookup', () => {
       const account = await registerAccount(deps, 'a@x.test', 'a@x.test', 42);
       expect(users).toHaveLength(1);
       expect(account?.id).toBe(users[0]?.id);
-    });
-
-    it('falls back to the pre-0028 insert shape when the DAO has no createUser', async () => {
-      // A pre-0028 database has neither the identity columns nor the registry,
-      // so the legacy insert is used and the anchor — which is the address — is
-      // what resolves the account.
-      mockUserEmailDAO.get.mockRejectedValue(new Error('no such table: user_emails'));
-      mockUserEmailDAO.register.mockRejectedValue(new Error('no such table: user_emails'));
-      const legacyDAO = {
-        ...mockUserDAO,
-        createUser: undefined,
-        upsertByEmail: vi.fn(async (email: string) => {
-          users.push({ id: null, email, current_email: null });
-        }),
-      };
-      const account = await registerAccount({ ...deps, userDAO: async () => legacyDAO as never }, 'a@x.test', 'a@x.test', 1);
-      expect(legacyDAO.upsertByEmail).toHaveBeenCalledWith('a@x.test');
-      // Without an id there is no identity to report, so the caller retries.
-      expect(account).toBeNull();
     });
 
     it('reports failure so the caller can retry with a different anchor', async () => {

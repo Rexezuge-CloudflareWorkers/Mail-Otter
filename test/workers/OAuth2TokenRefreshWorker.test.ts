@@ -90,7 +90,7 @@ describe('OAuth2TokenRefreshWorker', () => {
       });
     vi.spyOn(ConnectedApplicationDAO.prototype, 'getById').mockResolvedValue(createApplication());
     vi.spyOn(ConnectedApplicationDAO.prototype, 'updateOAuth2RefreshToken').mockResolvedValue();
-    let resolveRefresh: (value: { accessToken: string; refreshToken: string; expiresIn: number }) => void = () => undefined;
+    let resolveRefresh: (value: { accessToken: string; refreshToken: string; expiresIn: number }) => void = () => {};
     const refreshSpy = vi.spyOn(OAuth2ProviderUtil, 'refreshAccessToken').mockReturnValueOnce(
       new Promise((resolve) => {
         resolveRefresh = resolve;

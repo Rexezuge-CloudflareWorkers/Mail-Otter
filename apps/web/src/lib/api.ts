@@ -90,7 +90,7 @@ export async function fetchDocumentAuditLogs(
 
 function getFetchPath(input: Parameters<typeof fetch>[0]): string {
   const url: string = typeof input === 'string' || input instanceof URL ? input.toString() : input.url;
-  return new URL(url, globalThis.location.origin).pathname;
+  return new URL(url, location.origin).pathname;
 }
 
 function rememberD1Bookmark(bookmark: string | null): void {

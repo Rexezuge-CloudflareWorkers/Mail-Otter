@@ -12,6 +12,8 @@ overrides:
   '@rexezuge/identity': 1.7.2
   '@rexezuge/runtime': 1.7.2
   '@rexezuge/shared': 1.7.2
+  '@rexezuge/tooling': 1.7.2
+  '@rexezuge/web': 1.7.2
 
 importers:
 
@@ -41,6 +43,12 @@ importers:
       '@rexezuge/shared':
         specifier: 1.7.2
         version: 1.7.2
+      '@rexezuge/tooling':
+        specifier: 1.7.2
+        version: 1.7.2(eslint-config-prettier@10.1.8(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-prettier@5.5.6(eslint-config-prettier@10.1.8(eslint@10.11.0(jiti@2.7.0)))(eslint@10.11.0(jiti@2.7.0))(prettier@3.9.9))(eslint-plugin-regexp@3.3.1(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-sonarjs@4.2.2(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-unicorn@76.0.0(eslint@10.11.0(jiti@2.7.0)))(eslint@10.11.0(jiti@2.7.0))(globals@17.13.0)(jsonc-parser@3.3.1)(prettier@3.9.9)(typescript-eslint@8.70.1(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3))(typescript@6.0.3)(vitest@4.1.10)
+      '@rexezuge/web':
+        specifier: 1.7.2
+        version: 1.7.2(lucide-react@1.52.0(@types/react@19.3.0)(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -193,6 +201,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@rexezuge/web':
+        specifier: 1.7.2
+        version: 1.7.2(lucide-react@1.52.0(@types/react@19.3.0)(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
@@ -1375,6 +1386,29 @@ packages:
 
   '@rexezuge/shared@1.7.2':
     resolution: {integrity: sha512-Wuy+3mkHCBckVbbrMohke+Iv3RQ8I7hAZvQNBQJzNpb3E7vXLHzIxEudXjf4H4AuJHfTi9xyVjdOb4LB/hvGyA==}
+
+  '@rexezuge/tooling@1.7.2':
+    resolution: {integrity: sha512-eUBcLbx6QIxfh3SnbtmAQAFj3cnL0vuHJgPtsG3bkXoYqaZnXnfRlwZjcMueqBLlNB5VpIw8kAv38Nn6X4hRvQ==}
+    peerDependencies:
+      eslint: ^10.0.0
+      eslint-config-prettier: ^10.1.8
+      eslint-plugin-prettier: ^5.5.6
+      eslint-plugin-regexp: ^3.3.1
+      eslint-plugin-sonarjs: ^4.2.2
+      eslint-plugin-unicorn: ^76.0.0
+      globals: ^17.13.0
+      jsonc-parser: ^3.3.1
+      prettier: ^3.9.0
+      typescript: ^6.0.0
+      typescript-eslint: ^8.0.0
+      vitest: ^4.0.0
+
+  '@rexezuge/web@1.7.2':
+    resolution: {integrity: sha512-AkCrPHV5uPhG5zGHyDMRzADbcQ2wEoAhaSbRrrdUdi5RBEveEjI5u3oRchqu4mLylm/bLSGfZyvxo+qYksk2Wg==}
+    peerDependencies:
+      lucide-react: ^1.49.0
+      react: ^19.3.0
+      react-dom: ^19.3.0
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     resolution: {integrity: sha512-dB/a1214qKfHMXCpgqR4OZT+jS4kTyEXbQGJPqzobt5EwH5rX080pxE37alt3RzvR1bf1Yz/yGqRfrYAxuPw0A==}
@@ -4023,6 +4057,30 @@ snapshots:
   '@rexezuge/runtime@1.7.2': {}
 
   '@rexezuge/shared@1.7.2': {}
+
+  '@rexezuge/tooling@1.7.2(eslint-config-prettier@10.1.8(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-prettier@5.5.6(eslint-config-prettier@10.1.8(eslint@10.11.0(jiti@2.7.0)))(eslint@10.11.0(jiti@2.7.0))(prettier@3.9.9))(eslint-plugin-regexp@3.3.1(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-sonarjs@4.2.2(eslint@10.11.0(jiti@2.7.0)))(eslint-plugin-unicorn@76.0.0(eslint@10.11.0(jiti@2.7.0)))(eslint@10.11.0(jiti@2.7.0))(globals@17.13.0)(jsonc-parser@3.3.1)(prettier@3.9.9)(typescript-eslint@8.70.1(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3))(typescript@6.0.3)(vitest@4.1.10)':
+    dependencies:
+      '@rexezuge/d1': 1.7.2
+      eslint: 10.11.0(jiti@2.7.0)
+      eslint-config-prettier: 10.1.8(eslint@10.11.0(jiti@2.7.0))
+      eslint-plugin-prettier: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.11.0(jiti@2.7.0)))(eslint@10.11.0(jiti@2.7.0))(prettier@3.9.9)
+      eslint-plugin-regexp: 3.3.1(eslint@10.11.0(jiti@2.7.0))
+      eslint-plugin-sonarjs: 4.2.2(eslint@10.11.0(jiti@2.7.0))
+      eslint-plugin-unicorn: 76.0.0(eslint@10.11.0(jiti@2.7.0))
+      globals: 17.13.0
+      jsonc-parser: 3.3.1
+      prettier: 3.9.9
+      typescript: 6.0.3
+      typescript-eslint: 8.70.1(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      vitest: 4.1.10(@types/node@26.6.4)(@vitest/coverage-v8@4.1.10)(jsdom@30.1.2)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  '@rexezuge/web@1.7.2(lucide-react@1.52.0(@types/react@19.3.0)(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@rexezuge/errors': 1.7.2
+      '@rexezuge/shared': 1.7.2
+      lucide-react: 1.52.0(@types/react@19.3.0)(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     optional: true

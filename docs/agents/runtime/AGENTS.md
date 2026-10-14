@@ -33,7 +33,7 @@ Every `getUserVectorNamespace` call site must therefore be fed the **anchor** (`
 
 ## Required vars (no defaults)
 
-`POLICY_AUD`, `TEAM_DOMAIN` — Cloudflare Access JWT verification (`EmailValidationUtil`). No default; requests fail without them.
+`POLICY_AUD`, `TEAM_DOMAIN` — Cloudflare Access JWT verification (`@rexezuge/http`'s `authenticateAccess`, called from `MiddlewareHandlers`). No default; without both, every `/user/*` request answers 401 rather than falling open. `DEV_AUTH_EMAIL` is declared on `Env` so the bypass stays greppable — see `apps/api/AGENTS.md`.
 
 ## Local-only (no default, not in `ConfigurationDefaults.ts`)
 

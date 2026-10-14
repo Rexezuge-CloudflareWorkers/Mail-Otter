@@ -38,9 +38,13 @@ abstract class IScheduledTask<TEnv extends IEnv> {
     let runId: string | undefined;
     if (taskType && db) {
       const dao = this.createTaskRunDAO(db);
-      runId = await dao.startRun({ taskType }).catch(() => {
+      // The catch answers `undefined`, so `runId` stays unset and the run
+      // proceeds untracked rather than failing. That is deliberate: a
+      // bookkeeping write must not be able to abort the work it is recording.
+      // The `undefined` annotation is load-bearing: without it the empty arrow
+      // body widens the catch to `void`, which no longer assigns to `runId`.
+      runId = await dao.startRun({ taskType }).catch((): undefined => {
         logTokenAdjacentError('warn', `[${this.constructor.name}] Failed to start task run record`);
-        return undefined;
       });
     }
 
@@ -76,17 +80,17 @@ abstract class IScheduledTask<TEnv extends IEnv> {
         dao
           .succeedRun(runId, result)
           .catch(warn('succeeded'))
-          .then(() => undefined),
+          .then(() => {}),
       fail: (errorMessage: string, partial?: Partial<TaskRunSummary>): Promise<void> =>
         dao
           .failRun(runId, errorMessage, partial)
           .catch(warn('failed'))
-          .then(() => undefined),
+          .then(() => {}),
       skip: (reason?: string): Promise<void> =>
         dao
           .skipRun(runId, reason)
           .catch(warn('skipped'))
-          .then(() => undefined),
+          .then(() => {}),
     };
   }
 

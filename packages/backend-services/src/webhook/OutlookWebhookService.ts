@@ -19,7 +19,7 @@ class OutlookWebhookService extends BaseWebhookService {
         this.getAuthorizedSubscription(applicationId, notification.subscriptionId, notification.clientState, subscriptionDAO, true),
       (notification) => {
         const messageId: string | undefined = notification.resourceData?.id || this.extractMessageId(notification.resource);
-        if (!messageId) return undefined;
+        if (!messageId) return;
         return {
           type: 'outlook-notification',
           applicationId,

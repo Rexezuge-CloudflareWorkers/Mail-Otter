@@ -14,6 +14,22 @@ declare global {
     EMAIL_PROCESSING_WORKFLOW: Workflow<EmailQueueMessage>;
     EMAIL_CONTEXT_INDEX: Vectorize;
     DEBUG_MODE?: string;
+    /**
+     * Cloudflare Access JWT verification.
+     *
+     * Read by `@rexezuge/http`'s `authenticateAccess` in
+     * `apps/api/src/middleware/MiddlewareHandlers.ts`. No defaults: without
+     * both, every `/user/*` request answers 401 rather than falling open.
+     */
+    TEAM_DOMAIN?: string;
+    POLICY_AUD?: string;
+    /**
+     * Local-only. Setting it allows `authenticateAccess`'s bypass, which
+     * authenticates every caller as this one address and skips Access entirely.
+     *
+     * Declared here so the affordance is greppable — the AGENTS.md for
+     * `apps/api` is the only place that should describe how to use it.
+     */
     DEV_AUTH_EMAIL?: string;
     MAX_APPLICATIONS_PER_USER?: string;
     OAUTH2_STATE_EXPIRY_MINUTES?: string;

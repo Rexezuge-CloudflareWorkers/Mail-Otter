@@ -19,14 +19,14 @@ function makeApp(overrides: Record<string, unknown> = {}) {
 function makeDeps(overrides: Record<string, unknown> = {}) {
   const subscriptionDAO = {
     upsertActive: vi.fn(async (input: unknown) => ({ status: 'active', expiresAt: 999, ...(input as object) })),
-    getByApplication: vi.fn(async () => undefined),
-    markStopped: vi.fn(async () => undefined),
+    getByApplication: vi.fn(async () => {}),
+    markStopped: vi.fn(async () => {}),
   };
   const applicationDAO = { getByIdForUser: vi.fn(async () => makeApp()) };
   const tokenService = { getAccessToken: vi.fn(async () => 'tok') };
   const provider = {
     startWatch: vi.fn(async () => ({ type: 'webhook', message: 'ok', webhookUrl: 'https://x/__APPLICATION_ID__' })),
-    stopWatch: vi.fn(async () => undefined),
+    stopWatch: vi.fn(async () => {}),
   };
   const providerRegistry = { get: vi.fn(() => provider) };
   return {

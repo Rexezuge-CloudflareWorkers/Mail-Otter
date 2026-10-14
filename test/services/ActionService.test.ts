@@ -59,7 +59,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
     };
   }),
   ConnectedApplicationDAO: vi.fn(function () {
-    return { getById: mockGetById, getMetadataByIdForUser: vi.fn(async () => undefined) };
+    return { getById: mockGetById, getMetadataByIdForUser: vi.fn(async () => {}) };
   }),
 }));
 

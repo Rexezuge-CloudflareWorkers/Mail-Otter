@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { cloudflareTest, cloudflarePool } from '@cloudflare/vitest-pool-workers';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import path from 'node:path';
 
 const apiSrcPath = fileURLToPath(new URL('../../apps/api/src', import.meta.url));
 const backgroundSrcPath = fileURLToPath(new URL('../../apps/background/src', import.meta.url));
@@ -11,11 +11,11 @@ const backendRuntimeSrcPath = fileURLToPath(new URL('../../packages/backend-runt
 const providerClientsSrcPath = fileURLToPath(new URL('../../packages/provider-clients/src', import.meta.url));
 const sharedSrcPath = fileURLToPath(new URL('../../packages/shared/src', import.meta.url));
 
-const migrationsDir = resolve(fileURLToPath(new URL('../../migrations', import.meta.url)));
+const migrationsDir = path.resolve(fileURLToPath(new URL('../../migrations', import.meta.url)));
 const migrationFiles = readdirSync(migrationsDir)
   .filter((f) => f.endsWith('.sql'))
   .sort();
-const migrationFileList = migrationFiles.map((name) => ({ name, sql: readFileSync(resolve(migrationsDir, name), 'utf-8') }));
+const migrationFileList = migrationFiles.map((name) => ({ name, sql: readFileSync(path.resolve(migrationsDir, name), 'utf8') }));
 const migrationSql = migrationFileList.map((f) => f.sql).join('\n\n');
 
 export default defineConfig({

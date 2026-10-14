@@ -34,7 +34,7 @@ function emptyConfig(): MetadataConfigMap {
 }
 
 function writer() {
-  return { setConfig: vi.fn(async () => undefined), deleteConfig: vi.fn(async () => undefined) };
+  return { setConfig: vi.fn(async () => {}), deleteConfig: vi.fn(async () => {}) };
 }
 
 describe('ConnectedApplicationMetadataMapper', () => {

@@ -23,7 +23,7 @@ function IntegrationRow({ integration }: { integration: OutboundIntegration }) {
   };
 
   const handleDelete = async () => {
-    if (!globalThis.confirm(t('integrations.deleteConfirm', 'Delete Integration "{{name}}"?', { name: integration.name }))) return;
+    if (!confirm(t('integrations.deleteConfirm', 'Delete Integration "{{name}}"?', { name: integration.name }))) return;
     await onDeleteIntegration(integration.integrationId);
   };
 

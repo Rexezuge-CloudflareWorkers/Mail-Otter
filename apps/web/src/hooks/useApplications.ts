@@ -103,7 +103,7 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
     setIsBusy(true);
     try {
       const data = await appSvc.startOAuth2(applicationId);
-      globalThis.location.assign(data.authorizationUrl);
+      location.assign(data.authorizationUrl);
     } catch (e) {
       showNotice('error', e instanceof Error ? e.message : t('toasts.oauthStartFailed', 'Unable To Start OAuth2.'));
       setIsBusy(false);
@@ -298,7 +298,7 @@ export function useApplications({ setIsBusy, showNotice, onContextChanged }: Use
 
   const deleteContextDocuments = async (applicationId: string) => {
     const app = applications.find((a) => a.applicationId === applicationId);
-    if (!globalThis.confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
+    if (!confirm(`Delete All Indexed Documents For ${app?.displayName || 'This Mailbox'}?`)) return;
     setIsBusy(true);
     try {
       const data = await appSvc.deleteContextDocuments(applicationId);

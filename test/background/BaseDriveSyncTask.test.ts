@@ -14,9 +14,9 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
   BackgroundTaskRunDAO: vi.fn(function () {
     return {
       startRun: vi.fn(async () => 'run-1'),
-      succeedRun: vi.fn(async () => undefined),
-      failRun: vi.fn(async () => undefined),
-      skipRun: vi.fn(async () => undefined),
+      succeedRun: vi.fn(async () => {}),
+      failRun: vi.fn(async () => {}),
+      skipRun: vi.fn(async () => {}),
     };
   }),
 }));

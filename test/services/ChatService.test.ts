@@ -25,7 +25,7 @@ vi.mock('@mail-otter/backend-data/dao', () => ({
     };
   }),
   UserDAO: vi.fn(function () {
-    return { getByEmail: mockGetPreferredLanguage };
+    return { getUser: mockGetPreferredLanguage };
   }),
   ConnectedApplicationDAO: vi.fn(function () {
     return { getMetadataByIdForUser: vi.fn().mockResolvedValue(null) };

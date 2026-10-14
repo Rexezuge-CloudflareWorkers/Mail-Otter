@@ -3,6 +3,7 @@ import type { UserRow } from '@mail-otter/backend-data/dao';
 import { ConfigurationManager } from '@mail-otter/backend-runtime/config';
 import { LocaleUtil, TimestampUtil } from '@mail-otter/shared/utils';
 import type { AccountIdentity, UserIdentityService } from '../identity/UserIdentityService';
+import { newAnchor } from '@rexezuge/identity';
 import { registerAccount, resolveAccount, resolveUserId } from './accountLookup';
 import type { AccountLookupDeps } from './accountLookup';
 
@@ -89,7 +90,7 @@ class UserService {
       // pre-0028 deployment derived). Retry with an opaque anchor only when the
       // address is already held as another account's anchor.
       account = await registerAccount(this.lookupDeps(), normalized, normalized, now);
-      if (!account) account = await registerAccount(this.lookupDeps(), normalized, UserDAO.newAnchor(), now);
+      if (!account) account = await registerAccount(this.lookupDeps(), normalized, newAnchor(), now);
     }
     return account ?? { id: '', email: normalized, anchorEmail: normalized };
   }
@@ -104,7 +105,7 @@ class UserService {
   async resolveUserId(email: string): Promise<string | null> {
     if (this.sharedIdentity) {
       const identity: UserIdentityService = await this.sharedIdentity();
-      return identity.resolveUserId(email);
+      return identity.resolveAccountId(email);
     }
     return resolveUserId(this.lookupDeps(), email);
   }
@@ -176,7 +177,12 @@ class UserService {
     const userDAO: UserDAO = await this.deps.userDAO();
     if (!account) return userDAO.getRowByEmail(email).catch(() => null);
     if (account.id) {
-      const byId: UserRow | null = await userDAO.getById(account.id).catch(() => null);
+      // `getRowByEmail` rather than `getById`: the kit's `getById` answers its own
+      // `UserRow`, which does not model `preferred_language`, so reading the
+      // preference off it would silently always answer null. The lookup is on the
+      // frozen anchor, which is the `users` primary key and therefore an index
+      // seek.
+      const byId: UserRow | null = await userDAO.getRowByEmail(account.anchorEmail).catch(() => null);
       if (byId) return byId;
     }
     return userDAO.getRowByEmail(account.anchorEmail).catch(() => null);

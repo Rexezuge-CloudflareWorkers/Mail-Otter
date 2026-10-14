@@ -21,7 +21,7 @@
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/vitest-pool-workers": "0.23.0",
     "@rexezuge/d1": "1.7.2",
     "@rexezuge/errors": "1.7.2",
     "@rexezuge/http": "1.7.2",

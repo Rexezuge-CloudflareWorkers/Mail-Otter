@@ -33,7 +33,11 @@ describe('api client', () => {
 
   const lastInit = (): RequestInit | undefined => {
     const calls = fetchMock.mock.calls;
-    return calls[calls.length - 1]?.[1] as RequestInit | undefined;
+    // Index form, not `.at(-1)`: this package targets ES2020, where `Array#at`
+    // ships in every browser but is absent from the lib's types. See the
+    // `apps/web` block in `eslint.config.mjs`.
+    const last = calls[calls.length - 1];
+    return last?.[1] as RequestInit | undefined;
   };
   const headerOf = (init: RequestInit | undefined, name: string): string | null => {
     const headers = init?.headers;

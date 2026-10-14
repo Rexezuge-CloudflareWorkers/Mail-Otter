@@ -1,7 +1,7 @@
 import { AbstractEntrypointWorker } from '@mail-otter/backend-runtime/base';
 import { fromHono, HonoOpenAPIRouterType } from 'chanfana';
 import { Hono } from 'hono';
-import { MiddlewareHandlers } from '@/middleware';
+import { MiddlewareHandlers, PUBLIC_CALLBACK_LIMIT, securityHeadersMiddleware, USER_API_LIMIT } from '@/middleware';
 import { allRoutes } from '@/endpoints/routeTable';
 import { SPA_HTML } from '@/generated/spa-shell';
 import { DURABLE_OBJECT_CRON_TASKS_RUN_URL, DURABLE_OBJECT_NAMESPACE_GLOBAL } from '@mail-otter/backend-runtime/constants';
@@ -41,6 +41,10 @@ class MailOtterWorker extends AbstractEntrypointWorker {
       Variables: AuthenticatedUserVariables;
     }>();
 
+    // First, so every response leaves with them — including the redirect and the
+    // 404, which are as clickable as the SPA shell.
+    app.use('*', securityHeadersMiddleware);
+
     app.get('/', (c) => c.redirect('/user/'));
     app.get('/user', (c) => c.redirect('/user/' + new URL(c.req.url).search));
     app.options('/user/*', (_c) => {
@@ -57,6 +61,19 @@ class MailOtterWorker extends AbstractEntrypointWorker {
     });
 
     app.use('/user/*', MiddlewareHandlers.userAuthentication());
+
+    // **After** the auth middleware, deliberately. The limiter keys on
+    // `AuthenticatedUserEmailAddress`, and Hono runs middleware in registration
+    // order — installed first, it would see no identity and fall back to a
+    // per-IP bucket, putting every operator behind one NAT in a shared budget.
+    // See `HttpHardening` for why the two surfaces are keyed differently.
+    app.use('/user/*', USER_API_LIMIT);
+
+    // The public token surfaces. No identity exists here to key on, so the
+    // address is the only handle — which is the correct one for what is being
+    // prevented: forged signatures, replayed action links and PKCE guessing.
+    app.use('/api/actions/*', PUBLIC_CALLBACK_LIMIT);
+    app.use('/api/oauth2/callback/*', PUBLIC_CALLBACK_LIMIT);
 
     const openapi: AppRouter = fromHono(app, {
       docs_url: '/docs',

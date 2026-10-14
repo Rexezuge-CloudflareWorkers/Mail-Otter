@@ -1,146 +1,66 @@
-import globals from 'globals';
+import { defineRepoLintConfig } from '@rexezuge/tooling/eslint';
 import tseslint from 'typescript-eslint';
-import unicorn from 'eslint-plugin-unicorn';
-import sonarjs from 'eslint-plugin-sonarjs';
 import reactHooks from 'eslint-plugin-react-hooks';
-import pluginRegexp from 'eslint-plugin-regexp';
-import eslintConfigPrettier from 'eslint-config-prettier';
-import prettier from 'eslint-plugin-prettier';
 
+/**
+ * The repo's lint rules are `@rexezuge/tooling`'s.
+ *
+ * This file was 327 lines of hand-maintained config. `defineRepoLintConfig` is
+ * the converged table shared by the nine-repo family, so the layer boundaries
+ * here stop being a second copy that can disagree with the other eight: a rule
+ * tightened in the kit arrives on the next version bump rather than in a
+ * hand-edit nobody would notice missing.
+ *
+ * ## What this gained, not just what it lost
+ *
+ * The kit's table names three boundaries this file did not enforce at all, and
+ * all three were violations waiting to happen — each is a convention today,
+ * stated in `AGENTS.md` and checked by nothing:
+ *
+ * - **`apps/background` must not import `apps/api`.** The old file documented
+ *   this as "convention-only, no dedicated lint block".
+ * - **`apps/web` must not import `@mail-otter/*` at all.** A backend package
+ *   imported by the SPA typechecks and then fails at bundle time, with the error
+ *   pointing at the bundler rather than at the boundary that caused it.
+ * - **`apps/api` must not import `backend-data` values**, not just DAOs. The old
+ *   rule banned `@mail-otter/backend-data/dao` and left the package's other
+ *   subpaths open; the kit bans the package and keeps `allowTypeImports`, so
+ *   `apps/api` still types its filters against DAO shapes.
+ *
+ * The kit also adds browser globals for `apps/web` rather than leaving that
+ * package linted under Node globals only, and drops the silent
+ * `unicorn/no-useless-undefined` exemption that 35 call sites were relying on.
+ */
 export default tseslint.config(
-  // NOTE: `test/**` is deliberately NOT ignored. Tests are linted with the same
-  // type-aware rules as source; the overrides block at the end of this file
-  // relaxes only the rules that misfire on Vitest idioms.
-  { ignores: ['eslint.config.mjs', 'scripts/**', 'worker-configuration.d.ts', 'app/dist/**', 'apps/web/dist/**', 'src/generated/**', 'apps/api/src/generated/**', 'coverage/**', 'coverage-integration/**', 'coverage-web/**', 'node_modules/**'] },
+  defineRepoLintConfig({
+    scope: '@mail-otter',
+  }),
 
-  // Base: globals for all JS/TS source files
+  /**
+   * React Hooks, for the SPA.
+   *
+   * The kit deliberately does not ship this plugin — it would take the kit out
+   * of zero-dependency, and the rule set belongs to the app that has JSX. Its
+   * README shows these four lines for exactly this case. Without them the SPA
+   * loses rules-of-hooks enforcement *and* every existing
+   * `eslint-disable-next-line react-hooks/exhaustive-deps` comment in the tree
+   * becomes a hard error, because ESLint rejects a disable comment naming a rule
+   * that was never defined.
+   */
   {
-    files: ['**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}'],
-    languageOptions: {
-      globals: globals.node,
-    },
+    files: ['apps/web/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: reactHooks.configs['recommended-latest'].rules,
   },
 
-  // TypeScript: type-aware recommended rules, scoped to TS files only
-  {
-    files: ['**/*.{ts,mts,cts,tsx}'],
-    extends: tseslint.configs.recommendedTypeChecked,
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-
-  // --- typescript-eslint overrides ---
-  {
-    files: ['**/*.{ts,mts,cts,tsx}'],
-    rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
-      // Allow `void expr` for intentional fire-and-forget in Workers
-      '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
-      // Allow explicit `any` in limited cases already existing in the codebase
-      '@typescript-eslint/no-explicit-any': 'warn',
-      // Relax unsafe rules to warn — too noisy at the `any` boundary of external APIs
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      // JSX event handlers and hook callback objects commonly use async functions where void is expected
-      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false, properties: false } }],
-    },
-  },
-
-  // --- Unicorn: modern JS/TS quality rules ---
-  unicorn.configs['flat/recommended'],
-  {
-    rules: {
-      // Codebase uses ctx, req, res, env, err, util, db, dao, etc. — too invasive to rename
-      'unicorn/prevent-abbreviations': 'off',
-      // D1/DAO layer returns null; disabling this avoids mass rewrites
-      'unicorn/no-null': 'off',
-      // Monorepo uses CommonJS-compatible module style in some configs
-      'unicorn/prefer-module': 'off',
-      // Top-level await not available in all Workers entry points
-      'unicorn/prefer-top-level-await': 'off',
-      // Error subclassing via `new MyError()` is intentional in backend-errors
-      'unicorn/custom-error-definition': 'off',
-      // Template literals throughout the codebase are fine as-is
-      'unicorn/no-useless-undefined': 'off',
-      // Allow process.exit in build/script files
-      'unicorn/no-process-exit': 'off',
-      // Array reduce is used intentionally in analytics/data transformation
-      'unicorn/no-array-reduce': 'off',
-      // Allow Number() — parseInt/parseFloat are used in some cases intentionally
-      'unicorn/prefer-number-properties': ['error', { checkInfinity: false }],
-      // Allow nested ternaries in JSX (React render patterns)
-      'unicorn/no-nested-ternary': 'off',
-      // Allow Array.from — codebase uses it for iterables
-      'unicorn/prefer-spread': 'off',
-      // Entire codebase uses PascalCase for TS files; kebab-case would require mass renames
-      'unicorn/filename-case': 'off',
-      // Established names (ApplicationContextDocument, BaseUrlUtil, etc.) should not be force-renamed
-      'unicorn/name-replacements': 'off',
-      // Zod schema builder chains and other deep method chains are intentional
-      'unicorn/max-nested-calls': 'off',
-      // import.meta.dirname is not available in all test environments
-      'unicorn/prefer-import-meta-properties': 'off',
-      // Codebase uses `err` as catch parameter name throughout; too invasive to rename
-      'unicorn/catch-error-name': 'off',
-      // Established boolean param names (retryable, enabled, etc.) should not be force-prefixed
-      'unicorn/consistent-boolean-name': 'off',
-      // Uint8Array#toBase64 / fromBase64 are not guaranteed in all Workers runtime versions
-      'unicorn/prefer-uint8array-base64': 'off',
-      // Class member ordering would require extensive restructuring of existing classes
-      'unicorn/consistent-class-member-order': 'off',
-      // Gmail API response fields (addLabelIds, removeLabelIds) use verb prefixes by convention
-      'unicorn/no-non-function-verb-prefix': 'off',
-      // forEach is used intentionally throughout the codebase in provider and utility layers
-      'unicorn/no-for-each': 'off',
-      // .then() chains in DAO and provider layers are often intentional — warn, don't block
-      'unicorn/prefer-await': 'warn',
-      // Callback references (e.g. .map(Number)) are sometimes intentional
-      'unicorn/no-array-callback-reference': 'warn',
-      // toSorted() is ES2023 and may not be in all tsconfig lib targets
-      'unicorn/no-array-sort': 'warn',
-    },
-  },
-
-  // --- SonarJS: code smell and bug detection ---
-  sonarjs.configs.recommended,
-  {
-    rules: {
-      // Raise duplicate-string threshold to avoid flagging intentional repeated literals like provider IDs
-      'sonarjs/no-duplicate-string': ['warn', { threshold: 5 }],
-      // Cognitive complexity — warn rather than error to allow gradual improvement
-      'sonarjs/cognitive-complexity': ['warn', 20],
-      // False positives: connection method names like 'imap-password' and field names like 'password_hash'
-      'sonarjs/no-hardcoded-passwords': 'off',
-      // Third-party deprecations (e.g. Zod v4 migration) are warnings, not errors
-      'sonarjs/deprecation': 'warn',
-      // Nested ternaries in complex data-mapping code — warn rather than block
-      'sonarjs/no-nested-conditional': 'warn',
-      // React component props are commonly not marked Readonly<>; enforce gradually
-      'sonarjs/prefer-read-only-props': 'warn',
-      // Static readonly properties require invasive refactoring of established utility classes
-      'sonarjs/public-static-readonly': 'warn',
-      // Nested template literals are used intentionally in SQL queries and prompt construction
-      'sonarjs/no-nested-template-literals': 'warn',
-    },
-  },
-
-  // --- SPA target constraints ---
-  // `apps/web/tsconfig.json` targets ES2020, so `Array#at` and
-  // `String#replaceAll` are absent from that package's types even though both
-  // ship in every browser the SPA supports. Prefer the index form there.
+  /**
+   * `apps/web/tsconfig.json` targets ES2020.
+   *
+   * `Array#at` and `String#replaceAll` ship in every browser the SPA supports
+   * but are absent from that package's *types* under an ES2020 lib, so the
+   * kit's base table — which assumes a modern lib — demands forms this package
+   * cannot compile. Prefer the index form here.
+   */
   {
     files: ['apps/web/**/*.{ts,tsx}'],
     rules: {
@@ -149,178 +69,39 @@ export default tseslint.config(
     },
   },
 
-  // --- React Hooks: rules of hooks for the SPA ---
+  /**
+   * Test-file policy the kit's narrower `TEST_RULES` table does not carry.
+   *
+   * Every entry here was already a local override in the previous version of
+   * this file, with the reason it existed. They are repo policy rather than
+   * family policy, so they stay here rather than being pushed into the kit and
+   * imposed on eight repos that did not ask for them.
+   *
+   * They are also what makes the suite readable. `sonarjs/parameterized-tests`
+   * fires on three sibling `it()` blocks that differ by one argument each, and
+   * converting them to `it.each` replaces a diff that reads as a behavioural
+   * change with one that reads as a table.
+   */
   {
-    files: ['apps/web/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules: reactHooks.configs['recommended-latest'].rules,
-  },
-
-  // --- Regexp: static analysis for regular expressions ---
-  pluginRegexp.configs['flat/recommended'],
-
-  // --- Prettier: formatting drift is an error, not a warning ---
-  // `pnpm run lint` uses `--quiet`, which suppresses `warn`-level rules. Keeping
-  // this rule at `warn` therefore made the format gate a silent no-op while 300+
-  // files drifted. `error` is the only level `--quiet` still reports.
-  eslintConfigPrettier,
-  {
-    plugins: { prettier },
+    files: ['test/**/*.{ts,tsx,mts,cts}', '**/*.test.{ts,tsx,mts,cts}', '**/*.spec.{ts,tsx,mts,cts}'],
     rules: {
-      'prettier/prettier': 'error',
-    },
-  },
-
-  // --- Import direction guardrails ---
-  // Layer 0: shared — zero @mail-otter/* deps
-  {
-    files: ['packages/shared/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/*'], message: 'shared must not import from other @mail-otter packages — it is a zero-dependency base layer' },
-        ],
-      }],
-    },
-  },
-  // Layer 0: backend-errors — zero @mail-otter/* deps
-  {
-    files: ['packages/backend-errors/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/*'], message: 'backend-errors must not import from other @mail-otter packages — it is a zero-dependency base layer' },
-        ],
-      }],
-    },
-  },
-  // Layer 1: backend-runtime — only shared and backend-errors
-  {
-    files: ['packages/backend-runtime/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/backend-data', '@mail-otter/backend-data/*'], message: 'backend-runtime must not import from backend-data (higher layer)' },
-          { group: ['@mail-otter/provider-clients', '@mail-otter/provider-clients/*'], message: 'backend-runtime must not import from provider-clients (higher layer)' },
-          { group: ['@mail-otter/backend-services', '@mail-otter/backend-services/*'], message: 'backend-runtime must not import from backend-services (higher layer)' },
-          { group: ['@mail-otter/api', '@mail-otter/api/*'], message: 'backend-runtime must not import from apps/api' },
-          { group: ['@mail-otter/background', '@mail-otter/background/*'], message: 'backend-runtime must not import from apps/background' },
-        ],
-      }],
-    },
-  },
-  // Layer 2: backend-data — only shared and backend-errors
-  {
-    files: ['packages/backend-data/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/backend-runtime', '@mail-otter/backend-runtime/*'], message: 'backend-data must not import from backend-runtime' },
-          { group: ['@mail-otter/provider-clients', '@mail-otter/provider-clients/*'], message: 'backend-data must not import from provider-clients' },
-          { group: ['@mail-otter/backend-services', '@mail-otter/backend-services/*'], message: 'backend-data must not import services (higher layer)' },
-          { group: ['@mail-otter/api', '@mail-otter/api/*'], message: 'backend-data must not import from apps/api' },
-          { group: ['@mail-otter/background', '@mail-otter/background/*'], message: 'backend-data must not import from apps/background' },
-        ],
-      }],
-    },
-  },
-  // Layer 2: provider-clients — only shared and backend-errors
-  {
-    files: ['packages/provider-clients/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/backend-data', '@mail-otter/backend-data/*'], message: 'provider-clients must not import DAOs from backend-data' },
-          { group: ['@mail-otter/backend-runtime', '@mail-otter/backend-runtime/*'], message: 'provider-clients must not import from backend-runtime' },
-          { group: ['@mail-otter/backend-services', '@mail-otter/backend-services/*'], message: 'provider-clients must not import from backend-services (higher layer)' },
-          { group: ['@mail-otter/api', '@mail-otter/api/*'], message: 'provider-clients must not import from apps/api' },
-          { group: ['@mail-otter/background', '@mail-otter/background/*'], message: 'provider-clients must not import from apps/background' },
-        ],
-      }],
-    },
-  },
-  // Layer 3: backend-services — cannot import apps
-  {
-    files: ['packages/backend-services/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/api', '@mail-otter/api/*'], message: 'backend-services must not import from apps/api' },
-          { group: ['@mail-otter/background', '@mail-otter/background/*'], message: 'backend-services must not import from apps/background' },
-        ],
-      }],
-    },
-  },
-  // Layer 5: apps/api — route through backend-services, not directly to provider-clients
-  {
-    files: ['apps/api/**/*.{ts,js}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@mail-otter/provider-clients', '@mail-otter/provider-clients/*'], message: 'apps/api must not import provider-clients directly; use @mail-otter/backend-services instead' },
-          { group: ['@mail-otter/backend-data/dao', '@mail-otter/backend-data/dao/*'], message: 'apps/api must not import DAOs directly; use @mail-otter/backend-services instead (type-only imports are allowed)', allowTypeImports: true },
-        ],
-      }],
-    },
-  },
-
-  // --- Test file overrides (must be last to override plugin rules) ---
-  {
-    files: ['test/**/*.{ts,tsx,mts,cts}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
-    rules: {
-      // Unbound method is a common false positive in Vitest/Jest mock assertions like expect(fn).toHaveBeenCalledWith(...)
-      '@typescript-eslint/unbound-method': 'off',
-      // Test helpers and stubs routinely use async functions without await
-      '@typescript-eslint/require-await': 'off',
-      // Redundant type constituents appear in typed mock stubs
-      '@typescript-eslint/no-redundant-type-constituents': 'off',
-      // Promise.withResolvers() and function-scoping refactors are cosmetic in tests
-      'unicorn/prefer-promise-with-resolvers': 'off',
-      'unicorn/consistent-function-scoping': 'off',
-      // sonarjs/assertions-in-tests fires false positives when test helpers handle assertions indirectly
-      'sonarjs/assertions-in-tests': 'off',
-      // sonarjs/no-extra-arguments fires incorrectly on Vitest mock overloads
-      'sonarjs/no-extra-arguments': 'off',
-
-      // --- Stubbing ambient platform globals is the purpose of these tests ---
-      // `globalThis.fetch = vi.fn()` / `globalThis.<binding> = ...` is how the
-      // Workers pool is faked. The rule targets accidental production writes.
-      'unicorn/no-global-object-property-assignment': 'off',
-
-      // --- Canonical-order comparisons over string arrays ---
-      // `.sort()` with no comparator is used to normalize a `string[]` before an
-      // order-insensitive assertion. The default comparator is already correct
-      // and a comparator would only add noise.
-      'unicorn/require-array-sort-compare': 'off',
-      'sonarjs/no-alphabetical-sort': 'off',
-
-      // `Array.from({ length: n }, () => value)` is the idiomatic fixture builder
-      'unicorn/no-array-from-fill': 'off',
-      // Loop-scoped accumulation variables read better at the top of a helper
-      'unicorn/no-top-level-assignment-in-function': 'off',
-      // `[...iterable]` reads better than `Array.from(iterable)` in assertions
-      'unicorn/prefer-iterator-to-array': 'off',
-      // Loopback fixtures legitimately use http://
-      'unicorn/prefer-https': 'off',
-      // `it.each` vs explicit `for...of` is a style choice, not a defect
+      // `it.each` versus explicit `for...of` is a style choice, and the
+      // assertion text is often clearer written out.
       'sonarjs/parameterized-tests': 'off',
-      // Base64 decoding is ASCII-only, so charCodeAt and codePointAt agree
-      'unicorn/prefer-code-point': 'off',
-      // False positive: fires on the constant EMAIL_ACTION_TYPE_MANUAL_TODO
-      'sonarjs/todo-tag': 'off',
-      // Deliberate `undefined` arguments exercise default-parameter branches
+      // A deliberate `undefined` argument is how a test exercises a
+      // default-parameter branch, which is the whole point of the call.
       'sonarjs/no-undefined-argument': 'off',
-      // Purely cosmetic rewrites that make test intent harder to read
-      'sonarjs/prefer-specific-assertions': 'off',
-      'unicorn/no-unreadable-for-of-expression': 'off',
-      'unicorn/no-declarations-before-early-exit': 'off',
-      'unicorn/prefer-minimal-ternary': 'off',
+      // `Array.from({ length: n }, () => value)` is the idiomatic fixture
+      // builder, and reads better than `new Array(n).fill(value)` for a
+      // per-index value.
+      'unicorn/no-array-from-fill': 'off',
+      // An explicit `continue` states the loop's intent; `if (!(skip)) { … }`
+      // inverts the condition and makes the body harder to read.
       'unicorn/prefer-continue': 'off',
-      'unicorn/prefer-regexp-exec': 'off',
-      'unicorn/no-this-outside-of-class': 'off',
-      'unicorn/import-style': 'off',
-      'unicorn/text-encoding-identifier-case': 'off',
-      'sonarjs/void-use': 'off',
+      // Fires on the action type constant `manual.todo`, which is a domain
+      // value rather than a task marker.
+      'sonarjs/todo-tag': 'off',
+      // Fixture data and ID generation in tests are not security-relevant.
       'sonarjs/pseudo-random': 'off',
     },
   },

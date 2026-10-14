@@ -47,21 +47,80 @@ pnpm exec wrangler deploy --config ./apps/api/wrangler.template.jsonc
 
 Notes: `wrangler.template.jsonc` is the config template — copy to `wrangler.jsonc` per deployer, no committed `wrangler.jsonc` (see `docs/agents/runtime/AGENTS.md`). God-file guard (`scripts/check-god-files.mjs`, soft 300 / hard 400 LOC) is warn-only in CI (`continue-on-error`).
 
-Lint runs via `scripts/lint-workspaces.mjs`, which invokes ESLint once per workspace package plus `test/` and root configs. A single `eslint .` builds every tsconfig program at once and OOMs on small machines (~1 GB). `prettier/prettier` is set to `error` (not `warn`) because `lint` uses `--quiet`, which discards warnings — at `warn` the format gate was a silent no-op. `test/**` is deliberately **not** in the ESLint `ignores`; the test override block at the end of `eslint.config.mjs` relaxes only the rules that misfire on Vitest idioms. Prettier scope is controlled by `.prettierignore`, kept in sync with the ESLint `ignores` list.
+Lint runs via `scripts/lint-workspaces.mjs`, which invokes ESLint once per workspace package plus `test/` and root configs. A single `eslint .` builds every tsconfig program at once and OOMs on small machines (~1 GB).
+
+`eslint.config.mjs` is `@rexezuge/tooling`'s `defineRepoLintConfig` plus three appended blocks, each with its reason: the React Hooks plugin (the kit stays zero-dependency and documents that the consumer appends it — without it the SPA loses rules-of-hooks enforcement **and** every existing `eslint-disable-next-line react-hooks/*` comment becomes a hard error), the ES2020 relaxations for `apps/web` (`Array#at` and `String#replaceAll` ship in every browser the SPA supports but are absent from that package's ES2020 lib types, so the kit's base table demands forms that cannot compile), and the test-file policy the kit's narrower `TEST_RULES` does not carry. Prettier scope is controlled by `.prettierignore`.
 
 ## Import Direction
 
 ```
-Layer 0: shared, backend-errors          — zero @mail-otter/* deps
+Layer 0: shared                          — zero @mail-otter/* deps
 Layer 1: backend-runtime                 → layer 0 only
 Layer 2: backend-data, provider-clients  → layer 0 only
 Layer 3: backend-services                → layers 0–2 (not apps)
 (no Layer 4 by design)
-Layer 5: apps/background                 → layers 0–3 (provider-clients OK; convention-only, no dedicated lint block)
-         apps/api                        → layers 0–3 + background (NOT provider-clients directly; NOT backend-data/dao except type-only)
+Layer 5: apps/background                 → layers 0–3 (provider-clients OK)
+         apps/api                        → layers 0–3 + background (NOT provider-clients, NOT backend-data values except type-only)
+         apps/web                        → no @mail-otter/* imports at all
 ```
 
-Enforced by ESLint `no-restricted-imports` in `eslint.config.mjs`: `apps/api` blocks `→ @mail-otter/provider-clients` (all imports) and `→ @mail-otter/backend-data/dao` (`allowTypeImports: true`). `apps/api → apps/background` re-export is allowed (`src/index.ts` re-exports `CronTasksWorker`, `EmailProcessingWorkflow`, `OAuth2TokenRefreshWorker` for bindings).
+**There is no `backend-errors` package.** The error taxonomy is `@rexezuge/errors`
+and is imported by that name everywhere.
+
+The whole table is enforced by ESLint `no-restricted-imports`, from
+`@rexezuge/tooling`'s `defineRepoLintConfig` rather than a local copy — see
+`eslint.config.mjs`. That factory is the source for all nine family repos, so a
+boundary tightened there arrives here on the next version bump rather than in a
+hand-edit nobody would notice missing. It enforces three boundaries this repo
+previously documented but did not gate: `apps/background` must not import
+`apps/api`; `apps/web` must not import `@mail-otter/*` at all (a backend package
+reached from the SPA typechecks and then fails at bundle time, with the error
+pointing at the bundler); and `apps/api` must not import `backend-data` values
+rather than only DAOs, with `allowTypeImports` so it still types filters against
+DAO shapes.
+
+`apps/api → apps/background` re-export is allowed (`src/index.ts` re-exports
+`CronTasksWorker`, `EmailProcessingWorkflow`, `OAuth2TokenRefreshWorker` for
+bindings).
+
+## The Kit
+
+`@rexezuge/*` is the framework kernel, consumed at a single pinned version with
+`overrides` in `pnpm-workspace.yaml` forcing **one copy of every package**. That
+override is not tidiness: the kit versions in lockstep but a publish does not
+reach the registry atomically, so mid-window `@rexezuge/http@1.7.2` can depend on
+`@rexezuge/errors@1.7.1` while this repo asks for 1.7.2 — and two copies of a
+package that identifies its types with `instanceof` is a silent correctness bug,
+not a version warning. A `DatabaseError` thrown inside `@rexezuge/d1` stops being
+a `ServiceError` at this repo's boundary, every catch that narrows on the
+taxonomy falls through to a masked 500, and nothing in the failure names a
+package.
+
+Bumping the kit is one line in `pnpm-workspace.yaml`'s `overrides` plus the eight
+manifests.
+
+| Package              | Replaces / provides                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `@rexezuge/errors`   | the error taxonomy; `toErrorResponse` masks 5xx messages and `toServiceError` is the catch-boundary idiom      |
+| `@rexezuge/shared`   | `TimestampUtil`, `LocaleUtil`, `TimeZoneUtil`, `Cursor`, `Result`, `BaseDAO` cursor helpers                    |
+| `@rexezuge/d1`       | `BaseDAO`, sql-first (`run/first/all(sql, [args])`), `isMissingSchemaError`, cursor codec                      |
+| `@rexezuge/runtime`  | worker bases (`AbstractEntrypointWorker`/`WorkflowWorker`/`QueueWorker`/`DurableObjectWorker`), DI `Container` |
+| `@rexezuge/identity` | `UserEmailDAO`, `accountLookup`, `UserIdentityService`, `UserDAO`'s username handle                            |
+| `@rexezuge/http`     | `errorBody`/`toServiceError`, `accessAuth`, `securityHeaders`, `rateLimit`                                     |
+| `@rexezuge/tooling`  | `eslint.config.mjs`, `vitest.config.mts`, `vitest.web.config.mts`, the Vite SPA-shell plugin                   |
+| `@rexezuge/web`      | SPA `Unauthorized`, `NoticeBar`, `useNotice`                                                                   |
+
+**Not adopted, deliberately.** `preferred_language` stays: it is a user-facing
+setting wired through `PUT /user/me`, the SPA's language selector and
+`ChatService`, so dropping it to match the kit's `users` table would be a product
+regression. `UserDAO` is therefore a _subclass_ of the kit's rather than a
+re-export — the escape hatch the kit's own migration table describes.
+`IScheduledTask` also stays local; see `apps/background/AGENTS.md`.
+
+`@rexezuge/*` must stay inside Vite's pipeline (`resolve.noExternal` in
+`vitest.config.mts`): the kit's worker bases `extend DurableObject` from
+`cloudflare:workers`, a specifier that only exists inside a worker, so
+externalized Node sees the real protocol instead of the test alias for it.
 
 ## Index
 

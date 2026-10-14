@@ -4,6 +4,21 @@ Scope: `apps/web/**`. Parent index: `../../AGENTS.md`.
 
 Vite React SPA served at `/user`. Components under `src/components/`: `actions/`, `analytics/`, `context/`, `layout/` (`SpaViewRouter.tsx` owns the view switch), `mailboxes/` (`RulesSection.tsx` is a composition facade over `ruleLabels.ts`, `formatCondition.ts`, `RuleList.tsx`, `RuleEditor.tsx`), `modals/`, `shared/`, `ui/`, `views/` (`ActionsView`, `ActivityView`, `AnalyticsView`, `ChatView`, `ContextAuditView`, `HelpView`, `MailboxesView`, `ProcessingView`). Hooks: `useMailboxes.ts` delegates to `useApplications.ts` + `useIntegrations.ts` slices (return shape stable); `useSpaLanguage.ts` owns SPA language state (`SpaApp.tsx` stays a thin shell composing hooks + `SpaViewRouter`). `src/adapters/mailboxAdapter.ts` maps `ConnectedApplication ↔ Mailbox` (`toMailbox`/`fromMailbox`). Locale-aware `lib/format.ts` + `lib/locale.ts`; `LanguageSelector` in `Header`.
 
+## From `@rexezuge/web`
+
+`Unauthorized`, `NoticeBar` and the timer behind `useNotice` are the kit's. What stays local is the URL seeding: `GET /api/oauth2/callback` redirects back with `?oauth2=connected|error`, so `hooks/useNotice.ts` reads that out of the query string and hands it to the kit's `useNotice` as `initial`.
+
+Two consequences worth knowing:
+
+- The notice shape is `{ kind, message }`, not `{ type, text }`. Six copies of this hook and six of the banner each used a different pair of names, so every call site shuffled fields to feed a component its own hook had already produced. There is now one shape.
+- `NoticeBar` requires `statusLabels` keyed by kind. Pass translated strings — it cannot invent English for a locale it does not know about.
+
+`Unauthorized`'s sign-in navigation is an `onAuthenticate` prop rather than a hard-coded `location.assign`, which is what makes the button's behaviour testable at all (jsdom refuses to navigate, so before, that branch had no assertions).
+
+The build (`vite.config.ts`) and both Vitest configs come from `@rexezuge/tooling`; the only local pieces are the Terser `drop_console`/`drop_debugger` policy and the coverage floors.
+
+**`apps/web` must not import `@mail-otter/*` at all.** That is an ESLint boundary from `@rexezuge/tooling`, not a convention: a backend package reached from the SPA typechecks and then fails at bundle time, with the error pointing at the bundler rather than at the boundary that caused it.
+
 ## Frontend Internationalization
 
 SPA UI strings live in `src/locales/<tag>/translation.json` (12 locales: `en`, `de`, `fr`, `es`, `it`, `nl`, `pt`, `pl`, `ja`, `zh-CN`, `zh-TW`, `ko`) consumed via `useTranslation()` (`t('ns.key', 'English Default')` — always pass the English default so missing keys still render). Rules for new UI text:

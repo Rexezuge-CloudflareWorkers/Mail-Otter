@@ -57,10 +57,10 @@ describe('ConsoleLogger', () => {
 describe('NullLogger', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, 'debug').mockImplementation(() => undefined);
-    vi.spyOn(console, 'info').mockImplementation(() => undefined);
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

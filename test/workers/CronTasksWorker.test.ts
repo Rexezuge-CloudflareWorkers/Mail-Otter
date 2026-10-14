@@ -206,7 +206,7 @@ describe('CronTasksWorker', () => {
   });
 
   it('returns accepted when a cron run is already active', async () => {
-    let resolveRefresh: () => void = () => undefined;
+    let resolveRefresh: () => void = () => {};
     taskSpies.oauth2Refresh.mockReturnValueOnce(
       new Promise<void>((resolve) => {
         resolveRefresh = resolve;

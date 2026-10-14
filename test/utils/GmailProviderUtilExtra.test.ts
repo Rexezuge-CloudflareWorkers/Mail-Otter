@@ -13,7 +13,7 @@ function jsonResponse(data: unknown, status = 200, statusText = 'OK') {
 function decodeRaw(bodyJson: string): string {
   const parsed = JSON.parse(bodyJson) as { message?: { raw?: string }; raw?: string };
   const raw = parsed.message?.raw ?? parsed.raw ?? '';
-  return Buffer.from(raw, 'base64url').toString('utf-8');
+  return Buffer.from(raw, 'base64url').toString('utf8');
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;

@@ -17,19 +17,19 @@ function makeSocket(lines: Array<string | { raw: string }>) {
         ? { value: undefined, done: true as const }
         : { value: new TextEncoder().encode(`${next}\r\n`), done: false as const };
     }),
-    cancel: vi.fn(async () => undefined),
+    cancel: vi.fn(async () => {}),
   };
   const writer = {
     write: vi.fn(async (bytes: Uint8Array) => {
       written.push(new TextDecoder().decode(bytes));
     }),
-    close: vi.fn(async () => undefined),
+    close: vi.fn(async () => {}),
   };
   const socket = {
     readable: { getReader: () => reader },
     writable: { getWriter: () => writer },
-    close: vi.fn(async () => undefined),
-    startTls: vi.fn(async () => undefined),
+    close: vi.fn(async () => {}),
+    startTls: vi.fn(async () => {}),
   };
   return { socket, written, reader, writer };
 }
@@ -190,7 +190,7 @@ describe('ImapClient', () => {
     const { socket } = makeSocket([GREETING]);
     mockConnect.mockReturnValue(socket);
     const client = new ImapClient();
-    await client.connect({ host: 'h', port: 993, username: 'u', auth: { method: 'PLAIN', password: 'p' } }).catch(() => undefined);
+    await client.connect({ host: 'h', port: 993, username: 'u', auth: { method: 'PLAIN', password: 'p' } }).catch(() => {});
     await expect(client.searchUidsSince(0)).rejects.toThrow(InternalServerError);
   });
 });

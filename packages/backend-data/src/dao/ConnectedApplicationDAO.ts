@@ -379,8 +379,8 @@ class ConnectedApplicationDAO extends EncryptedDAO {
     const config = Object.fromEntries(METADATA_CONFIG_KEYS.map((key, index) => [key, configValues[index]])) as MetadataConfigMap;
     const watchedFolders = await watchedFoldersPromise;
     const writer: MetadataConfigWriter = {
-      setConfig: (applicationId, key, value) => this.setProviderConfig(applicationId, key, value).then(() => undefined),
-      deleteConfig: (applicationId, key) => this.deleteProviderConfig(applicationId, key).then(() => undefined),
+      setConfig: (applicationId, key, value) => this.setProviderConfig(applicationId, key, value).then(() => {}),
+      deleteConfig: (applicationId, key) => this.deleteProviderConfig(applicationId, key).then(() => {}),
     };
     const filters = await migrateLegacyExcludeRules(
       row.application_id,

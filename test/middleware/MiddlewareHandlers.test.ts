@@ -3,11 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockUserEmail = 'user@example.com';
 const mockAccountId = 'usr_0123456789abcdef0123456789abcdef';
 
-vi.mock('@mail-otter/backend-services/auth', () => ({
-  EmailValidationUtil: {
-    getAuthenticatedUserEmail: vi.fn(),
-  },
-}));
+vi.mock('@rexezuge/http', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@rexezuge/http')>();
+  return { ...actual, authenticateAccess: vi.fn() };
+});
 
 /**
  * The pre-0028 shape is not enough to satisfy `UserService.upsertUser`, which now
@@ -26,7 +25,7 @@ vi.mock('@mail-otter/backend-data/dao', () => {
     this.getByCurrentEmail = vi.fn().mockResolvedValue(account);
     this.getRowByEmail = vi.fn().mockResolvedValue(account);
     this.getByEmail = vi.fn().mockResolvedValue({ ...account, preferredLanguage: null, createdAt: 1, updatedAt: 1 });
-    this.upsertByEmail = vi.fn();
+    this.getUser = vi.fn().mockResolvedValue({ ...account, preferredLanguage: null, createdAt: 1, updatedAt: 1 });
     this.createUser = vi.fn();
     this.setCurrentEmail = vi.fn();
   }
@@ -51,9 +50,25 @@ vi.mock('@mail-otter/backend-data/dao', () => {
 });
 
 import { MiddlewareHandlers } from '../../apps/api/src/middleware/MiddlewareHandlers';
-import { EmailValidationUtil } from '@mail-otter/backend-services/auth';
+import { authenticateAccess } from '@rexezuge/http';
 import { UnauthorizedError } from '@rexezuge/errors';
 import type { Context } from 'hono';
+
+/**
+The mocked `authenticateAccess`, typed as a spy rather than through the kit's
+real signature so the tests read as "authentication said X".
+*/
+function mockAuth(): ReturnType<typeof vi.fn> {
+  return authenticateAccess as unknown as ReturnType<typeof vi.fn>;
+}
+
+function contextWith(env: Record<string, unknown>): Context {
+  return {
+    req: { raw: new Request('https://example.com/user/me') },
+    env,
+    set: vi.fn(),
+  } as unknown as Context;
+}
 
 describe('MiddlewareHandlers', () => {
   beforeEach(() => {
@@ -62,14 +77,10 @@ describe('MiddlewareHandlers', () => {
 
   it('puts the resolved account identity in the request context', async () => {
     const setFn = vi.fn();
-    const c = {
-      req: { raw: new Request('https://example.com/user/me') },
-      env: { DB: {} },
-      set: setFn,
-    } as unknown as Context;
+    const c = { ...contextWith({ DB: {} }), set: setFn } as unknown as Context;
     const next = vi.fn();
 
-    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockResolvedValue(mockUserEmail);
+    mockAuth().mockResolvedValue(mockUserEmail);
 
     const handler = MiddlewareHandlers.userAuthentication();
     await handler(c, next);
@@ -85,13 +96,9 @@ describe('MiddlewareHandlers', () => {
 
   it('resolves through the registry so an address that already has an account cannot fork a second one', async () => {
     const setFn = vi.fn();
-    const c = {
-      req: { raw: new Request('https://example.com/user/me') },
-      env: { DB: {} },
-      set: setFn,
-    } as unknown as Context;
+    const c = { ...contextWith({ DB: {} }), set: setFn } as unknown as Context;
 
-    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockResolvedValue(mockUserEmail);
+    mockAuth().mockResolvedValue(mockUserEmail);
 
     const handler = MiddlewareHandlers.userAuthentication();
     await handler(c, vi.fn());
@@ -105,15 +112,10 @@ describe('MiddlewareHandlers', () => {
 
   it('returns error JSON when IServiceError is thrown', async () => {
     const jsonFn = vi.fn().mockReturnValue('error response');
-    const c = {
-      req: { raw: new Request('https://example.com/user/me') },
-      env: {},
-      set: vi.fn(),
-      json: jsonFn,
-    } as unknown as Context;
+    const c = { ...contextWith({}), set: vi.fn(), json: jsonFn } as unknown as Context;
     const next = vi.fn();
 
-    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockRejectedValue(new UnauthorizedError('Invalid token'));
+    mockAuth().mockRejectedValue(new UnauthorizedError('Invalid token'));
 
     const handler = MiddlewareHandlers.userAuthentication();
     await handler(c, next);
@@ -123,18 +125,46 @@ describe('MiddlewareHandlers', () => {
   });
 
   it('re-throws non-IServiceError errors', async () => {
-    const c = {
-      req: { raw: new Request('https://example.com/user/me') },
-      env: {},
-      set: vi.fn(),
-    } as unknown as Context;
+    const c = contextWith({});
     const next = vi.fn();
 
     const error = new Error('Unexpected error');
-    (EmailValidationUtil.getAuthenticatedUserEmail as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+    mockAuth().mockRejectedValue(error);
 
     const handler = MiddlewareHandlers.userAuthentication();
     await expect(handler(c, next)).rejects.toThrow('Unexpected error');
     expect(next).not.toHaveBeenCalled();
+  });
+
+  describe('Access configuration', () => {
+    /**
+    Run the middleware once and return the options it handed the authenticator.
+    */
+    async function optionsFor(env: Record<string, unknown>): Promise<Record<string, unknown>> {
+      mockAuth().mockResolvedValue(mockUserEmail);
+      await MiddlewareHandlers.userAuthentication()(contextWith(env), vi.fn());
+      return mockAuth().mock.calls[0]?.[2] as Record<string, unknown>;
+    }
+
+    it('hands the verifier the team domain and audience', async () => {
+      const options = await optionsFor({ TEAM_DOMAIN: 'https://team.cloudflareaccess.com', POLICY_AUD: 'aud' });
+      expect(options.teamDomain).toBe('https://team.cloudflareaccess.com');
+      expect(options.policyAud).toBe('aud');
+    });
+
+    it('does not allow the dev bypass when DEV_AUTH_EMAIL is unset', async () => {
+      // The allow-list is derived from the var rather than hard-coded, so local
+      // development is unchanged -- but the decision is now a named line rather
+      // than a side effect inside the resolver, which is what makes it reviewable.
+      const options = await optionsFor({});
+      expect(options.bypassAllowed).toBe(false);
+      expect(options.devAuthEmail).toBeUndefined();
+    });
+
+    it('allows the dev bypass exactly when DEV_AUTH_EMAIL is set', async () => {
+      const options = await optionsFor({ DEV_AUTH_EMAIL: 'dev@example.com' });
+      expect(options.bypassAllowed).toBe(true);
+      expect(options.devAuthEmail).toBe('dev@example.com');
+    });
   });
 });

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import Unauthorized from './components/layout/Unauthorized';
+import { useTranslation } from 'react-i18next';
+import { NoticeBar, Unauthorized } from '@rexezuge/web';
 import type { ActiveView } from './types';
 import { Header } from './components/layout/Header';
-import { NoticeBar } from './components/layout/NoticeBar';
 import { SpaViewRouter } from './components/layout/SpaViewRouter';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { AuditLogsModal } from './components/modals/AuditLogsModal';
@@ -32,7 +32,19 @@ const initialStatus = getUrlParam('status', '');
 const initialActionId = getUrlParam('actionId', '');
 const initialLogDocId = getUrlParam('logDocId', '');
 
+/**
+ * Screen-reader prefixes for the transient notice banner, keyed by kind.
+ *
+ * Passed in rather than defaulted because the label is user-facing text and this
+ * repo's user-facing text is translated: `NoticeBar` cannot invent an English
+ * string for a locale it does not know about. These are the two kinds the hook
+ * produces, so no other keys are needed — adding a kind makes this a type error
+ * rather than a silently unlabelled announcement.
+ */
+const NOTICE_STATUS_LABELS = { success: 'Success', error: 'Error' } as const;
+
 export default function SpaApp() {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<ActiveView>(initialView);
   const [isBusy, setIsBusy] = useState(false);
 
@@ -135,7 +147,15 @@ export default function SpaApp() {
     );
   }
 
-  if (!authorized || !user) return <Unauthorized />;
+  if (!authorized || !user) {
+    return (
+      <Unauthorized
+        title={t('unauthorized.title', 'Access Required')}
+        message={t('unauthorized.message', 'You Must Authenticate To Access This Application.')}
+        actionLabel={t('unauthorized.action', 'Authenticate with Cloudflare Zero Trust')}
+      />
+    );
+  }
 
   const router = (
     <SpaViewRouter
@@ -166,7 +186,7 @@ export default function SpaApp() {
             languageDisabled={languagePending || languageStatus !== 'ready'}
           />
 
-          {notice && <NoticeBar notice={notice} />}
+          {notice && <NoticeBar notice={notice} statusLabels={NOTICE_STATUS_LABELS} />}
 
           {activeView === 'mailboxes' ? (
             <MailboxCallbacksContext.Provider value={mailboxCallbacksValue}>{router}</MailboxCallbacksContext.Provider>

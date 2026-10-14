@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@mail-otter/shared": "workspace:*",
-    "@rexezuge/errors": "link:../../../SDK/packages/errors",
-    "@rexezuge/shared": "link:../../../SDK/packages/shared",
+    "@rexezuge/errors": "1.7.2",
+    "@rexezuge/shared": "1.7.2",
     "html-to-text": "10.0.1"
   },
   "devDependencies": {

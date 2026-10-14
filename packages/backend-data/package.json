@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "@mail-otter/shared": "workspace:*",
-    "@rexezuge/d1": "link:../../../SDK/packages/d1",
-    "@rexezuge/errors": "link:../../../SDK/packages/errors",
-    "@rexezuge/shared": "link:../../../SDK/packages/shared"
+    "@rexezuge/d1": "1.7.2",
+    "@rexezuge/errors": "1.7.2",
+    "@rexezuge/shared": "1.7.2"
   },
   "devDependencies": {
     "@types/node": "26.6.4",

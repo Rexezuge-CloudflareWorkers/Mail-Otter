@@ -45,5 +45,22 @@ export default defineConfig({
       { find: 'cloudflare:workflows', replacement: cloudflareWorkflowsMockPath },
       { find: /^@\//, replacement: `${apiSrcPath}/` },
     ],
+    /**
+     * `@rexezuge/*` must stay inside Vite's pipeline rather than being
+     * externalized to Node.
+     *
+     * Two separate reasons, and the second only appeared once the kit was
+     * installed from the registry rather than linked. The kit ships ESM `dist/`
+     * with bundler-style extensionless imports that Node's resolver refuses; and
+     * `@rexezuge/runtime`'s worker bases `extend DurableObject` /
+     * `WorkflowEntrypoint` from `cloudflare:workers`, a specifier that only
+     * exists inside a worker. Externalized, Node sees the real `cloudflare:`
+     * protocol instead of the `cloudflare:workers` alias above and every suite
+     * that reaches the composition root dies with "Only URLs with a scheme in
+     * file, data, and node are supported".
+     *
+     * Same constant as `@rexezuge/tooling`'s `KIT_NO_EXTERNAL`.
+     */
+    noExternal: [/(^|[/\\])@rexezuge\//],
   },
 });

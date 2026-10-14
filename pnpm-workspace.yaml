@@ -5,3 +5,37 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+
+# pnpm 11 reads settings from this file, not `.npmrc`, so the `minimum-release-age=0`
+# this repo has carried in `.npmrc` has been doing nothing and pnpm's 24-hour
+# default has been applying instead.
+#
+# Set to 0 explicitly. The repo's own third-party dependencies are pinned to exact
+# versions in the lockfile, which is the guarantee the cooldown was standing in for
+# here, and the kit is published by this org from the sibling SDK repo.
+minimumReleaseAge: 0
+
+overrides:
+  # One copy of every kit package, always.
+  #
+  # The kit versions in lockstep, but a publish does not reach the registry
+  # atomically: mid-window, `@rexezuge/http@1.7.2` can carry a dependency on
+  # `@rexezuge/errors@1.7.1` while this repo asks for 1.7.2 directly, and pnpm
+  # installs both.
+  #
+  # Two copies of a package that identifies its types with `instanceof` is a
+  # silent correctness bug, not a version warning. A `DatabaseError` thrown
+  # inside `@rexezuge/d1` stops being a `ServiceError` as far as this repo's
+  # boundary is concerned, so every catch that narrows on the taxonomy falls
+  # through to a masked 500 — and the failure names no package, so it reads as
+  # an error-mapping bug rather than an install-layout one.
+  #
+  # Bumping the kit is one line here plus the manifests. Drop the transitive
+  # rows once a publish has fully propagated and the resolver agrees without it.
+  '@rexezuge/d1': '1.7.2'
+  '@rexezuge/errors': '1.7.2'
+  '@rexezuge/http': '1.7.2'
+  '@rexezuge/i18n': '1.7.2'
+  '@rexezuge/identity': '1.7.2'
+  '@rexezuge/runtime': '1.7.2'
+  '@rexezuge/shared': '1.7.2'

@@ -1,5 +1,18 @@
 @import 'tailwindcss';
 
+/* Scan the kit's class-based primitives (NoticeBar, Unauthorized, ...). They live in
+   node_modules, which @tailwindcss/vite excludes from the Vite root, so without this
+   directive their Tailwind utilities are never generated: the markup renders, the
+   styles do not, and the build stays green.
+
+   The `@theme` block below supplies the kit's colour *variables*, which is a different
+   job — a variable an app never references generates nothing, and a class the compiler
+   never sees generates nothing either. Both are required.
+
+   `*.js` rather than the whole `dist`: the class strings only ever live in the emitted
+   JavaScript. The path carries no version, so bumping `@rexezuge/web` keeps working. */
+@source "../node_modules/@rexezuge/web/dist/*.js";
+
 @theme {
   /* Warm dark palette */
   --color-surface-base: #100f0d;

@@ -18,6 +18,7 @@
     "test:all": "pnpm run test:coverage && pnpm run test:integration && pnpm run test:web",
     "lint": "node scripts/lint-workspaces.mjs",
     "lint:fix": "node scripts/lint-workspaces.mjs --fix",
+    "verify:kit-css": "tsx scripts/build/verify-kit-css.ts",
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {

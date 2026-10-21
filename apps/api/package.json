@@ -13,7 +13,7 @@
     "@mail-otter/background": "workspace:*",
     "@mail-otter/shared": "workspace:*",
     "@rexezuge/d1": "1.7.2",
-    "@rexezuge/errors": "1.7.2",
+    "@rexezuge/errors": "1.9.2",
     "@rexezuge/http": "1.7.2",
     "@rexezuge/identity": "1.7.2",
     "@rexezuge/runtime": "1.7.2",

@@ -14,7 +14,7 @@
     "clsx": "2.1.1",
     "i18next": "^26.5.10",
     "lucide-react": "1.61.0",
-    "react": "19.3.0",
+    "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-i18next": "^17.1.8",
     "react-markdown": "^10.1.0",

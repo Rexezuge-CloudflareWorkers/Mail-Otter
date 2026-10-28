@@ -31,7 +31,7 @@
     "@rexezuge/runtime": "1.7.2",
     "@rexezuge/shared": "1.7.2",
     "@rexezuge/tooling": "1.7.2",
-    "@rexezuge/web": "1.7.2",
+    "@rexezuge/web": "1.9.2",
     "@types/node": "26.6.5",
     "@vitejs/plugin-react": "6.1.2",
     "@vitest/coverage-v8": "4.1.10",

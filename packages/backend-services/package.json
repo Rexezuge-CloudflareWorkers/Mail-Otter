@@ -55,7 +55,7 @@
     "@rexezuge/d1": "1.9.2",
     "@rexezuge/errors": "1.9.2",
     "@rexezuge/identity": "1.9.2",
-    "@rexezuge/runtime": "1.7.2",
+    "@rexezuge/runtime": "1.9.2",
     "@rexezuge/shared": "1.7.2",
     "jose": "6.2.12"
   },

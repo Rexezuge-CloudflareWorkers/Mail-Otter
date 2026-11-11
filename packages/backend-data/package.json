@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@mail-otter/shared": "workspace:*",
-    "@rexezuge/d1": "1.9.2",
+    "@rexezuge/d1": "1.9.4",
     "@rexezuge/errors": "1.9.4",
     "@rexezuge/shared": "1.9.4"
   },

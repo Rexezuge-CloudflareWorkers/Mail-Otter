@@ -25,7 +25,7 @@
     "@rexezuge/d1": "1.9.4",
     "@rexezuge/errors": "1.9.4",
     "@rexezuge/identity": "1.9.4",
-    "@rexezuge/runtime": "1.9.2",
+    "@rexezuge/runtime": "1.9.4",
     "@rexezuge/shared": "1.9.4"
   },
   "devDependencies": {

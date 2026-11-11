@@ -57,7 +57,7 @@
     "@rexezuge/identity": "1.9.2",
     "@rexezuge/runtime": "1.9.2",
     "@rexezuge/shared": "1.9.4",
-    "jose": "6.2.14"
+    "jose": "6.2.15"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

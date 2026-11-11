@@ -9,7 +9,7 @@
   "dependencies": {
     "@rexezuge/i18n": "1.9.2",
     "@rexezuge/shared": "1.9.4",
-    "zod": "4.6.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

@@ -149,8 +149,8 @@ importers:
         specifier: 3.6.0
         version: 3.6.0
       hono:
-        specifier: 4.13.18
-        version: 4.13.18
+        specifier: 4.13.20
+        version: 4.13.20
     devDependencies:
       '@types/node':
         specifier: 26.6.6
@@ -2218,8 +2218,8 @@ packages:
     resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
     engines: {node: '>=16.9.0'}
 
-  hono@4.13.18:
-    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
+  hono@4.13.20:
+    resolution: {integrity: sha512-xo6gecEJQ+CjTtOUUbcLHE8CdRKMeF4qITe+DT+OhFnSUmZR/ZBa9XavAfiGh4HlukmlaHFdaK4dz5tkTYFNmA==}
     engines: {node: '>=16.9.0'}
 
   hookified@1.15.1:
@@ -4868,7 +4868,7 @@ snapshots:
 
   hono@4.13.13: {}
 
-  hono@4.13.18: {}
+  hono@4.13.20: {}
 
   hookified@1.15.1: {}
 

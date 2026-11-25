@@ -146,8 +146,8 @@ importers:
         specifier: 1.7.2
         version: 1.7.2
       chanfana:
-        specifier: 3.6.0
-        version: 3.6.0
+        specifier: 3.7.0
+        version: 3.7.0
       hono:
         specifier: 4.13.20
         version: 4.13.20
@@ -1863,6 +1863,11 @@ packages:
 
   chanfana@3.6.0:
     resolution: {integrity: sha512-2V8xnbCmK7TM8gM1HP43WGB+J5qxmrDPcQUkrhTZ1UzTFblz85zz8SfHVYgSF4l4qobKHSVUmTCMRNG/ANwjhQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  chanfana@3.7.0:
+    resolution: {integrity: sha512-nWiZIgCWhlbGPiPN+0dBQ/Mt4zBjROqVA9bR30XteBGZFO5aCSCT47S5iP+42teYi67opfxOs1Man8jCBLezEg==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4426,6 +4431,14 @@ snapshots:
   chai@6.2.2: {}
 
   chanfana@3.6.0:
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 9.1.0(zod@4.6.7)
+      js-yaml: 5.5.0
+      openapi3-ts: 4.6.2
+      yargs-parser: 22.0.0
+      zod: 4.6.7
+
+  chanfana@3.7.0:
     dependencies:
       '@asteasolutions/zod-to-openapi': 9.1.0(zod@4.6.7)
       js-yaml: 5.5.0

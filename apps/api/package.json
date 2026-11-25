@@ -19,7 +19,7 @@
     "@rexezuge/runtime": "1.9.4",
     "@rexezuge/shared": "1.9.4",
     "chanfana": "3.6.0",
-    "hono": "4.13.18"
+    "hono": "4.13.20"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

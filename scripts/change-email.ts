@@ -263,7 +263,7 @@ async function main(): Promise<void> {
     `UPDATE user_emails SET is_verified = 0 WHERE user_id = ${accountId} AND email != ${target};`,
   ];
 
-  const out: string = [];
+  const out: string[] = [];
   out.push(`account  ${account.id}`);
   out.push(`anchor   ${account.anchor}  (frozen — never updated)`);
   out.push(`from     ${current}`);

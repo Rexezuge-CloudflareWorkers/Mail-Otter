@@ -68,10 +68,19 @@ jobs:
       - name: Build Web App
         run: pnpm --filter @mail-otter/web build
 
+      # Separate steps so a dry-run failure names the dry run rather than
+      # arriving inside a deploy log. The retry wrapper belongs only on the
+      # deploy: re-running a failed validation cannot fix a wrong config.
+      - name: Dry Run Deploy with Wrangler
+        run: pnpm exec wrangler deploy --dry-run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy with Wrangler
         uses: ./.github/actions/retry-step
         with:
-          command: pnpm exec wrangler deploy --dry-run && pnpm exec wrangler deploy
+          command: pnpm exec wrangler deploy
           max_attempts: '3'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

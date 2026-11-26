@@ -1,0 +1,27 @@
+import { describe, expect, it } from 'vitest';
+import { backupFileName, backupStamp } from '../../scripts/backup/naming';
+import { remoteTargetDir } from '../../scripts/backup/webdav-target';
+
+describe('backupStamp', () => {
+  it('formats the UTC timestamp for a filename', () => {
+    expect(backupStamp(new Date('2026-10-01T04:15:09Z'))).toBe('2026-10-01_04-15-09');
+  });
+
+  it('produces lexicographically sortable names', () => {
+    const earlier = backupFileName(new Date('2026-09-28T04:15:00Z'));
+    const later = backupFileName(new Date('2026-10-01T04:15:00Z'));
+
+    expect(earlier < later).toBe(true);
+    expect(later).toMatch(/^mail_otter_prod_2026-10-01_04-15-00\.sql\.xz\.enc$/);
+  });
+});
+
+describe('remoteTargetDir', () => {
+  it('nests backups under a production directory on the remote', () => {
+    expect(remoteTargetDir('mail-otter')).toBe('webdav:mail-otter/production');
+  });
+
+  it('honours a custom base path', () => {
+    expect(remoteTargetDir('team/backups')).toBe('webdav:team/backups/production');
+  });
+});

@@ -5,10 +5,17 @@
   "scripts": {
     "postinstall": "node scripts/ensure-spa-shell-stub.mjs && pnpm run typegen",
     "build": "pnpm -r build",
+    "checks": "pnpm run checks:fast && pnpm run test:coverage && pnpm run test:integration && pnpm run test:web",
+    "checks:fast": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run check:god-files && pnpm run validate:migrations && pnpm run validate:locales && pnpm run verify:spa-shell && pnpm run verify:kit-css",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prettier": "prettier --write .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && pnpm run typecheck:scripts",
+    "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
+    "validate:locales": "python3 apps/web/scripts/validate_locales.py",
+    "validate:migrations": "tsx scripts/migrations/verify-migrations.ts",
+    "migrations:lock": "tsx scripts/migrations/verify-migrations.ts --write",
+    "check:god-files": "node scripts/check-god-files.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config test/integration/vitest.config.mts",
@@ -19,6 +26,7 @@
     "lint": "node scripts/lint-workspaces.mjs",
     "lint:fix": "node scripts/lint-workspaces.mjs --fix",
     "verify:kit-css": "tsx scripts/build/verify-kit-css.ts",
+    "verify:spa-shell": "tsx scripts/build/verify-spa-shell.ts",
     "typegen": "wrangler types --config ./apps/api/wrangler.template.jsonc --env-interface CloudflareEnv"
   },
   "devDependencies": {

@@ -1,7 +1,8 @@
 """Validate all locale files: JSON-valid, key parity with en, placeholder parity, no empty values."""
 import json, glob, re, sys
+from pathlib import Path
 
-BASE = '/home/engineer/workspace/CloudflareWorkers/Mail-Otter/apps/web/src/locales'
+BASE = Path(__file__).resolve().parent.parent / 'src' / 'locales'
 PH = re.compile(r'\{\{[^}]+\}\}')
 
 def flat(o, p=''):

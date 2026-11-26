@@ -31,6 +31,12 @@ Every `getUserVectorNamespace` call site must therefore be fed the **anchor** (`
 
 `pnpm exec tsx scripts/change-email.ts --db <name> (--account <email> | --id <usr_id>) --to <new> [--remote] [--dry-run]` — moves an account's sign-in address (claim → move → revoke, in that order, so the user is never locked out). Defaults to the **local** D1; `--remote` is opt-in. `--dry-run` is the only confirmation gate, so take a D1 backup out of band before running against `--remote`.
 
+`migrations/migrations.lock.json` digests every applied migration; `pnpm run validate:migrations` is a CI gate and `pnpm run migrations:lock` is the add-only writer. Editing an applied SQL file fails CI — a fresh database would get the edit while production kept the original schema.
+
+## D1 backups
+
+`.github/workflows/backup-d1.yml` exports `mail-otter-db` daily at 04:15 UTC and uploads an encrypted dump to S3-compatible storage and/or WebDAV. The workflow is opt-in by secrets: with no destination configured every job skips green, but a destination without `BACKUP_ENCRYPTION_KEY` fails closed. Required: `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` (shared with deploy) and `BACKUP_ENCRYPTION_KEY`. Optional destinations: `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET` (+ `S3_ENDPOINT`, `S3_REGION`) and `WEBDAV_URL` / `WEBDAV_USER` / `WEBDAV_PASSWORD`; retention via `BACKUP_RETENTION_DAYS` (default 30). Restore and time-travel playbook: `docs/db-backup-recovery.md`.
+
 ## Required vars (no defaults)
 
 `POLICY_AUD`, `TEAM_DOMAIN` — Cloudflare Access JWT verification (`@rexezuge/http`'s `authenticateAccess`, called from `MiddlewareHandlers`). No default; without both, every `/user/*` request answers 401 rather than falling open. `DEV_AUTH_EMAIL` is declared on `Env` so the bypass stays greppable — see `apps/api/AGENTS.md`.

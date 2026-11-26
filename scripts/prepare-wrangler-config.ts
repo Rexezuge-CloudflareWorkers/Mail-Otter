@@ -1,19 +1,25 @@
 #!/usr/bin/env tsx
 
 import { execFileSync } from 'child_process';
-import { copyFileSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { applyEdits, modify, parse } from 'jsonc-parser';
+import { DEFAULT_UUID } from './lib/wrangler-config/types';
 
 const CONFIG_PATH = join(process.cwd(), 'wrangler.jsonc');
 const TEMPLATE_PATH = join(process.cwd(), 'apps/api/wrangler.template.jsonc');
-const DEFAULT_UUID = '00000000-0000-0000-0000-000000000000';
 const DEFAULT_HEX_ID = '00000000000000000000000000000000';
 const DEFAULT_SECRET_STORE_NAME = 'default';
 const DEFAULT_KV_NAMESPACE_NAMES: Record<string, string> = {
   OAUTH2_TOKEN_CACHE: 'mail-otter-oauth2-token-cache',
 };
 const VECTORIZE_DIMENSIONS = 1024;
+
+/**
+ * D1 databases created in this run, emitted as a step output for the backup
+ * workflow so it can refuse to export an empty, freshly provisioned database.
+ */
+const createdD1Databases: string[] = [];
 
 interface WranglerConfig {
   name?: string;
@@ -226,6 +232,7 @@ function ensureD1Database(databaseName: string): string {
   if (!database) {
     console.log(`Creating D1 database: ${databaseName}`);
     runWrangler(['d1', 'create', databaseName]);
+    createdD1Databases.push(databaseName);
     database = listD1Databases().find((candidate) => candidate.name === databaseName);
   }
 
@@ -435,4 +442,11 @@ if (isMain) {
   applyVarsPatch();
   provisionWranglerResources();
   console.log('Wrangler configuration is ready.');
+
+  // No-op outside Actions: the backup workflow reads this as `created` and
+  // skips any `d1:` entry, since a database created in this run is empty.
+  const outputFile = process.env.GITHUB_OUTPUT;
+  if (outputFile) {
+    appendFileSync(outputFile, `created=${createdD1Databases.map((name) => `d1:${name}`).join(',')}\n`);
+  }
 }

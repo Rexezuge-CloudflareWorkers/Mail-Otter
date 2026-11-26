@@ -1,0 +1,181 @@
+name: Backup D1 Database
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Daily at 04:15 UTC. Off the top of the hour on purpose: GitHub drops
+    # scheduled workflows that share a minute with high-traffic crons.
+    - cron: '15 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: backup-d1
+  cancel-in-progress: false
+
+env:
+  BACKUP_RETENTION_DAYS: ${{ secrets.BACKUP_RETENTION_DAYS || 30 }}
+
+jobs:
+  check-secrets:
+    name: Check Secrets
+    runs-on: ubuntu-latest
+    outputs:
+      cloudflare: ${{ steps.check.outputs.cloudflare }}
+      encryption: ${{ steps.check.outputs.encryption }}
+      s3: ${{ steps.check.outputs.s3 }}
+      webdav: ${{ steps.check.outputs.webdav }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # Gates every other job. Nothing configured means every backup job skips
+      # and the repository stays green; a destination without an encryption key
+      # fails here rather than uploading plaintext. See scripts/backup/.
+      - name: Detect Configured Destinations
+        id: check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+          WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+          WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
+        run: pnpm exec tsx scripts/backup/evaluate-destination-config.ts
+
+  export-d1:
+    name: Export D1 Database
+    needs: check-secrets
+    if: needs.check-secrets.outputs.cloudflare == 'true' && needs.check-secrets.outputs.encryption == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      backup-file: ${{ steps.encrypt.outputs.file }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # `created` is what this step emits, and it is what makes the empty-database
+      # guard work: provisioning auto-creates a missing D1 database, and a
+      # database created moments ago holds no user data. Re-reading the
+      # placeholder id out of wrangler.jsonc instead would be checking an
+      # artefact this step has already rewritten, so the guard could never fire.
+      - name: Prepare Wrangler Configuration
+        id: provision
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm exec tsx scripts/prepare-wrangler-config.ts
+          max_attempts: '3'
+        env:
+          WRANGLER_JSONC: ${{ vars.WRANGLER_JSONC }}
+          WRANGLER_PATCH_JSON: ${{ vars.WRANGLER_PATCH_JSON }}
+          WRANGLER_VARS_PATCH_JSON: ${{ vars.WRANGLER_VARS_PATCH_JSON }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Resolves the export target from the same wrangler.jsonc the deploy uses,
+      # so the backup covers exactly the database that was deployed.
+      - name: Resolve D1 Database
+        id: db
+        env:
+          PROVISIONED_RESOURCES: ${{ steps.provision.outputs.created }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec tsx scripts/backup/resolve-d1-target.ts
+
+      - name: Export D1 Database
+        uses: ./.github/actions/retry-step
+        with:
+          command: >
+            pnpm exec wrangler d1 export "${{ steps.db.outputs.target }}"
+            --remote
+            --config ./wrangler.jsonc
+            --skip-confirmation
+            --output=backup.sql
+          max_attempts: '3'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Compress And Encrypt Backup
+        id: encrypt
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: pnpm exec tsx scripts/backup/encrypt-backup.ts
+
+      - name: Upload Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-backup
+          path: mail_otter_prod_*.sql.xz.enc
+          if-no-files-found: error
+          retention-days: 1
+
+  backup-s3:
+    name: Upload To S3
+    needs: [check-secrets, export-d1]
+    if: needs.check-secrets.outputs.s3 == 'true'
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+      # `auto` is what R2 expects. The AWS CLI resolves an empty region to
+      # `https://s3..amazonaws.com` and refuses to run, so a default is required.
+      # Set S3_REGION only for providers that need a concrete value (B2, Wasabi).
+      AWS_DEFAULT_REGION: ${{ secrets.S3_REGION || 'auto' }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+      BACKUP_FILE: ${{ needs.export-d1.outputs.backup-file }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Download Backup Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: d1-backup
+
+      - name: Upload To S3
+        run: pnpm exec tsx scripts/backup/upload-s3.ts
+
+  backup-webdav:
+    name: Upload To WebDAV
+    needs: [check-secrets, export-d1]
+    if: needs.check-secrets.outputs.webdav == 'true'
+    runs-on: ubuntu-latest
+    env:
+      WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+      WEBDAV_USER: ${{ secrets.WEBDAV_USER }}
+      WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
+      WEBDAV_VENDOR: ${{ secrets.WEBDAV_VENDOR || 'other' }}
+      WEBDAV_BASE_PATH: ${{ secrets.WEBDAV_BASE_PATH || 'mail-otter' }}
+      BACKUP_FILE: ${{ needs.export-d1.outputs.backup-file }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Download Backup Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: d1-backup
+
+      - name: Setup rclone
+        uses: AnimMouse/setup-rclone@26ef2133e09fd383329a1d4c1fbe6a71db1976c9 # v1
+
+      - name: Upload To WebDAV
+        run: pnpm exec tsx scripts/backup/upload-webdav.ts

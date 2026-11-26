@@ -147,6 +147,15 @@ describe('api client', () => {
 });
 
 describe('locale resolution', () => {
+  beforeEach(() => {
+    // Node 24 exposes its own `localStorage` global (experimental, and absent
+    // without --localstorage-file), so Vitest's jsdom environment does not copy
+    // the jsdom Storage object over it. These tests need the real Storage; the
+    // jsdom instance Vitest installs is still available on `globalThis.jsdom`.
+    const jsdomWindow = (globalThis as { jsdom?: { window: Window & typeof globalThis } }).jsdom?.window;
+    if (jsdomWindow) vi.stubGlobal('localStorage', jsdomWindow.localStorage);
+  });
+
   afterEach(() => {
     localStorage.clear();
   });

@@ -145,6 +145,7 @@ externalized Node sees the real protocol instead of the test alias for it.
 | Drive/OneDrive ingestion                         | `docs/agents/features/drive-ingestion/AGENTS.md`                                                                  |
 | Activity feed                                    | `docs/agents/features/activity-feed/AGENTS.md`                                                                    |
 | AI email chat                                    | `docs/agents/features/chat/AGENTS.md`                                                                             |
+| D1 backup, restore, time travel                  | `docs/db-backup-recovery.md`                                                                                      |
 
 ## Keeping AGENTS.md Current
 

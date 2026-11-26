@@ -2,23 +2,28 @@ name: Upstream Sync
 
 on:
   schedule:
-    - cron: '0 2 * * 1'
+    # Deliberately off the hour. Scheduled jobs queued at `:00` are delayed and
+    # can be dropped under load, and changing the value restarts a schedule
+    # that has silently stopped.
+    - cron: '17 2 * * 1'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   sync:
     if: ${{ github.event.repository.fork }}
-    name: Sync latest commits from upstream
-    permissions:
-      contents: write
+    name: Sync From Upstream
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
-      - name: Sync upstream changes
+      - name: Sync Changes
         id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        # Pinned, not a floating tag: a tag move must not change what runs in a
+        # privileged workflow without a commit here.
+        uses: aormsby/Fork-Sync-With-Upstream-action@9e2e4fd0829a2fe8ca4b13693faac9230c414d51 # v3.4
         with:
           upstream_sync_repo: Rexezuge-CloudflareWorkers/Mail-Otter
           upstream_sync_branch: main
@@ -26,11 +31,13 @@ jobs:
           target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           test_mode: false
 
-      - name: Trigger CI for synced commits
+      # Must match the `repository_dispatch` type in continuous-integration.yml
+      # and the `if:` guard on its dispatch job.
+      - name: Trigger Continuous Integration
         if: steps.sync.outputs.has_new_commits == 'true'
         uses: ./.github/actions/retry-step
         with:
-          command: gh api repos/${{ github.repository }}/dispatches --method POST -f event_type='Upstream Sync'
+          command: gh api repos/${{ github.repository }}/dispatches --method POST -f event_type='Upstream Sync Integration'
           max_attempts: '2'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

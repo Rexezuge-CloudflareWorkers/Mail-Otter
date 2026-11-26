@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // ESNext rather than the repo default ES2022: the lint rules here expect
+    // `Array#toSorted` and the iterator helpers, and against an older lib those
+    // resolve to `any` rather than failing cleanly, which silently turns
+    // type-aware rules into noise.
+    "lib": ["ESNext", "DOM"],
+    // Existing entrypoints import sibling `.ts` modules by their real extension
+    // (`verify-kit-css.ts`), which tsx resolves but tsc needs this flag for.
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

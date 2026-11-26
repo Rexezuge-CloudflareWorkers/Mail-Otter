@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "baseline": "0021_squash.sql",
+  "migrations": {
+    "0021_squash.sql": "sha256:82f776973b11f1050679b6c0d87e814b836edd2260721d4c2fed02caeb4272ea",
+    "0022_digest_mode.sql": "sha256:3b49cf3925dc46788eb0710a66fc7275fa202ef8669669039a45af063dfbcfad",
+    "0023_background_task_runs.sql": "sha256:9f9854038006be49b65b11f95a1a20f67e8221676a924e470d10f683d2328778",
+    "0024_rag_retrieval_toggle.sql": "sha256:db79b87b972f1011470fd54cc6835c91c2191e25f2e62582bb92213c5fa3bf27",
+    "0025_action_scheduling.sql": "sha256:c64b78d47abaecf99d59040f3b1db1aba60d6d737d6babfe778edb968698f652",
+    "0026_user_language.sql": "sha256:d138b387df3661398a4a49935f508abac2060d2f30bb0dc6371cafa2d46ea0fc",
+    "0027_action_execution_scheduled_trigger.sql": "sha256:e94a938221e27d8f5c355d47b1ab994df5d51ebc5d018b123c36baeb93fb2374",
+    "0028_user_identity.sql": "sha256:941fc002a22e78080fab8498f2935aef5c5498b2adae7577ccf55ff9cc62312d",
+    "0029_user_username.sql": "sha256:08a3c7e92be886d7bebfd2de64a3e0aa00575f1dbb317186140e98ed6ad6b6f0"
+  }
+}

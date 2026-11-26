@@ -6,7 +6,7 @@ permissions:
 on:
   repository_dispatch:
     types:
-      - Upstream Sync
+      - Upstream Sync Integration
   pull_request:
   push:
     branches:
@@ -18,8 +18,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Checks
+  # Typecheck and lint are separate jobs rather than one job running both, so a
+  # failure names the tool that broke and a retry re-runs only that half. They
+  # share nothing: `noEmit` everywhere, no project references, and ESLint builds
+  # its own TS program via `projectService`, so neither consumes the other's
+  # output.
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # `pnpm run typecheck` reaches every workspace package and the scripts/
+      # directory, which is not a workspace package and therefore needs its own
+      # `tsc -p scripts/tsconfig.json --noEmit` call from the package script.
+      - name: Run Typecheck
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run typecheck
+          max_attempts: '2'
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run Lint
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run lint
+          max_attempts: '2'
+
+  # Its own job, and read-only, because the `lint` job cannot catch this:
+  # `prettier/prettier` is a warning and `--quiet` suppresses it, so a tree
+  # Prettier rejects still exits 0. `prettier --check` is the one command that
+  # fails instead of repairing. Separate from `lint` so the failure says
+  # "formatting" rather than arriving inside a lint log.
+  format:
+    name: Format
     runs-on: ubuntu-latest
 
     steps:
@@ -30,14 +77,78 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Check Formatting
-        run: pnpm run format:check
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run format:check
+          max_attempts: '2'
 
-      - name: Run Type Check and Lint
-        run: pnpm -r typecheck && pnpm run lint
+  migrations:
+    name: Migration Lock
+    runs-on: ubuntu-latest
 
-      - name: Check God-Files (warn-only until remaining splits land)
-        run: node scripts/check-god-files.mjs
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # Its own job rather than a step in `typecheck` or `lint`, so a failure
+      # names migrations instead of arriving inside a typecheck or lint log.
+      # Editing an already-applied migration is invisible to every other check:
+      # the deploy succeeds, fresh databases pick up the edited statements, and
+      # production keeps the schema it had.
+      - name: Verify Migration Lock
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run validate:migrations
+          max_attempts: '2'
+
+  god-files:
+    name: God Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # Its own job, like `migrations` and `locales`: a file growing past the
+      # limit is invisible to typecheck, lint, and the tests — they all pass
+      # perfectly well on a 500-line component.
+      #
+      # Warn-only for now: several files still exceed the 400-LOC hard limit,
+      # so making this fail would turn every run red before the splits land.
+      # The day the guard is enforced, delete this `continue-on-error`.
+      - name: Check God Files
         continue-on-error: true
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run check:god-files
+          max_attempts: '2'
+
+  locales:
+    name: Locales
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      # A locale defect is invisible to the unit tests: the catalogs are data,
+      # and a key missing from eleven bundles still typechecks and builds. Its
+      # own job so a failure says "locales" instead of arriving inside a
+      # typecheck log.
+      - name: Validate Locale Bundles
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run validate:locales
+          max_attempts: '2'
 
   unit-tests:
     name: Unit Tests
@@ -51,21 +162,18 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run Tests with Coverage
-        run: pnpm run test:coverage
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run test:coverage
+          max_attempts: '2'
 
-  web-tests:
-    name: Web Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-
-      - name: Run SPA Unit Tests
-        run: pnpm run test:web
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
   integration-tests:
     name: Integration Tests
@@ -79,10 +187,36 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run Integration Tests
-        run: pnpm run test:integration
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run test:integration
+          max_attempts: '2'
 
-  build:
-    name: Build
+  # The SPA has its own Vitest project (jsdom), separate from the Workers unit
+  # suite. Its own job so a failure says "web tests" rather than arriving inside
+  # a backend test log.
+  web-tests:
+    name: Web Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run SPA Unit Tests
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run test:web
+          max_attempts: '2'
+
+  # Only the SPA build. The API worker is typechecked by the `typecheck` job, so
+  # repeating it here ran the same `tsc --noEmit` against the same tsconfig a
+  # second time.
+  build-web:
+    name: Build Web App
     runs-on: ubuntu-latest
 
     steps:
@@ -95,9 +229,55 @@ jobs:
       - name: Build Web App
         run: pnpm --filter @mail-otter/web build
 
-      # Reads the bundle the step above just produced, so it must follow it: a check
-      # that runs before its build inspects whatever `dist/` the runner happened to
-      # have and passes for the wrong reason.
+  # Verifies the shell the API worker *serves*, which is a different artifact
+  # from `apps/web/dist/` — it is embedded into
+  # `apps/api/src/generated/spa-shell.ts` by the Vite plugin, and both are
+  # gitignored. A stale-but-present shell is a deploy that serves yesterday's UI.
+  #
+  # Its own job, and it builds first rather than depending on `build-web`, so the
+  # failure says "the served shell is wrong" instead of arriving inside a build
+  # log. That costs a second Vite build per run; the alternative — verifying
+  # inside `build-web` — is free and is the trade being made here.
+  spa-shell:
+    name: Verify SPA Shell
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build Web App
+        run: pnpm --filter @mail-otter/web build
+
+      - name: Verify The SPA Shell
+        uses: ./.github/actions/retry-step
+        with:
+          command: pnpm run verify:spa-shell
+          max_attempts: '2'
+
+  # The kit's controls render class names from inside `node_modules`, which
+  # Tailwind's scan root does not reach without the `@source` line in
+  # `globals.css`. The emitted stylesheet is the only place that absence shows
+  # up, so this reads the bundle the build above just produced. Build first:
+  # a check that runs before its build inspects whatever `dist/` the runner
+  # happened to have and passes for the wrong reason.
+  kit-css:
+    name: Verify Kit CSS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build Web App
+        run: pnpm --filter @mail-otter/web build
+
       - name: Verify The Kit CSS
         uses: ./.github/actions/retry-step
         with:
@@ -108,11 +288,18 @@ jobs:
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.state == 'open' && !github.event.repository.fork }}
     name: Auto-Merge Dependabot PR
     needs:
-      - checks
+      - typecheck
+      - lint
+      - format
+      - migrations
+      - god-files
+      - locales
       - unit-tests
-      - web-tests
       - integration-tests
-      - build
+      - web-tests
+      - build-web
+      - spa-shell
+      - kit-css
     permissions:
       contents: write
       pull-requests: write
@@ -132,14 +319,25 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
 
   dispatch-upstream-sync-deployment:
-    if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'Upstream Sync' }}
+    # `github.event.action` is the `event_type` of the dispatch: it must match the
+    # `repository_dispatch` types list at the top of this file and the value
+    # `upstream-sync.yml` sends. A stale copy here skips the job silently — CI
+    # goes green and the deployment dispatch that follows it never leaves.
+    if: ${{ github.event_name == 'repository_dispatch' && github.event.action == 'Upstream Sync Integration' }}
     name: Dispatch Upstream Sync Deployment
     needs:
-      - checks
+      - typecheck
+      - lint
+      - format
+      - migrations
+      - god-files
+      - locales
       - unit-tests
-      - web-tests
       - integration-tests
-      - build
+      - web-tests
+      - build-web
+      - spa-shell
+      - kit-css
     permissions:
       contents: write
     runs-on: ubuntu-latest

@@ -5,7 +5,7 @@
   "name": "mail-otter",
   "main": "apps/api/src/index.ts",
   "compatibility_date": "2025-11-29",
-  "compatibility_flags": [],
+  "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
   "workers_dev": false,
   "minify": true,
